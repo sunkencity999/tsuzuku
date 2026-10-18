@@ -24,6 +24,7 @@ import { SHINSA_STATIONS, beltOfStation, projectedArrival, stationProgress } fro
 import { nextScrolls } from '../learn';
 import { S, fill, BELT_NAME } from './engine-strings';
 import { isGrammar, isKana, isKanji, isVocab, isComponent, loadPlanContext, type PlanContext } from './builder';
+import { ES } from './end-card-strings';
 import { kageDueThisWeek } from './kage';
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -159,23 +160,32 @@ export function nextScrollItems(ctx: PlanContext, n: number): string[] {
   return first ? first.itemIds.slice(0, n) : [];
 }
 
-function gateNameOf(station: number): string {
+/**
+ * The next station's vista name ("Fuji view"), when one is known — C2's
+ * `src/art/road/vistas.ts` table once it lands; `null` / `undefined` for none.
+ */
+export type VistaLookup = (station: number) => string | null | undefined;
+
+/** `坂の関守 Hill Keeper`, with the vista riding inside it (`… · Fuji view`) when the lookup knows one (design 09 §10 B2). */
+export function gateNameOf(station: number, vista?: VistaLookup): string {
   const st = STATIONS.find((s) => s.number === station);
-  return st ? `${st.gateJa} ${st.gateEn}` : `Station ${station}`;
+  const gate = st ? `${st.gateJa} ${st.gateEn}` : `Station ${station}`;
+  const v = vista?.(station);
+  return v ? fill(ES.gateWithVista, { gate, vista: v }) : gate;
 }
 
 /** The milestone line: gate ETA from Projected Arrival, else the belt exam, else the Kage Monday (design 03 §10 #2). */
-export function milestoneLine(ctx: PlanContext): string {
+export function milestoneLine(ctx: PlanContext, vista?: VistaLookup): string {
   const progress = store.progress.value;
   if (ctx.bundle) {
     const sp = stationProgress(ctx.station, ctx.bundle);
-    if (sp.gateReady && !sp.cleared) return fill(S.milestoneGateReady, { gate: gateNameOf(ctx.station) });
+    if (sp.gateReady && !sp.cleared) return fill(S.milestoneGateReady, { gate: gateNameOf(ctx.station, vista) });
   }
   if (!progress.stationsCleared.includes(ctx.station)) {
     const proj = projectedArrival(store.meta(), store.cards, ctx.bundles, ctx.station, ctx.today, store.log.recent(5000));
     if (proj) {
       const days = Math.max(0, proj.atPace - ctx.today);
-      return days <= 1 ? fill(S.milestoneGateSoon, { gate: gateNameOf(ctx.station) }) : fill(S.milestoneGateIn, { gate: gateNameOf(ctx.station), n: days });
+      return days <= 1 ? fill(S.milestoneGateSoon, { gate: gateNameOf(ctx.station, vista) }) : fill(S.milestoneGateIn, { gate: gateNameOf(ctx.station, vista), n: days });
     }
   }
   const belt = beltOfStation(ctx.station);
@@ -194,6 +204,8 @@ export interface YokokuOptions {
   today: EpochDay;
   /** Additive: content source (tests pass `createFakeLoader()`). */
   loader?: ContentLoader;
+  /** Additive: the next-station vista name for line 3 (design 09 §10 B2); absent until C2's vistas table lands. */
+  vista?: VistaLookup;
 }
 
 /** 次回予告 (design 03 §10 #2). Every line is informational; nothing counts down. */
@@ -207,7 +219,7 @@ export async function jikaiYokoku(o: YokokuOptions): Promise<JikaiYokoku> {
   const stories = ctx.stories.filter((s) => s.kind === 'story').sort((a, b) => (a.id < b.id ? -1 : 1));
   const candidates = stories.filter((s) => s.lines.some((l) => (l.tokenIds ?? []).some((id) => id !== null && !introduced(id))));
   const story = candidates[0] ?? stories[0] ?? ctx.stories[0];
-  const out: JikaiYokoku = { words: [], milestone: milestoneLine(ctx) };
+  const out: JikaiYokoku = { words: [], milestone: milestoneLine(ctx, o.vista) };
   if (story) {
     const masked = pickMaskedLine(story, introduced, dueSoon);
     if (masked) out.sentence = { storyId: story.id, ja: masked.ja, kana: masked.kana, maskedToken: masked.maskedToken };

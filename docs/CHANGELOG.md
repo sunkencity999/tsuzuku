@@ -2,6 +2,17 @@
 
 Contract-tier changes (ARCHITECTURE §0) after day 0. One line each; the module header carries the detail.
 
+## 2026-10-18 · Design 09 Phase B (Dojo home arrival, End Card ceremony, shell follow-ups) — no contract-tier change
+
+Three owners (B1 dojo-home, B2 end-card, B3 shell-followups), three skeptic lenses each, fixers, one integrator census, then the lead's §12.1 decisions 22–34 (`docs/design/09-design-language-and-motion.md`). Nothing under `src/shared/` changed; the entries below are the cross-tier facts other groups depend on.
+
+- 2026-10-18 · `art/dojo/room.ts` (B1): `roomSvg()` lost `hour` / `phase` (the sky is CSS on `[data-phase]`, the crossfade a second gradient rect) and gained `today`, `crests`, `kageLeaving`, `rings`, `ornament`; `hearthSvg()` takes `id` and emits every state in one string (the live class `dj-hf--<state>` is written by `syncLive`). `SCENE_NODE_BUDGET` 420 holds at 419 on the richest save with every reduced-motion ring; `KOTODAMA_MAX` 110/75 → 105/75. All callers are inside `src/art/dojo`.
+- 2026-10-18 · `app/pages/DojoPage.tsx` + `art/dojo/DojoScene.tsx` (B1, 09 §7 A): the arrival writes `progress.arrivedDay` (page) and `progress.sceneSeen` (scene, its own `SceneInputs` fields); `fetchKoyomi()` runs after mount only when `koyomiData()` is empty — `boot.test.tsx` seeds the calendar so the boot smoke test's no-fetch rule stays strict.
+- 2026-10-18 · `session/end-card-strings.ts` (B2, NEW): the End Card's own strings (lantern words, 次回予告 fills, `gateWithVista`); `session/strings.ts` `dueRemaining` / `dueRemainingOne` reworded to "{n} reviews remain." / "1 review remains." (lead, d27).
+- 2026-10-18 · `i18n/strings.ts` (B3): `listSeparator` and the "+N" chip sentence for the phone fold; `daysLine()` in `app/Layout.tsx` lets an open repair window win over `current`.
+- 2026-10-18 · fonts (lead, d22 / d34): `scripts/fonts/build-fonts.py` `DOJO_BRUSH_KEYS` reads the four `dojoPhase*Ja` keys from `src/app/pages/strings.ts`; `public/fonts/*.woff2` and `src/styles/fonts.css` rebuilt (Yuji shell 52.5 KB, Shippori shell 14.9 KB, first paint 122.0 KB; UI inventory 550). `styles/motion.test.ts` `CSS_CEILING_PHASE` = 421,000 (programme 425,000 unchanged).
+- 2026-10-18 · `docs/design/09-frame-protocol.md` (B3, NEW): the §10 frame protocol (DevTools 4× throttle, ten turns, 18 ms line); every §5 row "not yet run" until A2/C2 fill it in Phase C.
+
 ## 2026-10-18 · Design 09 Phase A (Washi & Sumi: tokens, motion, shell, calendar, fonts) — contract tier
 
 Four owners (A1 tokens-motion, A2 shell-router, A3 calendar-theme, A4 fonts), two skeptic lenses each, fixers, one integrator census, then the lead's §12.1 decisions 11–21 (`docs/design/09-design-language-and-motion.md`).

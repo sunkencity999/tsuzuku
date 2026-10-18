@@ -1,385 +1,101 @@
-/* TSUZUKU — <EndCard> (group E). Sumi card, brush つづく, tally, 次回予告, ledger prompt. */
+/* TSUZUKU — <EndCard> (03 §10; 09 §7 B/C, owner B2). The sumi stage in both themes, --stage-* only; beats are
+   JS state (EndCard.tsx), arrivals ride .ink-nijimi + --i, the mask .ink-hiku, the belts A1's belt-flip. */
 
-.end-card {
-  --card-bg: #0b0b10;
-  --card-fg: #f4ede0;
-  --card-muted: #a9a49a;
-  --card-line: #2c2c3a;
-  --card-raised: #1f1f2a;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-4);
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-  padding: var(--sp-5) var(--gutter) var(--sp-6);
-  color: var(--card-fg);
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.06), transparent 60%),
-    var(--card-bg);
-  border-radius: var(--radius);
-}
+.end-card { display: flex; flex-direction: column; gap: var(--sp-4); box-sizing: border-box; width: 100%; max-width: 720px; margin: 0 auto; padding: var(--sp-5) var(--gutter) var(--sp-6); color: var(--stage-fg); }
+/* beat 0: the page dims to sumi — one fixed layer is the whole stage (the card is transparent, so phones dim too) */
+.end-card::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--stage-fg) 6%, transparent), transparent 60%), var(--stage-bg); animation: mat calc(var(--dur-3) * 0.75) var(--ease-in) both; }
+.end-card .is-pending { visibility: hidden; }
+.end-card .status-window { color: var(--stage-fg); background: var(--stage-raised); border-color: var(--stage-line); }
+.end-card .muted,
+.end-card .eyebrow { color: var(--stage-muted); }
+.end-card .sheet .eyebrow { color: var(--fg-muted); }
 
-.end-card .status-window {
-  color: var(--card-fg);
-  background: var(--card-raised);
-  border-color: var(--card-line);
-}
+/* beat 300: つづく written — the mask stroke is hiku at 4/3 × --dur-4 (the gliss); the h1 hugs the glyphs (the hero), the svg is 1.2em tall so they sit at --fs-7 */
+.end-card__head { text-align: center; }
+.end-card__brush { width: fit-content; margin: 0 auto; font-size: var(--fs-7); line-height: 1.1; }
+.end-card__brush-svg { display: block; height: 1.2em; width: auto; max-width: 100%; aspect-ratio: 17 / 6; overflow: visible; }
+.end-card__brush-text { font-family: var(--font-brush); font-weight: 400; letter-spacing: 0.08em; fill: var(--stage-fg); }
+.end-card .end-card__brush-stroke.ink-hiku[data-axis="stroke"] { animation-duration: calc(var(--dur-4) * 4 / 3); animation-timing-function: var(--ease-draw); }
+.end-card__sub { margin: var(--sp-1) 0 0; font-size: var(--fs-2); color: var(--stage-muted); }
+.end-card__welcome { margin: 0; text-align: center; color: var(--stage-muted); }
 
-.end-card .muted {
-  color: var(--card-muted);
-}
+.end-card__h { margin: 0 0 var(--sp-2); font-size: var(--fs-3); font-weight: 600; }
+.end-card__h3 { margin: var(--sp-3) 0 var(--sp-1); font-size: var(--fs-2); font-weight: 600; color: var(--stage-muted); }
 
-.end-card__brush {
-  text-align: center;
-  animation: end-card-rise 1.2s var(--ease) both;
-}
+/* beat 1,500: paper tiles; the values are Dela, the number that matters (§12.1 d.4) */
+.end-card__stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); margin: 0; }
+.end-card__stat.sheet { display: flex; flex-direction: column; gap: 2px; padding: var(--sp-2); }
+.end-card__stat dd { margin: 0; font-family: var(--font-neon); font-size: var(--fs-4); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; line-height: 1; }
+.end-card__stat--xp dd { color: var(--kin-text); }
 
-.end-card__tsuzuku {
-  margin: 0;
-  font-family: var(--font-brush);
-  font-weight: 400;
-  font-size: var(--fs-7);
-  line-height: 1.1;
-  letter-spacing: 0.08em;
-  color: var(--card-fg);
-}
+.end-card__list { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; }
+.end-card__promotion { display: flex; align-items: center; gap: var(--sp-2); }
+/* beat 2,100: belts stand edge-on until belt-flip turns them, --stagger apart */
+.end-card__belt { display: inline-grid; place-items: center; min-width: 44px; padding: 2px var(--sp-1); border-radius: var(--radius-seal); font-size: var(--fs-1); color: var(--stage-fg); background: var(--stage-line); transform: rotateX(90deg); }
+.end-card__belt[data-flip] { transform: none; animation: belt-flip calc(var(--dur-3) * 1.5) var(--ease) both; animation-delay: calc(min(var(--i, 0), 7) * var(--stagger)); }
+.end-card__belt[data-belt="yellow"] { background: var(--belt-yellow); color: var(--stage-bg); }
+.end-card__belt[data-belt="green"] { background: var(--belt-green); }
+.end-card__belt[data-belt="brown"] { background: var(--belt-brown); }
+.end-card__belt[data-belt="black"] { background: var(--belt-black); box-shadow: inset 0 0 0 1px var(--kin); }
+.end-card__item { font-family: var(--font-pixel); font-size: var(--fs-2); }
+.end-card__item-kana,
+.end-card__item-en,
+.end-card__to { color: var(--stage-muted); font-size: var(--fs-2); }
+.end-card__tick { color: var(--matcha); }
 
-.end-card__sub {
-  margin: var(--sp-1) 0 0;
-  font-size: var(--fs-2);
-  color: var(--card-muted);
-}
+.end-card__flame { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); margin: 0; }
+.end-card__flame .lantern { color: var(--stage-fg); }
 
-.end-card__welcome {
-  margin: 0;
-  text-align: center;
-  color: var(--card-muted);
-}
+/* earned marks: aria-hidden spans (ES.earnedMark) labelled by the row's English, never generated content */
+.end-card__earned-mark { margin-inline-end: var(--sp-1); font-family: var(--font-brush); color: var(--kin-text); }
+.end-card__earned-row[data-kind="stamp:earned"] .end-card__earned-mark { color: var(--shu-text); }
+.end-card__earned-row[data-kind="level:up"] .end-card__earned-mark { font-family: var(--font-pixel); }
 
-.end-card__h {
-  margin: 0 0 var(--sp-2);
-  font-size: var(--fs-3);
-  font-weight: 600;
-}
-
-.end-card__h3 {
-  margin: var(--sp-3) 0 var(--sp-1);
-  font-size: var(--fs-2);
-  font-weight: 600;
-  color: var(--card-muted);
+/* beat 2,700: 次回予告 — three lines, the masked ??? last with one gold pulse; a column ≥ 720 px */
+.end-card__yokoku-lines { display: flex; flex-direction: column; gap: var(--sp-3); margin: 0; padding: 0; list-style: none; }
+.end-card__yokoku-line { display: flex; flex-direction: column; gap: 4px; }
+.end-card__yokoku-ja { font-family: var(--font-ja); font-size: var(--fs-4); line-height: var(--lh-ja); }
+.end-card__mask { display: inline-block; color: var(--kin-text); }
+.end-card__yokoku-line.ink-nijimi .end-card__mask { animation: end-card-mask var(--dur-4) var(--ease-press) both; animation-delay: calc(var(--dur-2) + var(--stagger)); }
+@keyframes end-card-mask { from { opacity: 0; scale: 0.9; } 60% { opacity: 1; scale: 1.06; } to { opacity: 1; scale: 1; } }
+.end-card__yokoku-words { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.end-card__word { font-family: var(--font-ja); font-size: var(--fs-3); color: var(--stage-fg); border-color: var(--stage-line); }
+.end-card__milestone { color: var(--stage-muted); }
+.end-card__loading { margin: 0; }
+@media (min-width: 720px) {
+  .end-card__yokoku { display: grid; grid-template-columns: auto 1fr; column-gap: var(--sp-4); }
+  .end-card__yokoku-h { margin: 0; writing-mode: vertical-rl; text-orientation: mixed; }
 }
 
-.end-card__stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-2);
-  margin: 0;
-}
+/* omikuji in --font-ja: Mincho is fenced (§3.1); the proverbs are outside the Shippori shell */
+.end-card__omikuji { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: var(--sp-3); border-inline-start: 3px solid var(--kin); background: var(--stage-raised); border-radius: var(--radius); }
+.end-card__omikuji-text { font-family: var(--font-ja); font-size: var(--fs-3); line-height: var(--lh-ja); }
 
-.end-card__stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--sp-2);
-  border: 1px solid var(--card-line);
-  border-radius: var(--radius);
-}
+.end-card__notes { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; color: var(--stage-muted); }
+.end-card__ledger-prompt { margin: 0 0 var(--sp-2); }
+.end-card__ledger-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.end-card__ledger-kind .select { min-height: var(--touch); }
+.end-card__ledger-minutes { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.end-card__ledger-btn { min-width: 64px; }
+.end-card__ledger-done { margin: 0; }
 
-.end-card__stat dt {
-  font-size: var(--fs-1);
-  color: var(--card-muted);
-}
+.end-card__foot { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3); text-align: center; }
+.end-card__closing { margin: 0; font-size: var(--fs-4); }
+.end-card__keeps { margin: 0; font-size: var(--fs-1); color: var(--stage-muted); }
+.end-card__due { margin: 0; font-size: var(--fs-2); }
+.end-card__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-3); }
 
-.end-card__stat dd {
-  margin: 0;
-  font-family: var(--font-pixel);
-  font-size: var(--fs-4);
-}
-
-.end-card__stat--xp dd {
-  color: var(--kin);
-}
-
-.end-card__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.end-card__promotion {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.end-card__belt {
-  display: inline-grid;
-  place-items: center;
-  min-width: 44px;
-  padding: 2px var(--sp-1);
-  border-radius: 3px;
-  font-size: var(--fs-1);
-  color: var(--card-fg);
-  background: var(--card-line);
-  animation: belt-flip 600ms var(--ease) both;
-}
-.end-card__belt[data-belt='yellow'] {
-  background: var(--belt-yellow);
-  color: #1a1a1f;
-}
-.end-card__belt[data-belt='green'] {
-  background: var(--belt-green);
-}
-.end-card__belt[data-belt='brown'] {
-  background: var(--belt-brown);
-}
-.end-card__belt[data-belt='black'] {
-  background: var(--belt-black);
-  box-shadow: inset 0 0 0 1px var(--kin);
-}
-
-.end-card__item {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-2);
-}
-
-.end-card__to {
-  color: var(--card-muted);
-  font-size: var(--fs-2);
-}
-
-.end-card__tick {
-  color: var(--matcha);
-}
-
-.end-card__flame {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  margin: 0;
-  color: var(--card-muted);
-}
-
-.end-card__flame-glyph {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-family: var(--font-brush);
-  color: var(--card-bg);
-  background: var(--shu);
-}
-.end-card__flame[data-state='gold'] .end-card__flame-glyph {
-  background: var(--kin);
-}
-.end-card__flame[data-state='ember'] .end-card__flame-glyph,
-.end-card__flame[data-state='broken'] .end-card__flame-glyph {
-  background: var(--hai);
-}
-.end-card__flame[data-state='frozen'] .end-card__flame-glyph,
-.end-card__flame[data-state='rest'] .end-card__flame-glyph {
-  background: var(--ai);
-  color: var(--card-fg);
-}
-
-.end-card__earned-row::before {
-  content: '紋 ';
-  font-family: var(--font-brush);
-  color: var(--kin);
-}
-.end-card__earned-row[data-kind='stamp:earned']::before {
-  content: '印 ';
-  color: var(--shu);
-}
-.end-card__earned-row[data-kind='belt:promoted']::before {
-  content: '帯 ';
-}
-.end-card__earned-row[data-kind='level:up']::before {
-  content: 'Lv ';
-  font-family: var(--font-pixel);
-}
-.end-card__earned-row[data-kind='wallpaper:unlocked']::before,
-.end-card__earned-row[data-kind='wallpaper:revealed']::before {
-  content: '軸 ';
-}
-
-.end-card__yokoku-lines {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.end-card__yokoku-line {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.end-card__yokoku-label {
-  font-size: var(--fs-1);
-  color: var(--card-muted);
-}
-
-.end-card__yokoku-ja {
-  font-family: var(--font-ja);
-  font-size: var(--fs-4);
-  line-height: 1.8;
-}
-
-.end-card__yokoku-words {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
-}
-
-.end-card__word {
-  font-family: var(--font-ja);
-  font-size: var(--fs-3);
-  color: var(--card-fg);
-  border-color: var(--card-line);
-}
-
-.end-card__milestone {
-  color: var(--card-muted);
-}
-
-.end-card__loading {
-  margin: 0;
-}
-
-.end-card__omikuji {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: var(--sp-3);
-  border-inline-start: 3px solid var(--kin);
-  background: var(--card-raised);
-  border-radius: var(--radius);
-}
-
-.end-card__omikuji-label {
-  font-size: var(--fs-1);
-  color: var(--card-muted);
-}
-
-.end-card__omikuji-text {
-  font-family: var(--font-mincho);
-  font-size: var(--fs-3);
-  line-height: 1.8;
-}
-
-.end-card__notes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--card-muted);
-}
-
-.end-card__ledger-prompt {
-  margin: 0 0 var(--sp-2);
-}
-
-.end-card__ledger-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.end-card__ledger-kind .select {
-  min-height: var(--touch);
-}
-
-.end-card__ledger-minutes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
-}
-
-.end-card__ledger-btn {
-  min-width: 64px;
-}
-
-.end-card__ledger-done {
-  margin: 0;
-}
-
-.end-card__foot {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin-top: var(--sp-3);
-  text-align: center;
-}
-
-.end-card__closing {
-  margin: 0;
-  font-size: var(--fs-4);
-}
-
-.end-card__due {
-  margin: 0;
-  font-size: var(--fs-2);
-}
-
-.end-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--sp-3);
-}
-
-@keyframes end-card-rise {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes belt-flip {
-  from {
-    transform: rotateX(90deg);
-  }
-  to {
-    transform: none;
-  }
-}
-
+/* reduced (§6.6, both paths): stage cut at 0, belts turned, ??? static gold; つづく fades via .ink-nijimi, mask absent */
 @media (prefers-reduced-motion: reduce) {
-  .end-card__brush,
-  .end-card__belt {
-    animation: none;
-  }
+  .end-card::before,
+  .end-card__belt[data-flip],
+  .end-card__yokoku-line.ink-nijimi .end-card__mask { animation: none; }
 }
-.reduced-motion .end-card__brush,
-.reduced-motion .end-card__belt,
-.end-card.reduced-motion .end-card__brush,
-.end-card.reduced-motion .end-card__belt {
-  animation: none;
-}
+:root[data-reduced-motion] .end-card::before,
+:root[data-reduced-motion] .end-card__belt[data-flip],
+:root[data-reduced-motion] .end-card__yokoku-line.ink-nijimi .end-card__mask { animation: none; }
 
 @media (max-width: 420px) {
-  .end-card__stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .end-card__tsuzuku {
-    font-size: var(--fs-6);
-  }
+  .end-card__brush { font-size: var(--fs-6); }
+  .end-card__stats { grid-template-columns: repeat(2, 1fr); }
 }

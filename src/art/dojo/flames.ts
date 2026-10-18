@@ -6,10 +6,19 @@
  *                 `max` (default `FLAME_CAP` = 400) are rendered; `total` is
  *                 the true count for the counter. Each flame is ONE `<use>` of
  *                 a shared `<symbol>` (halo + body + core live inside the
- *                 symbol, so glow costs no DOM nodes and no filter).
- *  hearthSvg(o)   the Tsuzuku Flame as the dojo's hearth (irori): unlit,
- *                 ember, steady or roaring, with a freeze crystal when a
- *                 freeze held the streak.
+ *                 symbol, so glow costs no DOM nodes and no filter). Only the
+ *                 first `WILL_CHANGE_CAP` (24) carry `will-change: transform`
+ *                 (design 09 §6.7 rule 3).
+ *  hearthSvg(o)   the Tsuzuku Flame as the dojo's hearth (irori). Since design
+ *                 09 (§7 C, §10 B1) the string carries EVERY state's fire —
+ *                 three embers, four tongues (outer + core), two glows, the
+ *                 freeze crystal — and the host flips the state BY CLASS on the
+ *                 `.dj-hf` group (`dj-hf--unlit | --ember | --steady | --roaring`,
+ *                 `dj-hf--crystal`); DojoScene.css shows the right parts and
+ *                 grows the tongues (scaleY 0 → 1 on --spring). The string
+ *                 never changes with the state, so a relight is a class flip,
+ *                 not an innerHTML swap. The tongue shape is `shared/ui/Lantern
+ *                 tonguePath`, so hearth and header share one tongue.
  *
  * Motion is CSS only (transform keyframes in an inline `<style>`; no SMIL),
  * never faster than ~0.7 Hz, and absent altogether when `reducedMotion` is
@@ -19,6 +28,7 @@
  */
 import { hashSeed, mulberry32 } from '../../shared/hash';
 import { ITEM_KINDS, type ItemKind } from '../../shared/store-types';
+import { tonguePath } from '../../shared/ui/Lantern';
 import type { FlameState } from '../../store';
 import { INK, PALETTE, SUMI, WASHI, mix, type Token } from '../color';
 import { clamp, star } from '../geom';
@@ -32,6 +42,8 @@ import { WOOD, WOOD_LIGHT, tok } from './room';
 
 export const FLAME_CAP = 400;
 export const DRIFT_VARIANTS = 6;
+/** Kotodama that carry `will-change: transform` (design 09 §6.7 rule 3). */
+export const WILL_CHANGE_CAP = 24;
 
 /** Category colors (design 01 §4.3): kana sakura · vocab neon-c · kanji kin · grammar matcha · speaking (chunks) neon-m · components hai. */
 export const FLAME_TOKEN: Record<ItemKind, Token> = {
@@ -112,7 +124,8 @@ function flameSymbol(glow: boolean): string {
 
 function driftCss(): string {
   const rules: string[] = [
-    `.${KF_ID}{animation:${KF_ID}-drift-0 8s ease-in-out infinite;transform-box:fill-box;transform-origin:center;will-change:transform}`,
+    `.${KF_ID}{animation:${KF_ID}-drift-0 8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}`,
+    `.${KF_ID}-w{will-change:transform}`,
   ];
   for (let v = 0; v < DRIFT_VARIANTS; v++) {
     const a = (v / DRIFT_VARIANTS) * Math.PI * 2;
@@ -154,7 +167,7 @@ export function flamesSvg(o: FlamesOptions): FlamesResult {
   const sizeScale = clamp(Math.sqrt((w * h) / Math.max(1, rendered) / 900), 0.55, 1);
 
   const uses: string[] = [];
-  for (const kind of kinds) {
+  kinds.forEach((kind, i) => {
     const x = ox + rng() * w;
     const y = oy + rng() * h;
     const n = field(x / 90, y / 90);
@@ -163,6 +176,7 @@ export function flamesSvg(o: FlamesOptions): FlamesResult {
     const opacity = 0.5 + rng() * 0.45;
     const dur = 5 + rng() * 5;
     const delay = -rng() * 10;
+    const cls = [KF_ID, variant === 0 ? '' : `${KF_ID}-${variant}`, i < WILL_CHANGE_CAP && !o.reducedMotion ? `${KF_ID}-w` : ''].filter(Boolean).join(' ');
     uses.push(
       use(KF_ID, {
         x: x - size / 2,
@@ -171,12 +185,12 @@ export function flamesSvg(o: FlamesOptions): FlamesResult {
         height: size * 1.4,
         fill: tok(FLAME_TOKEN[kind]),
         opacity,
-        class: variant === 0 ? KF_ID : `${KF_ID} ${KF_ID}-${variant}`,
+        class: cls,
         'data-kind': kind,
         style: o.reducedMotion ? undefined : `animation-duration:${fmt(dur)}s;animation-delay:${fmt(delay)}s`,
       }),
     );
-  }
+  });
 
   const svg = g({ class: 'dj-kotodama', 'data-total': total, 'data-rendered': rendered, 'aria-hidden': 'true' }, [
     o.reducedMotion || rendered === 0 ? '' : style(driftCss()),
@@ -191,6 +205,7 @@ export function flamesSvg(o: FlamesOptions): FlamesResult {
 /* ────────────────────────────────────────────────────────────────────────── */
 
 export type HearthState = 'unlit' | 'ember' | 'steady' | 'roaring';
+export const HEARTH_STATES: readonly HearthState[] = ['unlit', 'ember', 'steady', 'roaring'];
 
 /** Streak flame state (design 03 §7) → hearth look. `frozen` = a freeze (or vacation) held the flame: steady with a crystal. */
 export function hearthStateOf(flame: FlameState): { state: HearthState; crystal: boolean } {
@@ -210,8 +225,6 @@ export function hearthStateOf(flame: FlameState): { state: HearthState; crystal:
 }
 
 export interface HearthOptions {
-  state: HearthState;
-  crystal?: boolean;
   seed: number;
   /** Box of the irori in user units. */
   x: number;
@@ -221,16 +234,26 @@ export interface HearthOptions {
   reducedMotion: boolean;
   /** Halo (off in Zen). Default true. */
   glow?: boolean;
+  /** `id` of the group (the since-yesterday pulse targets it). */
+  id?: string;
 }
 
-const HF = 'dj-hf';
+export const HF = 'dj-hf';
 const ASH = PALETTE.light.hai;
+/** Tongues drawn (the roaring layout); steady shows the middle two by class. */
+export const HEARTH_TONGUES = 4;
+
+/** `.dj-hf--<state>` for a state, and the class list the host swaps. */
+export function hearthClass(state: HearthState, crystal = false): string {
+  return `${HF}--${state}${crystal ? ` ${HF}--crystal` : ''}`;
+}
 
 function hearthCss(): string {
   return [
     `.${HF}-tongue{animation:${HF}-flicker 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}`,
-    `.${HF}-tongue-b{animation-duration:1.9s;animation-delay:-0.7s}`,
-    `.${HF}-tongue-c{animation-duration:1.45s;animation-delay:-1.1s}`,
+    `.${HF}-t1 .${HF}-tongue{animation-duration:1.9s;animation-delay:-0.7s}`,
+    `.${HF}-t2 .${HF}-tongue{animation-duration:1.45s;animation-delay:-1.1s}`,
+    `.${HF}-t3 .${HF}-tongue{animation-duration:1.75s;animation-delay:-0.4s}`,
     `.${HF}-ember{animation:${HF}-pulse 2.6s ease-in-out infinite}`,
     `.${HF}-ember-b{animation-delay:-0.9s}`,
     `.${HF}-ember-c{animation-delay:-1.7s}`,
@@ -241,15 +264,12 @@ function hearthCss(): string {
   ].join('');
 }
 
-function tongue(cx: number, base: number, hgt: number, wdt: number, lean: number): string {
-  const tipX = cx + lean;
-  const tipY = base - hgt;
-  return M(cx - wdt / 2, base) + Q(cx - wdt * 0.7, base - hgt * 0.45, tipX, tipY) + Q(cx + wdt * 0.7, base - hgt * 0.45, cx + wdt / 2, base) + Z;
-}
-
-/** The irori with the Tsuzuku Flame in the state given. */
+/**
+ * The irori with every state's fire in the string (hidden parts are shown by the
+ * `.dj-hf--<state>` class the host sets; DojoScene.css). Deterministic per seed.
+ */
 export function hearthSvg(o: HearthOptions): string {
-  const rng = mulberry32(hashSeed(o.seed, 'hearth', o.state));
+  const rng = mulberry32(hashSeed(o.seed, 'hearth'));
   const { x, y, w, h } = o;
   const glow = o.glow ?? true;
   const anim = !o.reducedMotion;
@@ -268,44 +288,40 @@ export function hearthSvg(o: HearthOptions): string {
   const cx = x + w / 2;
   const base = pitBottom - h * 0.3;
   const fire: string[] = [];
-  if (o.state === 'ember') {
-    const cls = ['', ` ${HF}-ember-b`, ` ${HF}-ember-c`];
-    for (let i = 0; i < 3; i++) {
-      fire.push(circle(cx + (i - 1) * w * 0.12 + (rng() - 0.5) * w * 0.04, base - h * 0.02, h * 0.045, { fill: tok('shu'), opacity: 0.8, class: `${HF}-ember${cls[i]}` }));
-    }
-  } else if (o.state === 'steady' || o.state === 'roaring') {
-    const roaring = o.state === 'roaring';
-    const n = roaring ? 4 : 2;
-    const outer = roaring ? tok('kin') : tok('shu');
-    const inner = roaring ? WASHI : tok('kin');
-    const variants = ['', ` ${HF}-tongue-b`, ` ${HF}-tongue-c`];
-    for (let i = 0; i < n; i++) {
-      const off = n === 2 ? (i - 0.5) * w * 0.14 : (i - 1.5) * w * 0.13;
-      const hgt = h * (roaring ? 0.85 : 0.55) * (0.85 + rng() * 0.3);
-      const wdt = w * (roaring ? 0.2 : 0.17);
-      const lean = (rng() - 0.5) * w * 0.08;
-      const cls = `${HF}-tongue${variants[i % 3]}`;
-      fire.push(path(tongue(cx + off, base, hgt, wdt, lean), { fill: outer, opacity: glow ? 0.92 : 1, class: cls }));
-      fire.push(path(tongue(cx + off, base, hgt * 0.55, wdt * 0.5, lean * 0.5), { fill: inner, opacity: 0.9, class: cls }));
-    }
-    if (glow) fire.unshift(ellipse(cx, base - h * 0.2, w * (roaring ? 0.42 : 0.3), h * (roaring ? 0.5 : 0.35), { fill: roaring ? tok('kin') : tok('shu'), opacity: 0.16 }));
+  if (glow) {
+    fire.push(ellipse(cx, base - h * 0.2, w * 0.3, h * 0.35, { fill: tok('shu'), opacity: 0, class: `${HF}-glow ${HF}-glow--steady` }));
+    fire.push(ellipse(cx, base - h * 0.2, w * 0.42, h * 0.5, { fill: tok('kin'), opacity: 0, class: `${HF}-glow ${HF}-glow--roaring` }));
   }
-  parts.push(g({ class: `${HF}-fire` }, fire));
-
-  if (o.crystal) {
-    const r = h * 0.16;
-    const ccx = x + w * 0.16;
-    const ccy = pitTop - h * 0.1;
-    parts.push(
-      g({ class: `${HF}-crystal` }, [
-        polygon(star(ccx, ccy, r, r * 0.45, 6), { fill: tok('neon-c'), opacity: 0.9 }),
-        circle(ccx, ccy, r * 0.28, { fill: WASHI, opacity: 0.9 }),
+  // embers
+  const emberCls = ['', ` ${HF}-ember-b`, ` ${HF}-ember-c`];
+  for (let i = 0; i < 3; i++) {
+    fire.push(circle(cx + (i - 1) * w * 0.12 + (rng() - 0.5) * w * 0.04, base - h * 0.02, h * 0.045, { fill: tok('shu'), opacity: 0.8, class: `${HF}-ember${emberCls[i]}` }));
+  }
+  // four tongues (outer + core), the middle two are the steady fire
+  for (let i = 0; i < HEARTH_TONGUES; i++) {
+    const off = (i - 1.5) * w * 0.13;
+    const hgt = h * 0.85 * (0.85 + rng() * 0.3);
+    const wdt = w * 0.2;
+    const lean = (rng() - 0.5) * w * 0.08;
+    fire.push(
+      g({ class: `${HF}-t ${HF}-t${i}` }, [
+        path(tonguePath({ cx: cx + off, base, height: hgt, width: wdt, lean }), { fill: tok('shu'), opacity: glow ? 0.92 : 1, class: `${HF}-tongue ${HF}-outer` }),
+        path(tonguePath({ cx: cx + off, base, height: hgt * 0.55, width: wdt * 0.5, lean: lean * 0.5 }), { fill: tok('kin'), opacity: 0.9, class: `${HF}-tongue ${HF}-core` }),
       ]),
     );
   }
+  parts.push(g({ class: `${HF}-fire` }, fire));
 
-  return g({ class: `${HF} ${HF}--${o.state}${o.crystal ? ` ${HF}--crystal` : ''}`, 'data-state': o.state, 'data-crystal': o.crystal ? 'true' : undefined, 'aria-hidden': 'true' }, [
-    anim && o.state !== 'unlit' ? style(hearthCss()) : '',
-    ...parts,
-  ]);
+  // the freeze crystal (shown by `.dj-hf--crystal`)
+  const r = h * 0.16;
+  const ccx = x + w * 0.16;
+  const ccy = pitTop - h * 0.1;
+  parts.push(
+    g({ class: `${HF}-crystal` }, [
+      polygon(star(ccx, ccy, r, r * 0.45, 6), { fill: tok('neon-c'), opacity: 0.9 }),
+      circle(ccx, ccy, r * 0.28, { fill: WASHI, opacity: 0.9 }),
+    ]),
+  );
+
+  return g({ class: `${HF} ${hearthClass('unlit')}`, id: o.id, 'aria-hidden': 'true' }, [anim ? style(hearthCss()) : '', ...parts]);
 }

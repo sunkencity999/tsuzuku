@@ -24,9 +24,14 @@
  * drill (Layout.css, `@starting-style`) knows the direction. `shownRoute`
  * follows the committed page so the chrome turns with it.
  *
- * Arrival (design 09 §7 A, Hiraku): the boot mark is an ensō drawing itself
- * (`.ink-hiku[data-axis="stroke"]`, --dur-4 --ease-draw; complete at once under
- * reduced motion). The Dojo chunk is prefetched while the save loads; when
+ * Arrival (design 09 §7 A, Hiraku): the boot mark is an ensō drawing itself —
+ * one open brush circle (`ENSO_D`, the gap upper-left as brush.ts's `enso()`
+ * leaves it, drawn inline: the art chunk never enters the boot bundle) on
+ * `.ink-hiku[data-axis="stroke"]`, --dur-4 --ease-draw. Under reduced motion
+ * the drawing class is left off and the mark is complete at once — a static
+ * mark, not a hold (motion.css rests the animation too, under both selectors).
+ * The loading sentence stays for assistive tech, visually hidden. The Dojo
+ * chunk is prefetched while the save loads; when
  * `ready` flips with the chunk resolved, App itself turns the mark into the
  * shell under a View Transition, the `enso` name carrying `.app-loading__mark`
  * onto `.dojo-scene__art`. If the chunk is not there yet, the shell arrives
@@ -37,6 +42,7 @@ import { Component, type ComponentChildren, type FunctionComponent, type JSX } f
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { href, route, sameRoute, titleFor, type Route } from '@/shared/routes';
 import { store } from '@/store';
+import { prefersReducedMotion } from '@/shared/ui/use-reveal';
 import { S } from '@/i18n/strings';
 import { Layout, announce, focusMain } from './Layout';
 import { pageFor as defaultPageFor, type PageModule } from './pages';
@@ -278,6 +284,14 @@ function PageHost(p: { pageFor: (r: Route) => Promise<PageModule>; reload?: () =
 
 /* ── root ────────────────────────────────────────────────────────────── */
 
+/**
+ * The boot ensō: one arc of a 20 px-radius circle in a 48-unit box, from −115°
+ * through 328° (clockwise, screen angles), so the opening sits upper-left
+ * where `brush.ts enso()` leaves it by default — the hero lands over the wall
+ * scroll's ensō. Two SVG nodes, no filter (design 09 §7 A beat 0, §10 budgets).
+ */
+export const ENSO_D = 'M15.55 5.87A20 20 0 1 1 7.23 13.11';
+
 type Arrival = 'idle' | 'pending' | 'running' | 'done';
 
 export function App(p: AppProps): JSX.Element {
@@ -382,25 +396,24 @@ export function App(p: AppProps): JSX.Element {
   }, [shown]);
 
   if (!shown) {
+    // Reduced motion: no drawing class, so the stroke is whole from the first frame (a static mark, not a hold).
+    const still = prefersReducedMotion();
     return (
       <div class="app-loading" role="status" aria-live="polite">
-        {/* the ensō: a ring drawing itself (hiku-stroke, pathLength 1); carried onto `.dojo-scene__art` as `enso` */}
+        {/* the ensō: an open circle drawing itself (hiku-stroke, pathLength 1); carried onto `.dojo-scene__art` as `enso` */}
         <svg class="app-loading__mark" viewBox="0 0 48 48" width="48" height="48" aria-hidden="true" focusable="false">
-          <circle
-            class="app-loading__enso ink-hiku"
-            data-axis="stroke"
-            cx="24"
-            cy="24"
-            r="20"
+          <path
+            class={still ? undefined : 'ink-hiku'}
+            data-axis={still ? undefined : 'stroke'}
+            d={ENSO_D}
             pathLength="1"
             fill="none"
             stroke="currentColor"
             stroke-width="2.5"
             stroke-linecap="round"
-            transform="rotate(120 24 24)"
           />
         </svg>
-        <span class="app-loading__text">{S.loading}</span>
+        <span class="app-loading__text visually-hidden">{S.loading}</span>
       </div>
     );
   }

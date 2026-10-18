@@ -27,7 +27,7 @@
   font-family: var(--font-brush);
   font-weight: 400;
   font-size: var(--fs-5);
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .train__h2 {
@@ -121,7 +121,7 @@
 
 .train__rank {
   width: 2ch;
-  color: var(--kin);
+  color: var(--kin-text);
 }
 
 .train__score {

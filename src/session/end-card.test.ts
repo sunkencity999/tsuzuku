@@ -11,8 +11,9 @@ import { epochDay } from '../shared/time';
 import type { CardTuple } from '../shared/store-types';
 import { resetStoreForTests, store } from '../store';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../store/testing';
-import { S } from './engine-strings';
-import { endCardNotes, jikaiYokoku, kanaOf, ledgerPromptDue, maskLine, omikuji, pickMaskedLine, tally, trackCeremonies } from './end-card';
+import { S, fill } from './engine-strings';
+import { endCardNotes, gateNameOf, jikaiYokoku, kanaOf, ledgerPromptDue, maskLine, omikuji, pickMaskedLine, tally, trackCeremonies } from './end-card';
+import { ES } from './end-card-strings';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const loader = createFakeLoader();
@@ -117,6 +118,38 @@ describe('jikaiYokoku', () => {
     const y = await jikaiYokoku({ station: 4, today: TODAY, loader });
     expect(y.milestone).toContain('坂の関守');
     expect(y.milestone).toContain('ready');
+  });
+
+  it('line 3 carries the next-station vista INSIDE the Gatekeeper line when a lookup knows one — never a fourth line (design 09 §10 B2)', async () => {
+    expect(gateNameOf(4)).toBe('坂の関守 Hill Keeper');
+    expect(gateNameOf(4, () => null)).toBe('坂の関守 Hill Keeper');
+    expect(gateNameOf(4, () => 'Fuji view')).toBe('坂の関守 Hill Keeper · Fuji view');
+    expect(ES.gateWithVista).toBe('{gate} · {vista}');
+    const cards: Record<CardKey, CardTuple> = {};
+    for (const id of FIXTURE_IDS.vocab) if (id !== V.おはよう && id !== V.はい) cards[`${id}#rec`] = live(30);
+    cards[`${V.おはよう}#prod`] = live(30);
+    cards[`${V.はい}#prod`] = live(30);
+    for (const id of FIXTURE_IDS.kanji) cards[`${id}#comp`] = live(30);
+    for (const id of FIXTURE_IDS.grammar) cards[`${id}#cloze`] = live(30);
+    for (const id of FIXTURE_IDS.component) cards[`${id}#rec`] = live(30);
+    await makeTestStore({ save: { progress: { station: 4 } }, cards });
+    const seen: number[] = [];
+    const y = await jikaiYokoku({
+      station: 4,
+      today: TODAY,
+      loader,
+      vista: (n) => {
+        seen.push(n);
+        return 'Fuji view';
+      },
+    });
+    expect(seen).toEqual([4]);
+    expect(y.milestone).toBe(fill(S.milestoneGateReady, { gate: '坂の関守 Hill Keeper · Fuji view' }));
+    expect(y.milestone).toContain('坂の関守 Hill Keeper · Fuji view');
+    expect(y.milestone.split('\n')).toHaveLength(1);
+    // without a lookup the line is exactly as before
+    const plain = await jikaiYokoku({ station: 4, today: TODAY, loader });
+    expect(plain.milestone).toBe(fill(S.milestoneGateReady, { gate: '坂の関守 Hill Keeper' }));
   });
 
   it('every milestone string in the catalog avoids countdown pressure', () => {

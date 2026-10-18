@@ -3,7 +3,12 @@
  *
  * Skip link · header (belt chip, the Tsuzuku Flame as one drawn `<Lantern>`
  * with its visible English state word and the forgiveness chips the streak
- * machine already grants, "412 days trained · 3-day streak" in one type size,
+ * machine already grants — below 480 px Layout.css folds all but the first
+ * into a "+N" chip whose visually-hidden text lists them in full (it wears
+ * the kintsugi seam while the folded repair chip does), so the DOM is the
+ * same at every width and assistive tech loses nothing —
+ * "412 days trained · 3-day streak" in one type size (two halves around the
+ * separator, so a phone breaks the line only there),
  * Lv as a `<Ticker>` / XP as a `.meter`, with a visually-hidden "Level 7, 80 XP
  * to the next level" instead of an aria-label on a generic span) · notices ·
  * nav (Dojo, Road, Library, Collections, Records, Settings) with the active
@@ -148,21 +153,31 @@ export function navTargetFor(r: Route): NavKey | null {
 /* ── header lines ────────────────────────────────────────────────────── */
 
 /**
- * "412 days trained · 3-day streak". While a repair window is open (`repairDone`
- * is the days done so far) the second half reads "Streak paused · repair open:
- * 1 of 3 days" instead of "No streak yet" (design 09 §8).
+ * The two halves of "412 days trained · 3-day streak". While a repair window is
+ * open (`repairDone` is the days done so far) the second half reads "Streak
+ * paused · repair open: 1 of 3 days" (design 09 §8) — whatever `current` says:
+ * inside the window the streak machine counts the repair days as a provisional
+ * 1 or 2 (`onTrainingDay`, src/store/streak.ts) and restores the real count when
+ * the third lands, so a "1-day streak" there would misread the state. Without a
+ * window: "No streak yet" at zero, else the count. Rendered as two spans so a
+ * phone (Layout.css ≤ 480 px) breaks the line at the separator only.
  */
-export function daysLine(totalDays: number, current: number, repairDone: number | null = null): string {
+export function daysParts(totalDays: number, current: number, repairDone: number | null = null): [days: string, streak: string] {
   const days = totalDays === 1 ? S.dayTrained : fmt(S.daysTrained, { n: totalDays });
   const streak =
-    current <= 0
-      ? repairDone === null
+    repairDone !== null
+      ? fmt(S.streakPaused, { done: repairDone })
+      : current <= 0
         ? S.streakNone
-        : fmt(S.streakPaused, { done: repairDone })
-      : current === 1
-        ? S.streakDay
-        : fmt(S.streakDays, { n: current });
-  return `${days}${S.separator}${streak}`;
+        : current === 1
+          ? S.streakDay
+          : fmt(S.streakDays, { n: current });
+  return [days, streak];
+}
+
+/** The two halves joined by `S.separator`: the header's text as it reads aloud. */
+export function daysLine(totalDays: number, current: number, repairDone: number | null = null): string {
+  return daysParts(totalDays, current, repairDone).join(S.separator);
 }
 
 /** Copy for one forgiveness chip (design 09 §5.10). */
@@ -182,13 +197,28 @@ export function chipText(c: LanternChip): string {
 /** Decorative glyph per chip (labelled by the chip's English text; base-slice glyphs only). */
 const CHIP_GLYPH: Partial<Record<LanternChip['kind'], string>> = { freeze: '氷', rest: '休' };
 
+/** The "+N" chip's hidden sentence: every folded chip in full ("rest day set, 2 weekly flames"). */
+export function chipsMoreText(hidden: LanternChip[]): string {
+  return hidden.map(chipText).join(S.listSeparator);
+}
+
 /**
  * The forgiveness chips: 氷 tokens held, planned rest, weekly flames, and the
  * open repair window with the kintsugi seam — only while the window is open,
  * so a repaired flame is indistinguishable from one that never dimmed.
+ *
+ * Phone density (design 09 §12.1 decision 19): when more than one chip exists
+ * a trailing `.flame-chip--more` ("+N") is rendered too. Layout.css shows it
+ * only below 480 px, where it hides the chips after the first; its visible
+ * "+N" is aria-hidden and its visually-hidden text lists the folded chips in
+ * full, so the DOM is one shape at every width and nothing is lost to AT. It
+ * wears `.kintsugi` while a folded chip does (the repair chip is appended
+ * last by lanternChips(), so without this the §5.10 / §8 seam would never
+ * show on a phone).
  */
 export function FlameChips(p: { chips: LanternChip[]; class?: string }): JSX.Element | null {
   if (p.chips.length === 0) return null;
+  const hidden = p.chips.slice(1);
   return (
     <ul class={`flame-chips${p.class ? ` ${p.class}` : ''}`} aria-label={S.chipsLabel}>
       {p.chips.map((c) => (
@@ -201,6 +231,14 @@ export function FlameChips(p: { chips: LanternChip[]; class?: string }): JSX.Ele
           <span class="flame-chip__text">{chipText(c)}</span>
         </li>
       ))}
+      {hidden.length > 0 ? (
+        <li key="more" class={`chip flame-chip flame-chip--more${hidden.some((c) => c.kintsugi) ? ' kintsugi' : ''}`} data-chip="more">
+          <span class="flame-chip__text" aria-hidden="true">
+            {fmt(S.chipsMore, { n: hidden.length })}
+          </span>
+          <span class="visually-hidden">{chipsMoreText(hidden)}</span>
+        </li>
+      ) : null}
     </ul>
   );
 }
@@ -398,6 +436,8 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
   const chips = lanternChips({ streak, today, restDay: settings.restDay });
   const xp = xpToNextLevel(profile.xp);
   const beltDef = BELTS.find((b) => b.id === profile.belt);
+  const beltLabel = fmt(S.beltLabel, { belt: BELT_NAME[profile.belt] ?? profile.belt });
+  const dayParts = daysParts(streak.totalDays, streak.current, repair);
   const active = navTargetFor(r);
   const updateReady = swUpdate.value;
 
@@ -450,8 +490,12 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
         </a>
 
         <div class="layout__status">
-          <span class={`belt belt--${profile.belt}`} data-belt={profile.belt} title={fmt(S.beltLabel, { belt: BELT_NAME[profile.belt] ?? profile.belt })}>
-            <span lang="ja">{beltDef?.nameJa ?? profile.belt}</span>
+          <span class={`belt belt--${profile.belt}`} data-belt={profile.belt} title={beltLabel}>
+            {/* the kanji are decorative-with-a-label: the swatch carries the colour, the English reaches assistive tech (a tooltip never reaches a phone) */}
+            <span lang="ja" aria-hidden="true">
+              {beltDef?.nameJa ?? profile.belt}
+            </span>
+            <span class="visually-hidden">{beltLabel}</span>
             {profile.dan > 0 ? <span class="layout__dan">{fmt(S.danLabel, { n: profile.dan })}</span> : null}
           </span>
 
@@ -465,7 +509,11 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
           />
           <FlameChips chips={chips} class="layout__chips" />
 
-          <span class="layout__days">{daysLine(streak.totalDays, streak.current, repair)}</span>
+          <span class="layout__days">
+            <span>{dayParts[0]}</span>
+            {S.separator}
+            <span>{dayParts[1]}</span>
+          </span>
 
           <span class="layout__level pixel">
             <span aria-hidden="true">

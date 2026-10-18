@@ -419,12 +419,16 @@ describe('src/**/*.css: width and height never tween (design 09 §6.7 rule 1)', 
    generated font-slice CSS). The ceiling is therefore 415,000 for Phase A and 425,000 for the
    whole programme: Phases B–D may add at most 12.5 KB net between them, and each must delete
    what it replaces (the 49 reduced-motion blocks, the bar and status-window clones, the 13
-   result panels). Each phase's integrator raises this constant only up to CSS_CEILING_PROGRAMME. */
-const CSS_CEILING_PHASE_A = 415_000;
+   result panels). Each phase's integrator raises this constant only up to CSS_CEILING_PROGRAMME.
+   Phase B landed at 420,757 B (B1 Dojo home +5,982: pages.css, DojoScene.css; B2 End Card +856:
+   EndCard.css, TrainPage.css; B3 shell +1,405: Layout.css, App.css), so the phase ceiling is
+   421,000 — the smallest multiple of 1,000 above the measured tree — and the constant is renamed
+   CSS_CEILING_PHASE (it was CSS_CEILING_PHASE_A = 415,000). Phases C–D have 4,243 B net left. */
+const CSS_CEILING_PHASE = 421_000;
 export const CSS_CEILING_PROGRAMME = 425_000;
 describe('CSS budget', () => {
-  it(`total src CSS ≤ ${CSS_CEILING_PHASE_A.toLocaleString('en-US')} bytes (Phase-A ceiling; the programme ends ≤ ${CSS_CEILING_PROGRAMME.toLocaleString('en-US')})`, () => {
-    expect(CSS_CEILING_PHASE_A).toBeLessThanOrEqual(CSS_CEILING_PROGRAMME);
+  it(`total src CSS ≤ ${CSS_CEILING_PHASE.toLocaleString('en-US')} bytes (phase ceiling, Phase B; the programme ends ≤ ${CSS_CEILING_PROGRAMME.toLocaleString('en-US')})`, () => {
+    expect(CSS_CEILING_PHASE).toBeLessThanOrEqual(CSS_CEILING_PROGRAMME);
     const files = walk(resolve(ROOT, 'src'));
     const total = files.reduce((n, f) => n + statSync(f).size, 0);
     const byDir = new Map<string, number>();
@@ -433,6 +437,6 @@ describe('CSS budget', () => {
       byDir.set(dir, (byDir.get(dir) ?? 0) + statSync(f).size);
     }
     const report = [...byDir.entries()].sort((a, b) => b[1] - a[1]).map(([d, n]) => `${d} ${n}`).join(', ');
-    expect(total, `src CSS bytes (${report})`).toBeLessThanOrEqual(CSS_CEILING_PHASE_A);
+    expect(total, `src CSS bytes (${report})`).toBeLessThanOrEqual(CSS_CEILING_PHASE);
   });
 });

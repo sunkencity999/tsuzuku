@@ -103,8 +103,8 @@ export const S = {
   closingLine: ENGINE.closingLine,
   anotherKata: ENGINE.anotherKata,
   restButton: ENGINE.restButton,
-  dueRemaining: '{n} reviews still due today.',
-  dueRemainingOne: '1 review still due today.',
+  dueRemaining: '{n} reviews remain.',
+  dueRemainingOne: '1 review remains.',
 
   // ── Train page ────────────────────────────────────────────────────────
   trainAria: 'Train',

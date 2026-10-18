@@ -15,7 +15,12 @@
  * toasts and notices leave the way they arrived (data-leaving). Durations
  * only through tokens; reduced motion comes from the zeroed tokens and
  * base.css's `*:not(.rm-fade)` rule (§6.6); animated properties are
- * opacity / transform / translate only (§6.7).
+ * opacity / transform / translate only (§6.7). Phone density (§12.1
+ * decision 19): below 480 px the chips fold into the first plus the "+N"
+ * chip and the days line may break at its separator (never clipped under
+ * `contain: paint`); below 360 px the status tightens so the everyday
+ * states hold two rows at 320 px (measured, Chrome 156 + DotGothic16); an
+ * open repair window's sentence takes its own row and Lv a third.
  */
 .layout {
   --nav-height: 60px;
@@ -101,8 +106,8 @@ html:active-view-transition .layout__header {
   margin-left: auto;
   font-size: var(--fs-2);
 }
+/* days and Lv inherit --fs-2 from .layout__status (fs-1 below 360 px) */
 .layout__days {
-  font-size: var(--fs-2);
   color: var(--fg-muted);
   white-space: nowrap;
 }
@@ -114,7 +119,6 @@ html:active-view-transition .layout__header {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  font-size: var(--fs-2);
   white-space: nowrap;
 }
 .layout__xp {
@@ -146,6 +150,10 @@ html:active-view-transition .layout__header {
 .flame-chip__glyph {
   font-size: var(--fs-1);
   line-height: 1;
+}
+/* the "+N" chip exists only for the phone fold below (its hidden text lists the folded chips) */
+.flame-chips .flame-chip--more {
+  display: none;
 }
 /* the kintsugi seam, only while the repair window is open (§8 ³) */
 .flame-chip.kintsugi {
@@ -252,6 +260,20 @@ html[data-travel="out"]::view-transition-new(nav) {
     margin-left: 0;
     justify-content: space-between;
   }
+  /* the chips fold: the first stays, the rest hide behind "+N" (CSS only; the DOM never changes) */
+  .flame-chips .flame-chip:nth-child(n + 2):not(.flame-chip--more) {
+    display: none;
+  }
+  .flame-chips .flame-chip--more {
+    display: inline-flex;
+  }
+  /* the days line breaks at its separator only (the halves are nowrap), never under contain: paint */
+  .layout__days {
+    white-space: normal;
+  }
+  .layout__days > span {
+    white-space: nowrap;
+  }
 }
 
 /* ── notices and the toast leave the way they arrived (§6.3) ── */
@@ -326,6 +348,20 @@ html[data-travel="out"]::view-transition-new(nav) {
 @media (max-width: 360px) {
   .nav__label {
     font-size: 0.65rem;
+  }
+  /* 320 px: --sp-1 columns (belt · Out · "repair open · 0 of 3 days" = 281 of 288 px), no chip glyph, days and Lv at fs-1, a shorter meter */
+  .layout__status {
+    gap: var(--sp-2) var(--sp-1);
+  }
+  .flame-chip__glyph {
+    display: none;
+  }
+  .layout__days,
+  .layout__level {
+    font-size: var(--fs-1);
+  }
+  .layout__xp {
+    width: 40px;
   }
 }
 

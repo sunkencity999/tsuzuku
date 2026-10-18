@@ -8,7 +8,7 @@ import { resetStoreForTests, store } from '@/store';
 import { DEFAULT_TEST_NOW, makeTestStore } from '@/store/testing';
 import { S, fmt } from '@/i18n/strings';
 import type { FlameState } from '@/store/derived';
-import { FLAME_WORD, Layout, NAV_ITEMS, announce, chipText, daysLine, flameImproved, focusMain, navTargetFor, resetIgnitionForTests, shouldIgnite, storageNoticeDismissed } from './Layout';
+import { FLAME_WORD, Layout, NAV_ITEMS, announce, chipText, chipsMoreText, daysLine, flameImproved, focusMain, navTargetFor, resetIgnitionForTests, shouldIgnite, storageNoticeDismissed } from './Layout';
 import { resetSwForTests, swUpdate } from './sw-register';
 import { resetTransitionsForTests } from './transitions';
 import { shownRoute } from './transitions';
@@ -58,7 +58,10 @@ describe('<Layout>', () => {
   it("renders '412 days trained · 3-day streak' from the store", async () => {
     await makeTestStore({ save: { streak: { totalDays: 412, current: 3 } } });
     mount();
-    expect(root.querySelector('.layout__days')?.textContent).toBe('412 days trained · 3-day streak');
+    const days = root.querySelector('.layout__days');
+    expect(days?.textContent).toBe('412 days trained · 3-day streak');
+    // two halves around the separator: Layout.css lets a phone break the line there and nowhere inside either half
+    expect(Array.from(days?.children ?? [], (s) => s.textContent)).toEqual(['412 days trained', '3-day streak']);
     expect(root.querySelector('#child')?.textContent).toBe('content');
     expect(root.querySelector('main#main')).not.toBeNull();
   });
@@ -240,8 +243,13 @@ describe('<Layout>', () => {
   it('shows the belt chip (JA name), the flame state and the level', async () => {
     await makeTestStore({ save: { profile: { belt: 'green', level: 7 }, streak: { current: 0, totalDays: 3 } } });
     mount();
-    expect(root.querySelector('.belt')?.getAttribute('data-belt')).toBe('green');
-    expect(root.querySelector('.belt [lang="ja"]')?.textContent).toBe('緑帯');
+    const belt = root.querySelector('.belt');
+    expect(belt?.getAttribute('data-belt')).toBe('green');
+    expect(belt?.querySelector('[lang="ja"]')?.textContent).toBe('緑帯');
+    // the kanji are decorative-with-a-label: English for assistive tech at every width, not only the hover tooltip
+    expect(belt?.querySelector('[lang="ja"]')?.getAttribute('aria-hidden')).toBe('true');
+    expect(belt?.querySelector('.visually-hidden')?.textContent).toBe(fmt(S.beltLabel, { belt: 'Green' }));
+    expect(belt?.getAttribute('title')).toBe(fmt(S.beltLabel, { belt: 'Green' }));
     expect(root.querySelector('.lantern')?.getAttribute('data-state')).toBe('broken');
     expect(root.querySelector('.layout__level')?.textContent).toContain('7');
     expect(root.querySelector('[role="progressbar"]')).not.toBeNull();
@@ -374,6 +382,92 @@ describe('<Layout>', () => {
     expect(chipText({ kind: 'weekly', n: 1 })).toBe(S.chipWeeklyOne);
     expect(chipText({ kind: 'weekly', n: 3 })).toBe(fmt(S.chipWeekly, { n: 3 }));
     expect(daysLine(5, 0, 2)).toBe(`5 days trained · ${fmt(S.streakPaused, { done: 2 })}`);
+  });
+
+  /* ── the two §8 copy debts, wired (design 09 §8, §7 A) ─────────────── */
+
+  it('daysLine: an open repair window wins over the provisional count — "Streak paused · repair open: 1 of 3 days", never "1-day streak", while the window exists; S.streakNone only without one', () => {
+    expect(daysLine(30, 1, 1)).toBe(`30 days trained · ${fmt(S.streakPaused, { done: 1 })}`);
+    expect(daysLine(30, 2, 2)).toBe(`30 days trained · ${fmt(S.streakPaused, { done: 2 })}`);
+    expect(daysLine(30, 0, 0)).toBe(`30 days trained · ${fmt(S.streakPaused, { done: 0 })}`);
+    expect(daysLine(30, 0)).toBe(`30 days trained · ${S.streakNone}`);
+    expect(daysLine(30, 0, null)).toBe(`30 days trained · ${S.streakNone}`);
+    expect(daysLine(33, 3)).toBe('33 days trained · 3-day streak'); // the window closed on the third day: the real count is back
+  });
+
+  it('wired: the first repair day lights the lantern (trained today) while the days line still reads paused 1 of 3 — the chip and the line agree', async () => {
+    await makeTestStore();
+    const today = store.today();
+    // onTrainingDay (src/store/streak.ts) on day 1 of a window: current 1, done 1, lastDay today
+    await makeTestStore({ save: { streak: { totalDays: 31, current: 1, lastDay: today, repairWindow: { start: today - 1, done: 1 } } } });
+    mount();
+    expect(root.querySelector('.lantern')?.getAttribute('data-state')).toBe('lit');
+    expect(root.querySelector('.layout__days')?.textContent).toBe(`31 days trained · ${fmt(S.streakPaused, { done: 1 })}`);
+    expect(root.querySelector('.flame-chip[data-chip="repair"]')?.textContent).toBe(fmt(S.chipRepair, { done: 1 }));
+    expect(root.querySelector('.layout__days')?.textContent).not.toContain(S.streakDay);
+  });
+
+  it('wired: the never-lit hearth (totalDays === 0) says S.flameUnlit in the lantern detail and S.flameWordUnlit as the word; a lit day-one learner does not', async () => {
+    await makeTestStore({ save: { streak: { totalDays: 0, current: 0 } } });
+    mount();
+    expect(root.querySelector('.lantern')?.textContent).toContain(S.flameUnlit);
+    expect(root.querySelector('.lantern__word')?.textContent).toBe(S.flameWordUnlit);
+    expect(root.querySelector('.layout__days')?.textContent).toBe(`0 days trained · ${S.streakNone}`);
+    const today = store.today();
+    await makeTestStore({ save: { streak: { totalDays: 1, current: 1, lastDay: today } } });
+    mount();
+    expect(root.querySelector('.lantern')?.getAttribute('data-state')).toBe('lit');
+    expect(root.querySelector('.lantern')?.textContent).not.toContain(S.flameUnlit);
+  });
+
+  /* ── phone density: the chips fold (design 09 §12.1 decision 19) ──── */
+
+  it('four chips render four chips plus one "+3" chip whose visually-hidden text lists the three folded chips in full; the DOM is the same shape at every width', async () => {
+    await makeTestStore();
+    const today = store.today();
+    await makeTestStore({
+      save: {
+        settings: { restDay: 2 },
+        streak: { totalDays: 40, current: 0, lastDay: today - 2, freezes: 2, restDaysTaken: 3, weekly: 4, repairWindow: { start: today - 1, done: 0 } },
+      },
+    });
+    mount();
+    const real = Array.from(root.querySelectorAll('.flame-chip:not(.flame-chip--more)'));
+    expect(real.map((c) => c.getAttribute('data-chip'))).toEqual(['freeze', 'rest', 'weekly', 'repair']);
+    const more = root.querySelector('.flame-chip--more');
+    expect(more).not.toBeNull();
+    expect(more?.getAttribute('data-chip')).toBe('more');
+    expect(more?.classList.contains('chip')).toBe(true);
+    expect(more?.classList.contains('flame-chip')).toBe(true);
+    expect(more?.classList.contains('kintsugi'), 'the seam survives the fold: the folded repair chip is open').toBe(true);
+    expect(more?.querySelector('[aria-hidden="true"]')?.textContent).toBe(fmt(S.chipsMore, { n: 3 }));
+    expect(fmt(S.chipsMore, { n: 3 })).toBe('+3');
+    const hiddenText = more?.querySelector('.visually-hidden')?.textContent;
+    const expected = [S.chipRestSet, fmt(S.chipWeekly, { n: 4 }), fmt(S.chipRepair, { done: 0 })].join(S.listSeparator); // a set rest weekday reads 'rest day set' whatever the taken count
+    expect(hiddenText).toBe(expected);
+    for (const c of real.slice(1)) expect(hiddenText).toContain(c.querySelector('.flame-chip__text')?.textContent ?? '∅');
+    expect(hiddenText).not.toContain(real[0]?.querySelector('.flame-chip__text')?.textContent ?? '∅'); // the first chip stays visible, so it is not repeated
+    expect(more?.querySelector('[lang="ja"]')).toBeNull(); // no glyph on the fold chip
+    // the fold is CSS: the folded chips are still in the DOM with their full text
+    expect(root.querySelectorAll('.flame-chip').length).toBe(5);
+    expect(more?.textContent).toBe(`+3${expected}`);
+    expect(chipsMoreText([{ kind: 'weekly', n: 1 }])).toBe(S.chipWeeklyOne);
+  });
+
+  it('the "+N" chip wears the kintsugi seam only while a folded chip does (§5.10 / §8 ³)', async () => {
+    await makeTestStore({ save: { settings: { restDay: 2 }, streak: { totalDays: 40, current: 3, freezes: 2 } } });
+    mount();
+    const more = root.querySelector('.flame-chip--more');
+    expect(more).not.toBeNull();
+    expect(more?.classList.contains('kintsugi')).toBe(false);
+    expect(root.querySelector('.flame-chip.kintsugi')).toBeNull();
+  });
+
+  it('with exactly one chip there is no "+N" chip', async () => {
+    await makeTestStore({ save: { streak: { totalDays: 12, current: 2, freezes: 1 } } });
+    mount();
+    expect(root.querySelectorAll('.flame-chip').length).toBe(1);
+    expect(root.querySelector('.flame-chip--more')).toBeNull();
   });
 
   /* ── Lv / XP (design 09 §5.7 / §5.8) ───────────────────────────────── */
@@ -615,6 +709,48 @@ describe('Layout.css', () => {
     expect(css).not.toMatch(/\.lantern\[data-state/);
     expect(css).not.toMatch(/--lantern-tone/);
     expect(block('.layout .lantern {')).toMatch(/min-height:\s*var\(--touch\)/);
+  });
+
+  /** The full nested body of a `@media (…)` block. */
+  const mediaBlock = (query: string): string => {
+    const i = css.indexOf(`@media ${query}`);
+    expect(i, query).toBeGreaterThanOrEqual(0);
+    const open = css.indexOf('{', i);
+    let depth = 1;
+    let j = open + 1;
+    while (j < css.length && depth > 0) {
+      if (css[j] === '{') depth++;
+      else if (css[j] === '}') depth--;
+      j++;
+    }
+    return css.slice(open + 1, j - 1);
+  };
+
+  it('phone density (§12.1 decision 19): the chips fold below 480 px — the first stays, the rest hide, the "+N" chip shows there and only there; the lantern word is untouched and the days line breaks only at its separator', () => {
+    // the "+N" chip rests at every other width …
+    expect(css).toMatch(/\.flame-chips \.flame-chip--more\s*\{\s*display:\s*none;\s*\}/);
+    const phone = mediaBlock('(max-width: 480px)');
+    // … and below 480 px the chips after the first fold into it
+    expect(phone).toMatch(/\.flame-chips \.flame-chip:nth-child\(n \+ 2\):not\(\.flame-chip--more\)\s*\{\s*display:\s*none;\s*\}/);
+    expect(phone).toMatch(/\.flame-chips \.flame-chip--more\s*\{\s*display:\s*inline-flex;\s*\}/);
+    expect(phone).not.toMatch(/\.lantern|\.lantern__word/);
+    // the days line stays whole: it may break at the separator (the halves are nowrap) instead of running under `contain: paint`, never hide or shrink here
+    expect(phone).toMatch(/\.layout__days\s*\{\s*white-space:\s*normal;\s*\}/);
+    expect(phone).toMatch(/\.layout__days > span\s*\{\s*white-space:\s*nowrap;\s*\}/);
+    expect(phone).not.toMatch(/\.layout__days[^{]*\{[^}]*(display|font-size|overflow|text-overflow|visibility)/);
+    expect(phone).toMatch(/\.layout__status\s*\{[^}]*width:\s*100%/); // the status row still takes the whole second row
+    // the fold is never JS: no `hidden` attribute, no width-keyed class on the chips
+    expect(css).not.toMatch(/\[hidden\]/);
+  });
+
+  it('below 360 px the status tightens for 320 px (measured in Chrome 156 with DotGothic16: the everyday states hold two rows, an open repair window adds one, nothing clips): --sp-1 columns, the decorative chip glyph rests, days and Lv drop to fs-1, the meter shortens', () => {
+    const narrow = mediaBlock('(max-width: 360px)');
+    expect(narrow).toMatch(/\.layout__status\s*\{\s*gap:\s*var\(--sp-2\) var\(--sp-1\);\s*\}/);
+    expect(narrow).toMatch(/\.flame-chip__glyph\s*\{\s*display:\s*none;\s*\}/);
+    expect(narrow).toMatch(/\.layout__days,\s*\.layout__level\s*\{\s*font-size:\s*var\(--fs-1\);\s*\}/);
+    expect(narrow).toMatch(/\.layout__xp\s*\{\s*width:\s*40px;\s*\}/);
+    expect(narrow).not.toMatch(/\.flame-chip__text|\.lantern__word/); // the words stay
+    expect(narrow.replace(/\.flame-chip__glyph\s*\{[^}]*\}/, '')).not.toMatch(/display:\s*none/); // only the glyph rests
   });
 
   it('animates only composited properties and takes every duration from a token (design 09 §6.7)', () => {

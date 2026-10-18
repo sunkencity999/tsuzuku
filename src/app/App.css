@@ -11,25 +11,21 @@
 .app-loading {
   display: grid;
   place-items: center;
-  gap: var(--sp-3);
   min-height: 100dvh;
   padding: var(--gutter);
-  text-align: center;
-  color: var(--fg-muted);
   background: var(--bg);
 }
-/* The boot mark: an ensō ring drawing itself — motion.css's `.ink-hiku[data-axis="stroke"]` on the
-   circle (stroke-dashoffset 1 → 0 over --dur-4 --ease-draw; complete at once under reduced motion, a
-   static mark, not a hold). Carried onto `.dojo-scene__art` as `enso` by the arrival (design 09 §7 A). */
+/* The boot mark (design 09 §7 A beat 0): an open ensō path drawing itself — motion.css's
+   `.ink-hiku[data-axis="stroke"]` on the path (stroke-dashoffset 1 → 0 over --dur-4 --ease-draw).
+   Reduced motion: App.tsx leaves the class off and motion.css rests the animation, so the mark is
+   whole from the first frame — static, not a hold. The loading sentence is .visually-hidden
+   (base.css). Carried onto `.dojo-scene__art` as `enso` by the arrival. */
 .app-loading__mark {
   display: block;
   width: 48px;
   height: 48px;
   color: var(--shu);
   overflow: visible;
-}
-.app-loading__text {
-  font-size: var(--fs-2);
 }
 
 .app-error,

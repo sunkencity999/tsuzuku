@@ -55,201 +55,79 @@
   color: var(--fg-muted);
 }
 
-/* ── Dojo ───────────────────────────────────────────────────────────── */
-.dojo__scene {
-  position: relative;
-  overflow: hidden;
-  border-radius: var(--radius);
-  background: var(--surface);
-  border: 1px solid var(--line);
-}
-.dojo__status {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-.dojo__forecast {
-  margin: 0;
-  font-size: var(--fs-4);
-  line-height: 1.3;
-}
-.dojo__line {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2);
-  color: var(--fg-muted);
-  font-size: var(--fs-2);
-}
-.dojo__sessions {
-  display: grid;
-  gap: var(--sp-3);
-  grid-template-columns: 1fr;
-}
-@media (min-width: 640px) {
-  .dojo__sessions {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-.dojo__session {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--sp-1);
-  min-height: 96px;
-  padding: var(--sp-3) var(--sp-4);
-  text-align: left;
-  text-decoration: none;
-}
-.dojo__session-name {
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
-  font-size: var(--fs-4);
-}
-.dojo__session-ja {
-  font-size: var(--fs-5);
-  line-height: 1;
-}
-.dojo__session-min {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-3);
-}
+/* ── Dojo (design 09 §7 A, §5.1 / §5.3 / §5.9, §10 B1) — one rule per line ─────── */
+/* the shared wet-ink def (#ink-bleed-8) in a zero-size inline svg */
+.dojo__defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+/* the stage: scene + tategaki column at its right edge; one column below 640 px; the phase word overlays it */
+.dojo__stage { position: relative; display: grid; gap: var(--sp-3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) { .dojo__stage { grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; } }
+.dojo__scene { min-width: 0; }
+.dojo__column { padding: var(--sp-2) 0; }
+.dojo__col-item { display: inline-flex; flex-direction: column; align-items: center; gap: var(--sp-1); }
+@media (max-width: 639.98px) { .dojo__col-item { flex-direction: row; align-items: baseline; gap: var(--sp-2); } }
+/* non-shell glyphs stay off Mincho (09 §3.1, decision 9): the kō name, the greeting, the sentence */
+.dojo__col-ja--ko, .dojo__col-greeting [lang="ja"], .dojo__col-sentence [lang="ja"] { font-family: var(--font-ja); }
+/* the era date's digits upright (tate-chū-yoko) in the pixel face already on first paint */
+.tategaki-column__tcy { font-family: var(--font-pixel); text-combine-upright: all; }
+/* the phase word (§7 A): out of flow on a paper plate (nothing shifts when it leaves; never a hit target); kanji in the system face (not in the Yuji shell); reduced: a --dur-fade exit */
+.dojo__phase { position: absolute; z-index: 2; top: var(--sp-2); left: var(--sp-2); display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); margin: 0; padding: var(--sp-1) var(--sp-2); color: var(--fg); background: color-mix(in srgb, var(--surface-paper) 92%, transparent); border-radius: var(--radius-sm); pointer-events: none; transition: opacity var(--dur-fade) linear; }
+.dojo__phase.rm-fade[data-leaving] { opacity: 0; }
+.dojo__phase-ja { font-family: var(--font-brush); font-size: var(--fs-5); line-height: 1.1; color: var(--shu); }
+.dojo__phase-reading { font-size: var(--fs-3); letter-spacing: 0.04em; }
+.dojo__phase-en { font-size: var(--fs-2); color: var(--fg-muted); }
+.dojo__status { display: flex; flex-direction: column; gap: var(--sp-2); }
+.dojo__forecast { margin: 0; font-size: var(--fs-4); line-height: 1.3; }
+.dojo__line { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); color: var(--fg-muted); font-size: var(--fs-2); }
+/* one hanko (the recommended session); the others are paper tiles with a seal corner (§5.3) */
+.dojo__sessions { display: grid; gap: var(--sp-3); grid-template-columns: 1fr; }
+@media (min-width: 640px) { .dojo__sessions { grid-template-columns: repeat(3, 1fr); } }
+.dojo__session { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-1); min-height: 96px; padding: var(--sp-3) var(--sp-4); text-align: left; text-decoration: none; }
+.sheet.dojo__session { color: var(--fg); }
+.dojo__session-seal { position: absolute; top: var(--sp-2); right: var(--sp-2); width: auto; min-width: 32px; padding: 0 var(--sp-1); }
+.dojo__session-name { display: flex; align-items: baseline; gap: var(--sp-2); font-size: var(--fs-4); }
+.dojo__session-ja { font-size: var(--fs-5); line-height: 1; }
+.dojo__session-min { font-family: var(--font-pixel); font-size: var(--fs-3); }
 /* No opacity on hanko text: --bg on --shu sits at ~4.6:1, so any alpha drops below AA (01 §7). */
-.dojo__session-desc {
-  font-size: var(--fs-2);
-  font-weight: 400;
-}
-.dojo__session-count {
-  font-size: var(--fs-2);
-  font-weight: 400;
-}
-.dojo__resume {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2) var(--sp-3);
-}
-.dojo__resume-text {
-  flex: 1 1 200px;
-  margin: 0;
-}
-.dojo__quests {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-.dojo__quest {
-  display: grid;
-  grid-template-columns: 1.5rem 1fr auto;
-  align-items: center;
-  gap: var(--sp-2);
-  min-height: var(--touch);
-}
-.dojo__quest-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 1.4rem;
-  height: 1.4rem;
-  border: 2px solid var(--line);
-  border-radius: 50%;
-  font-size: var(--fs-1);
-  color: var(--surface);
-}
-.dojo__quest[data-done="true"] .dojo__quest-mark {
-  background: var(--matcha);
-  border-color: var(--matcha);
-}
-.dojo__quest[data-done="true"] .dojo__quest-title {
-  color: var(--fg-muted);
-}
-.dojo__quest-count {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
-.dojo__banner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2) var(--sp-3);
-}
-.dojo__banner-text {
-  flex: 1 1 200px;
-  margin: 0;
-}
-.dojo__side {
-  display: grid;
-  gap: var(--sp-3);
-  grid-template-columns: 1fr;
-}
-@media (min-width: 720px) {
-  .dojo__side {
-    grid-template-columns: 1fr auto;
-  }
-}
-.dojo__tategaki {
-  display: flex;
-  justify-content: center;
-  min-height: 160px;
-  padding: var(--sp-3);
-}
-.dojo__tategaki .tategaki {
-  font-size: var(--fs-4);
-}
-.dojo__words {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.dojo__word {
-  font-size: var(--fs-4);
-}
-.dojo__kage {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-2) var(--sp-3);
-  border-left: 4px solid var(--neon-m);
-}
-.dojo__kage-text {
-  flex: 1 1 200px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin: 0;
-}
-.dojo__kage-score {
-  font-family: var(--font-pixel);
-  color: var(--fg-muted);
-  font-size: var(--fs-2);
-}
-.dojo__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-.dojo__proverb {
-  margin: 0;
-  font-family: var(--font-mincho);
-  font-size: var(--fs-4);
-}
-/* 茶屋ラジオ tile (design 08 §10.2): quiet, under the session buttons */
-.dojo__radio {
-  border-left: 4px solid var(--kin);
-}
-.dojo__radio-min {
-  margin: 0;
-  font-size: var(--fs-3);
-  font-variant-numeric: tabular-nums;
-}
+.dojo__session-desc { font-size: var(--fs-2); font-weight: 400; }
+.dojo__session-count { font-size: var(--fs-2); font-weight: 400; }
+.dojo__session-tag { font-family: var(--font-pixel); font-size: var(--fs-1); font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; }
+.dojo__resume { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.dojo__resume-text { flex: 1 1 200px; margin: 0; }
+.dojo__quests { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
+.dojo__quest { display: grid; grid-template-columns: 1.5rem 1fr auto; align-items: center; gap: var(--sp-2); min-height: var(--touch); }
+/* Hiraku (§7 A) paper, then ink, then text: entrances wait for the panels' part (--dur-4 × ⅔): word and column first, forecast and hanko at 4⁄3 */
+.dojo[data-arrival]:not([data-reduced]) :is(.dojo__phase.ink-nijimi:not([data-leaving]), .tategaki-column > *) { animation-delay: calc(var(--dur-4) * 2 / 3 + min(var(--i, 0), 7) * var(--stagger)); }
+.dojo[data-arrival]:not([data-reduced]) :is(.dojo__status, .dojo__session).ink-nijimi { animation-delay: calc(var(--dur-4) * 4 / 3 + min(var(--i, 0), 7) * var(--stagger)); }
+/* the wet seal's bleed rests while the two pulse twins are live (≤ 2 SVG filters per viewport, 09 §6.7) */
+.dojo__stage:has([data-pulsing]) .ink-wet::after { filter: none; }
+/* a done tick's wet layer: matcha by opacity alone; the seal keeps the one bleed filter */
+.dojo__quest-wet { display: inline-grid; color: var(--matcha); border-radius: 50%; }
+.dojo__quest-wet.ink-wet::after { filter: none; }
+/* Kadode (§7 C beat 1,000): back from a session the done ticks press after the hearth grew */
+.dojo__quest-wet.ink-osu { animation-delay: calc(var(--dur-4) + min(var(--i, 0), 7) * var(--stagger)); }
+.dojo__quest-mark { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border: 2px solid var(--line); border-radius: 50%; font-size: var(--fs-1); color: var(--surface); }
+.dojo__quest[data-done="true"] .dojo__quest-mark { background: var(--matcha); border-color: var(--matcha); }
+.dojo__quest[data-done="true"] .dojo__quest-title { color: var(--fg-muted); }
+.dojo__quest-count { font-family: var(--font-pixel); font-size: var(--fs-2); color: var(--fg-muted); }
+.dojo__banner { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.dojo__banner-text { flex: 1 1 200px; margin: 0; }
+.dojo__words { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.dojo__word { font-size: var(--fs-4); }
+.dojo__kage { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); border-left: 4px solid var(--neon-m); }
+.dojo__kage-text { flex: 1 1 200px; display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; }
+.dojo__kage-score { font-family: var(--font-pixel); color: var(--fg-muted); font-size: var(--fs-2); }
+/* the genkan strip: three .sign plates, the current station in the middle */
+.dojo__genkan { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.dojo__town-link { text-decoration: none; }
+.dojo__town[data-state="here"] .sign { box-shadow: inset 0 0 0 2px var(--shu); }
+.dojo__town[data-state="ahead"] .sign { color: var(--fg-muted); }
+.dojo__links { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+/* the proverb under its visible eyebrow; off Mincho (its glyphs are not in the Shippori shell, 09 §3.1) */
+.dojo__proverb-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); margin: 0; }
+.dojo__proverb { font-family: var(--font-ja); font-size: var(--fs-4); }
+/* 茶屋ラジオ tile (design 08 §10.2): quiet, under the session tiles */
+.dojo__radio { border-left: 4px solid var(--kin); }
+.dojo__radio-min { margin: 0; font-size: var(--fs-3); font-variant-numeric: tabular-nums; }
 
 /* ── Onboarding ─────────────────────────────────────────────────────── */
 .onb {
@@ -751,16 +629,4 @@
 /* ── Modal (confirm dialogs on Settings / Backup) ───────────────────── */
 .page__modal-text {
   margin: 0 0 var(--sp-3);
-}
-
-/* ── reduced motion ─────────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .about__rule-n,
-  .onb__vowel[data-lit="true"] {
-    transform: none;
-  }
-}
-.reduced-motion .about__rule-n,
-.reduced-motion .onb__vowel[data-lit="true"] {
-  transform: none;
 }

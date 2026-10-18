@@ -118,7 +118,7 @@ OMIKUJI = ['\u5927\u5409', '\u4e2d\u5409', '\u5c0f\u5409', '\u5409', '\u672b\u54
 # src/content/types.ts below so a rename flows through a rebuild.
 YUJI_WORDS = [
     '\u4e00\u672c', '\u6c17\u5408', '\u4f11',    # ippon, kiai, yasumi (rest)
-    '\u706b\u708e\u6b8b\u6c37\u4f11',            # the five flame glyphs: hi honoo zan koori yasumi (src/session/EndCard.tsx FLAME_GLYPH)
+    '\u706b\u708e\u6b8b\u6c37\u4f11',            # the five flame glyphs: hi honoo zan koori yasumi — kept for a brush lantern word (Phase B retired EndCard.tsx's FLAME_GLYPH table)
 ]
 # The brand word and the Dojo home's brush words — the three session names (.dojo__session-ja,
 # src/app/pages/DojoPage.tsx) and the kotodama caption (src/art/dojo/DojoScene.tsx) — are read
@@ -126,6 +126,7 @@ YUJI_WORDS = [
 # or the browser fetches YujiSyuku-base (372 KB) on first paint and the 250 KB budget is a paper
 # number. B1 adds a key here (and in fonts.test.ts DOJO_HOME_BRUSH) when the home gains a brush word.
 DOJO_BRUSH_KEYS = [('src/i18n/strings.ts', ['appNameJa', 'dojoKataJa', 'dojoKumiteJa', 'dojoShugyoJa']),
+                   ('src/app/pages/strings.ts', ['dojoPhaseDawnJa', 'dojoPhaseDayJa', 'dojoPhaseDuskJa', 'dojoPhaseNightJa']),  # the sky-phase word (09 §7 A beat 900; §12.1 d22)
                    ('src/art/dojo/strings.ts', ['kotodamaJa'])]
 YUJI_SHELL_MAX, SHIPPORI_SHELL_MAX, FIRST_PAINT_MAX = 60_000, 40_000, 250_000   # bytes (09 §10 budgets, decimal KB)
 

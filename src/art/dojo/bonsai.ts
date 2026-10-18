@@ -10,8 +10,9 @@
  * the tree at depth d is a prefix of the tree at depth d + 1 and a day never
  * removes a branch. Blossoms (sakura) appear while `blooming` (100 total
  * days). A long gap gives a pruned look (fewer, tighter pads) but the tree is
- * never dead: at least three pads, always green. Seasons tint the needles;
- * winter adds snow caps.
+ * never dead: at least three pads, always green; `healing` (0 → 1 over the
+ * seven days back, design 09 §8) interpolates the pruned pads back to the full
+ * tree, 40 → 100 %. Seasons tint the needles; winter adds snow caps.
  */
 import { hashSeed, mulberry32, type Rng } from '../../shared/hash';
 import { INK, WASHI, lighten, mix } from '../color';
@@ -67,6 +68,10 @@ export interface BonsaiOptions {
   streak?: number;
   /** Pruned look after a long gap (fewer, tighter pads; never dead). */
   pruned?: boolean;
+  /** 0 → 1 over `returnedDaysAgo / 7` while pruned: pad density 40 → 100 %, pad size 80 → 100 %. */
+  healing?: number;
+  /** `id` of the group (the since-yesterday pulse targets it). */
+  id?: string;
 }
 
 export interface Branch {
@@ -96,6 +101,8 @@ export interface BonsaiModel {
   pads: Pad[];
   blooms: Pt[];
   pruned: boolean;
+  /** 0–1 while pruned (1 = fully healed, also when not pruned). */
+  healing: number;
   season: Season;
 }
 
@@ -118,6 +125,7 @@ export function growBonsai(o: BonsaiOptions): BonsaiModel {
   const size = sizeFor(o.totalDays);
   const season = o.season ?? 'spring';
   const pruned = Boolean(o.pruned);
+  const healing = pruned ? clamp(Number.isFinite(o.healing ?? 0) ? (o.healing ?? 0) : 0, 0, 1) : 1;
   const trunkRng = mulberry32(hashSeed(o.seed, 'bonsai', 'trunk'));
   const lean = (trunkRng() - 0.5) * 24;
   const trunkLen = 62 * size;
@@ -157,14 +165,16 @@ export function growBonsai(o: BonsaiOptions): BonsaiModel {
 
   const padRng = mulberry32(hashSeed(o.seed, 'bonsai', 'pads'));
   const streakBonus = pruned ? 0 : Math.min(0.2, Math.max(0, o.streak ?? 0) / 150);
-  const density = (pruned ? 0.4 : 0.75) + streakBonus;
-  const wanted = clamp(Math.round(tips.length * density), MIN_PADS, pruned ? Math.round(MAX_PADS * PRUNED_PAD_SHARE) : MAX_PADS);
+  // pruned: 40 % of the tips, healing toward the full 75 % over the week back (design 09 §8)
+  const density = (pruned ? 0.4 + (0.75 - 0.4) * healing : 0.75) + streakBonus;
+  const padCap = pruned ? Math.round(MAX_PADS * (PRUNED_PAD_SHARE + (1 - PRUNED_PAD_SHARE) * healing)) : MAX_PADS;
+  const wanted = clamp(Math.round(tips.length * density), MIN_PADS, padCap);
   const count = Math.min(wanted, tips.length);
   const pads: Pad[] = [];
   const step = tips.length / Math.max(1, count);
   for (let i = 0; i < count; i++) {
     const t = tips[Math.min(tips.length - 1, Math.floor(i * step))]!;
-    const rx = (8 + padRng() * 6) * size * (pruned ? 0.8 : 1);
+    const rx = (8 + padRng() * 6) * size * (pruned ? 0.8 + 0.2 * healing : 1);
     pads.push({ x: t[0] + (padRng() - 0.5) * 4, y: t[1] - rx * 0.15, rx, ry: rx * 0.5 });
   }
 
@@ -179,7 +189,7 @@ export function growBonsai(o: BonsaiOptions): BonsaiModel {
     }
   }
 
-  return { depth, size, branches, tips, pads, blooms, pruned, season };
+  return { depth, size, branches, tips, pads, blooms, pruned, healing, season };
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -227,6 +237,8 @@ export function bonsaiSvg(o: BonsaiOptions): string {
   return g(
     {
       class: `bonsai bonsai--${m.season}${m.pruned ? ' bonsai--pruned' : ''}${m.blooms.length ? ' bonsai--blooming' : ''}`,
+      id: o.id,
+      'data-healing': m.pruned ? fmtN(m.healing) : undefined,
       transform: `translate(${fmtN(o.x)} ${fmtN(o.y)}) scale(${fmtN(o.scale)})`,
       'data-depth': m.depth,
       'data-branches': m.branches.length,

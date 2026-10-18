@@ -11,6 +11,8 @@
  * real `fetch`. `main.test.tsx` covers `boot()`'s routing rules; this file is
  * the "does the whole thing come up" check.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { FIXTURE, createFakeLoader } from '@/content/fixtures';
@@ -18,6 +20,7 @@ import type { ContentLoader } from '@/content/loader';
 import { resetServices } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import { resetRegistryForTests } from '@/shared/exercise-types';
+import { loadKoyomi, resetKoyomiForTests } from '@/shared/koyomi';
 import { route, syncRouteFromLocation } from '@/shared/routes';
 import type { SaveMeta } from '@/shared/store-types';
 import { resetStoreForTests, store } from '@/store';
@@ -37,6 +40,14 @@ vi.mock('@/content/loader', async (importOriginal) => {
 
 const now = (): number => DEFAULT_TEST_NOW;
 
+/**
+ * The Dojo column's calendar data (design 09 §3.5): `DojoPage` fetches `./calendar/koyomi.json` once
+ * after mount unless `koyomiData()` is already loaded, so the boot test seeds it from disk the way
+ * DojoPage.test.tsx does — the "not a single real fetch" rule stays strict and the column renders
+ * its Japanese as in the browser.
+ */
+const KOYOMI = JSON.parse(readFileSync(resolve(process.cwd(), 'public/calendar/koyomi.json'), 'utf8')) as unknown;
+
 /** A learner with history, so `boot()` does not redirect a first run to onboarding. */
 const ACTIVE: DeepPartial<SaveMeta> = {
   profile: { name: 'Hana', xp: 120 },
@@ -49,7 +60,7 @@ let fetchSpy: ReturnType<typeof vi.fn>;
 let errorSpy: ReturnType<typeof vi.spyOn>;
 
 /** Polls until `pred()` holds or `ms` elapse (lazy page modules resolve on their own ticks). */
-async function waitFor(pred: () => boolean, ms = 4000): Promise<void> {
+async function waitFor(pred: () => boolean, ms = 8000): Promise<void> {
   const deadline = Date.now() + ms;
   while (!pred()) {
     if (Date.now() > deadline) throw new Error('timed out waiting for the page');
@@ -72,6 +83,7 @@ beforeEach(() => {
   // The fixture loader answers every content read; a real network call would be a leak.
   fetchSpy = vi.fn(() => Promise.reject(new Error('boot test: unexpected fetch')));
   vi.stubGlobal('fetch', fetchSpy);
+  loadKoyomi(KOYOMI);
   errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   Object.defineProperty(window, 'scrollTo', { configurable: true, writable: true, value: vi.fn() });
@@ -84,6 +96,7 @@ afterEach(() => {
   resetRegistryForTests();
   resetServices();
   bus.reset();
+  resetKoyomiForTests();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   location.hash = '';

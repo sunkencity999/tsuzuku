@@ -93,6 +93,46 @@ const PAGE = {
   dojoRadioMinutes: '{n} min of material you can already follow',
   dojoRadioNote: 'Not a session; it never counts as a training day.',
   dojoRadioOpen: 'Open the radio',
+  /* ── design 09 §7 A Hiraku: the arrival ──────────────────────────── */
+  /** The phase word for 2 s under the brand: the kanji, its reading, its English (design 09 §3.4). */
+  dojoPhaseDawnJa: '朝',
+  dojoPhaseDawnReading: 'asa',
+  dojoPhaseDawnEn: 'morning',
+  dojoPhaseDayJa: '昼',
+  dojoPhaseDayReading: 'hiru',
+  dojoPhaseDayEn: 'day',
+  dojoPhaseDuskJa: '夕',
+  dojoPhaseDuskReading: 'yū',
+  dojoPhaseDuskEn: 'dusk',
+  dojoPhaseNightJa: '夜',
+  dojoPhaseNightReading: 'yoru',
+  dojoPhaseNightEn: 'night',
+  /* ── the tategaki column (design 09 §3.3, §5.9): every line glossed ── */
+  dojoColumnLabel: 'Today’s calendar',
+  dojoColumnNote: 'Traditional calendar, approximate.',
+  dojoColumnFrom: 'from {date}',
+  dojoColumnKoStep: 'kō · micro-season {n} of 3',
+  dojoSealLabel: 'Today’s seal, {date}: a session trained today.',
+  columnGreetingJa: 'こんにちは',
+  columnGreetingRomaji: 'konnichiwa',
+  columnGreetingEn: 'hello',
+  eraReiwa: 'Reiwa',
+  eraHeisei: 'Heisei',
+  eraShowa: 'Shōwa',
+  /* ── back from the mountain (design 09 §8): the honest spread, never the absence length ── */
+  dojoMountainDay: 'Day {n} back',
+  dojoMountainSpread: '{n} spread days left',
+  dojoMountainSpreadOne: '1 spread day left',
+  dojoMountainNewPaused: 'new items pause for two days',
+  dojoMountainNewTomorrow: 'new items return tomorrow',
+  dojoMountainNewBack: 'new items are back',
+  /* ── one hanko, paper tiles (design 09 §5.3) ──────────────────────── */
+  dojoRecommended: 'Recommended today',
+  /* ── the genkan strip (design 09 §10 B1): three towns, the current one in the middle ── */
+  dojoGenkanLabel: 'The road at the door',
+  dojoTownPassed: 'passed',
+  dojoTownHere: 'here',
+  dojoTownAhead: 'ahead',
 
   /* ── onboarding (日本橋) ───────────────────────────────────────────── */
   onbNamePlaceholder: 'むめい',
@@ -245,6 +285,9 @@ const PAGE = {
 } as const satisfies Record<string, string>;
 
 export const S = { ...SHELL, ...PAGE } as const;
+
+/** Short month names for the seal and era-date labels ("Oct 18"). */
+export const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
 export type PageStringKey = keyof typeof S;
 

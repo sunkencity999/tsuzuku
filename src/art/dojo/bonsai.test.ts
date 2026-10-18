@@ -112,6 +112,30 @@ describe('growBonsai', () => {
     expect(streaky.pads.length).toBeGreaterThanOrEqual(plain.pads.length);
   });
 
+  it('healing (design 09 §8): a pruned tree grows its pads back 40 → 100 % over the week, and a healed pruned tree equals the full one', () => {
+    const full = growBonsai({ ...BASE, totalDays: 365, pruned: false });
+    const h0 = growBonsai({ ...BASE, totalDays: 365, pruned: true, healing: 0 });
+    const h5 = growBonsai({ ...BASE, totalDays: 365, pruned: true, healing: 0.5 });
+    const h1 = growBonsai({ ...BASE, totalDays: 365, pruned: true, healing: 1 });
+    expect(h0.healing).toBe(0);
+    expect(h5.healing).toBe(0.5);
+    expect(h1.healing).toBe(1);
+    expect(full.healing).toBe(1);
+    expect(h0.pads.length).toBeLessThan(h5.pads.length);
+    expect(h5.pads.length).toBeLessThanOrEqual(h1.pads.length);
+    expect(h1.pads.length).toBe(full.pads.length);
+    expect(h1.pads[0]!.rx).toBeCloseTo(full.pads[0]!.rx);
+    expect(h0.pads[0]!.rx).toBeLessThan(full.pads[0]!.rx);
+    // the default for a pruned tree is unhealed; out-of-range values clamp
+    expect(growBonsai({ ...BASE, pruned: true }).healing).toBe(0);
+    expect(growBonsai({ ...BASE, pruned: true, healing: 7 }).healing).toBe(1);
+    expect(growBonsai({ ...BASE, pruned: true, healing: Number.NaN }).healing).toBe(0);
+    const d = parse(bonsaiSvg({ ...BASE, pruned: true, healing: 0.5, id: 'dj-p-bonsai' }));
+    expect(d.querySelector('.bonsai')?.getAttribute('data-healing')).toBe('0.5');
+    expect(d.querySelector('.bonsai')?.getAttribute('id')).toBe('dj-p-bonsai');
+    expect(parse(bonsaiSvg(BASE)).querySelector('.bonsai')?.getAttribute('data-healing')).toBeNull();
+  });
+
   it('blooming adds sakura nodes; otherwise none', () => {
     expect(growBonsai({ ...BASE, blooming: true }).blooms.length).toBeGreaterThan(0);
     expect(growBonsai({ ...BASE, blooming: false }).blooms.length).toBe(0);

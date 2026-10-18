@@ -71,6 +71,10 @@ export const S = {
   chipWeekly: '{n} weekly flames',
   chipWeeklyOne: 'weekly flame',
   chipRepair: 'repair open · {done} of 3 days',
+  /* design 09 §12.1 decision 19: below 480 px the chips collapse to the first one plus "+N";
+     the "+N" chip's hidden text lists the folded chips in full, joined by `listSeparator` */
+  chipsMore: '+{n}',
+  listSeparator: ', ',
   /* design 09 §8: "No streak yet" after a break, while the repair window is open */
   streakPaused: 'Streak paused · repair open: {done} of 3 days',
   /* design 09 §7 A: the caption prefix for the Dojo's since-yesterday pulse */

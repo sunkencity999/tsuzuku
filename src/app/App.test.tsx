@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render, type FunctionComponent } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
@@ -6,7 +8,7 @@ import { navigate, syncRouteFromLocation, type Route } from '@/shared/routes';
 import { resetStoreForTests, store } from '@/store';
 import { makeTestStore } from '@/store/testing';
 import { S } from '@/i18n/strings';
-import { App, ErrorBoundary, routeAnnouncement } from './App';
+import { App, ENSO_D, ErrorBoundary, routeAnnouncement } from './App';
 import type { PageModule } from './pages';
 import { resetTransitionsForTests, shownRoute } from './transitions';
 
@@ -567,18 +569,77 @@ describe('arrival — Hiraku (design 09 §7 A)', () => {
     expect(root.querySelector('.dojo-scene__art')).not.toBeNull();
   });
 
-  it('the boot mark is an ensō drawing itself (hiku-stroke on a pathLength-1 ring), not breathing text', () => {
+  it('the boot mark is an ensō drawing itself (§7 A beat 0): one OPEN arc with round caps on hiku-stroke, pathLength 1, ≤ 10 nodes, no filter; the loading sentence stays, visually hidden', () => {
     resetStoreForTests();
     act(() => render(<App pageFor={dojoPages} />, root));
     const mark = root.querySelector('svg.app-loading__mark');
     expect(mark).not.toBeNull();
     expect(mark?.getAttribute('aria-hidden')).toBe('true');
-    const ring = mark?.querySelector('circle');
-    expect(ring?.getAttribute('pathLength')).toBe('1');
-    expect(ring?.classList.contains('ink-hiku')).toBe(true);
-    expect(ring?.getAttribute('data-axis')).toBe('stroke');
-    expect(ring?.getAttribute('fill')).toBe('none');
-    expect(root.querySelector('.app-loading')?.textContent).toBe(S.loading); // no Japanese glyph on the boot screen
+    expect(mark?.querySelector('circle'), 'an ensō has a gap: no closed <circle>').toBeNull();
+    const stroke = mark?.querySelector('path');
+    expect(stroke?.getAttribute('d')).toBe(ENSO_D);
+    expect(ENSO_D).toMatch(/^M[\d. ]+A20 20 0 1 1 [\d. ]+$/); // one arc, large-arc, clockwise …
+    expect(ENSO_D).not.toMatch(/[Zz]/); // … never closed
+    expect(stroke?.getAttribute('pathLength')).toBe('1');
+    expect(stroke?.classList.contains('ink-hiku')).toBe(true);
+    expect(stroke?.getAttribute('data-axis')).toBe('stroke');
+    expect(stroke?.getAttribute('fill')).toBe('none');
+    expect(stroke?.getAttribute('stroke-linecap')).toBe('round');
+    expect(1 + (mark?.querySelectorAll('*').length ?? 0)).toBeLessThanOrEqual(10); // the §10 node budget
+    expect(mark?.querySelector('filter')).toBeNull();
+    // the sentence is for assistive tech now: hidden, still the only text, no Japanese glyph on the boot screen
+    const text = root.querySelector('.app-loading__text');
+    expect(text?.classList.contains('visually-hidden')).toBe(true);
+    expect(root.querySelector('.app-loading')?.textContent).toBe(S.loading);
+    // motion.css draws it in --dur-4 on --ease-draw (stroke-dashoffset only) and rests it under BOTH reduced selectors
+    const motion = readFileSync(resolve(process.cwd(), 'src/styles/motion.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(motion).toMatch(/\.ink-hiku\[data-axis="stroke"\]\s*\{[^}]*animation-name:\s*hiku-stroke;[^}]*animation-duration:\s*var\(--dur-4\)/);
+    expect(motion).toMatch(/\.ink-hiku\s*\{[^}]*var\(--ease-draw\)/);
+    expect(motion).toMatch(/@keyframes hiku-stroke\s*\{[^}]*stroke-dashoffset[^}]*\}/);
+    // the @media body alone: a greedy [\s\S]* would run on into the :root[data-reduced-motion] twin below it and prove nothing
+    const mediaBody = (css: string, query: string): string => {
+      const i = css.indexOf(`@media ${query}`);
+      expect(i, query).toBeGreaterThanOrEqual(0);
+      const open = css.indexOf('{', i);
+      let depth = 1;
+      let j = open + 1;
+      for (; j < css.length && depth > 0; j++) depth += css[j] === '{' ? 1 : css[j] === '}' ? -1 : 0;
+      return css.slice(open + 1, j - 1);
+    };
+    const reduce = mediaBody(motion, '(prefers-reduced-motion: reduce)');
+    expect(reduce).not.toMatch(/:root\[data-reduced-motion\]/); // the slice really is the @media block only
+    expect(reduce).toMatch(/\.ink-hiku\[data-axis="stroke"\][^{]*\{[^}]*animation:\s*none/);
+    expect(motion).toMatch(/:root\[data-reduced-motion\] :is\([^)]*\.ink-hiku\[data-axis="stroke"\][^)]*\)[^{]*\{[^}]*animation:\s*none/);
+  });
+
+  it('under reduced motion (the OS query, before the save is known) the drawing class is absent and the arc is already whole — a static mark, not a hold', () => {
+    resetStoreForTests();
+    const mql = (query: string): MediaQueryList =>
+      ({
+        matches: /prefers-reduced-motion/.test(query),
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList;
+    vi.stubGlobal('matchMedia', mql);
+    act(() => render(<App pageFor={dojoPages} />, root));
+    const stroke = root.querySelector('svg.app-loading__mark path');
+    expect(stroke).not.toBeNull();
+    expect(stroke?.classList.contains('ink-hiku')).toBe(false);
+    expect(stroke?.hasAttribute('data-axis')).toBe(false);
+    expect(stroke?.getAttribute('d')).toBe(ENSO_D); // the same complete arc, drawn whole
+    expect(stroke?.getAttribute('stroke-dasharray')).toBeNull();
+    expect(root.querySelector('svg.app-loading__mark')?.getAttribute('class')).toBe('app-loading__mark'); // the hero name's host is unchanged
+  });
+
+  it('App.tsx draws the ensō inline: it never imports src/art/brush.ts (the art chunk stays out of the boot bundle)', () => {
+    const src = readFileSync(resolve(process.cwd(), 'src/app/App.tsx'), 'utf8');
+    expect(src).not.toMatch(/from '[^']*art\/brush'/);
+    expect(src).not.toMatch(/from '@\/art\//);
   });
 });
 

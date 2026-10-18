@@ -1,6 +1,7 @@
 import { ITEM_KINDS, type ItemKind } from '../../shared/store-types';
+import { tonguePath } from '../../shared/ui/Lantern';
 import { svgDoc } from '../svg';
-import { DRIFT_VARIANTS, FLAME_CAP, FLAME_TOKEN, allocate, emptyCounts, flamesSvg, hearthStateOf, hearthSvg, type HearthState } from './flames';
+import { DRIFT_VARIANTS, FLAME_CAP, FLAME_TOKEN, HEARTH_STATES, HEARTH_TONGUES, WILL_CHANGE_CAP, allocate, emptyCounts, flamesSvg, hearthClass, hearthStateOf, hearthSvg } from './flames';
 
 function parse(inner: string, w = 960, h = 540): Document {
   const doc = new DOMParser().parseFromString(svgDoc({ w, h, body: [inner] }), 'image/svg+xml');
@@ -98,10 +99,24 @@ describe('flamesSvg', () => {
     const still = flamesSvg({ ...o, reducedMotion: true }).svg;
     expect(still).not.toContain('@keyframes');
     expect(still).not.toContain('animation');
+    expect(still).not.toContain('will-change');
     expect(parse(still).querySelectorAll('use').length).toBe(20);
     // same positions either way
     const xs = (svg: string): string[] => Array.from(parse(svg).querySelectorAll('use')).map((u) => u.getAttribute('x') ?? '');
     expect(xs(still)).toEqual(xs(live));
+  });
+
+  it('will-change: transform rides on the first 24 flames only (design 09 §6.7 rule 3)', () => {
+    const r = flamesSvg({ ...REGION, counts: counts({ vocab: 60 }), reducedMotion: false });
+    const d = parse(r.svg);
+    expect(d.querySelectorAll('use.dj-kf-w').length).toBe(WILL_CHANGE_CAP);
+    expect(WILL_CHANGE_CAP).toBe(24);
+    const uses = Array.from(d.querySelectorAll('use'));
+    for (let i = 0; i < uses.length; i++) expect(uses[i]!.classList.contains('dj-kf-w'), `flame ${i}`).toBe(i < WILL_CHANGE_CAP);
+    expect(r.svg).toContain('.dj-kf-w{will-change:transform}');
+    expect(r.svg).not.toMatch(/\.dj-kf\{[^}]*will-change/);
+    // reduced motion: nothing is marked
+    expect(parse(flamesSvg({ ...REGION, counts: counts({ vocab: 60 }), reducedMotion: true }).svg).querySelectorAll('.dj-kf-w').length).toBe(0);
   });
 
   it('zero items: an empty group, no style, no defs', () => {
@@ -130,47 +145,64 @@ describe('hearth', () => {
     expect(hearthStateOf('frozen')).toEqual({ state: 'steady', crystal: true });
     expect(hearthStateOf('rest')).toEqual({ state: 'steady', crystal: false });
     expect(hearthStateOf('broken')).toEqual({ state: 'unlit', crystal: false });
+    expect(HEARTH_STATES).toEqual(['unlit', 'ember', 'steady', 'roaring']);
+    expect(hearthClass('steady')).toBe('dj-hf--steady');
+    expect(hearthClass('steady', true)).toBe('dj-hf--steady dj-hf--crystal');
   });
 
   const box = { seed: 3, x: 420, y: 392, w: 120, h: 80 };
 
-  it('renders each state with the right fire', () => {
-    const tongues = (state: HearthState, crystal = false): Document => parse(hearthSvg({ ...box, state, crystal, reducedMotion: false }));
-    const unlit = tongues('unlit');
-    expect(unlit.querySelector('.dj-hf--unlit')).not.toBeNull();
-    expect(unlit.querySelectorAll('.dj-hf-tongue, .dj-hf-ember').length).toBe(0);
-    expect(hearthSvg({ ...box, state: 'unlit', reducedMotion: false })).not.toContain('<style');
-    const ember = tongues('ember');
-    expect(ember.querySelectorAll('.dj-hf-ember').length).toBe(3);
-    expect(ember.querySelectorAll('.dj-hf-tongue').length).toBe(0);
-    const steady = tongues('steady');
-    expect(steady.querySelectorAll('.dj-hf-tongue').length).toBe(4); // 2 tongues × (outer + core)
-    const roaring = tongues('roaring');
-    expect(roaring.querySelectorAll('.dj-hf-tongue').length).toBe(8);
-    expect(roaring.querySelector('.dj-hf--roaring')).not.toBeNull();
-    expect(steady.querySelector('.dj-hf-crystal')).toBeNull();
-    const frozen = tongues('steady', true);
-    expect(frozen.querySelector('.dj-hf-crystal')).not.toBeNull();
-    expect(frozen.querySelector('.dj-hf')?.getAttribute('data-crystal')).toBe('true');
+  it('carries every state in one string: embers, four tongues (outer + core), two glows, the crystal — the host flips the class (design 09 §7 C)', () => {
+    const d = parse(hearthSvg({ ...box, reducedMotion: false, id: 'dj-p-hearth' }));
+    const g = d.querySelector('.dj-hf')!;
+    expect(g.getAttribute('id')).toBe('dj-p-hearth');
+    expect(g.classList.contains('dj-hf--unlit')).toBe(true); // the string's default; `syncLive` sets the real one
+    expect(d.querySelectorAll('.dj-hf-ember').length).toBe(3);
+    expect(d.querySelectorAll('.dj-hf-t').length).toBe(HEARTH_TONGUES);
+    expect(d.querySelectorAll('.dj-hf-tongue').length).toBe(HEARTH_TONGUES * 2);
+    expect(d.querySelectorAll('.dj-hf-outer').length).toBe(HEARTH_TONGUES);
+    expect(d.querySelectorAll('.dj-hf-core').length).toBe(HEARTH_TONGUES);
+    expect(d.querySelectorAll('.dj-hf-glow').length).toBe(2);
+    expect(d.querySelector('.dj-hf-glow--steady')?.getAttribute('opacity')).toBe('0');
+    expect(d.querySelector('.dj-hf-crystal')).not.toBeNull();
+    for (let i = 0; i < HEARTH_TONGUES; i++) expect(d.querySelector(`.dj-hf-t${i}`), `tongue ${i}`).not.toBeNull();
+    // the state never changes the string
+    expect(hearthSvg({ ...box, reducedMotion: false })).toBe(hearthSvg({ ...box, reducedMotion: false }));
+    // Zen: no glows
+    expect(parse(hearthSvg({ ...box, reducedMotion: false, glow: false })).querySelectorAll('.dj-hf-glow').length).toBe(0);
+  });
+
+  it('the tongues share their shape with the header lantern (shared/ui/Lantern tonguePath)', () => {
+    const d = parse(hearthSvg({ ...box, reducedMotion: true }));
+    const outer = d.querySelector('.dj-hf-t0 .dj-hf-outer')!.getAttribute('d')!;
+    // the same construction: move, two quadratic curves, close
+    expect(outer).toMatch(/^M[-\d. ]+Q[-\d. ]+Q[-\d. ]+Z$/);
+    expect(tonguePath({ cx: 10, base: 18, height: 14, width: 9, lean: 1 })).toMatch(/^M[-\d. ]+Q[-\d. ]+Q[-\d. ]+Z$/);
+    // a tongue of the same parameters prints the same path
+    const d2 = tonguePath({ cx: 480, base: 448, height: 40, width: 24, lean: 2 });
+    expect(hearthSvg({ ...box, reducedMotion: true })).not.toContain(d2); // seeded heights differ…
+    expect(d2.split(' ').length).toBeGreaterThan(8); // …but the shape function is the shared one
   });
 
   it('flickers slowly with CSS only; static under reduced motion', () => {
-    const live = hearthSvg({ ...box, state: 'roaring', reducedMotion: false });
+    const live = hearthSvg({ ...box, reducedMotion: false });
     expect(live).toContain('@keyframes dj-hf-flicker');
+    expect(live).toContain('@keyframes dj-hf-pulse');
     expect(live).toContain('prefers-reduced-motion');
     expect(live).not.toContain('<animate');
     // nothing faster than ~0.7 Hz: every duration ≥ 1.4 s
     for (const m of live.matchAll(/animation(?:-duration)?:[^;}]*?([\d.]+)s/g)) expect(Number(m[1])).toBeGreaterThanOrEqual(1.4);
-    const still = hearthSvg({ ...box, state: 'roaring', reducedMotion: true });
+    const still = hearthSvg({ ...box, reducedMotion: true });
     expect(still).not.toContain('@keyframes');
     expect(still).not.toContain('animation');
-    expect(parse(still).querySelectorAll('.dj-hf-tongue').length).toBe(8);
+    expect(still).not.toContain('<style');
+    expect(parse(still).querySelectorAll('.dj-hf-tongue').length).toBe(HEARTH_TONGUES * 2);
   });
 
   it('is deterministic and NaN-free', () => {
-    const a = hearthSvg({ ...box, state: 'steady', reducedMotion: false });
-    expect(a).toBe(hearthSvg({ ...box, state: 'steady', reducedMotion: false }));
+    const a = hearthSvg({ ...box, reducedMotion: false });
+    expect(a).toBe(hearthSvg({ ...box, reducedMotion: false }));
     expect(a).not.toContain('NaN');
-    expect(a).not.toBe(hearthSvg({ ...box, seed: 4, state: 'steady', reducedMotion: false }));
+    expect(a).not.toBe(hearthSvg({ ...box, seed: 4, reducedMotion: false }));
   });
 });

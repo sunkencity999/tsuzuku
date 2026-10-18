@@ -1,129 +1,73 @@
 /*
- * TSUZUKU — <DojoScene/> styles. Tokens only (src/styles/tokens.css); the
- * picture itself paints with the same custom properties, so light and dark
- * themes need no JS. Hotspots are real links laid over the stage in percent
- * of the stage, so they scale with the picture (≥ 44 px touch targets).
+ * TSUZUKU — <DojoScene/> (design 06 §5; 09 §7 A/C/H, §10 B1). Tokens only. Hotspots are real links over
+ * the stage (≥ 44 px). The time of day, the lanterns and the hearth are LIVE, never a rebuilt string: the
+ * wrapper's data-phase / data-lanterns / data-hearth and the classes DojoScene.syncLive writes into the SVG.
+ * Motion is opacity, scale or translate only; nothing loops but the self-gating flicker and drift inside
+ * the SVG (§6.3). Reduced motion: base.css's `*:not(.rm-fade)` zeroes every transition and animation here.
  */
+.dojo-scene { position: relative; width: 100%; max-width: 960px; margin-inline: auto; }
+.dojo-scene__stage { position: relative; aspect-ratio: 960 / 540; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.dojo-scene--compact .dojo-scene__stage { aspect-ratio: 960 / 400; }
+.dojo-scene__art { position: absolute; inset: 0; }
+.dojo-scene__art svg { display: block; width: 100%; height: 100%; }
 
-.dojo-scene {
-  position: relative;
-  width: 100%;
-  max-width: 960px;
-  margin-inline: auto;
-}
+/* ── the sky: --a holds the phase, --b the previous phase fading out (§6.3 "the sky crossfade") ── */
+.room__sky--b { opacity: 0; }
+.room__sky--fade { animation: dj-sky-out var(--dur-4) var(--ease) both; }
+@keyframes dj-sky-out { from { opacity: 1; } to { opacity: 0; } }
+.room__stars, .room__moon, .room__sun, .room__cloud, .room__light, .room__paper { transition: opacity var(--dur-4) var(--ease); }
+.room__stars, .room__moon, .room__sun, .room__cloud { opacity: 0; }
+.dojo-scene__art[data-phase="night"] .room__stars,
+.dojo-scene__art[data-phase="night"] .room__moon,
+.dojo-scene__art[data-phase="dawn"] .room__sun--dawn,
+.dojo-scene__art[data-phase="dusk"] .room__sun--dusk,
+.dojo-scene__art[data-phase="day"] .room__cloud { opacity: 1; }
+.dojo-scene__art[data-phase="dawn"] .room__light { opacity: 0.06; }
+.dojo-scene__art[data-phase="dusk"] .room__light { opacity: 0.1; }
+.dojo-scene__art[data-phase="night"] .room__light { opacity: 0.2; }
+.dojo-scene__art[data-phase="night"] .room__paper { opacity: 0.28; }
 
-.dojo-scene__stage {
-  position: relative;
-  aspect-ratio: 960 / 540;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-.dojo-scene--compact .dojo-scene__stage {
-  aspect-ratio: 960 / 400;
-}
+/* ── lanterns: lit paper by the host; the glow only where light glows (Night) and never while the pulse twins hold the two live filters ── */
+.room__lantern-body { transition: fill var(--dur-2) var(--ease); }
+:root[data-color-scheme="dark"] .room__lanterns--lit { filter: url(#dj-lantern-glow); }
+.dojo-scene__art[data-pulsing] .room__lanterns--lit { filter: none; }
 
-.dojo-scene__art {
-  position: absolute;
-  inset: 0;
-}
-.dojo-scene__art svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
+/* ── the hearth relights BY CLASS (§7 C): tongues grow scaleY 0 → 1 on --spring over 600 ms ── */
+.dj-hf-tongue { scale: 1 0; transform-box: fill-box; transform-origin: 50% 100%; transition: scale calc(var(--dur-3) * 1.5) var(--spring); }
+.dj-hf--steady .dj-hf-t1 .dj-hf-tongue, .dj-hf--steady .dj-hf-t2 .dj-hf-tongue { scale: 1 0.7; }
+.dj-hf--roaring .dj-hf-tongue { scale: 1 1; }
+.dj-hf:not(.dj-hf--steady):not(.dj-hf--roaring) .dj-hf-tongue, .dj-hf--steady :is(.dj-hf-t0, .dj-hf-t3) .dj-hf-tongue, .dj-hf:not(.dj-hf--ember) .dj-hf-ember { animation: none; }
+.dj-hf-outer, .dj-hf-core { transition: fill var(--dur-2) var(--ease); }
+.dj-hf--roaring .dj-hf-outer { fill: var(--kin); }
+.dj-hf--roaring .dj-hf-core { fill: var(--stage-fg); }
+.dj-hf-ember, .dj-hf-glow, .dj-hf-crystal { opacity: 0; transition: opacity var(--dur-4) var(--ease); }
+.dj-hf--ember .dj-hf-ember { opacity: 0.8; }
+.dj-hf--steady .dj-hf-glow--steady, .dj-hf--roaring .dj-hf-glow--roaring { opacity: 0.16; }
+.dj-hf--crystal .dj-hf-crystal { opacity: 1; }
 
-/* ── hotspots ───────────────────────────────────────────────────────── */
-.dojo-scene__hotspots {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  pointer-events: none;
-}
-.dojo-scene__hotspot {
-  position: absolute;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  box-sizing: border-box;
-  min-width: var(--touch);
-  min-height: var(--touch);
-  padding: var(--sp-1);
-  border-radius: var(--radius-sm);
-  color: var(--fg);
-  text-decoration: none;
-  pointer-events: auto;
-  transition: background var(--dur-1) var(--ease);
-}
-.dojo-scene__hotspot:hover,
-.dojo-scene__hotspot:focus-visible {
-  background: color-mix(in srgb, var(--focus) 14%, transparent);
-}
-.dojo-scene__hotspot:focus-visible {
-  outline: var(--focus-ring) solid var(--focus);
-  outline-offset: var(--focus-offset);
-}
-.dojo-scene__tip {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  line-height: 1.4;
-  padding: 1px 6px;
-  color: var(--fg);
-  background: color-mix(in srgb, var(--raised) 92%, transparent);
-  border: 1px solid var(--line);
-  border-radius: 2px;
-  opacity: 0;
-  transform: translateY(4px);
-  transition:
-    opacity var(--dur-2) var(--ease),
-    transform var(--dur-2) var(--ease);
-}
-.dojo-scene__hotspot:hover .dojo-scene__tip,
-.dojo-scene__hotspot:focus-visible .dojo-scene__tip {
-  opacity: 1;
-  transform: none;
-}
+/* ── Monday: the Kage leaves the corner — translateX + kasure (§8 the week); reduced: an opacity swap under --dur-fade (.rm-fade) ── */
+.room__kage--leaving { transform-box: fill-box; animation: dj-kage-out var(--dur-3) var(--ease-out) both; animation-delay: var(--dur-4); }
+@keyframes dj-kage-out { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 24px 0; } }
+@media (prefers-reduced-motion: reduce) { .room__kage--leaving { animation-name: dj-sky-out; } }
+:root[data-reduced-motion] .room__kage--leaving { animation-name: dj-sky-out; }
 
-/* ── caption ────────────────────────────────────────────────────────── */
-.dojo-scene__caption {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--sp-2);
-  margin: var(--sp-2) 0 0;
-  padding: 0 var(--sp-1);
-  color: var(--fg-muted);
-  font-size: var(--fs-2);
-}
-.dojo-scene__caption [lang='ja'] {
-  color: var(--fg);
-  font-family: var(--font-brush);
-  font-size: var(--fs-3);
-  line-height: 1.2;
-}
-.dojo-scene__muted {
-  opacity: 0.8;
-}
+/* ── since yesterday (§7 A beat 1,700): one 900 ms pulse per changed part; reduced motion draws the ring ── */
+.room__pulse { animation: dj-pulse var(--dur-4) var(--ease) both; }
+@keyframes dj-pulse { 0% { opacity: 0; } 50% { opacity: 0.85; } 100% { opacity: 0; } }
+.room__ring { stroke: var(--kin); }
+.dojo-scene__since { margin: var(--sp-2) 0 0; padding: 0 var(--sp-1); font-size: var(--fs-2); }
 
-/* ── motion ─────────────────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .dojo-scene__hotspot,
-  .dojo-scene__tip {
-    transition: none;
-  }
-}
-.reduced-motion .dojo-scene__hotspot,
-.reduced-motion .dojo-scene__tip {
-  transition: none;
-}
+/* ── hotspots ── */
+.dojo-scene__hotspots { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; }
+.dojo-scene__hotspot { position: absolute; display: flex; align-items: flex-end; justify-content: center; box-sizing: border-box; min-width: var(--touch); min-height: var(--touch); padding: var(--sp-1); border-radius: var(--radius-sm); color: var(--fg); text-decoration: none; pointer-events: auto; transition: background var(--dur-1) var(--ease); }
+.dojo-scene__hotspot:hover, .dojo-scene__hotspot:focus-visible { background: color-mix(in srgb, var(--focus) 14%, transparent); }
+.dojo-scene__hotspot:focus-visible { outline: var(--focus-ring) solid var(--focus); outline-offset: var(--focus-offset); }
+.dojo-scene__tip { font-family: var(--font-pixel); font-size: var(--fs-1); letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.4; padding: 1px 6px; color: var(--fg); background: color-mix(in srgb, var(--raised) 92%, transparent); border: 1px solid var(--line); border-radius: 2px; opacity: 0; transform: translateY(4px); transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease); }
+.dojo-scene__hotspot:hover .dojo-scene__tip, .dojo-scene__hotspot:focus-visible .dojo-scene__tip { opacity: 1; transform: none; }
 
-@media (max-width: 480px) {
-  .dojo-scene__tip {
-    display: none;
-  }
-}
+/* ── caption: the kotodama count and the ornament's label (kanji in the system face, reading and English beside it) ── */
+.dojo-scene__caption { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); margin: var(--sp-2) 0 0; padding: 0 var(--sp-1); color: var(--fg-muted); font-size: var(--fs-2); }
+.dojo-scene__caption [lang='ja'] { color: var(--fg); font-family: var(--font-brush); font-size: var(--fs-3); line-height: 1.2; }
+.dojo-scene__ornament [lang='ja'] { font-family: var(--font-ja); }
+.dojo-scene__muted { opacity: 0.8; }
+@media (max-width: 480px) { .dojo-scene__tip { display: none; } }
