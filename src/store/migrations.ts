@@ -29,6 +29,16 @@
  * is lifted to the first station past its cleared gates (Nihonbashi is
  * onboarding only).
  *
+ * Listening (design 08 §11–§13): `settings.audioSource` is checked against its
+ * closed union (`'pack' | 'device'`, else `'pack'`); `progress.listened` /
+ * `teachSeen` keep only id-like strings (`ID_LIKE`, ≤ `ID_MAX` glyphs — a
+ * truncated id names nothing, so a bad entry is dropped, never cut) and are
+ * capped at `LISTENED_MAX` / `TEACH_SEEN_MAX` newest entries (`ARRAY_CAPS`);
+ * a save from before the listening counters is seeded with
+ * `stats.bestCleanTier = settings.speedTier` so no 耳 radar drops on upgrade
+ * (a new save starts at `FRESH_BEST_CLEAN_TIER`). Additive fields need no
+ * schema bump: `freshSave()` is the template and the per-slice fill does the rest.
+ *
  * `applyRedirects` is the id-rename pass driven by `ContentManifest.redirects`.
  */
 import { BELT_IDS, FACETS, LEVELS, type CardKey } from '../content/types';
@@ -152,6 +162,23 @@ type Guard = (x: unknown) => unknown;
 const str = (max: number): Guard => (x) => cappedString(x, max);
 const station: Guard = (x) => (isInt(x, 0, 53) ? x : undefined);
 
+/**
+ * Text ids heard / teach cards seen (design 08 §10–§11): lowercase ASCII ids such as
+ * `s-07-2` or `morae-beats`. Prose, capitals, non-strings and oversize are dropped, not cut.
+ */
+const ID_LIKE = /^[a-z0-9][a-z0-9#:._-]*$/;
+const idLike: Guard = (x) => (typeof x === 'string' && x.length <= ID_MAX && ID_LIKE.test(x) ? x : undefined);
+
+/** Newest entries kept in `progress.listened` (design 08 §11; 237 texts + kana tracks, with room for release trains). */
+export const LISTENED_MAX = 4096;
+/** Newest entries kept in `progress.teachSeen` (design 08 §11; a few dozen teach cards exist). */
+export const TEACH_SEEN_MAX = 256;
+/** Per-array caps keyed by template path; arrays not listed are uncapped. */
+const ARRAY_CAPS: Record<string, number> = {
+  'progress.listened': LISTENED_MAX,
+  'progress.teachSeen': TEACH_SEEN_MAX,
+};
+
 function ledgerEntry(x: unknown): unknown {
   if (!Array.isArray(x) || x.length < 4 || x.length > 5) return undefined;
   const [day, minutes, kind, source, note] = x as unknown[];
@@ -171,6 +198,8 @@ const ELEMENT_GUARDS: Record<string, Guard> = {
   'progress.grudge': (x) => (isCardKeyString(x) ? x : undefined),
   'progress.shinsaPassed': (x) => (typeof x === 'string' && BELT_SET.has(x) ? x : undefined),
   'progress.storiesRead': str(ID_MAX),
+  'progress.listened': idLike,
+  'progress.teachSeen': idLike,
   'quests.ids': str(ID_MAX),
   'quests.done': str(ID_MAX),
   'collections.michikusa': str(ID_MAX),
@@ -227,8 +256,10 @@ function coerce(def: unknown, have: unknown, path: string, coerced: string[]): u
         clean.push(y);
       }
     }
-    if (changed) coerced.push(path);
-    return clean;
+    const cap = ARRAY_CAPS[path];
+    const kept = cap !== undefined && clean.length > cap ? clean.slice(clean.length - cap) : clean;
+    if (changed || kept !== clean) coerced.push(path);
+    return kept;
   }
   if (isObject(def)) {
     if (!isObject(have)) {
@@ -264,6 +295,8 @@ const THEMES: ReadonlySet<string> = new Set<Theme>(['auto', 'light', 'dark']);
 const FURIGANA: ReadonlySet<string> = new Set<FuriganaMode>(['always', 'fog', 'tap', 'off']);
 const SPEAKING: ReadonlySet<string> = new Set<SpeakingMode>(['auto', 'recognition', 'self', 'off']);
 const RETENTIONS: ReadonlySet<number> = new Set<Retention>([0.85, 0.9, 0.95]);
+/** design 08 §13 `Settings.audioSource`: the voice pack or the device voice. */
+const AUDIO_SOURCES: ReadonlySet<string> = new Set<Settings['audioSource']>(['pack', 'device']);
 
 /** Closed unions and ranges of `settings` (kinds alone let `intensity: 'bogus'` NaN the new-item budget). */
 function checkSettings(st: Settings, d: Settings, coerced: string[]): Settings {
@@ -280,6 +313,7 @@ function checkSettings(st: Settings, d: Settings, coerced: string[]): Settings {
   fix('speaking', SPEAKING.has(st.speaking));
   fix('speedTier', isInt(st.speedTier, 1, 5));
   fix('retention', RETENTIONS.has(st.retention));
+  fix('audioSource', AUDIO_SOURCES.has(st.audioSource));
   fix('restDay', st.restDay === null || isInt(st.restDay, 0, 6));
   if (st.sound < 0 || st.sound > 1) {
     out.sound = Math.min(1, Math.max(0, st.sound));
@@ -347,6 +381,10 @@ function fillMeta(raw: Raw, coerced: string[]): SaveMeta {
   const meta = out as unknown as SaveMeta;
   meta.profile = checkProfile(meta.profile, d.profile, tz, coerced);
   meta.settings = checkSettings(meta.settings, d.settings, coerced);
+  // design 08 §12: a save from before the listening counters keeps the radar it had — `bestCleanTier` is
+  // seeded from the chosen speed tier (a NEW save starts at FRESH_BEST_CLEAN_TIER through freshStats).
+  // Additive, not a repair: nothing is pushed to `coerced`.
+  if (!isObject(raw.stats) || !isFinite_(raw.stats.bestCleanTier)) meta.stats = { ...meta.stats, bestCleanTier: meta.settings.speedTier };
   // Onboarding done at station 0 (Nihonbashi is onboarding only): lift to the first uncleared station.
   const pr = meta.progress;
   const trained = meta.profile.goals.length > 0 || meta.stats.sessions > 0 || meta.streak.totalDays > 0;

@@ -6,7 +6,9 @@ import {
   BADGE_CATEGORIES,
   BADGE_DEFS,
   BADGE_DEFS_COMPLETE,
+  FIRST_HEARING_SETS,
   KANA_SETS,
+  TEAHOUSE_REGULAR_MINUTES,
   bestStreak,
   grammarianMet,
   isBrown,
@@ -123,6 +125,8 @@ const CASES: Record<BadgeId, { yes: Case; no: Case }> = {
   'speed-reader': { yes: { ev: story('speed', { cpm: 300, correct: 1, total: 1 }) }, no: { ev: story('speed', { cpm: 300, correct: 0, total: 1 }) } },
   'golden-ear': { yes: { save: { stats: { dictation95at1x: 100 } } }, no: { save: { stats: { dictation95at1x: 99 } } } },
   'fast-ear': { yes: { save: { stats: { listeningFastPasses: 20 } } }, no: { save: { stats: { listeningFastPasses: 19 } } } },
+  'teahouse-regular': { yes: { save: { stats: { radioMinutes: 600 } } }, no: { save: { stats: { radioMinutes: 599 } } } },
+  'first-hearing': { yes: { save: { stats: { coldSetsPassed: 20 } } }, no: { save: { stats: { coldSetsPassed: 19, coldSets: 40 } } } },
   voice: { yes: { save: { stats: { shadowPass: 1 } } }, no: { save: { stats: { shadowPass: 0 } } } },
   'shadow-warrior': { yes: { save: { stats: { shadowPass: 500 } } }, no: { save: { stats: { shadowPass: 499 } } } },
   aizuchi: { yes: { save: { stats: { rolePlaysAizuchi: 20 } } }, no: { save: { stats: { rolePlaysAizuchi: 19 } } } },
@@ -172,9 +176,25 @@ const BANNED = [/you lost your streak/i, /don'?t let .* down/i, /only \d+ hours?
 describe('BADGE_DEFS', () => {
   it('covers BADGE_IDS exactly, in catalog order', () => {
     expect(BADGE_DEFS.map((d) => d.id)).toEqual([...BADGE_IDS]);
-    expect(BADGE_DEFS).toHaveLength(66);
+    expect(BADGE_DEFS).toHaveLength(68);
     expect(BADGE_DEFS_COMPLETE).toBe(true);
     for (const id of BADGE_IDS) expect(BADGE_BY_ID[id].id).toBe(id);
+  });
+
+  it('design 08 §11 listening badges: 茶屋の常連 at 600 Radio minutes (Bronze 常, indexed on listen:played only), 初耳 at 20 first hearings (Silver 初, indexed on listening:set and listen:played)', () => {
+    const regular = BADGE_BY_ID['teahouse-regular'];
+    expect(regular).toMatchObject({ glyph: '常', field: 'circle', tier: 'bronze', category: 'input', nameJa: '茶屋の常連' });
+    expect(TEAHOUSE_REGULAR_MINUTES).toBe(600);
+    expect(regular.when(testSave({ save: { stats: { radioMinutes: 600 } } }))).toBe(true);
+    expect(regular.when(testSave({ save: { stats: { radioMinutes: 599 } } }))).toBe(false);
+    const first = BADGE_BY_ID['first-hearing'];
+    expect(first).toMatchObject({ glyph: '初', field: 'circle', tier: 'silver', category: 'input', nameJa: '初耳' });
+    expect(FIRST_HEARING_SETS).toBe(20);
+    expect(first.when(testSave({ save: { stats: { coldSetsPassed: 20 } } }))).toBe(true);
+    expect(first.when(testSave({ save: { stats: { coldSetsPassed: 19 } } }))).toBe(false);
+    expect(regular.events).toEqual(['listen:played']); // radioMinutes moves on nothing else (listening-plan contracts)
+    expect(first.events).toEqual(['listening:set', 'listen:played']); // first hearings on either surface
+    for (const d of [regular, first]) expect(d.describe).not.toMatch(/recorded/i);
   });
 
   it('every def has names, a one-glyph crest, a tier, a category, index events and visible copy', () => {

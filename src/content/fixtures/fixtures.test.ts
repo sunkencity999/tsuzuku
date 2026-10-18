@@ -6,7 +6,7 @@
  * V18 pitch, V19 tokens + tokenIds, V20 allowlist, V21 comprehension,
  * V25/V27 story form, V35 manifest consistency).
  */
-import { ID_PATTERNS, KANA_SENTENCE_RE, KANA_WORD_RE, STATIONS, type ContentFile, type ContentItem, type ContentKind, type GrammarItem, type StoryItem, type VocabItem } from '../types';
+import { CONTENT_KINDS, ID_PATTERNS, KANA_SENTENCE_RE, KANA_WORD_RE, STATIONS, type ContentFile, type ContentItem, type ContentKind, type GrammarItem, type ListeningPool, type StoryItem, type VocabItem } from '../types';
 import { hasKanji, toKana, toPlain, tokensMatchPlain } from '../ruby';
 import { kindOfId, isValidId } from '../../shared/ids';
 import {
@@ -18,6 +18,7 @@ import {
   FIXTURE_IDS,
   FIXTURE_PITCH_HIGH_ID,
   FIXTURE_REDIRECT_FROM,
+  FIXTURE_STORY_ID,
   G,
   GRAMMAR,
   KANA,
@@ -29,6 +30,7 @@ import {
   STORY,
   V,
   VOCAB,
+  createFakeLoader,
 } from './index';
 
 const MORA_RE = /[ぁ-ゖァ-ヺー][ゃゅょャュョぁぃぅぇぉァィゥェォ]?/g;
@@ -487,6 +489,10 @@ describe('bundles and manifest (V35)', () => {
     const byType = (t: ContentKind) => m.files.filter((f) => f.type === t).reduce((n, f) => n + f.count, 0);
     for (const t of ['kana', 'vocab', 'kanji', 'grammar', 'story', 'conjugation', 'component', 'michikusa'] as const) expect(m.totals[t], t).toBe(byType(t));
     expect(m.totals.station).toBe(m.stations.length);
+    // design 08 §4: 'pool' is a CONTENT_KIND; the fixture ships no pool files, so the total is 0 and every kind has a key.
+    expect(Object.keys(m.totals).sort()).toEqual([...CONTENT_KINDS].sort());
+    expect(m.totals.pool).toBe(0);
+    expect(m.files.some((f) => f.type === 'pool')).toBe(false);
     expect(m.componentsPath).toBe(PATHS.components);
     expect(m.files.find((f) => f.path === m.componentsPath)?.type).toBe('component');
   });
@@ -495,5 +501,22 @@ describe('bundles and manifest (V35)', () => {
     const byId = new Map(GRAMMAR.map((g) => [g.id, g] as [string, GrammarItem]));
     expect(byId.get(G.です)?.related).toContain(G.は);
     expect(byId.get(G.は)?.related).toContain(G.です);
+  });
+});
+
+describe('createFakeLoader pools (design 08 §4)', () => {
+  it('pool(n) rejects missing-pool with the conventional path when the fixture has none, and serves Fixture.pools[n] when given', async () => {
+    const bare = createFakeLoader();
+    await expect(bare.pool(4)).rejects.toMatchObject({ code: 'missing-pool', path: 'listening/pool-04.json' });
+    const pool: ListeningPool = {
+      schema: 'tsuzuku.pool/1',
+      station: 4,
+      refs: [{ ref: `${FIXTURE_STORY_ID}#L1`, ids: [V.はい], kana: 'はい、ほんです。', morae: 6 }],
+    };
+    const withPool = createFakeLoader({ ...FIXTURE, pools: { 4: pool } });
+    await expect(withPool.pool(4)).resolves.toBe(pool);
+    await expect(withPool.pool(5)).rejects.toMatchObject({ code: 'missing-pool', path: 'listening/pool-05.json' });
+    // The pool is not an item: nothing about get() / stationOf changes.
+    expect(withPool.get(FIXTURE_STORY_ID)).toBeDefined();
   });
 });

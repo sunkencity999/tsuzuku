@@ -14,7 +14,7 @@
  *
  * Symmetry order (ring dots, petal count, tomoe count, cut count) and the
  * small details (rotation, flat/pointy, ray phase) are drawn from the seed
- * (`monSeed(id) = hashString(id)`), so each of the 66 crests is a distinct,
+ * (`monSeed(id) = hashString(id)`), so each of the 68 crests is a distinct,
  * stable emblem. Unearned crests render as embossed grey stone with no
  * accent at all. Output is a self-contained SVG string with a 256-unit
  * viewBox scaled to `size` px; `monParts` exposes the same art in 0–256
@@ -176,6 +176,9 @@ const ROWS: readonly Row[] = [
   ['speed-reader', '速', 'petal', 'silver', 'input'],
   ['golden-ear', '耳', 'circle', 'silver', 'input'],
   ['fast-ear', '倍', 'circle', 'gold', 'input'],
+  // design 08 §11
+  ['teahouse-regular', '常', 'circle', 'bronze', 'input'],
+  ['first-hearing', '初', 'circle', 'silver', 'input'],
   ['voice', '声', 'circle', 'bronze', 'output'],
   ['shadow-warrior', '影', 'hexagon', 'gold', 'output'],
   ['aizuchi', '槌', 'hexagon', 'silver', 'output'],
@@ -212,7 +215,7 @@ function beltOfBadge(id: BadgeId): Belt | undefined {
 /** Shelf category of every badge (the Dojo's Mon shelf has one slot per category). */
 export const MON_CATEGORY: Record<BadgeId, MonCategory> = Object.fromEntries(ROWS.map((r) => [r[0], r[4]])) as Record<BadgeId, MonCategory>;
 
-/** The 66 crest specs, keyed by badge id (covers `BADGE_IDS` exactly; mon.test.ts checks). */
+/** The 68 crest specs, keyed by badge id (covers `BADGE_IDS` exactly; mon.test.ts checks). */
 export const MON_SPECS: Record<BadgeId, MonSpec> = Object.fromEntries(
   ROWS.map(([id, glyph, field, ring, category]) => [
     id,

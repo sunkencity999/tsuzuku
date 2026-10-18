@@ -58,16 +58,16 @@ describe('hanko-garden', () => {
     });
   }
 
-  it('phone: every TextLayer stays inside the safe zones, even with all 66 badges', () => {
+  it('phone: every TextLayer stays inside the safe zones, even with all 68 badges', () => {
     expect(safeZoneViolations(spec.compose(1, DATA, 'phone'), 'phone')).toEqual([]);
     const all = spec.compose(2, sampleData(1, { badgesInOrder: [...BADGE_IDS] }), 'phone');
     expect(safeZoneViolations(all, 'phone')).toEqual([]);
-    expect(sealCount(all.svg)).toBe(66);
+    expect(sealCount(all.svg)).toBe(68);
     parse(all.svg);
     expect(all.svg.length).toBeLessThan(400_000);
   });
 
-  it('karesansui stones and their ripple rings never sit on a seal, the name seal or any text, even with all 66 badges', () => {
+  it('karesansui stones and their ripple rings never sit on a seal, the name seal or any text, even with all 68 badges', () => {
     const all = sampleData(3, { badgesInOrder: [...BADGE_IDS] });
     for (const size of WALLPAPER_SIZES) {
       const { box, name } = gardenBoxes(size);

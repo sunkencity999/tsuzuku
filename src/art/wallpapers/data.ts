@@ -40,7 +40,7 @@ import { BADGE_IDS, type BadgeId } from '../../shared/catalog';
 import { mulberry32, range, uniform } from '../../shared/hash';
 import { parseCardKey } from '../../shared/ids';
 import { clampGlyphs, isKatakana } from '../../shared/jp';
-import { NAME_MAX_GLYPHS, type CardTuple, type EpochDay, type ItemKind, type Store } from '../../shared/store-types';
+import { LEDGER_KINDS, NAME_MAX_GLYPHS, type CardTuple, type EpochDay, type ItemKind, type LedgerEntry, type Store } from '../../shared/store-types';
 import { epochDay, monthKey } from '../../shared/time';
 import { writingSentencesFrom } from '../../shared/writing';
 import { store as defaultStore } from '../../store';
@@ -101,6 +101,21 @@ async function ensureLoaded(c: ContentLoader, ids: string[]): Promise<void> {
   } catch {
     /* offline or incomplete corpus: unresolved ids are skipped below */
   }
+}
+
+/** Index of `'listen'` in `LEDGER_KINDS` — the ledger row's kind slot (`LedgerEntry[2]`). */
+const LISTEN_KIND = LEDGER_KINDS.indexOf('listen');
+
+/**
+ * Hours of `listen` rows in the Input Ledger, dojo rows (`source: app`) and outside rows alike
+ * (design 08 §11: one chōchin per 10 h on 茶屋の灯). Mirrors `store/badge-defs ledgerHoursOf(m).listen`,
+ * which the art tier may not import (contract tier only); compacted `ledger.monthly` rows carry no kind
+ * and are not counted, exactly as there.
+ */
+export function listenHoursFrom(entries: readonly LedgerEntry[]): number {
+  let minutes = 0;
+  for (const e of entries) if (e[2] === LISTEN_KIND) minutes += e[1];
+  return minutes / 60;
 }
 
 /** Gather everything the generators personalise with; `overrides` win (the Studio's sentence of choice, chosen kanji…). */
@@ -198,6 +213,8 @@ export async function wallpaperData(overrides: Partial<WallpaperData> = {}, src:
     freezes: meta.streak.freezes,
     restDays: meta.streak.restDaysTaken,
     wordsThisMonth,
+    // design 08 §11: the ledger's listen hours light the teahouse lanterns (茶屋の灯).
+    listenHours: listenHoursFrom(meta.ledger.entries),
     arcGrammar,
     sentenceOfChoice: undefined,
     date: today,
@@ -270,6 +287,8 @@ export function sampleData(seed: number, overrides: Partial<WallpaperData> = {})
     restDays: range(rng, 0, 12),
     wordsThisMonth: range(rng, 10, 60),
     arcGrammar: SAMPLE_GRAMMAR.slice(10, 16),
+    // 0 keeps every existing kakejiku snapshot (the rng sequence is untouched); the chaya-lanterns tests set their own hours.
+    listenHours: 0,
     sentenceOfChoice: SAMPLE_SENTENCES[3],
     date: 20_470 + range(rng, 0, 365), // 2026-01-… onward
   };
@@ -324,6 +343,7 @@ export function validateData(d: unknown): string[] {
   if (x.dictatedSentence !== undefined && typeof x.dictatedSentence !== 'string') out.push('dictatedSentence: string or undefined');
   if (x.sentenceOfChoice !== undefined && typeof x.sentenceOfChoice !== 'string') out.push('sentenceOfChoice: string or undefined');
   if (typeof x.gojuonMs !== 'object' || x.gojuonMs === null || !Object.values(x.gojuonMs as Record<string, unknown>).every(isNonNeg)) out.push('gojuonMs: Record<string, ms>');
+  if (x.listenHours !== undefined && !isNonNeg(x.listenHours)) out.push('listenHours: non-negative hours');
   if (!isNonNeg(x.date)) out.push('date: EpochDay required');
   return out;
 }
@@ -371,6 +391,7 @@ export function normalizeData(p: Partial<WallpaperData>): WallpaperData {
     wordsThisMonth: Math.floor(num(p.wordsThisMonth)),
     arcGrammar: strs(p.arcGrammar),
     sentenceOfChoice: cappedText(p.sentenceOfChoice, SENTENCE_MAX_GLYPHS),
+    listenHours: num(p.listenHours),
     date: Math.floor(num(p.date)),
   };
 }

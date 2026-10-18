@@ -5,7 +5,7 @@
  * ceremonies. XP amounts are decided only in B. `emit` is synchronous and
  * subscribers are isolated: a throwing subscriber never stops the others.
  */
-import type { Belt, CardKey, ErrorTag, ExerciseId, Facet } from '../content/types';
+import type { Belt, CardKey, ErrorTag, ExerciseId, Facet, ListeningGenre } from '../content/types';
 import type { BadgeId, ShinsaSection, WallpaperId } from './catalog';
 import type { AttemptResult, SessionMode, SessionResult } from './session-types';
 import type { EpochDay, ItemBelt, ItemKind, Rating } from './store-types';
@@ -43,7 +43,47 @@ export interface Events {
     minutes: number;
     bridge: boolean;
   };
-  'listening:set': { storyId: string; correct: number; total: number; rate: number; minutes: number };
+  /**
+   * One Listening Arena set (design 08 §10.4, §12). `storyId` is `null` in
+   * walk mode (the Ear Walk: pool sentences, no text), where `refs` carries
+   * the pool refs heard. `genre` / `bridge` describe the text; `authentic` is
+   * `isAuthenticText(story)` set by the emitter (the reducer cannot see the
+   * text's kind / register); `cold` = the text was not in `progress.listened`
+   * when the set started (a first hearing on either surface).
+   */
+  'listening:set': {
+    storyId: string | null;
+    correct: number;
+    total: number;
+    rate: number;
+    minutes: number;
+    /** Pool refs of a walk-mode set (`v-n5-0249#ex0`, `s-07-2#L3`). */
+    refs?: string[];
+    genre?: ListeningGenre;
+    bridge?: boolean;
+    /** Design 08 §12: bridge text, `AUTHENTIC_GENRES` piece or casual dialogue. */
+    authentic?: boolean;
+    cold?: boolean;
+    mode?: 'text' | 'walk';
+  };
+  /**
+   * Passive hearing (design 08 §10.2 Radio, §10.3 Read-along, §12): a `listen`
+   * ledger row with `source: app`, 0 XP, never a `story:read`. `refs` are the
+   * text ids or pool refs heard; `seconds` counts only audio actually played
+   * at volume > 0 (media events, not wall clock); `rate` the playback rate;
+   * `cold` = first hearing on either surface; `authentic` = `isAuthenticText`
+   * at rate ≥ 1.0 with the gist question answered correctly; `gistCorrect` is
+   * `null` when no question was asked or it was skipped.
+   */
+  'listen:played': {
+    source: 'radio' | 'readalong';
+    refs: string[];
+    seconds: number;
+    rate: number;
+    cold: boolean;
+    authentic: boolean;
+    gistCorrect: boolean | null;
+  };
   'line:scored': {
     kind: 'dictation' | 'shadow';
     score: number;

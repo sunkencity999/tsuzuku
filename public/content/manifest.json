@@ -1,7 +1,7 @@
 {
   "schema": "tsuzuku.manifest/1",
   "contentVersion": "c-eda59d9655",
-  "generatedAt": "2026-10-17T23:48:15.293Z",
+  "generatedAt": "2026-10-18T04:53:21.060Z",
   "files": [
     {
       "path": "_meta/components.json",
@@ -3452,7 +3452,8 @@
     "conjugation": 902,
     "component": 284,
     "michikusa": 212,
-    "station": 53
+    "station": 53,
+    "pool": 0
   },
   "componentsPath": "_meta/components.json",
   "redirects": {}

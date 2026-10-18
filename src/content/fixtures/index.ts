@@ -16,7 +16,9 @@
  *  - `FIXTURE.files` holds every file body under its content path, so
  *    `fixtureFetch()` can serve the real `createLoader()` in tests.
  *  - `createFakeLoader()` is a synchronous in-memory `ContentLoader`: every
- *    item is `get()`-able without a `load()` call.
+ *    item is `get()`-able without a `load()` call; `pool(n)` serves
+ *    `Fixture.pools[n]` (design 08 §4) and rejects `missing-pool` otherwise —
+ *    the shipped fixture holds no pools, so `manifest.totals.pool` is 0.
  *
  * In the real corpus the four components would land at Station 3 (one
  * station ahead of their first kanji); with only Stations 1 and 4 in the
@@ -35,6 +37,7 @@ import type {
   GrammarItem,
   KanaItem,
   KanjiItem,
+  ListeningPool,
   ManifestFile,
   MichikusaItem,
   StationBundle,
@@ -520,6 +523,7 @@ export const MANIFEST: ContentManifest = {
     component: COMPONENTS.length,
     michikusa: MICHIKUSA.length,
     station: 2,
+    pool: 0,
   },
   componentsPath: PATHS.components,
   redirects: { [FIXTURE_REDIRECT_FROM]: V.コーヒー },
@@ -538,6 +542,8 @@ export interface Fixture {
   conjugation: ConjugationGoldenEntry[];
   /** Every file body under its content path (manifest, bundles, item files, conjugation). */
   files: Record<string, unknown>;
+  /** Listening pools by station (design 08 §4), served by `createFakeLoader().pool(n)`; absent = `missing-pool` for every station. */
+  pools?: Record<number, ListeningPool>;
 }
 
 const ALL_ITEMS: readonly ContentItem[] = [...KANA, ...VOCAB, ...KANJI, ...GRAMMAR, STORY, DIALOGUE, ...MICHIKUSA, ...COMPONENTS];
@@ -613,8 +619,11 @@ export function fixtureFetch(f: Fixture = FIXTURE, opts: FixtureFetchOptions = {
 /**
  * A `ContentLoader` over the fixture with everything already in memory:
  * `get()` works without `load()`, `station(n)` rejects with a
- * `ContentError('missing-station')` for a station the fixture lacks, and
- * `cumulative(n)` unions the bundles `<= n` exactly like the real loader.
+ * `ContentError('missing-station')` for a station the fixture lacks,
+ * `cumulative(n)` unions the bundles `<= n` exactly like the real loader, and
+ * `pool(n)` (design 08 §4) serves `f.pools?.[n]` or rejects
+ * `ContentError('missing-pool')` with the conventional path, like the real
+ * loader does when the manifest lists no pool for `n`.
  */
 export function createFakeLoader(f: Fixture = FIXTURE): ContentLoader {
   const bundles = new Map(f.stations.map((b) => [b.number, b]));
@@ -638,6 +647,11 @@ export function createFakeLoader(f: Fixture = FIXTURE): ContentLoader {
   const station = (n: number): Promise<StationBundle> => {
     const b = bundles.get(n);
     return b ? Promise.resolve(b) : Promise.reject(new ContentError('missing-station', `stations/${String(n).padStart(2, '0')}.json`, `fixture: station ${n} is not in the fixture`));
+  };
+
+  const pool = (n: number): Promise<ListeningPool> => {
+    const p = f.pools?.[n];
+    return p ? Promise.resolve(p) : Promise.reject(new ContentError('missing-pool', `listening/pool-${String(n).padStart(2, '0')}.json`, `fixture: station ${n} has no listening pool in the fixture`));
   };
 
   const cumulative = async (n: number): Promise<CumulativeSets> => {
@@ -680,5 +694,6 @@ export function createFakeLoader(f: Fixture = FIXTURE): ContentLoader {
       return kind === 'vocab' && item && isChunk(item) ? 'chunk' : kind;
     },
     version: signal<string | null>(f.manifest.contentVersion),
+    pool,
   };
 }

@@ -81,6 +81,13 @@ describe('MON_SPECS catalog', () => {
     expect(monSeed('kyoto')).toBe(monSeed('kyoto'));
     expect(monSeed('kyoto')).not.toBe(monSeed('zen'));
   });
+
+  it('design 08 §11 rows: teahouse-regular is 常 on a bronze circle, first-hearing 初 on a silver circle, both input strand', () => {
+    expect(MON_SPECS['teahouse-regular']).toMatchObject({ glyph: '常', ring: 'bronze', field: 'circle', motif: CATEGORY_MOTIF.input });
+    expect(MON_SPECS['first-hearing']).toMatchObject({ glyph: '初', ring: 'silver', field: 'circle', motif: CATEGORY_MOTIF.input });
+    expect(MON_CATEGORY['teahouse-regular']).toBe('input');
+    expect(MON_CATEGORY['first-hearing']).toBe('input');
+  });
 });
 
 describe('monSvg', () => {
@@ -93,7 +100,7 @@ describe('monSvg', () => {
     }
   });
 
-  it('renders all 66 crests, well-formed, earned and locked', () => {
+  it('renders all 68 crests, well-formed, earned and locked', () => {
     for (const id of BADGE_IDS) {
       const doc = parse(earnedAll.get(id)!);
       const root = doc.documentElement;
@@ -106,7 +113,7 @@ describe('monSvg', () => {
     }
   });
 
-  it('66 crests are pairwise different (hash of the SVG), earned and locked', () => {
+  it('68 crests are pairwise different (hash of the SVG), earned and locked', () => {
     const seen = new Map<number, BadgeId>();
     for (const [id, svg] of earnedAll) {
       const h = fnv1a32(svg);

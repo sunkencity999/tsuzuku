@@ -76,6 +76,8 @@ export const WALLPAPER_NAMES: Record<WallpaperId, { en: string; ja: string }> = 
   'kyoto-arrival': { en: 'Kyoto Arrival', ja: '京の橋' },
   'road-continues': { en: 'The Road Continues', ja: '無限の道' },
   'end-card': { en: 'End Card', ja: 'つづく' },
+  // design 08 §11
+  'chaya-lanterns': { en: 'Teahouse Lanterns', ja: '茶屋の灯' },
 };
 
 /** `S.x` with `{key}` placeholders replaced. */

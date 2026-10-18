@@ -117,8 +117,8 @@ describe.skipIf(!registry)(`wallpapers registry${registry ? '' : ` (skipped: ${l
 });
 
 describe('registry prerequisites (always run)', () => {
-  it('the catalog still lists 28 kakejiku and sample data is valid', () => {
-    expect(WALLPAPER_IDS.length).toBe(28);
+  it('the catalog lists 29 kakejiku (design 08 §11 adds 茶屋の灯) and sample data is valid', () => {
+    expect(WALLPAPER_IDS.length).toBe(29);
     expect(DATA.mastered.kana.length).toBeGreaterThan(0);
   });
   it('reports why the registry is skipped, if it is', () => {

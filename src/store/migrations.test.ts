@@ -2,7 +2,9 @@ import { CARDS_SCHEMA, LOG_SCHEMA, NAME_MAX_GLYPHS, type CardShard, type CardTup
 import { freshSave, freshWeakPoints } from './defaults';
 import {
   CURRENT,
+  LISTENED_MAX,
   MigrationError,
+  TEACH_SEEN_MAX,
   applyRedirects,
   migrateLog,
   migrateMeta,
@@ -60,6 +62,72 @@ describe('migrateMeta', () => {
     expect(out.progress.gateAttemptAt).toEqual({});
     expect(out.settings.verticalText).toBe(false);
     expect(out.weakPoints.aizuchi).toEqual({ n: 0, ewma: 0, active: false, peak: 0 });
+  });
+
+  it('a save from before design 08 fills the listening fields and seeds bestCleanTier from its speed tier, with no repair reported', () => {
+    const s = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    s.settings.speedTier = 4;
+    delete s.settings.audioSource;
+    delete s.settings.dataSaver;
+    delete s.progress.listened;
+    delete s.progress.teachSeen;
+    for (const k of ['radioMinutes', 'coldSets', 'coldSetsPassed', 'listeningAuthenticMinutes', 'bestCleanTier']) delete s.stats[k];
+    const { meta, coerced } = migrateMetaChecked(s);
+    expect(meta.settings.audioSource).toBe('pack');
+    expect(meta.settings.dataSaver).toBe(false);
+    expect(meta.progress.listened).toEqual([]);
+    expect(meta.progress.teachSeen).toEqual([]);
+    expect(meta.stats.radioMinutes).toBe(0);
+    expect(meta.stats.coldSets).toBe(0);
+    expect(meta.stats.coldSetsPassed).toBe(0);
+    expect(meta.stats.listeningAuthenticMinutes).toBe(0);
+    // grandfathered: the radar keeps the tier the learner had chosen (design 08 §12)
+    expect(meta.stats.bestCleanTier).toBe(4);
+    expect(coerced).toEqual([]);
+    // idempotent: once seeded, the counter is the save's own and is never re-seeded
+    const again = migrateMetaChecked({ ...meta, settings: { ...meta.settings, speedTier: 2 } });
+    expect(again.meta.stats.bestCleanTier).toBe(4);
+    expect(again.coerced).toEqual([]);
+    // a v0 document without stats is an existing save too: seeded from its (validated) speed tier
+    expect(migrateMeta({ profile: { tz: 'UTC' }, settings: { speedTier: 3 } }).stats.bestCleanTier).toBe(3);
+    expect(migrateMeta({ profile: { tz: 'UTC' }, settings: { speedTier: 9 } }).stats.bestCleanTier).toBe(freshSave(0, 'UTC').settings.speedTier);
+    // a NEW save keeps bestCleanTier 1 (freshStats), the pass-through case
+    expect(migrateMeta(freshSave(NOW, 'UTC')).stats.bestCleanTier).toBe(1);
+  });
+
+  it('repairs settings.audioSource outside its union to pack and a non-boolean dataSaver to false, reporting both', () => {
+    const s = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    s.settings.audioSource = 'cassette';
+    s.settings.dataSaver = 'yes';
+    const { meta, coerced } = migrateMetaChecked(s);
+    expect(meta.settings.audioSource).toBe('pack');
+    expect(meta.settings.dataSaver).toBe(false);
+    expect(coerced.sort()).toEqual(['settings.audioSource', 'settings.dataSaver']);
+    const ok = freshSave(NOW, 'UTC');
+    ok.settings = { ...ok.settings, audioSource: 'device', dataSaver: true };
+    expect(migrateMetaChecked(ok)).toEqual({ meta: ok, coerced: [] });
+  });
+
+  it('progress.listened / teachSeen keep id-like strings only (prose, capitals, non-strings and oversize dropped, never cut) and are capped at the newest entries', () => {
+    const s = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    // text ids are lowercase (`s-08-1`, `m-10-2`); a line clip key's `#L3` is uppercase and never a heard text, so it is dropped too
+    s.progress.listened = ['s-07-2', 'Hello there', 'S-07-3', 42, null, 'x'.repeat(65), 's-08-1#L3', 's-08-1', 'm-10-2'];
+    s.progress.teachSeen = ['morae-beats', { id: 'x' }, 'pitch:雨', 'arena-first'];
+    const { meta, coerced } = migrateMetaChecked(s);
+    expect(meta.progress.listened).toEqual(['s-07-2', 's-08-1', 'm-10-2']);
+    expect(meta.progress.teachSeen).toEqual(['morae-beats', 'arena-first']);
+    expect(coerced).toEqual(expect.arrayContaining(['progress.listened', 'progress.teachSeen']));
+    expect(migrateMetaChecked(meta).coerced).toEqual([]);
+    const big = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    big.progress.listened = Array.from({ length: LISTENED_MAX + 10 }, (_, i) => `s-${String((i % 53) + 1).padStart(2, '0')}-${(i % 9) + 1}:${i}`);
+    big.progress.teachSeen = Array.from({ length: TEACH_SEEN_MAX + 3 }, (_, i) => `card-${i}`);
+    const capped = migrateMetaChecked(big);
+    expect(capped.meta.progress.listened).toHaveLength(LISTENED_MAX);
+    expect(capped.meta.progress.listened?.[LISTENED_MAX - 1]).toBe((big.progress.listened as string[])[LISTENED_MAX + 9]);
+    expect(capped.meta.progress.teachSeen).toHaveLength(TEACH_SEEN_MAX);
+    expect(capped.meta.progress.teachSeen?.[0]).toBe('card-3');
+    expect(capped.coerced).toEqual(expect.arrayContaining(['progress.listened', 'progress.teachSeen']));
+    expect(migrateMetaChecked(capped.meta).coerced).toEqual([]);
   });
 
   it('repairs fields of the wrong type to the fresh-save default and reports the paths', () => {

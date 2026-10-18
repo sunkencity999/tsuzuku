@@ -80,6 +80,8 @@ export const NAV_ITEMS: readonly { key: NavKey; route: Route; label: string; gly
 
 const NAV_OF_ROUTE: Record<RouteName, NavKey | null> = {
   dojo: 'dojo',
+  // design 08 §10.2: 茶屋ラジオ opens from the Dojo tile and is never a session, so the Dojo stays current.
+  radio: 'dojo',
   onboarding: null,
   train: null,
   scroll: 'road',

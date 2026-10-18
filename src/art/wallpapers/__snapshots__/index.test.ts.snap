@@ -1,5 +1,9 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`wallpapers registry > chaya-lanterns desktop: same (seed, data, size) → byte-identical, well-formed, self-contained SVG (snapshot) 1`] = `"15797:35ae1c0d"`;
+
+exports[`wallpapers registry > chaya-lanterns phone: same (seed, data, size) → byte-identical, well-formed, self-contained SVG (snapshot) 1`] = `"17970:754b05b1"`;
+
 exports[`wallpapers registry > daruma desktop: same (seed, data, size) → byte-identical, well-formed, self-contained SVG (snapshot) 1`] = `"17919:ce7ac0e3"`;
 
 exports[`wallpapers registry > daruma phone: same (seed, data, size) → byte-identical, well-formed, self-contained SVG (snapshot) 1`] = `"19125:ef27bc3b"`;

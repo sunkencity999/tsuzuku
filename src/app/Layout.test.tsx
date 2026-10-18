@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { bus } from '@/shared/events';
-import { href, navigate, syncRouteFromLocation } from '@/shared/routes';
+import { href, navigate, route, syncRouteFromLocation, type Route } from '@/shared/routes';
 import { resetStoreForTests, store } from '@/store';
 import { DEFAULT_TEST_NOW, makeTestStore } from '@/store/testing';
 import { S, fmt } from '@/i18n/strings';
@@ -70,6 +70,19 @@ describe('<Layout>', () => {
     expect(navTargetFor({ name: 'ledger' })).toBe('records');
     expect(navTargetFor({ name: 'train', mode: 'kata' })).toBeNull();
     expect(navTargetFor({ name: 'about' })).toBe('settings');
+  });
+
+  it('茶屋ラジオ (design 08 §10.2) highlights the Dojo nav: Radio is reached from the Dojo tile and is never a session', async () => {
+    await makeTestStore();
+    mount();
+    const radio: Route = { name: 'radio' };
+    expect(navTargetFor(radio)).toBe('dojo');
+    act(() => {
+      route.value = radio;
+    });
+    expect(root.querySelector('[data-nav="dojo"]')?.getAttribute('aria-current')).toBe('page');
+    expect(root.querySelector('[data-nav="road"]')?.getAttribute('aria-current')).toBeNull();
+    expect(root.querySelector('.layout')?.getAttribute('data-route')).toBe('radio');
   });
 
   it('announce() writes to #live (polite) and #live-alert (assertive)', async () => {

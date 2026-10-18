@@ -71,7 +71,7 @@ describe('build-content-index', () => {
     expect(kana.stations).toEqual([1, 2]);
     const story = m.files.find((f) => f.path === 'stories/n5/stories-s04.json')!;
     expect(story.stations).toEqual([4]);
-    expect(m.totals).toEqual({ kana: 21, vocab: 16, kanji: 9, grammar: 3, story: 1, conjugation: 3, component: 11, michikusa: 3, station: 53 });
+    expect(m.totals).toEqual({ kana: 21, vocab: 16, kanji: 9, grammar: 3, story: 1, conjugation: 3, component: 11, michikusa: 3, station: 53, pool: 0 });
     expect(m.stations[3]!.counts).toEqual({ kana: 0, vocab: 0, kanji: 8, grammar: 3, story: 1, michikusa: 3 });
     expect(m.stations[3]!.path).toBe('stations/04.json');
   });

@@ -1,0 +1,9 @@
+{
+  "schema": "tsuzuku.pool/1",
+  "station": 4,
+  "refs": [
+    { "ref": "v-n5-0007#ex0", "ids": ["v-n5-0007", "v-n5-0008"], "kana": "みずをのみます。", "morae": 7 },
+    { "ref": "g-n5-001#ex0", "ids": ["v-n5-0001", "v-n5-0005"], "kana": "わたしはがくせいです。", "morae": 10 },
+    { "ref": "s-04-1#L1", "ids": ["v-n5-0005"], "kana": "はい、ほんです。", "morae": 6 }
+  ]
+}

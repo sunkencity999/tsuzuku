@@ -46,15 +46,15 @@ describe('groupBadges', () => {
 });
 
 describe('<MonGrid>', () => {
-  it('renders all 66 crests; unearned ones show the condition text as grey stone', async () => {
+  it('renders all 68 crests; unearned ones show the condition text as grey stone', async () => {
     await mount();
-    expect(cells()).toHaveLength(66);
-    expect(root.querySelectorAll('.mon--locked')).toHaveLength(66);
+    expect(cells()).toHaveLength(68);
+    expect(root.querySelectorAll('.mon--locked')).toHaveLength(68);
     const zen = root.querySelector('.mon-grid__cell[data-badge="zen"]')!;
     expect(zen.querySelector('.mon__condition')?.textContent).toBe(ZEN.describe);
     expect(zen.getAttribute('data-earned')).toBe('false');
     expect(root.querySelector('.mon-grid')?.getAttribute('data-earned')).toBe('0');
-    expect(root.querySelector('.mon-grid__lede')?.textContent).toContain('0 of 66');
+    expect(root.querySelector('.mon-grid__lede')?.textContent).toContain('0 of 68');
     // one heading per strand
     expect(root.querySelectorAll('.mon-grid__group').length).toBe(CATEGORY_ORDER.length);
   });
@@ -65,7 +65,7 @@ describe('<MonGrid>', () => {
     expect(kyoto.getAttribute('data-earned')).toBe('true');
     expect(kyoto.querySelector('time.mon__date')?.textContent).toBe(formatEraDate(DAY));
     expect(kyoto.querySelector('.mon__condition')).toBeNull();
-    expect(root.querySelector('.mon-grid__lede')?.textContent).toContain('2 of 66');
+    expect(root.querySelector('.mon-grid__lede')?.textContent).toContain('2 of 68');
 
     const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>('.mon-grid__filters button'));
     expect(buttons.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
@@ -73,9 +73,9 @@ describe('<MonGrid>', () => {
     expect(cells()).toHaveLength(2);
     expect(root.querySelectorAll('.mon-grid__empty').length).toBeGreaterThan(0);
     act(() => buttons[2]!.click());
-    expect(cells()).toHaveLength(64);
-    act(() => buttons[0]!.click());
     expect(cells()).toHaveLength(66);
+    act(() => buttons[0]!.click());
+    expect(cells()).toHaveLength(68);
   });
 
   it('tapping a crest opens a detail dialog with the condition; Escape closes it and restores focus', async () => {

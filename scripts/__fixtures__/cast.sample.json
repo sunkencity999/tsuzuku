@@ -1,0 +1,13 @@
+{
+  "schema": "tsuzuku.cast/1",
+  "engine": "VOICEVOX 0.25.2",
+  "speakers": [
+    { "name": "ハナ", "gender": "f", "age": 24, "character": "九州そら", "style": "ノーマル", "emotionStyles": { "warm": "あまあま", "annoyed": "ツンツン", "whisper": "ささやき" }, "credit": "VOICEVOX:九州そら" },
+    { "name": "ケン", "gender": "m", "age": 31, "character": "玄野武宏", "style": "ノーマル", "emotionStyles": { "glad": "喜び", "sad": "悲しみ", "annoyed": "ツンギレ" }, "credit": "VOICEVOX:玄野武宏" },
+    { "name": "田中さん", "gender": "m", "age": 68, "character": "ちび式じい", "style": "ノーマル", "credit": "VOICEVOX:ちび式じい" },
+    { "name": "森さん", "gender": "f", "age": 45, "character": "春日部つむぎ", "style": "ノーマル", "credit": "VOICEVOX:春日部つむぎ" },
+    { "name": "anchor", "gender": "f", "age": 35, "character": "波音リツ", "style": "クイーン", "credit": "VOICEVOX:波音リツ" },
+    { "name": "lecturer", "gender": "m", "age": 52, "character": "麒ヶ島宗麟", "style": "ノーマル", "credit": "VOICEVOX:麒ヶ島宗麟" },
+    { "name": "reader", "gender": "f", "age": 29, "character": "冥鳴ひまり", "style": "ノーマル", "credit": "VOICEVOX:冥鳴ひまり" }
+  ]
+}

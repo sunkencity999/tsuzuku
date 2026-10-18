@@ -1,5 +1,7 @@
 /**
- * TSUZUKU — the 66 Mon (紋) definitions (design 06 §2) as data.
+ * TSUZUKU — the 68 Mon (紋) definitions (design 06 §2; 茶屋の常連 and 初耳 from
+ * design 08 §11) as data. `BADGE_DEFS` is listed by strand below for reading
+ * and exported in `BADGE_IDS` order, so the catalog is the one order.
  *
  * Every condition is deterministic and machine-checkable against the save:
  * `when(m, ev?, cards?)` reads SaveMeta paths, `STAT_KEYS` counters, the
@@ -204,12 +206,21 @@ const STREAK: readonly EventName[] = ['streak:changed', 'day:rolled', 'session:f
 const PROMO: readonly EventName[] = ['item:promoted'];
 const GATE: readonly EventName[] = ['gate:result', 'stamp:earned'];
 const SHINSA: readonly EventName[] = ['shinsa:result', 'belt:promoted'];
+/** design 08 §11: Radio tracks and Read-alongs (`listen:played`) and Arena / Ear Walk sets (`listening:set`) both move the first-hearing counters. */
+const LISTEN: readonly EventName[] = ['listening:set', 'listen:played'];
+/** design 08 §11: only a Radio track (`listen:played`, source radio) moves `stats.radioMinutes`. */
+const PLAYED: readonly EventName[] = ['listen:played'];
+
+/** 茶屋の常連 — minutes of Teahouse Radio heard (`stats.radioMinutes`), design 08 §11. */
+export const TEAHOUSE_REGULAR_MINUTES = 600;
+/** 初耳 — texts understood on their first hearing on either surface (`stats.coldSetsPassed`), design 08 §11. */
+export const FIRST_HEARING_SETS = 20;
 
 function beltBadge(belt: Exclude<Belt, 'white'>, tier: BadgeTier): BadgeDef {
   return def(`belt-${belt}`, '帯', 'square', tier, 'belt', SHINSA, (m) => m.progress.shinsaPassed.includes(belt));
 }
 
-export const BADGE_DEFS: readonly BadgeDef[] = [
+const DEFS_BY_STRAND: readonly BadgeDef[] = [
   // ── kana ──────────────────────────────────────────────────────────────
   def('first-step', '歩', 'circle', 'bronze', 'training', ['session:finished'], (m) => m.stats.sessions >= 1),
   def('gojuon', 'あ', 'petal', 'silver', 'kana', REP, (m, _ev, cards) => allKanaGreen(KANA_SETS.hiraganaBasic, cards)),
@@ -279,6 +290,9 @@ export const BADGE_DEFS: readonly BadgeDef[] = [
   }),
   def('golden-ear', '耳', 'circle', 'silver', 'input', ['line:scored'], (m) => m.stats.dictation95at1x >= 100),
   def('fast-ear', '倍', 'circle', 'gold', 'input', ['listening:set'], (m) => m.stats.listeningFastPasses >= 20),
+  // design 08 §11: 10 h of 茶屋ラジオ; 20 texts understood on the first hearing (Arena pass or Radio gist answer).
+  def('teahouse-regular', '常', 'circle', 'bronze', 'input', PLAYED, (m) => m.stats.radioMinutes >= TEAHOUSE_REGULAR_MINUTES),
+  def('first-hearing', '初', 'circle', 'silver', 'input', LISTEN, (m) => m.stats.coldSetsPassed >= FIRST_HEARING_SETS),
 
   // ── output ────────────────────────────────────────────────────────────
   def('voice', '声', 'circle', 'bronze', 'output', ['line:scored'], (m) => m.stats.shadowPass >= 1),
@@ -318,6 +332,15 @@ export const BADGE_DEFS: readonly BadgeDef[] = [
   def('backup', '備', 'circle', 'bronze', 'spirit', ['backup:exported'], (m, ev) => m.stats.exports >= 1 || ev?.name === 'backup:exported'),
   def('tsuzuku', '続', 'tomoe', 'gold', 'spirit', ['session:finished'], (m) => m.stats.sessions >= 100),
 ];
+
+/** Position in `BADGE_IDS`; an id the catalog does not list yet sorts last (stable), so the table never throws. */
+function catalogIndex(id: BadgeId): number {
+  const i = BADGE_IDS.indexOf(id);
+  return i < 0 ? BADGE_IDS.length : i;
+}
+
+/** The 68 definitions in `BADGE_IDS` order (design 06 §2 + design 08 §11); the strands above are for reading. */
+export const BADGE_DEFS: readonly BadgeDef[] = [...DEFS_BY_STRAND].sort((a, b) => catalogIndex(a.id) - catalogIndex(b.id));
 
 export const BADGE_BY_ID: Readonly<Record<BadgeId, BadgeDef>> = Object.fromEntries(BADGE_DEFS.map((d) => [d.id, d])) as Record<BadgeId, BadgeDef>;
 

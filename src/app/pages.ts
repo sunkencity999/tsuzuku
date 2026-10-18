@@ -5,7 +5,7 @@
  * Every page is loaded lazily so each group ships as its own chunk:
  *   A  src/app/pages/*Page.tsx   Dojo · Onboarding · Settings · Backup · About
  *   E  src/session/index.ts      Train · Scroll · Station · Gate · Shinsa · Road · Dan · dojoFeed (· gateForecast)
- *   F  src/input/index.ts        Story · Listen · Taiwa (+ registerAll for 9 drills)
+ *   F  src/input/index.ts        Story · Listen · Taiwa · Radio (+ registerAll for 9 drills)
  *   B  src/records/index.ts      Records · Ledger
  *   G  src/collections/index.ts  Collections · Studio · Library
  *   G  src/art/index.ts          DojoScene (CeremonyHost is mounted by main.tsx)
@@ -60,6 +60,9 @@ export const PAGE_SOURCES: Record<RouteName, PageSource> = {
   story: { module: '@/input', export: 'StoryPage', files: ['src/input/index.ts'], needsExercises: true },
   listen: { module: '@/input', export: 'ListenPage', files: ['src/input/index.ts'], needsExercises: true },
   taiwa: { module: '@/input', export: 'TaiwaPage', files: ['src/input/index.ts'], needsExercises: true },
+  // 茶屋ラジオ (design 08 §10.2, ARCHITECTURE §6): a non-session surface, so it never waits for the registry.
+  // The row is final; `RadioPage` is exported from the F barrel by the radio owner (listening-plan `radio`).
+  radio: { module: '@/input', export: 'RadioPage', files: ['src/input/index.ts'], needsExercises: false },
   records: { module: '@/records', export: 'RecordsPage', files: ['src/records/index.ts'], needsExercises: false },
   ledger: { module: '@/records', export: 'LedgerPage', files: ['src/records/index.ts'], needsExercises: false },
   collections: { module: '@/collections', export: 'CollectionsPage', files: ['src/collections/index.ts'], needsExercises: false },

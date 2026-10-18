@@ -18,7 +18,7 @@ describe('art barrels', () => {
 
   it('studio exports the wallpaper registry and the PNG pipeline', () => {
     expect(Object.keys(studio).sort()).toEqual([...STUDIO_NAMES].sort());
-    expect(Object.keys(studio.WALLPAPERS).length).toBe(28);
+    expect(Object.keys(studio.WALLPAPERS).length).toBe(29);
     for (const n of STUDIO_NAMES) if (n !== 'WALLPAPERS') expect(typeof studio[n]).toBe('function');
   });
 

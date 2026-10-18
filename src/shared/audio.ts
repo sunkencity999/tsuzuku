@@ -11,6 +11,7 @@
  * of the estimated duration + 2 s, so an awaited `speak()` can never hang.
  */
 import { signal, type Signal } from '@preact/signals';
+import type { Belt, Level } from '../content/types';
 import type { SfxName } from './catalog';
 
 export interface VoiceInfo {
@@ -29,6 +30,37 @@ export const SPEED_TIER_RATES: Record<SpeedTier, number> = { 1: 0.75, 2: 0.9, 3:
 /** Dan-road listening rate. */
 export const DAN_RATE = 1.5;
 
+/**
+ * Where the last `speak()` came from (design 08 §8): a pre-rendered pack clip,
+ * the device's `speechSynthesis`, or nothing (no voice, volume 0, text only).
+ * Status chips read this together with `voiceAudible()`.
+ */
+export type AudioSource = 'clips' | 'synth' | 'none';
+
+/**
+ * One clip inside a pack sprite (design 08 §8). `key` is the clip key
+ * (`<itemId>`, `<itemId>#ex<k>`, `<storyId>#L<i>`, `<itemId>#def`,
+ * `<itemId>#col<k>`, `<itemId>#ga`, `<itemId>#pair`; `<storyId>` alone is the
+ * whole-text track of a story sprite and `track:<name>` a kana track of
+ * `kana/tracks.json`, both for Radio); `file` the sprite path;
+ * `start` / `end` seconds inside it; `voice` the VOICEVOX character credit;
+ * `rate` the native speed the clip was rendered at (0.85 for a natural-slow
+ * take, 1 otherwise). `morae` are cumulative mora boundaries in ms and
+ * `clauses` clause boundaries as mora indexes (karaoke and clause dictation,
+ * §9); `pitchVerified` says the accent matched the dictionary pitch (§7).
+ */
+export interface ClipCue {
+  key: string;
+  file: string;
+  start: number;
+  end: number;
+  voice: string;
+  rate: number;
+  morae?: number[];
+  clauses?: number[];
+  pitchVerified?: boolean;
+}
+
 export interface SpeakOptions {
   /** Kana reading; used when the voice would misread the plain surface. */
   kana?: string;
@@ -40,6 +72,113 @@ export interface SpeakOptions {
   voiceURI?: string;
   /** Cancel anything queued first (default true). */
   interrupt?: boolean;
+  /**
+   * Clip key (design 08 §8): `<itemId>` for a word or kana, `<itemId>#ex<k>`
+   * for an example, `<storyId>#L<i>` for a line, `#def` / `#col<k>` / `#ga`.
+   * Every caller that holds the item passes it; the pack resolves it to a cue
+   * and falls back to the device voice when it misses. Text lookup is a
+   * fallback for sentences only, never for bare words (kana homophones).
+   */
+  clip?: string;
+  /**
+   * The line's `speaker` label or the text's `narrator` (design 08 §8): the
+   * pack resolves it to the cast voice; the synth path keeps `voice: 'a' | 'b'`.
+   */
+  speaker?: string;
+  /**
+   * Karaoke progress on the clip path only (design 08 §9): `t` seconds into
+   * the clip, the active mora index and clause index. Never fires on synth.
+   */
+  onProgress?: (t: number, mora: number, clause: number) => void;
+  /** Play one clause of the clip, `[fromMora, toMora)` over `ClipCue.clauses` (design 08 §9 clause dictation). */
+  clause?: [number, number];
+}
+
+/**
+ * Pack load state (design 08 §8): `absent` when `./audio/manifest.json` is
+ * missing (no pack in this build) or Opus/WebM cannot play here.
+ */
+export type ClipReady = 'unknown' | 'loading' | 'ready' | 'absent';
+
+/** Options of `ClipPlayer.play()` (design 08 §8). */
+export interface ClipPlayOptions {
+  /** Requested rate; the player sets `playbackRate = rate / cue.rate` with pitch preserved. */
+  rate: number;
+  /** Element volume 0–1 (the master volume). */
+  volume: number;
+  /** Play one clause `[fromMora, toMora)` over `cue.clauses` (design 08 §9). */
+  clause?: [number, number];
+  /**
+   * Whole-text Radio track: no stop timer, the sprite plays edge to edge and
+   * `ended` finishes it, so playback survives the screen turning off.
+   */
+  wholeTrack?: boolean;
+  /** Karaoke progress, driven by requestAnimationFrame (foreground only). */
+  onProgress?: (t: number, mora: number, clause: number) => void;
+  /**
+   * Seconds actually played so far, accumulated from `timeupdate` deltas
+   * (fires with the screen off); the final figure also arrives in `done`.
+   */
+  onPlayed?: (seconds: number) => void;
+}
+
+export interface ClipPlayback {
+  done: Promise<{ source: 'clips' | 'none'; seconds: number }>;
+  stop(): void;
+}
+
+/** One belt's share of the pack as the manifest reports it (design 08 §13). */
+export interface AudioPackBelt {
+  bytes: number;
+  seconds: number;
+  files: number;
+}
+
+/** Runtime summary of `public/audio/manifest.json` (`tsuzuku.audio/1`, design 08 §7). */
+export interface AudioPackInfo {
+  audioVersion: string;
+  contentVersion: string;
+  engine: string;
+  belts: Partial<Record<Belt, AudioPackBelt>>;
+  totals: AudioPackBelt;
+  /** `VOICEVOX:<character>` credit strings, one per voice used (design 08 §6). */
+  credits: string[];
+}
+
+/** A whole-track cue (kana track or whole text) with the title the Radio player and Media Session show. */
+export interface TrackCue extends ClipCue {
+  title: string;
+  titleEn?: string;
+}
+
+/**
+ * The pre-rendered voice pack player (design 08 §8; implemented in
+ * `src/audio/clips.ts`, installed by Group F and reachable as
+ * `services.audio.clips`). `speak()` resolves clips through it; Radio plays
+ * whole-text tracks through `play()`; Settings reads `info` / `cacheUsage()`
+ * and drives `download()` / `remove()`; About lists `info.credits`.
+ */
+export interface ClipPlayer {
+  ready: Signal<ClipReady>;
+  /** The manifest summary once `ready` is `'ready'`, else `null`. */
+  info: Signal<AudioPackInfo | null>;
+  loadLevel(level: Level): Promise<void>;
+  loadStation(n: number): Promise<void>;
+  /** Idle prefetch of the station's sprites into the audio cache (skipped under data saver). */
+  prefetchStation(n: number): void;
+  /** Cue for a clip key at the nearest native rate to `o.rate`; `undefined` when the pack misses. */
+  cueFor(key: string, o?: { rate?: number; speaker?: string }): ClipCue | undefined;
+  /** Text fallback for SENTENCES only (`byText`, design 08 §8); never for bare words. */
+  cueForText(text: string, o?: { rate?: number; speaker?: string }): ClipCue | undefined;
+  /** Kana tracks of `kana/tracks.json` (design 08 §10.5), loaded on demand; `[]` without a pack. */
+  kanaTracks(): Promise<TrackCue[]>;
+  play(cue: ClipCue, o: ClipPlayOptions): ClipPlayback;
+  /** First-gesture unlock: builds the fixed pool of media elements once; before it `play()` resolves `source: 'none'`. */
+  unlock(): void;
+  dispose(): void;
+  cacheUsage(): Promise<{ bytes: number; files: number }>;
+  download(belt: Belt, onProgress?: (doneBytes: number, totalBytes: number) => void): Promise<void>;
+  remove(belt: Belt): Promise<void>;
 }
 
 export interface AudioService {
@@ -63,6 +202,23 @@ export interface AudioService {
   canSpeak?: Signal<boolean>;
   voices(): VoiceInfo[];
   rateForTier(t: SpeedTier): number;
+  /**
+   * Source of the most recent `speak()` (design 08 §8). Optional like
+   * `canSpeak`, so `{ ...nullAudio }` doubles keep compiling; read it through
+   * `audioSourceOf()` below, which falls back to `voiceAudible()`.
+   */
+  source?: Signal<AudioSource>;
+  /** The pack cue a clip key resolves to right now (nearest native rate), or `undefined` when the pack misses (design 08 §8). */
+  clipFor?(key: string, o?: { rate?: number; speaker?: string }): ClipCue | undefined;
+  /** The voice pack is loaded and playable; `canSpeak = (hasJaVoice || packReady) && audible` (design 08 §8). Optional. */
+  packReady?: Signal<boolean>;
+  /**
+   * The installed pack player (design 08 §8) for the surfaces that need more
+   * than `speak()`: Radio (whole-track playback, kana tracks), Settings (pack
+   * sizes, cache usage, belt downloads) and About (credits). Optional like
+   * `canSpeak`; absent on `nullAudio` and on a build without a pack.
+   */
+  clips?: ClipPlayer;
 }
 
 export interface SttResult {
@@ -104,6 +260,17 @@ export const nullStt: SttService = {
  */
 export function voiceAudible(a: AudioService): boolean {
   return a.canSpeak ? a.canSpeak.value : a.hasJaVoice.value;
+}
+
+/**
+ * The source a status chip should name (design 08 §8 / §10.1): the service's
+ * `source` signal when it has one, else `'synth'` while `voiceAudible()` and
+ * `'none'` otherwise (so `nullAudio` and the existing doubles read as text
+ * only / device voice without exposing a pack).
+ */
+export function audioSourceOf(a: AudioService): AudioSource {
+  if (a.source) return a.source.value;
+  return voiceAudible(a) ? 'synth' : 'none';
 }
 
 export interface Services {

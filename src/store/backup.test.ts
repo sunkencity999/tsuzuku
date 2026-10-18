@@ -177,6 +177,23 @@ describe('mergeSaves (pure)', () => {
     expect(m.progress.gateAttemptAt).toEqual({ 4: 500, 7: 50 });
     expect(mergeSaves(inc, cur, 999).progress.gateAttemptAt).toEqual({ 4: 500, 7: 50 });
   });
+
+  it('listening (design 08 §11): texts heard and teach cards seen are unioned, the counters take the max, audio settings stay local', () => {
+    const cur = testSave({ save: { settings: { audioSource: 'device', dataSaver: true }, progress: { listened: ['s-07-1', 's-07-2'], teachSeen: ['morae-beats'] }, stats: { radioMinutes: 30, coldSets: 4, coldSetsPassed: 3, listeningAuthenticMinutes: 12, bestCleanTier: 2 } } });
+    const inc = testSave({ save: { settings: { audioSource: 'pack', dataSaver: false }, progress: { listened: ['s-07-2', 's-08-1'], teachSeen: ['arena-first'] }, stats: { radioMinutes: 600, coldSets: 2, coldSetsPassed: 1, listeningAuthenticMinutes: 40, bestCleanTier: 4 } } });
+    const m = mergeSaves(cur, inc, 999);
+    expect(m.progress.listened).toEqual(['s-07-1', 's-07-2', 's-08-1']);
+    expect(m.progress.teachSeen).toEqual(['morae-beats', 'arena-first']);
+    expect(m.stats).toMatchObject({ radioMinutes: 600, coldSets: 4, coldSetsPassed: 3, listeningAuthenticMinutes: 40, bestCleanTier: 4 });
+    expect(m.settings.audioSource).toBe('device');
+    expect(m.settings.dataSaver).toBe(true);
+    // a side without the arrays contributes nothing and loses nothing
+    const bare = testSave() as SaveMeta & { progress: { listened?: string[]; teachSeen?: string[] } };
+    delete bare.progress.listened;
+    delete bare.progress.teachSeen;
+    expect(mergeSaves(bare, inc, 999).progress.listened).toEqual(['s-07-2', 's-08-1']);
+    expect(mergeSaves(inc, bare, 999).progress.teachSeen).toEqual(['arena-first']);
+  });
 });
 
 describe('applyImport', () => {

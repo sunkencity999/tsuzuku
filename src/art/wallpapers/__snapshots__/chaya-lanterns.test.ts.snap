@@ -1,0 +1,121 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`chaya-lanterns (design 08 §11) > desktop: deterministic, well-formed, self-contained, reasonable node count (snapshot) 1`] = `"19602:bdd3a15c"`;
+
+exports[`chaya-lanterns (design 08 §11) > desktop: deterministic, well-formed, self-contained, reasonable node count (snapshot) 2`] = `
+[
+  {
+    "fill": "#F4EDE0",
+    "font": ""Yuji Syuku", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.94,
+    "size": 72,
+    "text": "ハナ",
+    "x": 115.19999999999999,
+    "y": 172.8,
+  },
+  {
+    "fill": "#FFD166",
+    "font": ""Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.88,
+    "size": 26,
+    "text": "聴いた時間 47時間",
+    "x": 117.19999999999999,
+    "y": 226.8,
+  },
+  {
+    "fill": "#F4EDE0",
+    "font": ""Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.65,
+    "size": 26,
+    "text": "茶屋の灯",
+    "vertical": true,
+    "x": 1833.6,
+    "y": 75.60000000000001,
+  },
+  {
+    "anchor": "middle",
+    "fill": "#F4EDE0",
+    "font": ""Yuji Syuku", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.92,
+    "size": 63.36,
+    "text": "茶",
+    "x": 1324.8,
+    "y": 622.5024000000001,
+  },
+  {
+    "anchor": "end",
+    "fill": "#F4EDE0",
+    "font": ""Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.6,
+    "size": 22,
+    "text": "令和8年5月20日",
+    "x": 1824,
+    "y": 1031.3999999999999,
+  },
+]
+`;
+
+exports[`chaya-lanterns (design 08 §11) > phone: deterministic, well-formed, self-contained, reasonable node count (snapshot) 1`] = `"21151:711067db"`;
+
+exports[`chaya-lanterns (design 08 §11) > phone: deterministic, well-formed, self-contained, reasonable node count (snapshot) 2`] = `
+[
+  {
+    "fill": "#F4EDE0",
+    "font": ""Yuji Syuku", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.94,
+    "size": 84,
+    "text": "ハナ",
+    "x": 86.4,
+    "y": 431,
+  },
+  {
+    "fill": "#FFD166",
+    "font": ""Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.88,
+    "size": 32,
+    "text": "聴いた時間 47時間",
+    "x": 88.4,
+    "y": 497,
+  },
+  {
+    "fill": "#F4EDE0",
+    "font": ""Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.65,
+    "size": 30,
+    "text": "茶屋の灯",
+    "vertical": true,
+    "x": 972,
+    "y": 331,
+  },
+  {
+    "anchor": "middle",
+    "fill": "#F4EDE0",
+    "font": ""Yuji Syuku", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.92,
+    "size": 68.904,
+    "text": "茶",
+    "x": 680.4,
+    "y": 1340.29136,
+  },
+  {
+    "anchor": "end",
+    "fill": "#F4EDE0",
+    "font": ""Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif",
+    "lang": "ja",
+    "opacity": 0.6,
+    "size": 24,
+    "text": "令和8年5月20日",
+    "x": 993.6,
+    "y": 2010,
+  },
+]
+`;

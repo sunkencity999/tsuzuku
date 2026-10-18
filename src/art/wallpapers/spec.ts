@@ -75,6 +75,8 @@ export interface WallpaperData {
   /** Grammar patterns mastered during the Plateau Arc (stations 25–46). */
   arcGrammar: string[];
   sentenceOfChoice?: string;
+  /** Hours of `listen` rows in the Input Ledger, dojo and outside alike (design 08 §11: one chōchin per 10 h on 茶屋の灯). */
+  listenHours: number;
   date: EpochDay;
 }
 

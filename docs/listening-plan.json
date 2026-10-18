@@ -1,0 +1,696 @@
+{
+  "$schema_note": "Implementation work breakdown for docs/design/08-listening-and-audio.md (revised after the skeptics' pass, 2026-10-17). Owners run in parallel after `contracts`; every owner's `paths` are disjoint from every other owner's. Paths marked NEW do not exist yet; everything else is a real file at HEAD 9a36ba6. Rule: every `Record<RouteName | BadgeId | WallpaperId | ContentKind | StatKey>` site in the repo belongs to the owner that changes the table (today: Layout.tsx NAV_OF_ROUTE, art/strings.ts WALLPAPER_NAMES, art/mon.ts ROWS — all in `contracts`).",
+  "design_doc": "docs/design/08-listening-and-audio.md",
+  "pre_flight": [
+    "Lead, before the clip-runtime owner starts (≈ 5 min on a real iPhone, Safari): open a page that creates an <audio> from a blob built with new Blob([bytes], { type: 'audio/webm; codecs=opus' }) of a 90 s Opus/WebM sprite; play from a tap; seek to 60 s; set playbackRate 1.25 with preservesPitch; lock the screen for 30 s and confirm audio continues and timeupdate keeps firing. Record the result in docs/BUILD_STATUS.md under Known gaps; a failure re-opens the codec decision (AAC/MP4 fallback) before any runtime code is written.",
+    "Lead: confirm the 20 h top step of the 耳 cap stays (design 08 §12 shows ≈ 20–22 h reachable in Black only with every re-hearing) or lower it to 15 h — the formula constants are in store-listening's PROVIDES either way."
+  ],
+  "shared_contracts_first": [
+    "src/content/types.ts: LISTENING_GENRES / ListeningGenre, GENRE_FROM_STATION, AUTHENTIC_GENRES, isAuthenticText(s) (bridge || AUTHENTIC genre || casual dialogue), LineEmotion / LINE_EMOTIONS, QuestionKind / QUESTION_KINDS; StoryItem.genre? audioFirst? narrator?; StoryLine.emotion?; ComprehensionQuestion.kind? lineRef?; StationQuota.listening (0 for Stations 1-3, 2 for 4-53; STATIONS rows updated); CONTENT_KINDS += 'pool'; ID_PATTERNS.pool; PoolRef, ListeningPool; ManifestStation.counts excludes 'pool'",
+    "src/shared/speak-text.ts (NEW, contract tier, pure, `.ts`-extension imports, no store/signals): stripDisplayMarks, textToSpeak moved here from src/audio/tts.ts (tts.ts and @/audio re-export them); docs/ARCHITECTURE.md §0 adds src/shared/speak-text.ts and src/shared/jp.ts to the modules scripts may import",
+    "src/shared/audio.ts: SpeakOptions.clip? speaker? onProgress? clause?; AudioSource; ClipCue; AudioService.source? clipFor? packReady? (all optional; nullAudio unchanged)",
+    "src/shared/events.ts: 'listening:set' → { storyId: string | null (null in walk mode); refs?: string[]; genre?; bridge?; cold?; mode?: 'text' | 'walk'; … }; new 'listen:played' { source: 'radio' | 'readalong'; refs: string[]; seconds; rate; cold: boolean; authentic: boolean; gistCorrect: boolean | null (null = no question asked) }",
+    "src/shared/store-types.ts: Settings.audioSource: 'pack' | 'device', Settings.dataSaver: boolean; Progress.listened?: string[], Progress.teachSeen?: string[]; STAT_KEYS += 'radioMinutes', 'coldSets', 'coldSetsPassed', 'listeningAuthenticMinutes', 'bestCleanTier' (5)",
+    "src/shared/routes.ts: Route += { name: 'radio' } (#/radio) and { name: 'story'; id; mode?: 'listen' } (#/story/:id/listen); titleFor rows; src/app/Layout.tsx NAV_OF_ROUTE row radio: 'dojo'",
+    "src/shared/catalog.ts: BADGE_IDS += 'teahouse-regular', 'first-hearing' (68); WALLPAPER_IDS += 'chaya-lanterns' (29); QUEST_IDS unchanged (17); src/art/mon.ts ROWS += 常 / 初; src/art/strings.ts WALLPAPER_NAMES += 茶屋の灯",
+    "src/shared/session-types.ts: StepParams += clip?: string, refs?: string[]",
+    "src/content/loader.ts: pool(n): Promise<ListeningPool>; manifest files of type 'pool' never enter the id lookup; story files named listening-sNN.json need no loader change (byStation filter at loader.ts:385 already returns every story file whose stations include the station)",
+    "src/learn/pool.ts (NEW, exported from src/learn/index.ts): selectPool(refs, known, cards, today, { mode: 'i+0' | 'i+1'; limit }) and poolMinutes(refs) - the one i+0 / i+1 selector E and F both use; i+1 requires the unknown id's listen card to EXIST and be due within 3 days or not yet in review state",
+    "src/shared/ui/TeachOnce.tsx (NEW): dismissible first-contact card keyed by id, reads/writes Progress.teachSeen",
+    "scripts/validate-content.ts: V41-V43, V45, V46 as in design 08 §5; V05 and V34 amendments; --cast <path> (default scripts/audio/cast.json; absent -> W); the walk skips listening/pool-*.json like stations/ (else V08 fails on the generated pool files)",
+    "docs/CONTENT_GUIDE.md §1 (listening-sNN.json row, pool row), §14.2 (listening fields paragraph), §18 (V41-V46 + V05/V34 amendments; the note that V44 is reported by content:index's default check); docs/ARCHITECTURE.md §0-§6 deltas; docs/CHANGELOG.md one line per contract change"
+  ],
+  "owners": [
+    {
+      "id": "contracts",
+      "title": "Contract tier: schema, speak-text module, audio slot, events, store shapes, routes, catalog + every Record<id> site, minimal reward defs, validator rules, docs",
+      "paths": [
+        "src/content/types.ts",
+        "src/content/types.test.ts (NEW)",
+        "src/content/loader.ts",
+        "src/content/loader.test.ts",
+        "src/shared/speak-text.ts (NEW)",
+        "src/shared/speak-text.test.ts (NEW)",
+        "src/shared/audio.ts",
+        "src/shared/audio.test.ts",
+        "src/shared/events.ts",
+        "src/shared/events.test.ts",
+        "src/shared/store-types.ts",
+        "src/shared/routes.ts",
+        "src/shared/routes.test.ts",
+        "src/shared/catalog.ts",
+        "src/shared/catalog.test.ts",
+        "src/shared/session-types.ts",
+        "src/shared/ui/TeachOnce.tsx (NEW)",
+        "src/shared/ui/TeachOnce.test.tsx (NEW)",
+        "src/learn/pool.ts (NEW)",
+        "src/learn/pool.test.ts (NEW)",
+        "src/learn/index.ts",
+        "src/store/defaults.ts",
+        "src/store/defaults.test.ts",
+        "src/store/migrations.ts",
+        "src/store/migrations.test.ts",
+        "src/store/backup.ts",
+        "src/store/backup.test.ts",
+        "src/store/defs-strings.ts",
+        "src/store/badge-defs.ts",
+        "src/store/badge-defs.test.ts",
+        "src/store/wallpaper-defs.ts",
+        "src/store/wallpaper-defs.test.ts",
+        "src/app/Layout.tsx",
+        "src/app/Layout.test.tsx",
+        "src/art/strings.ts",
+        "src/art/mon.ts",
+        "src/art/mon.test.ts",
+        "src/art/wallpapers/chaya-lanterns.ts (NEW)",
+        "src/art/wallpapers/chaya-lanterns.test.ts (NEW)",
+        "src/art/wallpapers/index.ts",
+        "src/art/wallpapers/index.test.ts",
+        "scripts/validate-content.ts",
+        "scripts/validate-content.test.ts",
+        "scripts/__fixtures__/cast.sample.json (NEW)",
+        "scripts/__fixtures__/pool.sample.json (NEW)",
+        "docs/CONTENT_GUIDE.md",
+        "docs/ARCHITECTURE.md",
+        "docs/CHANGELOG.md"
+      ],
+      "contracts": [
+        "PROVIDES every item in shared_contracts_first",
+        "PROVIDES src/shared/speak-text.ts with stripDisplayMarks / textToSpeak byte-identical in behaviour to today's src/audio/tts.ts versions (the stripDisplayMarks / textToSpeak cases are COPIED from tts.test.ts into speak-text.test.ts; tts.test.ts itself is clip-runtime's file and is not edited here); tts.ts keeps `export { stripDisplayMarks, textToSpeak } from '../shared/speak-text'` so @/audio consumers do not change (the clip-runtime owner edits tts.ts; this owner only adds the new module and the ARCHITECTURE §0 rule — the one-line re-export in tts.ts is requested through the lead and lands with clip-runtime)",
+        "PROVIDES store defaults: audioSource 'pack', dataSaver false, listened [], teachSeen [], the five STAT_KEYS at 0; migration seeds bestCleanTier = settings.speedTier for existing saves (grandfathered) and 1 for new saves; fillMeta guards (closed unions, ID_MAX strings in listened/teachSeen, capped arrays); backup.mergeSaves = union for listened/teachSeen, max for the counters",
+        "PROVIDES badge defs: teahouse-regular (茶屋の常連, 常 · circle · bronze, input, ['listen:played'], stats.radioMinutes >= 600); first-hearing (初耳, 初 · circle · silver, input, ['listening:set', 'listen:played'], stats.coldSetsPassed >= 20); wallpaper def chaya-lanterns (living, events ['ledger:entry','listen:played','listening:set'], when ledgerHours(m).listen >= 100, progress = listen hours / 100, quadrants at 25/50/75/100 h); copy in defs-strings S.badges / S.wallpapers; new S.explainEarCap / S.explainEarComp / S.explainEarTier strings and the reworded S.explainEar ('Synthetic: every voice in the dojo is a VOICEVOX character voice. The ledger's outside hours are real people.') from design 08 §12",
+        "PROVIDES the three Record<id> sites: Layout.tsx NAV_OF_ROUTE radio: 'dojo'; art/strings.ts WALLPAPER_NAMES chaya-lanterns { en: 'Teahouse Lanterns', ja: '茶屋の灯' }; art/mon.ts ROWS for teahouse-regular (常) and first-hearing (初) so mon.test.ts's BADGE_IDS equality holds",
+        "PROVIDES a compiling chaya-lanterns generator (teahouse at dusk, one chōchin per 10 h of listen hours from WallpaperData; no per-speaker data) registered in WALLPAPERS; art polish may follow without contract churn",
+        "PROVIDES validator V41/V42/V43/V45/V46 with the exact messages of design 08 §5 (V43 includes the listening-sNN.json placement check; V41 includes the audioFirst-dialogue learnerSpeaker rule); the walk skips listening/pool-*.json; V44 is NOT here (pipeline-pools owns it inside content:index's default check)"
+      ],
+      "tests": [
+        "src/content/types.test.ts: LISTENING_GENRES has 15 entries and GENRE_FROM_STATION covers each with 4 <= n <= 47; STATIONS quota.listening sums to 100 (0 for 1-3); CONTENT_KINDS includes 'pool' and ID_PATTERNS.pool accepts pool-07 and rejects pool-54; isAuthenticText true for a bridge story, a news piece and a casual dialogue, false for a polite dialogue and a non-genre story",
+        "src/shared/speak-text.test.ts: the moved stripDisplayMarks / textToSpeak cases; `node --experimental-strip-types -e \"import('./src/shared/speak-text.ts')\"` smoke (spawnSync in the test) succeeds",
+        "src/shared/routes.test.ts: parseHash(href(r)) round-trips { name: 'radio' } and { name: 'story', id, mode: 'listen' }; '#/story/s-07-1' still parses without mode",
+        "src/shared/events.test.ts: listening:set accepts storyId null with refs in walk mode; listen:played with gistCorrect null type-checks",
+        "src/shared/catalog.test.ts: BADGE_IDS 68, WALLPAPER_IDS 29, QUEST_IDS 17; no id collides across tables",
+        "src/shared/audio.test.ts: nullAudio satisfies AudioService without source/clipFor/packReady; voiceAudible unchanged",
+        "src/learn/pool.test.ts: selectPool i+0 returns only refs whose ids are all in known; i+1 returns refs with exactly one unknown id whose listen card exists and is due within 3 days or not in review state; an unknown id with no listen card is not i+1; deterministic order; poolMinutes = Σ(morae/7 + 0.5)/60",
+        "src/store/migrations.test.ts: a v1 save without audioSource/dataSaver/listened/teachSeen/new stats fills defaults and seeds bestCleanTier from speedTier; a Latin or oversized string in listened is dropped; audioSource outside the union falls back to 'pack'",
+        "src/store/badge-defs.test.ts / wallpaper-defs.test.ts: every BADGE_ID and WALLPAPER_ID has a def and copy; teahouse-regular fires at 600 radioMinutes and not at 599; chaya-lanterns progress is 0.5 at 50 listen hours",
+        "src/app/Layout.test.tsx: route radio highlights the dojo nav; src/art/mon.test.ts unchanged and green with 68 ids",
+        "src/art/wallpapers/chaya-lanterns.test.ts: snapshot for a fixed seed at both compositions; lantern count = floor(listenHours / 10) capped",
+        "scripts/validate-content.test.ts: fixtures for each of V41 (genre before its station, audioFirst without genre, narrator on a dialogue, lineRef out of range, speaker-kind question in a story, a 23-mora line in an audioFirst text at Station 9, an audioFirst dialogue whose learnerSpeaker is not one of its speakers), V42 (unknown speaker with --cast -> F in strict, W without the file), V43 (3 audioFirst texts at a station -> F at release; an audioFirst text inside stories-sNN.json -> F at release), V45 (band ±30 %), V46 (item with no own-station example -> W / F at release ≤ 15); a listening/pool-07.json fixture produces no V01/V08 row; the shipped corpus passes with 0 new F",
+        "src/shared/ui/TeachOnce.test.tsx: renders once, dismiss writes the id into progress.teachSeen, a seen id renders nothing"
+      ],
+      "acceptance": [
+        "npm run typecheck and npm test green on this owner alone (every Record<RouteName|BadgeId|WallpaperId|StatKey> site is in this owner's paths and changes with its table)",
+        "npm run content:validate on the shipped corpus: 0 new failures, V42 warns 'cast check skipped' until scripts/audio/cast.json exists",
+        "CHANGELOG has one dated line per contract change; ARCHITECTURE §0 names speak-text.ts / jp.ts as script-importable and §1/§2/§3/§6 list the new fields, events, loader method and routes; CONTENT_GUIDE §1 has the listening-sNN.json and pool rows and §18 lists V41-V46 and the V05/V34 amendments verbatim from design 08 §5",
+        "No runtime dependency added; nullAudio and every { ...nullAudio } test double in the repo still compile"
+      ],
+      "depends_on": []
+    },
+    {
+      "id": "pipeline-pools",
+      "title": "Mining pipeline: sentence segmenter, pool files, manifest 'pool' kind, V44, rewrite report",
+      "paths": [
+        "scripts/linker.ts",
+        "scripts/linker.test.ts",
+        "scripts/assign-stations.ts",
+        "scripts/assign-stations.test.ts",
+        "scripts/build-content-index.ts",
+        "scripts/build-content-index.test.ts",
+        "scripts/listening-report.ts (NEW)",
+        "scripts/listening-report.test.ts (NEW)",
+        "docs/listening-report.md (NEW, generated)",
+        "public/content/listening/pool-01.json … pool-53.json (NEW, generated and committed)",
+        "public/content/manifest.json (regenerated)"
+      ],
+      "contracts": [
+        "CONSUMES PoolRef / ListeningPool / CONTENT_KINDS 'pool' / isAuthenticText from src/content/types.ts; the validator's pool-file skip from contracts (the first pool commit lands after contracts)",
+        "PROVIDES scripts/linker.ts: segmentSentence(pool, plain): string[] (greedy longest match over exact ∪ forms ∪ FUNCTION_TOKENS ∪ CAST_NAMES ∪ names; unknown runs one token), linkSentence(pool, plain, names): { ids: string[]; unknown: number }, buildPools(root, bundles): ListeningPool[] (own-station refs: knownAt = max station of ids; a sentence with any unlinked content token enters no pool; story lines included by their tokenIds)",
+        "PROVIDES content:assign writes public/content/listening/pool-NN.json (stringifyJson, sorted refs: stories, grammar, vocab by id then index) beside stations/NN.json",
+        "PROVIDES build-content-index: listening/pool-NN.json listed in manifest.files as type 'pool' with stations [NN]; totals.pool = 53; stationEntrySizes skips 'pool' like 'station'; the default check (on unless --no-check, build-content-index.ts:349) regenerates the pools in memory and fails on any byte difference or missing ref target, reporting V44 rows as {file, id, rule: 'V44', message} — CI's existing `npm run content:index` step therefore enforces V44 with no workflow change",
+        "PROVIDES scripts/listening-report.ts: per-station i+0 / i+1 counts and minutes, own-station all-known share, the never-all-known examples (rewrite candidates for content-pieces Pass 4b), and the hours tables of design 08 §2 and the authentic inventory of §12 (bridge / casual dialogues / authentic pieces, distinct hours and the reachable figure) written to docs/listening-report.md; design 08 quotes this file"
+      ],
+      "tests": [
+        "scripts/linker.test.ts: segmentSentence on 20 story lines reproduces their tokens' ids with ≥ 90 % per-line agreement; a compound verb (読み返す) and a numeral + counter segment as in the census notes; names from StoryItem.names are known",
+        "scripts/assign-stations.test.ts: buildPools over the fixture corpus places v-n5-0249#ex0 at the station of its latest id; a sentence with an out-of-corpus token is absent; pools are byte-identical on a second run",
+        "scripts/build-content-index.test.ts: manifest lists 53 pool files with type 'pool'; the default check throws when a pool file is edited by hand and --no-check does not; counts exclude pool; deriveContentVersion changes when a pool changes; a listening-s07.json story file is listed with stations [7] beside stories-s07.json",
+        "scripts/listening-report.test.ts: the report's Station 4 own-station share equals the census (13/120) within the ±6 % tokenizer tolerance; the authentic inventory over the shipped corpus reports 25 bridge texts and 29 casual non-bridge dialogues from Station 10"
+      ],
+      "acceptance": [
+        "npm run content:all passes; the committed pools regenerate byte-identically in CI (content:index default check)",
+        "Pool totals match the census within ±6 %: cumulative i+0 vocab examples ≈ 9,362, grammar ≈ 1,583, story lines ≈ 2,743 at Station 53",
+        "No pool file exceeds 80 KB; the 3,412 never-all-known examples appear only in docs/listening-report.md",
+        "npm run content:validate still green (pool files are skipped by the validator's walk, contracts owner)"
+      ],
+      "depends_on": ["contracts"]
+    },
+    {
+      "id": "render-pipeline",
+      "title": "VOICEVOX render → verify → encode → sprites → content-addressed files + indexes → manifest → release asset → streaming CI fetch",
+      "paths": [
+        "scripts/audio/render-audio.ts (NEW)",
+        "scripts/audio/verify.ts (NEW)",
+        "scripts/audio/sprites.ts (NEW)",
+        "scripts/audio/indexes.ts (NEW)",
+        "scripts/audio/kana-tracks.ts (NEW)",
+        "scripts/audio/pack.ts (NEW)",
+        "scripts/audio/publish.ts (NEW)",
+        "scripts/audio/fetch-audio-pack.ts (NEW)",
+        "scripts/audio/check-audio.ts (NEW)",
+        "scripts/audio/cast.json (NEW)",
+        "scripts/audio/__fixtures__/** (NEW: saved audio_query JSON incl. the 何でも and 二分 misreads, a 雨/飴 accent probe)",
+        "scripts/audio/*.test.ts (NEW)",
+        "public/audio-pack.json (NEW, committed)",
+        ".gitignore",
+        "package.json",
+        ".github/workflows/deploy.yml",
+        "CONTENT_LICENSE.md",
+        "docs/AUDIO_PACK.md (NEW runbook)"
+      ],
+      "contracts": [
+        "CONSUMES textToSpeak / stripDisplayMarks from src/shared/speak-text.ts (never from src/audio/tts.ts, which Node cannot import), moraSplit / expandLongVowelMark / normalizeAnswer from src/shared/jp.ts, segmentsToTokens / toKana / toPlain from src/content/ruby.ts, STATIONS / STORY shapes from src/content/types.ts, pools from public/content/listening/",
+        "PROVIDES pack layout: immutable content-addressed sprites audio/sprites/sNN/<storyId>-<sha8>.webm (one per text, line order, 300 ms pads), audio/sprites/sNN/words-01-<sha8>.webm, grammar-01-<sha8>.webm, examples-NN-<sha8>.webm, misc-01-<sha8>.webm, audio/sprites/kana/<name>-<sha8>.webm; versioned indexes audio/<audioVersion>/: <level>/words.json, <level>/sentences.json, <level>/ear.json (T3: #col / #def cues), sNN/stories.json (m mora boundaries, c clause boundaries, byText), kana/tracks.json; public/audio/manifest.json (tsuzuku.audio/1 with audioVersion, contentVersion, engine, dictVersion, tiers, voices, belts { bytes, seconds, files }, files [{ path, bytes, sha256, seconds, clips }], totals, skipped, credits, reusedBytesShare)",
+        "PROVIDES clip keys exactly as design 08 §8: <itemId>, <itemId>#ex<k>, <storyId>#L<i>, <itemId>#def, <itemId>#col<k>, <itemId>#ga, <itemId>#pair; cue fields { key, file, start, end, voice, rate, morae?, clauses?, pitchVerified? }; a slow variant is a second cue with rate 0.85",
+        "PROVIDES scripts/audio/cast.json: every one of the 46 speakers + narrator roles anchor/lecturer/reader with { name, gender, age, character, style, emotionStyles?, credit }; ハナ = 九州そら (also narration, kana, words), ケン = 玄野武宏, 田中さん = ちび式じい; permitted characters only",
+        "PROVIDES npm scripts audio:render, audio:pack, audio:publish, audio:fetch, audio:check; deploy.yml steps content:validate → content:index → audio:fetch -- --optional → test → build → audio:check -- --optional, plus workflow_dispatch input audio (default true); docs/AUDIO_PACK.md records the CI cost (≈ 490 MB fetch + ≈ 520 MB artifact per deploy) and that GNU tar is required on the runner",
+        "PROVIDES fetch-audio-pack.ts: streams each asset to a temp file (Readable.fromWeb(res.body).pipe(createWriteStream)), sha256 while streaming, then spawnSync('tar', ['-xf', tmp, '-C', 'public/audio']); never buffers a whole asset in memory; --optional exits 0 with 'audio pack: none — speechSynthesis only'",
+        "PROVIDES check-audio.ts: stale contentVersion warns; index kana ≠ content kana fails; dist over 900 MB fails; prints reusedBytesShare against the previous manifest and warns below 0.9 when the content diff touched < 5 % of texts",
+        "PROVIDES .gitignore entries public/audio/ and .audio-cache/; CONTENT_LICENSE.md section 'Synthetic voices' with the VOICEVOX credit terms and the credit list"
+      ],
+      "tests": [
+        "scripts/audio/verify.test.ts: lenient mora fold accepts は/わ, を/お, ヅ/ズ, long vowels; 何でも→ナニデモ and 二分→ニブン fixtures fail step 0 and produce the is_kana patch string of step 2; a 雨 fixture with accent 2 against pitch 1 is flagged and the override query carries accent 1; heiban 0 maps to the mora count",
+        "scripts/audio/render-audio.test.ts: import() of src/shared/speak-text.ts, src/shared/jp.ts, src/content/ruby.ts and src/content/types.ts succeeds under Node (smoke); --dry-run --fixtures writes a manifest, indexes and skipped.jsonl without an engine or ffmpeg; clip ids are stable across runs and change when pitch/speedScale change; a vocab word clip is keyed by item id, never by kana; kanji example words reuse the vocab clip only when word + kana match",
+        "scripts/audio/sprites.test.ts: PCM concat cue math (sample offsets, 20 ms guards inside 300 ms pads); a text longer than 90 s is still one sprite; mixed-kind sprites split at 90 s; the sprite file name carries sha8 of its bytes and is unchanged when the bytes are",
+        "scripts/audio/indexes.test.ts: m boundaries sum to the query duration within 40 ms; c boundaries land on pause_mora / 。、; byText holds sentences only; a level's sentences.json over the n5 fixture stays ≤ 350 KB; #col / #def cues land in ear.json only",
+        "scripts/audio/kana-tracks.test.ts: tracks generated from KanaItem rows cover every row, every dakuten pair, counting 1-10 and all 238 exampleWords; minimal-pair tracks pair both words in one voice at one rate",
+        "scripts/audio/fetch-audio-pack.test.ts: fake fetch with a streaming body; sha256 mismatch exits 1 and leaves public/audio untouched; --optional warns and exits 0; a missing release exits 0 with 'audio pack: none — speechSynthesis only'; tar is invoked via spawnSync with the temp path",
+        "scripts/audio/check-audio.test.ts: stale contentVersion warns; index kana ≠ content kana fails; dist over 900 MB fails; reusedBytesShare computed from two fixture manifests"
+      ],
+      "acceptance": [
+        "Clean-clone rehearsal: git clone --depth 1 … && npm ci && npm run content:index && npm run audio:fetch && npm test && npm run build && npm run audio:check succeeds; the same with workflow_dispatch audio=false builds and vite preview speaks through the device voice",
+        "T1 core renders on the build Mac with 4 engines in ≤ 6 h wall clock; skipped.jsonl < 2 % of clips after the ladder; every pitchConfidence: high word clip carries pitchVerified true or is skipped",
+        "Pack bytes: T1 ≤ 140 MB before pieces; manifest.belts sums equal files bytes; one release tag audio-<audioVersion> with per-tier assets on sunkencity999/tsuzuku",
+        "A one-word vocab fix re-renders and renames exactly the sprites that contain that word (reusedBytesShare ≥ 0.99 on the rehearsal)",
+        "The site builds and deploys with no pack present (CI job green with audio=false)"
+      ],
+      "depends_on": ["contracts", "pipeline-pools"]
+    },
+    {
+      "id": "clip-runtime",
+      "title": "ClipPlayer (pre-unlocked pool, event-driven timing), speak() clip resolution before the synth guard, explicit audio cache, boot prefetch",
+      "paths": [
+        "src/audio/clips.ts (NEW)",
+        "src/audio/clips.test.ts (NEW)",
+        "src/audio/tts.ts",
+        "src/audio/tts.test.ts",
+        "src/audio/index.ts",
+        "src/audio/strings.ts",
+        "public/sw.js",
+        "src/app/sw.test.ts",
+        "src/main.tsx",
+        "src/main.test.tsx"
+      ],
+      "contracts": [
+        "CONSUMES SpeakOptions.clip/speaker/onProgress/clause, ClipCue, AudioSource from src/shared/audio.ts; stripDisplayMarks / textToSpeak from src/shared/speak-text.ts (tts.ts re-exports them for @/audio consumers); Settings.audioSource / dataSaver; the pack layout from render-pipeline (read from ./audio/manifest.json at runtime; absent → 'absent'); the lead's iPhone pre-flight result in docs/BUILD_STATUS.md (gate)",
+        "PROVIDES createClipPlayer(o?: { fetch?, audioCtor?, caches?, raf?, base?, now? }): ClipPlayer with ready / loadLevel / loadStation / prefetchStation / cueFor / play / unlock / dispose / cacheUsage / download / remove as in design 08 §8; unlock() builds the fixed pool of 6 Audio elements once and play().then(pause) each on a silent Opus blob inside the gesture; afterwards only src swaps, never new Audio(); play() before unlock resolves done with { source: 'none', seconds: 0 }; fetched bytes re-wrapped as new Blob([buf], { type: 'audio/webm; codecs=opus' }); cueFor picks the cue whose native rate is nearest the requested rate; text fallback (byText) for sentences only",
+        "PROVIDES event-driven timing: played seconds accumulate from currentTime deltas on timeupdate and reconcile on pause / ended / visibilitychange (onPlayed and done.seconds); the stop at cue.end is detected on timeupdate with a (end − start) / rate + 1 s timer as a foreground backstop only; a cue flagged wholeTrack (Radio) sets no timer and ends on `ended`; requestAnimationFrame drives onProgress (karaoke) only",
+        "PROVIDES createWebAudio({ clips? }): speak() = cancelAll → resolve cue (clip key, then speaker → cast voice, then byText for a sentence) → if settings.audioSource === 'pack' && clips.ready === 'ready' && cue: play clip and return → else the existing `disposed || !synth || !Utterance` guard and the utterance path (the guard moves below the clip branch); one cancelAll stops both; canSpeak = (hasJaVoice || packReady) && audible; source signal 'clips' | 'synth' | 'none' per call; onProgress fires (t, mora, clause) on the clip path only",
+        "PROVIDES the audio cache: public/sw.js passes audio/sprites/ through to the network (no cache rule) and serves audio/manifest.json and audio/<v>/*.json stale-while-revalidate into 'tsuzuku-audio-v1' (stable, never cleared by cleanOldCaches); clips.ts reads sprites cache.match-first from 'tsuzuku-audio-v1' and writes cache.put only for prefetchStation's set and download(belt); prune(manifest) deletes cached sprite URLs absent from manifest.files[].path (set difference, never a version prefix)",
+        "PROVIDES tts.ts replaces its own stripDisplayMarks / textToSpeak bodies with `export { stripDisplayMarks, textToSpeak } from '../shared/speak-text'` and tts.test.ts drops the cases that speak-text.test.ts now holds (keeping one identity assertion); src/audio/index.ts exports createClipPlayer, type ClipPlayer, and re-exports stripDisplayMarks / textToSpeak from shared/speak-text; src/audio/strings.ts install guide gains a clip-aware branch ('Synthetic voices (VOICEVOX) are playing; a device voice is optional') and reads voiceAudible + source; main.tsx installs createWebAudio({ clips }) and calls clips.prefetchStation(store.progress.value.station) after boot unless dataSaver / saveData"
+      ],
+      "tests": [
+        "src/audio/clips.test.ts: fake Audio (currentTime, playbackRate, preservesPitch, play/pause spies, timeupdate/ended dispatch) + fake rAF; after unlock() zero further Audio constructor calls across 20 distinct sprites; play() before unlock resolves { source: 'none' } at once; play stops within 20 ms of cue.end on timeupdate; a wholeTrack cue sets no timer and ends on `ended`; played seconds equal the sum of timeupdate deltas with document.hidden = true and no rAF ticks; a clause sub-range seeks to the clause start; LRU swaps src and revokes blob URLs; blob type is 'audio/webm; codecs=opus'; ready 'absent' on 404 and on canPlayType ''; cueFor('v-n5-0001') never resolves through byText; a plain play() of an uncached sprite performs no cache.put, prefetchStation and download do; prune keeps only paths present in the manifest",
+        "src/audio/tts.test.ts: clip hit bypasses the synth and resolves on done; with synth undefined and a cue hit the clip still plays; audioSource 'device' forces the synth even with a pack; cancel() stops a playing clip; a miss falls through to the utterance path with the a/b slot; speaker 'ハナ' resolves the cast voice on the clip path and voice 'a' on the synth path; stripDisplayMarks is the same function as shared/speak-text's",
+        "src/app/sw.test.ts: audio/sprites/s07/s-07-1-ab12cd34.webm is NOT intercepted (fetch passes through, nothing stored); audio/manifest.json and audio/a-0123456789/n5/words.json are stale-while-revalidate in tsuzuku-audio-v1 and survive activate; content/** is still not intercepted",
+        "src/main.test.tsx: boot with no audio manifest (404) renders and never throws; prefetchStation is not called under dataSaver"
+      ],
+      "acceptance": [
+        "Every existing speak() call site plays pack audio with no edit (text or clip key); the 25 call sites listed in the panel judgment are covered by tts.test.ts fixtures",
+        "iPhone Safari and Chrome Android: first gesture unlocks all six elements; a 90 s sprite plays from a blob URL; 1.25× and 1.5× keep pitch (preservesPitch) and consonants stay intelligible on a 24 kbps Opus clip; 30 s with the screen off keeps playing and counts (manual check logged in docs/BUILD_STATUS.md)",
+        "No pack → source 'synth' everywhere, zero console errors, no blocking fetch on the boot path; Cache Storage grows only through prefetch (≤ 3 MB) and explicit downloads"
+      ],
+      "depends_on": ["contracts"]
+    },
+    {
+      "id": "arena-walk",
+      "title": "Listening Arena: question kinds, lineRef replay, karaoke token sweep, clause dictation, cold/genre payload, Ear Walk pool mode, ListenPage",
+      "paths": [
+        "src/input/listening/ListeningArena.tsx",
+        "src/input/listening/ListeningArena.css",
+        "src/input/listening/ListeningArena.test.tsx",
+        "src/input/listening/set.ts",
+        "src/input/listening/set.test.ts (NEW)",
+        "src/input/listening/strings.ts",
+        "src/input/listening/karaoke.ts (NEW)",
+        "src/input/listening/karaoke.test.ts (NEW)",
+        "src/input/listening/walk.ts (NEW)",
+        "src/input/listening/walk.test.ts (NEW)",
+        "src/input/pages/ListenPage.tsx",
+        "src/input/pages/ListenPage.css",
+        "src/input/pages/ListenPage.test.tsx"
+      ],
+      "contracts": [
+        "CONSUMES ComprehensionQuestion.kind/lineRef, StoryItem.genre/audioFirst/narrator/bridge/register, isAuthenticText, StepParams.refs/clip, SpeakOptions.clip/speaker/onProgress/clause, selectPool from @/learn, TeachOnce from @/shared/ui, Progress.listened",
+        "PROVIDES karaoke.ts: tokenMoraSpans(line): [start, end)[] over segmentsToTokens + moraCount(toKana(tok.ja)); activeToken(spans, mora); pure",
+        "PROVIDES walk.ts: buildWalkSet(refs: PoolRef[], items, o: { rng; station; known }) → ListenItem[] (6-8 choice/dictation items from pool sentences; a ref > 22 morae dictates one clause when clauses exist); the Arena accepts params.refs (pool mode) or params.storyId (text mode)",
+        "PROVIDES Arena behaviour: gist questions first then by kind; a miss on a question with lineRef replays that line; speaker names + credit chip in the header ('3 voices · synthetic' / '2 voices · device'; the transcript phase shows 'VOICEVOX:<character>' per speaker; the word 'recorded' appears nowhere); token sweep from onProgress at ≥ 1.0×, mora pitch dots only when the served cue rate is 0.85; line-level highlight unchanged on the synth path; 'listening:set' carries genre, bridge, cold (story id not in progress.listened at set start — a Radio hearing counts as heard), mode, and storyId null + refs in walk mode; a passed set appends the id to progress.listened; the Station 4 and Station 27 TeachOnce cards; the tier OFFER wording from design 08 §11",
+        "PROVIDES ListenPage: for an audioFirst text the Read link is shown only after a pass or behind 'Read it anyway'"
+      ],
+      "tests": [
+        "src/input/listening/karaoke.test.ts: spans for a ruby'd line sum to moraCount(line.kana); punctuation tokens own zero morae; activeToken is monotone",
+        "src/input/listening/walk.test.ts: 6-8 items, gist-free, alternating choice/dictation; a 30-mora ref with clauses yields a clause dictation; without clauses it becomes a choice item; deterministic per rng",
+        "src/input/listening/ListeningArena.test.tsx: gist questions precede detail/number/speaker/inference; a wrong answer with lineRef plays that line (speak called with clip s-NN-k#L<i>); header shows speaker names and the source chip from services.audio.source and never the word 'recorded'; listening:set payload carries genre/bridge/cold/mode, storyId null in walk mode; cold is false when the id is already in progress.listened from Radio; onProgress drives data-sung on the token spans; synth path keeps data-speaking per line; the offer copy says 'you decide'",
+        "src/input/pages/ListenPage.test.tsx: audioFirst text hides Read until passed; non-audioFirst text unchanged"
+      ],
+      "acceptance": [
+        "Arena order and XP unchanged for existing texts; all existing ListeningArena tests still pass",
+        "A pool-mode set emits listening:set with mode 'walk', storyId null and implicit listen grades identical to text mode",
+        "No new keys outside the ExerciseFrame set; Space/Enter/1-9 semantics unchanged"
+      ],
+      "depends_on": ["contracts"]
+    },
+    {
+      "id": "reader-taiwa",
+      "title": "Read-along reader mode (a listen row, not a read), role-play cast voices and gold-line replay, Shadow clip timing",
+      "paths": [
+        "src/input/reader/StoryReader.tsx",
+        "src/input/reader/StoryReader.test.tsx",
+        "src/input/reader/strings.ts",
+        "src/input/reader/reader.css",
+        "src/input/pages/StoryPage.tsx",
+        "src/input/pages/StoryPage.test.tsx",
+        "src/input/taiwa/RolePlay.tsx",
+        "src/input/taiwa/RolePlay.test.tsx",
+        "src/input/taiwa/strings.ts",
+        "src/input/speaking/Shadow.tsx",
+        "src/input/speaking/Shadow.test.tsx",
+        "src/input/speaking/Recorder.tsx",
+        "src/input/speaking/Recorder.test.tsx"
+      ],
+      "contracts": [
+        "CONSUMES Route { name: 'story'; id; mode?: 'listen' }, SpeakOptions.clip/speaker/onProgress/clause, StoryItem.narrator/audioFirst/learnerSpeaker, LineEmotion, isAuthenticText, the 'listen:played' event, resolveLearnerSpeaker from role-play-logic",
+        "PROVIDES StoryReader mode 'listen' (read-along): plays lines in order with the token sweep, tap-to-gloss keeps playing and pauses at the line boundary while the gloss is open, per-line chips slow (natural) / my tier / fast that name the served cue rate, loop line (L), ends in the comprehension questions as an optional self-check and emits listen:played { source: 'readalong', refs: [story.id], seconds (from the player's onPlayed / done.seconds, summed over lines), rate, cold (id not in progress.listened), authentic (isAuthenticText && rate ≥ 1.0 && gistCorrect), gistCorrect (first gist question's result, null if skipped) }; appends the id to progress.listened; NEVER emits story:read in this mode and never touches progress.storiesRead; every speakLine passes clip `${story.id}#L${i}` and speaker",
+        "PROVIDES RolePlay: NPC lines pass speaker (cast voice on the clip path, 'b' on synth); after the learner answers a line the gold line is replayed in the learnerSpeaker's cast voice (resolveLearnerSpeaker) with the copy 'Your line, as {speaker} says it' — no ハナ assumption",
+        "PROVIDES Shadow / Recorder: speak with clip (from params.clip or storyId#L) and onProgress to animate the pitch strip timing; the pitchCells strip is labelled 'dictionary pattern', never 'what you heard'"
+      ],
+      "tests": [
+        "src/input/reader/StoryReader.test.tsx: mode 'listen' plays line 0 then 1 with clip keys; a gloss tap mid-line does not cancel audio and pauses at the boundary; chips show 'slow (natural)' when the cue rate is 0.85 and 'slow' otherwise; listen:played emitted once with source 'readalong' and the summed seconds; story:read is NOT emitted and progress.storiesRead is unchanged; mode 'read' still emits story:read as today",
+        "src/input/pages/StoryPage.test.tsx: #/story/s-07-1/listen opens the reader in listen mode; #/story/s-07-1 unchanged",
+        "src/input/taiwa/RolePlay.test.tsx: NPC speak carries speaker; the gold-line replay fires once per answered line with the learnerSpeaker (ハナ fixture and a 森さん fixture)",
+        "src/input/speaking/Shadow.test.tsx: speak receives clip when params.clip is set; strip label text present"
+      ],
+      "acceptance": [
+        "Reader, role-play and shadow keep working with nullAudio and with the synth path (no clip): all existing tests green",
+        "Read-along logs a listen/app ledger row and 0 XP, never an episode read, a read-episode quest tick or a reading badge"
+      ],
+      "depends_on": ["contracts"]
+    },
+    {
+      "id": "radio",
+      "title": "茶屋ラジオ: playlist, player, Media Session, route wiring",
+      "paths": [
+        "src/input/listening/radio-playlist.ts (NEW)",
+        "src/input/listening/radio-playlist.test.ts (NEW)",
+        "src/input/listening/Radio.tsx (NEW)",
+        "src/input/listening/Radio.css (NEW)",
+        "src/input/listening/Radio.test.tsx (NEW)",
+        "src/input/listening/radio-strings.ts (NEW)",
+        "src/input/listening/media-session.ts (NEW)",
+        "src/input/listening/media-session.test.ts (NEW)",
+        "src/input/pages/RadioPage.tsx (NEW)",
+        "src/input/pages/RadioPage.css (NEW)",
+        "src/input/pages/RadioPage.test.tsx (NEW)",
+        "src/input/index.ts",
+        "src/input/index.test.ts",
+        "src/app/pages.ts",
+        "src/app/pages.test.ts"
+      ],
+      "contracts": [
+        "CONSUMES Route 'radio', 'listen:played' event, selectPool from @/learn, content.pool(n), Progress.listened, Settings.dataSaver, isAuthenticText, ClipPlayer via services.audio (clipFor / source / play with onPlayed), TeachOnce",
+        "PROVIDES radio-playlist.ts (pure): buildPlaylist({ seed, day, station, known, cards, listened, pools, stories, tier }) → Track[] up to 45 min: cold pieces/dialogues ≤ station not in listened (heard first, gist question offered), i+0 pool sentences weighted by 1 − R(listen), re-hearings least-recently-heard first at +1 tier with the 'Here it is again at {rate}×' line and a gist question whenever the text isAuthenticText and the rate ≥ 1.0; honest 'nothing new' copy when fresh material is exhausted",
+        "PROVIDES Radio.tsx: one track at a time through services.audio (whole-text sprites play edge to edge as wholeTrack cues — no stop timer, `ended` advances; sentence tracks foreground only; with document.hidden only whole-text tracks continue); keys Space ←/→ L [ ] T G ?; '?' writes Hard on the sentence's listen cards due within 3 days via recordImplicit and shows the transcript for 3 s; emits listen:played { source: 'radio', seconds from the player's timeupdate-derived count at volume > 0 (never a wall clock or rAF), rate, cold, authentic (isAuthenticText && rate ≥ 1.0 && gistCorrect === true), gistCorrect (null when skipped), refs } per track; appends heard text ids to progress.listened; zero XP; never a training day; header chip 'synthetic voice (VOICEVOX)' / 'device voice'",
+        "PROVIDES media-session.ts: setMetadata(track) with artist '{speaker} · synthetic · VOICEVOX:<character>' and handlers play/pause/previoustrack/nexttrack/seekbackward behind feature detection",
+        "PROVIDES RadioPage default export, exported from src/input/index.ts; PAGE_SOURCES.radio in src/app/pages.ts (needsExercises false)"
+      ],
+      "tests": [
+        "src/input/listening/radio-playlist.test.ts: deterministic per (seed, day); cold texts precede sentences; total ≤ 45 min; a Station-2 learner gets kana tracks + White lines and the honest exhaustion copy; re-hearing rate is one tier above the last; a re-hearing of a bridge text at 1.0× carries a gist question and a re-hearing of a polite non-bridge dialogue does not; no text within its 14-day Arena window is served as cold",
+        "src/input/listening/Radio.test.tsx: listen:played seconds equal the fake player's timeupdate-derived count with document.hidden = true and no rAF ticks (a 600 s track logs 600 s); authentic only after a correct gist answer, on a cold track and on a re-hearing alike; gistCorrect null when the question is skipped; '?' calls recordImplicit with rating 2 on due listen cards; no xp:gained; no session:started; progress.listened grows; header never contains 'recorded'",
+        "src/input/listening/media-session.test.ts: no-op without navigator.mediaSession; metadata set with artist 'ハナ · synthetic · VOICEVOX:九州そら' when present",
+        "src/app/pages.test.ts: every RouteName incl. radio resolves to a page module"
+      ],
+      "acceptance": [
+        "Radio runs with the pack (background playback with the screen off on iOS Safari and Chrome Android, manual check) and without it (foreground, 'device voice' chip, no lock-screen controls, copy says why)",
+        "Streak, quests and Ember are untouched by any Radio session (store tests assert no 'session:finished')",
+        "Playing 10 minutes with the screen off logs 10 ± 0.5 minutes of listen/app in the ledger and 0 XP"
+      ],
+      "depends_on": ["contracts", "clip-runtime"]
+    },
+    {
+      "id": "store-listening",
+      "title": "Ledger rows, stat counters (cold on both surfaces, bestCleanTier), the new 耳 formula with the corpus-walking reachability test, XP rules for listening events",
+      "paths": [
+        "src/store/ledger.ts",
+        "src/store/ledger.test.ts",
+        "src/store/stats.ts",
+        "src/store/stats.test.ts",
+        "src/store/perapera.ts",
+        "src/store/perapera.test.ts",
+        "src/store/xp.ts",
+        "src/store/xp.test.ts"
+      ],
+      "contracts": [
+        "CONSUMES 'listen:played', the extended 'listening:set', STAT_KEYS radioMinutes/coldSets/coldSetsPassed/listeningAuthenticMinutes/bestCleanTier, isAuthenticText / AUTHENTIC_GENRES, SPEED_TIER_RATES, the S.explainEar* strings from defs-strings",
+        "PROVIDES startLedger: listen:played { source: 'radio' | 'readalong' } → listen row source 0 (both sources; seconds / 60 rounded to 0.1); listening:set unchanged; appListeningHours(m) and weekAppMinutes(m, today) helpers; weekProgress unchanged (external only)",
+        "PROVIDES startStats: listen:played → radioMinutes (source radio only), listeningAuthenticMinutes (authentic), coldSets when cold && gistCorrect !== null, coldSetsPassed when cold && gistCorrect === true; listening:set → coldSets / coldSetsPassed when cold (storyId !== null), listeningAuthenticMinutes when (bridge || AUTHENTIC_GENRES.has(genre) || casual dialogue — the emitter sets `authentic` from isAuthenticText) && rate ≥ 1.0 && passed, bestCleanTier = max(bestCleanTier, tierOfRate(rate)) when total ≥ 3 && correct === total",
+        "PROVIDES perapera earAxis({ speedTier, bestCleanTier, dictationAcc, authenticHours, coldPassRate, coldSets }): tier = min(speedTier, max(1, bestCleanTier)); base = 20 · tier · clamp(acc/0.9, 0.5, 1); comp = coldSets ≥ 10 ? clamp(coldPassRate/0.8, 0.5, 1) : 1; stepped cap 70/85/100 at 10/20 authentic hours per design 08 §12; authenticListeningHours(m) = external listen+watch + listeningAuthenticMinutes/60; explain line from S.explainEarCap with {cap, app, ext, reach} and S.explainEarTier ('tier {tier}: clean set at {rate}×'); flags keep '(synthetic)' unconditionally; EAR_CAP_HOURS 20 retained, EAR_CAP_MID 85 and EAR_MID_HOURS 10 added; REACHABLE_IN_APP_HOURS exported (the figure the corpus test asserts)",
+        "PROVIDES xp.ts: listen:played grants 0 for both sources (explicit handler with a comment citing design 08 §10.2 / §10.3); listening:set unchanged (walk mode pays like a set)"
+      ],
+      "tests": [
+        "src/store/ledger.test.ts: a radio listen:played of 600 s adds a 10-minute listen/app row; a readalong listen:played of 300 s adds a 5-minute listen/app row; weekProgress ignores app rows; appListeningHours sums only source 0 listen rows",
+        "src/store/stats.test.ts: counters per the rules above; an Arena set on a 'news' piece at 0.9× does not add authentic minutes; at 1.0× passed it does; cold flag increments coldSets and coldSetsPassed on pass; 'Radio-first learner still accumulates coldSets' — ten cold Radio tracks with gist answers reach coldSets 10 with no Arena set; a Radio re-hearing with authentic true adds minutes; bestCleanTier rises to 4 after a perfect set at 1.1× and not after a 2/3 set",
+        "src/store/perapera.test.ts: ear = 60 at tier 3 / bestCleanTier 3 / acc 0.9 / 0 authentic hours capped to 60 (below 70); tier 5 preset with bestCleanTier 2 reads as tier 2; 100 possible only with authentic ≥ 20 h; 85 cap between 10 and 20 h; comp factor 0.5 floor at coldPassRate 0 with ≥ 10 cold sets and 1 with fewer than 10; flags include '(synthetic)' always; explain names both hour components and the reachable figure; a corpus-walk case (public/content via the fixture loader) computes distinct authentic hours (bridge + casual dialogues + authentic pieces) and asserts REACHABLE_IN_APP_HOURS = round(distinct × (2.5 + 2)) is ≥ 20 only when pieces are present — so the §12 sentence cannot drift",
+        "src/store/xp.test.ts: listen:played emits no xp:gained for radio or readalong; listening:set mode 'walk' pays 20 + 5·correct"
+      ],
+      "acceptance": [
+        "Records page explain text for 耳 matches design 08 §12 verbatim; the radar snapshot in perapera.months keeps its shape",
+        "No ledger note is written by any listening event (bookmarks untouched)",
+        "All existing ledger/stats/perapera/xp tests pass unchanged except the ones that pinned the old cap sentence or the tier-only base"
+      ],
+      "depends_on": ["contracts"]
+    },
+    {
+      "id": "session-builder",
+      "title": "Builder rotation, pool-aware planning, pieces kept out of speaking surfaces, Gatekeeper/Shinsa 耳, teach-card plumbing, Station 耳 panel, Dojo feed line",
+      "paths": [
+        "src/session/builder.ts",
+        "src/session/builder.test.ts",
+        "src/session/builder.corpus.test.ts",
+        "src/session/params.ts",
+        "src/session/params.test.ts",
+        "src/session/params.corpus.test.ts",
+        "src/session/gatekeeper.ts",
+        "src/session/gatekeeper.test.ts",
+        "src/session/shinsa.ts",
+        "src/session/shinsa.test.ts",
+        "src/session/SessionView.tsx",
+        "src/session/SessionView.test.tsx",
+        "src/session/TeachCard.tsx",
+        "src/session/dojo-feed.ts",
+        "src/session/dojo-feed.test.ts",
+        "src/session/pages/StationPage.tsx",
+        "src/session/pages/StationPage.test.tsx",
+        "src/session/pages/strings.ts",
+        "src/session/pages/pages.css"
+      ],
+      "contracts": [
+        "CONSUMES StoryItem.genre/audioFirst/learnerSpeaker, StepParams.clip/refs, content.pool(n), selectPool / poolMinutes from @/learn, Progress.listened, Route 'radio' and story mode 'listen', services.audio.source",
+        "PROVIDES params.pickStories(ctx, { kind?, audioFirst?, genre?, station?, speakable? }); speakable: true selects kind === 'dialogue' && (!audioFirst || learnerSpeaker) and is passed at builder.ts:338 (role-play Output block) and builder.ts:390 (dialogue fallback); shinsa.ts:283 uses the same predicate for the 口 section — a piece without learnerSpeaker never reaches role-play or Shinsa 口; inputSteps for inputKind 'listening' rotates unheard audioFirst piece → dialogue → Ear Walk (listening-set with params.refs from selectPool over pools ≤ station, i+0 then i+1), never the same genre twice in a row (derived from progress.listened), never a text served in the last 14 days; resolveParams sets params.clip for sentence-listen / shadow / pattern-cloze examples (`${itemId}#ex${k}`) and story lines (`${storyId}#L${i}`); sentence-listen prefers an i+0 example of the item from the pools, then a story line, then the bare word; knownSentences reads pool refs",
+        "PROVIDES gatekeeper.stationSentences and shinsa ear section: own-station pool refs (vocab + grammar examples) before the bare-word top-up; BELT_RATE unchanged",
+        "PROVIDES SessionView minimal-pair Judge: both words through one source (both clips via item ids or both synth) — never a clip against a synthesized partner",
+        "PROVIDES TeachCard example speak buttons pass clip `${item.id}#ex${k}`",
+        "PROVIDES StationPage 耳 Ear panel (Set / Read-along / Radio from here with chips 'synthetic voice (VOICEVOX)' · 'device voice' · 'text only'; the live 'N min you can follow today' from poolMinutes(selectPool(...)); pieces listed with genre and 'Listen first'); dojo-feed exposes radioMinutes for the Dojo tile"
+      ],
+      "tests": [
+        "src/session/builder.test.ts: listening Input block picks an unheard audioFirst piece first, a dialogue next day, an Ear Walk the day after; genre never repeats consecutively; a text heard 10 days ago is skipped; walk steps carry params.refs with ≤ 8 refs all i+0/i+1 for the fixture known set; the role-play Output block never picks an audioFirst dialogue without learnerSpeaker and does pick one with it",
+        "src/session/params.test.ts: resolveParams sets clip keys for examples and story lines; sentence-listen chooses the all-known example when one exists; pickStories speakable filter",
+        "src/session/gatekeeper.test.ts: Ear phase draws pool refs before bare words and still never includes a line with an unknown id; shinsa.test.ts same for the ear section, and the 口 section excludes audioFirst dialogues without learnerSpeaker",
+        "src/session/SessionView.test.tsx: minimal-pair Judge speaks both words with clip keys when the pack is ready and neither when it is not",
+        "src/session/pages/StationPage.test.tsx: 耳 panel renders three rows with chips driven by services.audio.source and never the word 'recorded'; the minutes line equals poolMinutes of the fixture; audioFirst pieces show 'Listen first'"
+      ],
+      "acceptance": [
+        "builder.corpus.test.ts over the shipped corpus: every station from 4 produces a non-empty listening Input block with and without pieces present",
+        "Gatekeeper and Shinsa plans never contain a timed listening step (existing invariant) and keep PHASE_SIZES / SECTION_SIZES",
+        "Station page works with no pack (chips read 'device voice'), no pools (minutes line hidden) and no audio (text only)"
+      ],
+      "depends_on": ["contracts"]
+    },
+    {
+      "id": "drills",
+      "title": "Group D drills: clip keys for words and examples, pitch-verified Pitch Ear, same-source Minimal Pair, kana clips and first-contact cards",
+      "paths": [
+        "src/exercises/vocab/MeaningGuard.tsx",
+        "src/exercises/vocab/MeaningGuard.test.tsx",
+        "src/exercises/vocab/PitchEar.tsx",
+        "src/exercises/vocab/PitchEar.test.tsx",
+        "src/exercises/vocab/AudioFlash.tsx",
+        "src/exercises/vocab/AudioFlash.test.tsx",
+        "src/exercises/vocab/strings.ts",
+        "src/exercises/listening/SentenceListen.tsx",
+        "src/exercises/listening/SentenceListen.test.tsx",
+        "src/exercises/listening/MinimalPair.tsx",
+        "src/exercises/listening/MinimalPair.test.tsx",
+        "src/exercises/listening/strings.ts",
+        "src/exercises/kana/KanaEar.tsx",
+        "src/exercises/kana/KanaEar.test.tsx",
+        "src/exercises/kana/KanaFlash.tsx",
+        "src/exercises/kana/KanaFlash.test.tsx",
+        "src/exercises/kana/KanaForge.tsx",
+        "src/exercises/kana/KanaForge.test.tsx",
+        "src/exercises/kana/strings.ts",
+        "src/exercises/grammar/PatternCloze.tsx",
+        "src/exercises/grammar/PatternCloze.test.tsx",
+        "src/exercises/voice.ts",
+        "src/exercises/voice.test.ts",
+        "src/exercises/strings.ts"
+      ],
+      "contracts": [
+        "CONSUMES SpeakOptions.clip/clause/onProgress, AudioService.clipFor/source via src/exercises/voice.ts re-exports (import lint), StepParams.clip, TeachOnce",
+        "PROVIDES speakWord(item, text?) → speak(item.word, { kana, clip: item.id }) for the bare word and speak(collocation, { clip: `${item.id}#col${k}` }) for a collocation; AudioFlash spokenText unchanged but keyed",
+        "PROVIDES PitchEar: plays the target only through a cue with pitchVerified true; when either half of a pair lacks one, both halves go through the device voice; on reveal plays `${id}#ga` when present; the contrast copy says the clip follows the dictionary pattern",
+        "PROVIDES MinimalPair: one source for both words (both clips — item id and `${id}#pair` — or both synth); SentenceListen: clip from params.clip, clause dictation (params.clause when the planner sets it; the drill plays the clause sub-range and grades against the clause kana)",
+        "PROVIDES KanaEar/KanaFlash/KanaForge: speak(kana, { kana, clip: item.id }); TeachOnce cards 'morae are beats' (Station 1, first Kana Ear) and 'a held sound is a beat' (Station 2, first long-vowel / っ item); PatternCloze passes params.clip",
+        "PROVIDES src/exercises/voice.ts re-exports clipSource(): AudioSource and canPlayClip(key) for D drills"
+      ],
+      "tests": [
+        "src/exercises/vocab/MeaningGuard.test.tsx: speakWord passes clip item.id for the word and #col<k> for a collocation",
+        "src/exercises/vocab/PitchEar.test.tsx: with a verified cue for 雨 and none for 飴 both play through synth; with both verified both play clips; reveal plays #ga; grading unchanged",
+        "src/exercises/listening/MinimalPair.test.tsx: never mixes sources within one step (spy on speak options)",
+        "src/exercises/listening/SentenceListen.test.tsx: clip passed through; a clause step plays the sub-range and grades against the clause kana; replay ceiling unchanged",
+        "src/exercises/kana/KanaEar.test.tsx: clip key is the kana id; TeachOnce card renders once at Station 1 and not after dismissal",
+        "src/exercises/voice.test.ts: re-exports resolve to shared/audio bodies"
+      ],
+      "acceptance": [
+        "All 26 D drills still register; no drill imports src/input or src/audio directly (lint test green)",
+        "With nullAudio every drill behaves exactly as before (text fallbacks gate on voiceAudible)",
+        "Pitch Ear never plays a device-voice word against a pack-voiced one in the same step"
+      ],
+      "depends_on": ["contracts"]
+    },
+    {
+      "id": "shell",
+      "title": "Settings voice-pack card, About credits, onboarding Meet ハナ, Dojo tile, Ledger honest-share copy, Library voice status, honesty strings",
+      "paths": [
+        "src/app/pages/SettingsPage.tsx",
+        "src/app/pages/SettingsPage.test.tsx",
+        "src/app/pages/AboutPage.tsx",
+        "src/app/pages/AboutPage.test.tsx",
+        "src/app/pages/OnboardingPage.tsx",
+        "src/app/pages/OnboardingPage.test.tsx",
+        "src/app/pages/DojoPage.tsx",
+        "src/app/pages/DojoPage.test.tsx",
+        "src/app/pages/strings.ts",
+        "src/app/pages/strings.test.ts",
+        "src/app/pages/pages.css",
+        "src/records/pages/LedgerPage.tsx",
+        "src/records/pages/LedgerPage.test.tsx",
+        "src/records/pages/LedgerPage.css",
+        "src/records/strings.ts",
+        "src/collections/pages/LibraryPage.tsx",
+        "src/collections/pages/LibraryPage.test.tsx",
+        "src/i18n/banned.test.ts"
+      ],
+      "contracts": [
+        "CONSUMES Settings.audioSource/dataSaver, ClipPlayer ready/manifest via services.audio (packReady, clipFor, cacheUsage, download, remove) and a fetch of ./audio/manifest.json for sizes and credits, Route 'radio', dojo-feed radioMinutes, appListeningHours / weekAppMinutes from src/store/ledger.ts, voiceAudible + source",
+        "PROVIDES SettingsPage 音声パック card: 'Pre-rendered synthetic voices (VOICEVOX)'; real per-belt sizes from manifest.belts and 'on this device: {bytes}' from cacheUsage(); per-belt Download (clips.download(belt) with a progress bar) and Remove (clips.remove(belt)); the Safari ITP line; audioSource toggle with the hint naming which drills each source serves; dataSaver toggle auto-on under navigator.connection.saveData; speed-tier note 'Slow is spoken slowly through Station 17; faster speeds keep the pitch'; absent pack → 'This build has no voice pack; your device voice speaks'",
+        "PROVIDES AboutPage: credits list VOICEVOX:<character> from the runtime manifest (or the no-pack sentence) under data-licenses; the honest-share paragraph of design 08 §12 (24 h of sentences and texts + 13 h of drill clips, 70–90 h over the road)",
+        "PROVIDES OnboardingPage: 'Meet ハナ' voice step before the kana check (あ・い・う・え・お lit in time via onProgress, then こんにちは with the English gloss 'hello' beneath — no romaji); each glyph spoken on reveal during the check; the hasJaVoice install nag reads voiceAudible + source so a pack without a device voice shows no nag",
+        "PROVIDES DojoPage 茶屋ラジオ tile under the Hanko Button: '{n} min of material you can already follow' from feed.radioMinutes, link to #/radio, copy 'Not a session; it never counts as a training day'",
+        "PROVIDES LedgerPage: informational line 'In the dojo this week: {h} h heard' beside the external ring (external target semantics unchanged), the honest-share paragraph, '(reported)' kept on external rows only",
+        "PROVIDES LibraryPage: the no-voice status reads voiceAudible(services.audio) + source instead of hasJaVoice, so a pack without a device voice shows no 'no voice' notice",
+        "PROVIDES honesty strings: src/records/strings.ts peraperaFlagSynthetic → 'Synthetic: every voice in the dojo is a VOICEVOX character voice. The ledger's outside hours are real people.'; src/i18n/banned.test.ts gains the fixtures: 'recorded voice' is banned on chips/headers (allowed only inside the Settings explanation), 'Real listening is the hours you log' and 'every voice in the app is text-to-speech' are banned"
+      ],
+      "tests": [
+        "src/app/pages/SettingsPage.test.tsx: sizes rendered from a fake manifest and cacheUsage; Download calls clips.download(belt); Remove calls clips.remove(belt); absent manifest shows the no-pack copy; audioSource and dataSaver persist through store.patch; the card says 'synthetic' and never 'recorded voice'",
+        "src/app/pages/AboutPage.test.tsx: credits appear with a manifest and the no-pack sentence without one; the honest-share paragraph names 24 and 13 hours",
+        "src/app/pages/OnboardingPage.test.tsx: Meet ハナ precedes the kana check; speak called per revealed glyph; the greeting shows 'hello' and no Latin transliteration of こんにちは; no install nag when source is 'clips' and hasJaVoice is false",
+        "src/app/pages/DojoPage.test.tsx: tile shows feed.radioMinutes and links to #/radio; absent feed hides the number but not the link",
+        "src/records/pages/LedgerPage.test.tsx: dojo-hours line from app rows; the weekly ring still counts external only; banned-phrase lint green on the new copy",
+        "src/collections/pages/LibraryPage.test.tsx: no 'no voice' notice when source is 'clips' and hasJaVoice is false; notice shown when neither is available"
+      ],
+      "acceptance": [
+        "src/i18n/banned.test.ts green on every new string; every Japanese string carries lang=\"ja\"",
+        "Phone width (390 px): the voice-pack card, the 耳 tile and the ledger line fit with no horizontal scroll",
+        "A learner with no Japanese device voice and the pack present completes onboarding without the install guide and sees no voice warning in the library"
+      ],
+      "depends_on": ["contracts", "clip-runtime"]
+    },
+    {
+      "id": "content-pieces",
+      "title": "Pass 4: 100 audio-first pieces (2 per station 4-53) in their own listening-sNN.json files, and Pass 4b: the Yellow example rewrite",
+      "paths": [
+        "public/content/stories/n5/listening-s04.json … listening-s15.json (NEW: s-NN-4, s-NN-5)",
+        "public/content/stories/n4/listening-s16.json … listening-s24.json (NEW: s-NN-4, s-NN-5)",
+        "public/content/stories/n3/listening-s25.json … listening-s38.json (NEW: s-NN-4/5 through 31, s-NN-3/4 from 32)",
+        "public/content/stories/n2/listening-s39.json … listening-s46.json (NEW: s-NN-3, s-NN-4)",
+        "public/content/stories/n1/listening-s47.json … listening-s53.json (NEW: s-NN-3, s-NN-4)",
+        "public/content/vocab/n5/vocab-n5-001.json … vocab-n5-004.json (Pass 4b: one own-station all-known example per item, Stations 4-9)",
+        "docs/LISTENING_BRIEF.md (NEW)",
+        "docs/content-plan.json"
+      ],
+      "contracts": [
+        "CONSUMES the schema fields and V41-V46 from contracts; the station allowlists in docs/allowlists/station-NN.json; cast names in scripts/audio/cast.json (a new one-episode local must be added there by the render-pipeline owner before the packet ships — request through the lead); the existing stories-sNN.json files are never edited by this owner",
+        "PROVIDES docs/LISTENING_BRIEF.md: the §3 belt table with genres, lengths, speakers and tasks; the four number conventions; aizuchi room in phone pieces; the one-sided rule (phone one side / voicemail = kind 'story' with narrator = the caller's cast name and emotion per line; both sides from Station 16 = dialogue); 'heard before read' rules (no kanji puns, every line ≤ 22 morae through Station 15, questions gist-first with kind and lineRef, speaker questions only in dialogues); register and bridge rules by station; when to set learnerSpeaker (only for a piece that should also be a role-play, then V27's fields are required); the V41-V46 self-check list",
+        "PROVIDES 100 pieces in listening-sNN.json files (type 'story', stations [NN]): kind dialogue or story (+ narrator), genre, audioFirst true, ≥ 3 comprehension questions with kind and lineRef, tokens, vocabIds, grammarIds, recapEn, names; dialogue pieces carry learnerSpeaker + the V27 learner-line fields only when the brief marks them role-playable (Yellow exchange / self-intro pieces that include ハナ), otherwise no learnerSpeaker",
+        "PROVIDES Pass 4b: ≈ 450 rewritten Station 4-9 examples so V46 holds for Stations 4-15 (≥ 1 all-known own-station example per item); docs/content-plan.json gains pass 4 / 4b rows"
+      ],
+      "tests": [
+        "npm run content:validate -- --strict: V41, V43 (quota and listening-file placement), V45 and V46 (Stations 4-15) report 0 F; V20 coverage holds for every piece; V27 holds for every dialogue piece that sets learnerSpeaker",
+        "scripts/listening-report.ts after Pass 4b: own-station all-known share at Stations 4-9 ≥ 50 % (from 11-76 %)",
+        "src/session/builder.corpus.test.ts and src/input/taiwa/role-play-corpus.test.ts over the extended corpus stay green; no listening-sNN.json exceeds 220 KB (two 60-line Black pieces ≈ 200 KB) and every stories-sNN.json is byte-identical to HEAD"
+      ],
+      "acceptance": [
+        "Every station 4-53 holds exactly quota.listening audioFirst texts, all in listening-sNN.json; total texts 237; manifest totals.story = 237 over 100 story files (50 stories-sNN.json + 50 listening-sNN.json)",
+        "Σ piece speech ≈ 4.7 h ± 15 % (V45 bands); no piece uses a denylisted term (V30) or a real living person",
+        "The yellow i+0 pool after Pass 4b is ≥ 12 min at every station 4-9 (listening-report)"
+      ],
+      "depends_on": ["contracts", "pipeline-pools"]
+    },
+    {
+      "id": "docs",
+      "title": "Design and status docs reconciled to design 08",
+      "paths": [
+        "docs/design/01-identity-and-thesis.md",
+        "docs/design/02-progression.md",
+        "docs/design/03-sessions-and-loop.md",
+        "docs/design/04-exercises.md",
+        "docs/design/05-srs-and-pedagogy.md",
+        "docs/design/06-rewards.md",
+        "docs/design/07-architecture.md",
+        "docs/BUILD_STATUS.md",
+        "docs/module-plan.json",
+        "docs/CONTRACT_NOTES.md"
+      ],
+      "contracts": [
+        "CONSUMES the shipped behaviour of every other owner",
+        "PROVIDES: 01 §2 honesty clause replaces 'the app's audio is a text-to-speech voice' with the design 08 §12 paragraph; 02 §1 and the quota table add 'listening 2 per station 4–53, texts 237 (137 + 100 pieces in listening-sNN.json)'; 03 §2.3 Input block names the piece → dialogue → Ear Walk rotation; 04 §5 listening-set row adds pool mode, question kinds, lineRef replay, the tier OFFER (not auto-advance), clause dictation; 05 §9 ledger rows for Radio and Read-along and the 'In the dojo this week' line; 05 §11 耳 row = design 08 §12 formula (bestCleanTier, comp, stepped cap); 06 §2 badges 68 and §3 wallpapers 29 with the two badge rows and the chaya-lanterns row; 07 §1 route table adds #/radio and #/story/:id/listen, §2 module layout adds src/audio/clips.ts, src/shared/speak-text.ts, src/input/listening/Radio.tsx + radio-playlist.ts, src/learn/pool.ts, scripts/audio/; 07 §7 audio services describes the pack, ClipPlayer, the explicit audio cache and the no-pack fallback; §10 offline adds the audio cache and the no-implicit-caching rule; §11 deploy adds audio:fetch / audio:check and the CI cost; BUILD_STATUS Counts, Known gaps (iPhone pre-flight result) and Next steps (clean-clone rehearsal, slow-speech acceptance test); module-plan.json rows for every NEW file with owner group, api, tests, phase"
+      ],
+      "tests": [
+        "docs cross-check script (manual): every rule id V41-V46 named in CONTENT_GUIDE §18 appears in design 08 §5; every new file in listening-plan.json appears in module-plan.json; every route in design 08 appears in 07 §1"
+      ],
+      "acceptance": [
+        "No design doc still says 耳 is capped by outside hours alone, that the tier advances automatically, that every voice is text-to-speech without the synthetic-pack qualification, or that Read-along counts as reading",
+        "BUILD_STATUS Next steps lists the slow-speech acceptance test (20 Yellow lines, tier 1 time-stretched vs natural 0.85; drop the slow variants from later packs only if the stretch loses < 5 points)"
+      ],
+      "depends_on": ["contracts", "pipeline-pools", "render-pipeline", "clip-runtime", "arena-walk", "reader-taiwa", "radio", "store-listening", "session-builder", "drills", "shell", "content-pieces"]
+    }
+  ],
+  "content_writing": {
+    "pieces_per_station_by_belt": {
+      "white": 0,
+      "yellow": 2,
+      "orange": 2,
+      "green": 2,
+      "blue": 2,
+      "purple": 2,
+      "brown": 2,
+      "black": 2
+    },
+    "max_minutes_per_piece_by_belt": { "yellow": 1, "orange": 1.5, "green": 2, "blue": 3, "purple": 3, "brown": 4, "black": 5 },
+    "genres": {
+      "yellow": ["exchange", "self-intro", "phone (one side, Station 8+; kind story + narrator)"],
+      "orange": ["exchange (て-form requests)", "directions", "voicemail (kind story + narrator)", "casual-talk"],
+      "green": ["narrative", "announcement", "weather", "phone (both sides; dialogue)"],
+      "blue": ["interview", "announcement (changes, cancellations)", "voicemail (with a task)", "casual-talk (contractions, 30+)", "bridge from 27"],
+      "purple": ["news", "interview (two guests)", "drama", "casual-talk (fillers)"],
+      "brown": ["news (numbers, sources)", "debate", "lecture", "phone (keigo, business)"],
+      "black": ["lecture (4-5 min)", "essay", "drama (multi-scene)", "debate"]
+    },
+    "genre_from_station": { "exchange": 4, "self-intro": 4, "phone": 8, "directions": 10, "voicemail": 10, "casual-talk": 10, "narrative": 16, "announcement": 16, "weather": 16, "interview": 25, "news": 32, "drama": 32, "debate": 39, "lecture": 39, "essay": 47 },
+    "files": "public/content/stories/<level>/listening-sNN.json, one per station 4-53, type 'story', stations [NN]; the existing stories-sNN.json files are not touched (MAX_FILE_BYTES 300 KiB: Black stories files are 104-136 KB today and two 60-line pieces add ≈ 200 KB)",
+    "writer_brief_path": "docs/LISTENING_BRIEF.md",
+    "pass_4b_rewrite": "≈ 450 Station 4-9 vocab example sentences rewritten to the ≤-station cumulative allowlist so every item has one own-station all-known example (V46); files vocab-n5-001 … -004",
+    "ids": "s-NN-4 / s-NN-5 for Stations 4-31 (after the three texts), s-NN-3 / s-NN-4 for Stations 32-53; V05: sequence ≤ quota.stories + quota.listening",
+    "total_pieces": 100,
+    "estimated_speech_hours": 4.7
+  },
+  "render_tiers": [
+    {
+      "id": "core",
+      "contents": "story lines + pieces as they land; vocab words by item id (accent from pitch, verified for pitchConfidence high); kanji example words not covered by a vocab clip; kana + exampleWord; grammar examples; michikusa quotes; generated kana tracks; natural-slow (speedScale 0.85) takes of every sentence clip of Stations 1-17",
+      "hours": "≈ 10.1 rendered (8.8 distinct + 1.3 slow) + 5.2 pieces (4.7 + 0.5 slow)",
+      "bytes_mb": "≈ 126 (+65)",
+      "render_wall_clock_hours_4_engines": "≈ 5 (+2.5)",
+      "ships": "first"
+    },
+    {
+      "id": "pool",
+      "contents": "the 9,362 fully-allowlisted vocab example sentences (the pools) 12.4 h + slow takes for Stations 4-17 ≈ 1.2 h; never-all-known examples are not rendered until rewritten",
+      "hours": "≈ 13.6",
+      "bytes_mb": "≈ 169",
+      "render_wall_clock_hours_4_engines": "≈ 6.5 (overnight)",
+      "ships": "second"
+    },
+    {
+      "id": "ear",
+      "contents": "collocations (5,709), word+が pitch-contrast variants (1,266), minimal-pair partners that would otherwise be device-voiced, definitionJa (4,924); cues in <level>/ear.json",
+      "hours": "≈ 10.5 (panel estimate until listening-report has definitionJa lengths)",
+      "bytes_mb": "≈ 131",
+      "render_wall_clock_hours_4_engines": "≈ 5",
+      "ships": "third"
+    },
+    {
+      "id": "listening-dan",
+      "contents": "Dan-road listening pack (first release train after Black ships): 1.5× material, dialect-marker sets",
+      "hours": "tbd",
+      "bytes_mb": "tbd",
+      "ships": "release train"
+    }
+  ],
+  "budgets": {
+    "hours_basis": "scripts/listening-report.ts: kana chars ÷ 7 s + 0.5 s per clip; connected speech ≈ 23.7 h distinct (pool 12.4 + grammar 2.0 + story lines 4.5 + michikusa 0.1 + pieces 4.7), drill clips ≈ 12.7 h (words 1.9, kanji words 0.2 net, kana 0.1, T3 ≈ 10.5); ≈ 36 h distinct, ≈ 39 h rendered with slow takes",
+    "pack_total_mb": "≈ 490 audio + 32 site; dist ≤ 900 MB asserted by audio:check; Pages limit 1 GB",
+    "pages_bandwidth": "100 GB/month soft limit; a learner ≈ 0.5 GB over the road (one belt download per belt + prefetch) ≈ 20–60 MB/month; ≈ 200 full-pack or ≈ 1,500 belt downloads per month; content-addressed sprites keep a release's re-download to the changed sprites (reusedBytesShare printed by audio:check)",
+    "first_belts_mb": "white+yellow+orange T1+T2 ≈ 40 MB + slow takes ≈ 40 MB",
+    "per_station_prefetch_mb": "1-3 (0 under data saver)",
+    "indexes_kb": "≤ 350 raw per level file (≈ 80 gzipped on the wire), ≤ 20 per station, manifest ≤ 80",
+    "memory": "≤ 6 decoded sprites, ≤ 1.2 MB Opus each; the 6 Audio elements are created once in unlock()",
+    "ci_per_deploy": "+ ≈ 490 MB pack fetch, + ≈ 520 MB Pages artifact upload with the full pack"
+  },
+  "docs_to_update": [
+    "docs/design/01-identity-and-thesis.md §2 honesty clause",
+    "docs/design/02-progression.md §1 content counts and quota table (listening 2 per station 4–53, texts 237)",
+    "docs/design/03-sessions-and-loop.md §2.3 Input block",
+    "docs/design/04-exercises.md §5 (listening-set pool mode, question kinds, lineRef, clause dictation, tier OFFER), §11 phase 3 耳 (pool refs), §12 耳 section",
+    "docs/design/05-srs-and-pedagogy.md §9 (Radio and Read-along rows, dojo-hours line) and §11 耳 row",
+    "docs/design/06-rewards.md §2 (68 badges) and §3 (29 wallpapers)",
+    "docs/design/07-architecture.md §1 routes (#/radio, #/story/:id/listen), §2 module layout, §7 audio services, §10 offline, §11 deployment",
+    "docs/ARCHITECTURE.md §0 (script-importable modules) and §1-§6 (contracts owner)",
+    "docs/CONTENT_GUIDE.md §1, §14.2, §18 (contracts owner)",
+    "docs/CHANGELOG.md (contracts owner)",
+    "docs/BUILD_STATUS.md Counts / Known gaps (iPhone pre-flight) / Next steps",
+    "docs/module-plan.json rows for every NEW file",
+    "docs/CONTRACT_NOTES.md",
+    "CONTENT_LICENSE.md 'Synthetic voices' section (render-pipeline owner)"
+  ],
+  "resolved_conflicts": [
+    "Pieces as StoryItems with genre/audioFirst/narrator (feasibility judge) instead of a listening/ kind with l- ids (pedagogy proposal): nine fewer contract files, same learner behaviour — but in their own listening-sNN.json files (skeptic: appending to stories-sNN.json breaks MAX_FILE_BYTES at Black); the loader already handles two story files per station",
+    "Pools as derived listening/pool-NN.json (new 'pool' kind) instead of tokens persisted on SentenceExample (feasibility judge: +3.6 MB, MAX_FILE_BYTES); the validator skips them (skeptic: V08 would fail)",
+    "Natural-slow render ON by default for Stations 1-17 sentence clips (pedagogy and both pedagogy judges) with the acceptance test the engineering lens wanted before deciding; words render once",
+    "Word clips keyed by item id and rendered from the word surface with accent_type = pitch (both judges) instead of text-keyed kana (engineering)",
+    "耳 cap: pedagogy's stepped 70/85/100 kept, plus a cold-comprehension factor (pedagogy judge) fed from both surfaces (skeptic: Arena-only cold was vacuous for Radio listeners), Radio authentic minutes after a correct gist question on cold hearings AND re-hearings (skeptic: cold-only could never reach 20 h), the authentic predicate extended to the 29 casual dialogues (skeptic), and the preset capped by bestCleanTier (skeptic: a chosen tier is not evidence); product's 0.5 × cold hours dropped as arithmetically hollow",
+    "Honest share split into connected speech (≈ 24 h) and drill clips (≈ 13 h) with a single hours basis from listening-report (skeptic: 36 h counted drill audio; the two §2 tables disagreed)",
+    "Radio: own event listen:played and STAT counters (both product judges) instead of listening:set-shaped events or ledger notes; 0 XP; whole-text sprites for screen-off playback; played seconds from timeupdate, not rAF or timers (skeptic); weekly external target semantics unchanged",
+    "Read-along is a listen:played row, not a story:read (skeptic: story:read pays episode XP, quests, badges and marks the text read)",
+    "Audio-first dialogue pieces stay out of role-play and Shinsa 口 unless the writer sets learnerSpeaker (skeptic: debates and interviews have no ハナ); the role-play gold-line copy names the learnerSpeaker",
+    "Sprites content-addressed, indexes versioned (skeptic: an audioVersion prefix re-downloads the whole pack after any content fix); the SW does not cache sprites, clips.ts caches prefetch and downloads only (skeptic: unbounded Cache Storage)",
+    "ClipPlayer pool pre-unlocked in the gesture, blob re-wrapped as audio/webm, clip resolution before the synth guard in speak() (skeptic: iOS per-element unlock, Pages' video/webm MIME, kiosk browsers without speechSynthesis)",
+    "textToSpeak / stripDisplayMarks move to src/shared/speak-text.ts (skeptic: Node cannot import src/audio/tts.ts)",
+    "fetch-audio-pack streams to disk and shells out to tar (skeptic: Node has no tar and a whole-pack arrayBuffer would not fit)",
+    "Cast from the bible (ハナ 24 = 九州そら, also narration; 田中さん elderly = ちび式じい) replacing name-inferred casting; explicit voice per speaker, not hash",
+    "Rewards: +2 badges, +1 wallpaper without silhouettes; 誰の声, voice-ear and radio-fifteen cut; every Record<id> consumer (Layout, art/strings, mon) moves into the contracts owner (skeptic: unowned mandatory edits)",
+    "Tier OFFER kept over auto-advance (01 §6 'never switches presets silently'); design 04 §5 corrected",
+    "Clip resolution inside speak() (engineering) kept; speaker + clip + onProgress added to SpeakOptions as the judges required",
+    "Yellow example rewrite (census, every judge) adopted as Pass 4b with V46",
+    "V44 stays in build-content-index (it needs the linker and the bundles) but inside the default check that CI already runs — the skeptic's '--check flag missing from CI' is moot because check is on unless --no-check (build-content-index.ts:349); CONTENT_GUIDE §18 documents the exception",
+    "Meet ハナ shows the English gloss 'hello', not romaji (skeptic: 05 §13 cuts romaji outside input)"
+  ]
+}

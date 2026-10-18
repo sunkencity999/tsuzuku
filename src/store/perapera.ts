@@ -41,6 +41,13 @@ export const VOCAB_REC_TARGET = 10_000;
 export const VOCAB_PROD_TARGET = 6_000;
 export const EAR_CAP = 70;
 export const EAR_CAP_HOURS = 20;
+/**
+ * Design 08 §12 interim — the hours the dojo alone can carry a learner to ("The dojo alone can carry
+ * you to about {reach} h"), §12's "20 h is reachable in Black". Fills the `{reach}` slot of
+ * `S.explainEarCap` until the store-listening owner replaces it with the corpus-walk figure
+ * (beside `EAR_CAP_STEP_HOURS`; `perapera.test.ts` then walks the inventory).
+ */
+export const EAR_REACH_HOURS = 20;
 export const DICTATION_TARGET = 0.9;
 export const READ_TARGET_CPM = 500;
 export const MONOLOGUE_TARGET_WPM = 100;
@@ -161,7 +168,12 @@ export function peraperaNow(m: SaveMeta, cards: CardWalker, now: number): Perape
   const dictationAcc = st.dictationLines > 0 ? ratio(st.dictation95at1x, st.dictationLines) : null;
   const ear = earAxis(m.settings.speedTier, dictationAcc, hours);
   let explainEar = dictationAcc === null ? fill(S.explainEarNoData, { tier: m.settings.speedTier }) : fill(S.explainEar, { tier: m.settings.speedTier, acc: pct(dictationAcc) });
-  if (hours < EAR_CAP_HOURS) explainEar += ' ' + fill(S.explainEarCap, { hours: Math.round(hours * 10) / 10 });
+  // S.explainEarCap slots (design 08 §12, contract tier): {cap, goal, app, ext, reach}. `app` reads the new
+  // listeningAuthenticMinutes counter (0 until the listening surfaces write it); the cap formula itself is unchanged here.
+  if (hours < EAR_CAP_HOURS) {
+    explainEar +=
+      ' ' + fill(S.explainEarCap, { cap: EAR_CAP, goal: EAR_CAP_HOURS, app: Math.round((st.listeningAuthenticMinutes / 60) * 10) / 10, ext: Math.round(hours * 10) / 10, reach: EAR_REACH_HOURS });
+  }
 
   // 読
   const read = readAxis(st.speedReadBestCpm);

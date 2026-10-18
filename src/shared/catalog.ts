@@ -7,7 +7,7 @@
 import type { Belt, DrillId } from '../content/types';
 
 /* ────────────────────────────────────────────────────────────────────────── */
-/* Mon (紋) — 66 badges, design 06 §2 order                                    */
+/* Mon (紋) — 68 badges, design 06 §2 order (+ design 08 §11 listening pair)    */
 /* ────────────────────────────────────────────────────────────────────────── */
 
 export const BADGE_IDS = [
@@ -52,6 +52,10 @@ export const BADGE_IDS = [
   'speed-reader',
   'golden-ear',
   'fast-ear',
+  // design 08 §11: teahouse-regular (stats.radioMinutes ≥ 600, Bronze) and first-hearing (stats.coldSetsPassed ≥ 20, Silver);
+  // names, mon glyphs and copy live in store/defs-strings.ts and art/mon.ts with the other badges
+  'teahouse-regular',
+  'first-hearing',
   'voice',
   'shadow-warrior',
   'aizuchi',
@@ -99,7 +103,7 @@ export function beltBadgeId(belt: Belt): BadgeId | null {
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
-/* Kakejiku (掛け軸) — 28 wallpapers, design 06 §3 order                        */
+/* Kakejiku (掛け軸) — 29 wallpapers, design 06 §3 order (+ design 08 §11)      */
 /* ────────────────────────────────────────────────────────────────────────── */
 
 export const WALLPAPER_IDS = [
@@ -130,6 +134,8 @@ export const WALLPAPER_IDS = [
   'station-sign',
   'kyoto-arrival',
   'road-continues',
+  // design 08 §11: chaya-lanterns — a roadside teahouse at dusk, one chōchin per 10 h of `ledgerHours(m).listen`, living, quadrants at 25 / 50 / 75 / 100 h
+  'chaya-lanterns',
   'end-card',
 ] as const;
 export type WallpaperId = (typeof WALLPAPER_IDS)[number];

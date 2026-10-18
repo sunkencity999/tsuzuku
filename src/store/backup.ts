@@ -17,7 +17,9 @@
  *                      gunzip output, which is inflated no further) is
  *                      refused before it is parsed: a real save is < 4.5 MB.
  *  applyImport(p,mode) `merge` (streak max, XP max, collections union, cards
- *                      newer-wins, ledger union; identity — name, kana, zone,
+ *                      newer-wins, ledger union, texts heard / teach cards seen
+ *                      union and the listening counters max — design 08 §11;
+ *                      identity — name, kana, zone,
  *                      dictated sentence — stays this browser's unless this
  *                      browser holds no learner trace yet, as on a new phone,
  *                      when the backup's is taken) or `replace` (the backup as
@@ -419,6 +421,9 @@ function mergeProgress(a: Progress, b: Progress): Progress {
     shinsaNotes: further.shinsaNotes ?? a.shinsaNotes ?? b.shinsaNotes,
   };
   if (a.storiesRead || b.storiesRead) out.storiesRead = union(a.storiesRead ?? [], b.storiesRead ?? []);
+  // design 08 §10–§11: a text heard or a teach card seen on either device stays heard / seen.
+  if (a.listened || b.listened) out.listened = union(a.listened ?? [], b.listened ?? []);
+  if (a.teachSeen || b.teachSeen) out.teachSeen = union(a.teachSeen ?? [], b.teachSeen ?? []);
   if (a.gateAttemptDay || b.gateAttemptDay) {
     const days: Record<number, EpochDay> = { ...(a.gateAttemptDay ?? {}) };
     for (const [k, v] of Object.entries(b.gateAttemptDay ?? {})) days[Number(k)] = Math.max(days[Number(k)] ?? 0, v);

@@ -25,8 +25,10 @@ const VARIANTS: Route[] = [
   { name: 'gate', n: 53 },
   ...BELT_IDS.map((belt): Route => ({ name: 'shinsa', belt })),
   { name: 'story', id: 's-07-1' },
+  { name: 'story', id: 's-07-1', mode: 'listen' },
   { name: 'listen', id: 's-07-2' },
   { name: 'taiwa', id: 's-07-2' },
+  { name: 'radio' },
   { name: 'dan' },
   { name: 'library' },
   ...COLLECTION_TABS.map((tab): Route => ({ name: 'collections', tab })),
@@ -51,9 +53,24 @@ describe('href / parseHash', () => {
 
   it('dojo is #/ and unknown/empty hashes fall back to dojo', () => {
     expect(href({ name: 'dojo' })).toBe('#/');
-    for (const h of ['', '#', '#/', '/', '#/nope', '#/train', '#/train/zumba', '#/station/x', '#/station/-1', '#/gate/0', '#/shinsa/red', '#/collections/other', '#/studio/not-a-wallpaper', '#/story', '#/story/a/b', '#/settings/extra']) {
+    for (const h of ['', '#', '#/', '/', '#/nope', '#/train', '#/train/zumba', '#/station/x', '#/station/-1', '#/gate/0', '#/shinsa/red', '#/collections/other', '#/studio/not-a-wallpaper', '#/story', '#/story/a/b', '#/story/s-07-1/listen/x', '#/listen/s-07-1/listen', '#/radio/x', '#/settings/extra']) {
       expect(parseHash(h)).toEqual(DEFAULT_ROUTE);
     }
+  });
+
+  it('design 08 routes: #/radio and the Read-along #/story/:id/listen; a plain story hash still parses without mode', () => {
+    expect(href({ name: 'radio' })).toBe('#/radio');
+    expect(parseHash('#/radio')).toEqual({ name: 'radio' });
+    expect(parseHash('#/radio/')).toEqual({ name: 'radio' });
+    expect(href({ name: 'story', id: 's-07-1', mode: 'listen' })).toBe('#/story/s-07-1/listen');
+    expect(parseHash('#/story/s-07-1/listen')).toStrictEqual({ name: 'story', id: 's-07-1', mode: 'listen' });
+    expect(parseHash('#/story/s-07-1/listen?x=1')).toStrictEqual({ name: 'story', id: 's-07-1', mode: 'listen' });
+    expect(href({ name: 'story', id: 's-07-1' })).toBe('#/story/s-07-1');
+    expect(parseHash('#/story/s-07-1')).toStrictEqual({ name: 'story', id: 's-07-1' });
+    expect(sameRoute(parseHash('#/story/s-07-1'), { name: 'story', id: 's-07-1', mode: 'listen' })).toBe(false);
+    expect(titleFor({ name: 'radio' })).toBe('茶屋ラジオ Radio · TSUZUKU');
+    expect(titleFor({ name: 'story', id: 's-07-1', mode: 'listen' })).toBe('読み聞かせ Read-along · TSUZUKU');
+    expect(titleFor({ name: 'story', id: 's-07-1' })).toBe('旅日記 Story · TSUZUKU');
   });
 
   it('tolerates trailing slashes, queries and encoded ids', () => {

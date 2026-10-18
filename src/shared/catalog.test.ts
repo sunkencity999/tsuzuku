@@ -16,9 +16,9 @@ const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const unique = (xs: readonly string[]) => new Set(xs).size === xs.length;
 
 describe('catalog counts', () => {
-  it('66 badges / 28 wallpapers / 17 quests, unique and kebab-case', () => {
-    expect(BADGE_IDS).toHaveLength(66);
-    expect(WALLPAPER_IDS).toHaveLength(28);
+  it('68 badges / 29 wallpapers / 17 quests (design 08 §11), unique and kebab-case', () => {
+    expect(BADGE_IDS).toHaveLength(68);
+    expect(WALLPAPER_IDS).toHaveLength(29);
     expect(QUEST_IDS).toHaveLength(17);
     for (const list of [BADGE_IDS, WALLPAPER_IDS, QUEST_IDS, SFX_NAMES]) {
       expect(unique(list)).toBe(true);
@@ -34,6 +34,17 @@ describe('catalog counts', () => {
       expect(WALLPAPER_IDS).toContain(id);
     }
     expect(WALLPAPER_IDS).not.toContain('continue');
+  });
+
+  it('design 08 §11 adds the two listening badges and the teahouse wallpaper; the quest pool stays pinned', () => {
+    expect(BADGE_IDS).toContain('teahouse-regular');
+    expect(BADGE_IDS).toContain('first-hearing');
+    expect(WALLPAPER_IDS).toContain('chaya-lanterns');
+    expect(QUEST_IDS).not.toContain('radio-fifteen');
+    expect(BADGE_IDS).not.toContain('voice-ear');
+    // the end card stays the last kakejiku; つづく stays the last mon
+    expect(WALLPAPER_IDS[WALLPAPER_IDS.length - 1]).toBe('end-card');
+    expect(BADGE_IDS[BADGE_IDS.length - 1]).toBe('tsuzuku');
   });
 
   it('BADGE_IDS, WALLPAPER_IDS, QUEST_IDS and EXERCISE_IDS are pairwise disjoint', () => {

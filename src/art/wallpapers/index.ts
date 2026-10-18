@@ -1,5 +1,5 @@
 /**
- * TSUZUKU — the 28 kakejiku (design 06 §3): registry and renderer.
+ * TSUZUKU — the 29 kakejiku (design 06 §3; 茶屋の灯 from design 08 §11): registry and renderer.
  *
  * IMPORT CONVENTION: every generator `src/art/wallpapers/<kebab>.ts` exports
  * `export const spec: WallpaperSpec`, imported here in catalog order as
@@ -50,13 +50,14 @@ import { spec as stationSign } from './station-sign';
 import { spec as kyotoArrival } from './kyoto-arrival';
 import { spec as roadContinues } from './road-continues';
 import { spec as endCard } from './end-card';
+import { spec as chayaLanterns } from './chaya-lanterns';
 
 export type { Composition, RenderedWallpaper, Revealed, WallpaperData, WallpaperSize, WallpaperSpec } from './spec';
 export { finalize, sumiSilhouette, revealQuadrants, appendPostLayer, safeZoneViolations } from './spec';
 export { wallpaperData, sampleData, validateData, normalizeData } from './data';
 
-/** All 28 generators keyed by id, in catalog order. */
-export const WALLPAPERS: Record<WallpaperId, WallpaperSpec> = {
+/** The generators by id; `WALLPAPERS` re-keys this literal in `WALLPAPER_IDS` order (design 08 §11 adds `chaya-lanterns`). */
+const GENERATORS: Record<WallpaperId, WallpaperSpec> = {
   'torii-dawn': toriiDawn,
   'kana-grid': kanaGrid,
   'neon-alley': neonAlley,
@@ -85,7 +86,11 @@ export const WALLPAPERS: Record<WallpaperId, WallpaperSpec> = {
   'kyoto-arrival': kyotoArrival,
   'road-continues': roadContinues,
   'end-card': endCard,
+  'chaya-lanterns': chayaLanterns,
 };
+
+/** All 29 generators keyed by id, in catalog order (`WALLPAPER_IDS` is the one order, whatever the literal above lists first). */
+export const WALLPAPERS: Record<WallpaperId, WallpaperSpec> = Object.fromEntries(WALLPAPER_IDS.map((id) => [id, GENERATORS[id]])) as Record<WallpaperId, WallpaperSpec>;
 
 /** Ids in the catalog without a registered generator (always empty once the registry is complete). */
 export function missingGenerators(): WallpaperId[] {

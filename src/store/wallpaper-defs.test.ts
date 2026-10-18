@@ -9,6 +9,7 @@ import { S } from './defs-strings';
 import { resetStoreForTests } from './store';
 import { DEFAULT_TEST_NOW, card, makeTestStore, testSave, type DeepPartial } from './testing';
 import {
+  CHAYA_LANTERNS_HOURS,
   WALLPAPER_BY_ID,
   WALLPAPER_DEFS,
   WALLPAPER_DEFS_COMPLETE,
@@ -88,6 +89,8 @@ const CASES: Record<WallpaperId, { yes: Case; no: Case }> = {
   'kyoto-arrival': { yes: { save: { progress: { shinsaPassed: ['black'] } } }, no: { save: { progress: { shinsaPassed: ['brown'] }, profile: { dan: 0 } } } },
   'road-continues': { yes: { save: { profile: { dan: 10 } } }, no: { save: { profile: { dan: 9 } } } },
   'end-card': { yes: { save: { stats: { sessions: 100 } } }, no: { save: { stats: { sessions: 99 } } } },
+  // design 08 §11: 100 h of listen rows, whichever source; read / watch hours do not count
+  'chaya-lanterns': { yes: { save: { ledger: { entries: [[100, 60 * 60, 0, 0], [101, 40 * 60, 0, 1]] } } }, no: { save: { ledger: { entries: [[100, 99 * 60, 0, 1], [100, 600, 1, 1], [100, 600, 2, 1]] } } } },
 };
 
 const BANNED = [/you lost your streak/i, /don'?t let .* down/i, /only \d+ hours? left/i, /hurry/i, /last chance/i, /don'?t break/i, /streak at risk/i, /!/];
@@ -95,8 +98,28 @@ const BANNED = [/you lost your streak/i, /don'?t let .* down/i, /only \d+ hours?
 describe('WALLPAPER_DEFS', () => {
   it('covers WALLPAPER_IDS exactly, in catalog order', () => {
     expect(WALLPAPER_DEFS.map((d) => d.id)).toEqual([...WALLPAPER_IDS]);
-    expect(WALLPAPER_DEFS).toHaveLength(28);
+    expect(WALLPAPER_DEFS).toHaveLength(29);
     expect(WALLPAPER_DEFS_COMPLETE).toBe(true);
+  });
+
+  it('design 08 §11 茶屋の灯: living, indexed on ledger rows and both listening events, progress 0.5 at 50 listen hours, quadrants at 25 / 50 / 75 / 100 h', () => {
+    const d = WALLPAPER_BY_ID['chaya-lanterns'];
+    expect(d.living).toBe(true);
+    expect(d.nameJa).toBe('茶屋の灯');
+    expect(d.events).toEqual(['ledger:entry', 'listen:played', 'listening:set']);
+    expect(CHAYA_LANTERNS_HOURS).toBe(100);
+    const at = (hours: number) => testSave({ save: { ledger: { entries: [[100, hours * 60, 0, 0]] } } });
+    expect(d.progress?.(at(50))).toBe(0.5);
+    expect(d.progress?.(at(0))).toBe(0);
+    expect(revealQuadrant(d, at(24.9))).toBe(0);
+    expect(revealQuadrant(d, at(25))).toBe(1);
+    expect(revealQuadrant(d, at(50))).toBe(2);
+    expect(revealQuadrant(d, at(75))).toBe(3);
+    expect(revealQuadrant(d, at(100))).toBe(4);
+    expect(d.when(at(99.9))).toBe(false);
+    expect(d.when(at(100))).toBe(true);
+    // dojo rows (source 0) and outside rows (source 1) count alike; read / watch rows do not
+    expect(d.progress?.(testSave({ save: { ledger: { entries: [[100, 25 * 60, 0, 0], [100, 25 * 60, 0, 1], [100, 500 * 60, 1, 1]] } } }))).toBe(0.5);
   });
 
   it('every def has names, index events and clean copy', () => {
@@ -146,6 +169,7 @@ describe('WALLPAPER_DEFS', () => {
       ['onsen', (n) => ({ streak: { restDaysTaken: n } }), 10],
       ['waveform', (n) => ({ stats: { dictation95at1x: n } }), 100],
       ['end-card', (n) => ({ stats: { sessions: n } }), 100],
+      ['chaya-lanterns', (n) => ({ ledger: { entries: [[100, n * 60, 0, 1]] } }), 100],
     ];
     for (const [id, patch, target] of counters) {
       const d = WALLPAPER_BY_ID[id];
@@ -246,6 +270,7 @@ describe('buildData', () => {
         streak: { current: 3, longest: 21, totalDays: 40, freezes: 2, restDaysTaken: 4 },
         progress: { station: 5 },
         stats: { rapidBest: 33 },
+        ledger: { entries: [[TODAY, 90, 0, 1], [TODAY, 30, 1, 1]] },
         collections: {
           badges: { seven: TODAY - 1, 'first-step': TODAY - 9, 'three-day': TODAY - 1 },
           stamps: { 4: { at: TODAY - 2, perfect: true, assisted: false }, 1: { at: TODAY - 20, perfect: false, assisted: false } },
@@ -297,6 +322,8 @@ describe('buildData', () => {
     expect(d.sentenceOfChoice).toBe('私はハナです。');
     expect(d.dictatedSentence).toBeUndefined();
     expect(d.date).toBe(TODAY);
+    // design 08 §11: listen rows only (the 30-minute read row is not counted)
+    expect(d.listenHours).toBe(1.5);
     // Deterministic: the same store yields an identical record.
     expect(buildData(s, get, { log, sentenceOfChoice: '私はハナです。' })).toEqual(d);
   });
@@ -329,5 +356,6 @@ describe('buildData', () => {
     expect(d.minutes90.every((x) => x === 0)).toBe(true);
     expect(d.streak).toBe(0);
     expect(d.chosenKanji).toBeUndefined();
+    expect(d.listenHours).toBe(0);
   });
 });

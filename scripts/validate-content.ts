@@ -1,7 +1,8 @@
 /**
- * TSUZUKU — content validator (CONTENT_GUIDE §18, rules V01–V40).
+ * TSUZUKU — content validator (CONTENT_GUIDE §18, rules V01–V43, V45, V46).
  *
  *   node scripts/validate-content.ts [--strict] [--json] [--only <glob-or-path>] [--fix-tokenids] [--root <dir>]
+ *                                    [--cast <path>] [--listening-release]
  *
  * Runs under Node's native type stripping, so this file uses only erasable
  * TypeScript and imports `src/content/types.ts` / `src/content/ruby.ts`
@@ -20,6 +21,19 @@
  *    declares `unlocksForms` while its cumulative allowlist holds no verb /
  *    adjective to conjugate; needs bundles): WARN only, informational; the
  *    content is kept as written.
+ *  - Listening (design 08 §5): V41 (listening fields) FAIL; V42 (cast) FAIL in
+ *    strict mode, WARN otherwise, one WARN "cast check skipped" when the cast
+ *    file (`--cast`, default `scripts/audio/cast.json`) is absent; V43 placement
+ *    (an `audioFirst` text lives in `listening-sNN.json`, none at Stations 1–3)
+ *    FAIL in strict mode with bundles, and the per-station `quota.listening`
+ *    count FAIL only with `--strict --listening-release` (WARN in strict without
+ *    the flag, silent under quota otherwise — like V34's story count); V45
+ *    (minutes band) WARN; V46 (own-station all-known example) WARN, FAIL for
+ *    Stations 4–15 with `--strict --listening-release`. `--listening-release`
+ *    is the "at release" switch of design 08 §5: it is added to `content:all`
+ *    once Pass 4 / 4b have landed. V44 (pools) is reported by
+ *    `scripts/build-content-index.ts`'s default check, not here; the walk skips
+ *    `listening/pool-*.json` exactly as it skips `stations/`.
  *  - The token → item matcher (V19 / V20 tokenIds, V36 segmentation) is
  *    `scripts/linker.ts`, shared with `content:assign`; it links inflected
  *    forms of allowlisted verbs and the copula (します, いった, ではない …), so
@@ -41,13 +55,17 @@ import {
   CONJ_FORMS,
   CONTENT_KINDS,
   DOMAIN_TAGS,
+  GENRE_FROM_STATION,
   ID_PATTERNS,
   KANA_SENTENCE_RE,
   KANA_WORD_RE,
   LEVELS,
+  LINE_EMOTIONS,
+  LISTENING_GENRES,
   MAX_ITEMS_PER_FILE,
   MISC_TAGS,
   POS_VALUES,
+  QUESTION_KINDS,
   REGISTER_TAGS,
   RUBY_RE,
   SENTENCE_MAX_CHARS,
@@ -56,6 +74,7 @@ import {
   coverageTargetFor,
 } from '../src/content/types.ts';
 import type {
+  Belt,
   ComponentDef,
   ConjugationGoldenEntry,
   ContentKind,
@@ -63,6 +82,7 @@ import type {
   KanaItem,
   KanjiItem,
   Level,
+  ListeningGenre,
   MichikusaItem,
   StationBundle,
   StationDef,
@@ -75,7 +95,7 @@ import { KANJI_RE, hasKanji, parseRuby, toKana, toPlain } from '../src/content/r
 import type { RubySegment } from '../src/content/ruby.ts';
 import { buildIndex, deriveContentVersion, isDerivedVersion, listContentFiles } from './build-content-index.ts';
 import { bundlesFromCorpus, stringifyJson } from './assign-stations.ts';
-import { allowlistStationFor, AUX_VERBS, buildMatchPool, cumulativeIds, FUNCTION_TOKENS, matchToken, stemApplies } from './linker.ts';
+import { allowlistStationFor, AUX_VERBS, buildMatchPool, CAST_NAMES, cumulativeIds, FUNCTION_TOKENS, matchToken, stemApplies } from './linker.ts';
 import type { MatchPool } from './linker.ts';
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -106,7 +126,25 @@ export interface ValidateOptions {
   only?: string;
   /** Write `StoryLine.tokenIds` from the V20 match (requires bundles). */
   fixTokenIds?: boolean;
+  /**
+   * V42 cast (design 08 §5–§6): the path of `cast.json` (default `scripts/audio/cast.json`), or the
+   * parsed file. An absent file is one W "cast check skipped".
+   */
+  cast?: string | CastInput;
+  /**
+   * The "at release" switch of design 08 §5 for the listening rules: with `strict`, the V43 per-station
+   * `quota.listening` count and V46 for Stations 4–15 FAIL instead of WARN. Off until Pass 4 / 4b land.
+   */
+  listeningRelease?: boolean;
 }
+
+/**
+ * `scripts/audio/cast.json` as the validator reads it (design 08 §6: one entry per speaker label and
+ * narrator role, `{ name, gender, age, character, style, emotionStyles?, credit }`). The render-pipeline
+ * owner authors the file; V42 only needs the names, so an array of entries, an object holding that array
+ * under `speakers` / `cast` / `entries` / `voices`, or an object keyed by name all work.
+ */
+export type CastInput = unknown;
 
 export interface ValidateResult {
   failures: Finding[];
@@ -143,6 +181,11 @@ interface LoadedFile {
 }
 
 const LEVEL_SET: ReadonlySet<string> = new Set(LEVELS);
+
+/** `listening/pool-NN.json` — the generated pool files the walk skips exactly as it skips `stations/` (design 08 §4). */
+export const POOL_FILE_RE = /^listening\/pool-\d{2}\.json$/;
+/** `stories/<level>/listening-sNN.json` — the files that hold audio-first pieces (design 08 §3, V43). */
+const LISTENING_FILE_RE = /^stories\/(kana|n[1-5])\/listening-s(\d{2})\.json$/;
 
 function walk(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;
@@ -198,6 +241,8 @@ function loadCorpus(root: string): LoadedFile[] {
   for (const abs of walk(root)) {
     const rel = toRel(root, abs);
     if (rel === 'manifest.json' || rel.startsWith('stations/')) continue;
+    // Generated listening pools (design 08 §4, `ListeningPool`): not ContentFiles; V44 checks them in content:index.
+    if (POOL_FILE_RE.test(rel)) continue;
     if (rel === '_meta/denylist.json' || rel === '_meta/redirects.json') continue;
     const text = readFileSync(abs, 'utf8');
     let json: Json | undefined;
@@ -403,7 +448,7 @@ type Shape = Record<string, FieldSpec>;
 
 const SENTENCE: Shape = { ja: { t: 'string', req: true }, kana: { t: 'string', req: true }, en: { t: 'string', req: true } };
 const WORD_EX: Shape = { word: { t: 'string', req: true }, kana: { t: 'string', req: true }, en: { t: 'string', req: true } };
-const QUESTION: Shape = { q: { t: 'string', req: true }, choices: { t: 'string[]', req: true, len: 4 }, answer: { t: 'int', req: true } };
+const QUESTION: Shape = { q: { t: 'string', req: true }, choices: { t: 'string[]', req: true, len: 4 }, answer: { t: 'int', req: true }, kind: { t: 'string' }, lineRef: { t: 'int' } };
 const OPTION: Shape = { text: { t: 'string', req: true }, kind: { t: 'string', req: true }, recast: { t: 'string' } };
 const DEF_JA: Shape = { ja: { t: 'string', req: true }, kana: { t: 'string', req: true } };
 const LINE: Shape = {
@@ -419,6 +464,7 @@ const LINE: Shape = {
   accept: { t: 'string[]', min: 1 },
   mustInclude: { t: 'string[]', min: 1 },
   options: { t: 'object[]', min: 1, shape: OPTION },
+  emotion: { t: 'string' },
 };
 const SHAPES: Record<ContentKind, Shape> = {
   kana: {
@@ -451,6 +497,7 @@ const SHAPES: Record<ContentKind, Shape> = {
     kind: { t: 'string', req: true }, register: { t: 'string', req: true }, lines: { t: 'object[]', req: true, min: 1, shape: LINE },
     vocabIds: { t: 'string[]', req: true, min: 0 }, grammarIds: { t: 'string[]', req: true, min: 0 }, comprehension: { t: 'object[]', req: true, min: 1, shape: QUESTION },
     recapEn: { t: 'string', req: true }, names: { t: 'string[]', min: 1 }, bridge: { t: 'boolean' }, learnerSpeaker: { t: 'string' },
+    genre: { t: 'string' }, audioFirst: { t: 'boolean' }, narrator: { t: 'string' },
   },
   conjugation: {
     id: { t: 'string', req: true }, word: { t: 'string', req: true }, kana: { t: 'string', req: true }, pos: { t: 'string', req: true }, form: { t: 'string', req: true },
@@ -464,6 +511,8 @@ const SHAPES: Record<ContentKind, Shape> = {
     bodyEn: { t: 'string', req: true }, ja: { t: 'string' }, kana: { t: 'string' }, sourceNote: { t: 'string' },
   },
   station: {},
+  // generated `listening/pool-NN.json`; never walked (POOL_FILE_RE), checked by content:index (V44)
+  pool: {},
 };
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -491,6 +540,14 @@ interface Ctx {
   conjPos: Map<string, Set<string>>;
   linked: number;
   writeTokenIds: boolean;
+  /** V42: cast names from cast.json, or null when the file is absent (check skipped). */
+  cast: Set<string> | null;
+  /** Path of the cast file as reported in V42 findings. */
+  castFile: string;
+  /** Speaker labels and narrators the texts use (V42 unused-entry warning). */
+  castUsed: Set<string>;
+  /** design 08 §5 "at release" switch for V43 counts and V46 (Stations 4–15). */
+  listeningRelease: boolean;
 }
 
 function fail(ctx: Ctx, file: string, rule: string, message: string, id?: unknown): void {
@@ -503,6 +560,10 @@ function warn(ctx: Ctx, file: string, rule: string, message: string, id?: unknow
 function soft(ctx: Ctx, file: string, rule: string, message: string, id?: string): void {
   if (ctx.strict && ctx.bundles.size > 0) fail(ctx, file, rule, message, id);
   else warn(ctx, file, rule, message, id);
+}
+/** FAIL with `--strict --listening-release`, WARN otherwise — one switch for the whole of V43 and for V46 at Stations 4–15 (design 08 §5 "F at release, W before"). */
+function atRelease(ctx: Ctx): typeof fail {
+  return ctx.strict && ctx.listeningRelease ? fail : warn;
 }
 
 export function validate(root: string, o: ValidateOptions = {}): ValidateResult {
@@ -528,7 +589,14 @@ export function validate(root: string, o: ValidateOptions = {}): ValidateResult 
     conjPos: new Map(),
     linked: 0,
     writeTokenIds: (!!o.strict || !!o.fixTokenIds) && bundles.size > 0,
+    cast: null,
+    castFile: DEFAULT_CAST_FILE,
+    castUsed: new Set(),
+    listeningRelease: !!o.listeningRelease,
   };
+
+  // Cast (V42, design 08 §6): names from cast.json; absent → one W, check skipped.
+  loadCast(ctx, o.cast);
 
   // Components (V07/V17).
   const compList = o.components ?? (files.find((f) => f.rel === '_meta/components.json')?.items as unknown as ComponentDef[] | undefined);
@@ -559,6 +627,8 @@ export function validate(root: string, o: ValidateOptions = {}): ValidateResult 
   checkQuotas(ctx);
   checkManifest(ctx);
   checkDefinitions(ctx);
+  checkListening(ctx);
+  checkOwnStationExamples(ctx);
 
   // --only filter.
   let failures = ctx.failures;
@@ -615,12 +685,13 @@ function onlyMatcher(only: string, root: string): (rel: string) => boolean {
 
 /* ── V01 / V02 / V08 ─────────────────────────────────────────────────────── */
 
-const PATH_RES: Record<Exclude<ContentKind, 'station'>, RegExp> = {
+const PATH_RES: Record<Exclude<ContentKind, 'station' | 'pool'>, RegExp> = {
   kana: /^kana\/(hiragana|katakana)\.json$/,
   vocab: /^vocab\/(n[1-5])\/vocab-\1-(\d{3})\.json$/,
   kanji: /^kanji\/(n[1-5])\/kanji-\1-(\d{3})\.json$/,
   grammar: /^grammar\/(n[1-5])\/grammar-\1-(\d{3})\.json$/,
-  story: /^stories\/(kana|n[1-5])\/stories-s(0[1-9]|[1-4]\d|5[0-3])\.json$/,
+  // `stories-sNN.json` holds the station's texts, `listening-sNN.json` its audio-first pieces (design 08 §3, V43)
+  story: /^stories\/(kana|n[1-5])\/(stories|listening)-s(0[1-9]|[1-4]\d|5[0-3])\.json$/,
   conjugation: /^conjugation\/conjugation-(\d{3})\.json$/,
   component: /^_meta\/components\.json$/,
   michikusa: /^michikusa\/michikusa-s(0[1-9]|[1-4]\d|5[0-3])\.json$/,
@@ -637,7 +708,7 @@ function checkEnvelope(ctx: Ctx, f: LoadedFile): void {
     fail(ctx, file, 'V08', 'path does not match any content directory (§1 table)');
     return;
   }
-  const pre = PATH_RES[f.pathKind as Exclude<ContentKind, 'station'>];
+  const pre = PATH_RES[f.pathKind as Exclude<ContentKind, 'station' | 'pool'>];
   if (!pre.test(file)) {
     fail(ctx, file, 'V08', `file name does not match the ${f.pathKind} path grammar`);
   } else if (f.pathKind === 'story' || f.pathKind === 'michikusa') {
@@ -1524,7 +1595,8 @@ function checkStoryItem(ctx: Ctx, f: LoadedFile, s: StoryItem): void {
   if (st && n !== null && st.number !== n) fail(ctx, file, 'V05', `id station ${n} ≠ stationId ${s.stationId}`, id);
   if (n !== null && f.seq !== null && n !== f.seq) fail(ctx, file, 'V05', `id station ${n} ≠ file station ${f.seq}`, id);
   const seq = Number(/-(\d)$/.exec(id)?.[1] ?? 0);
-  if (st && seq > st.quota.stories) fail(ctx, file, 'V05', `story sequence ${seq} > quota.stories ${st.quota.stories} for ${st.id}`, id);
+  // V05 amendment (design 08 §5): the pieces take the sequence numbers after the station's texts.
+  if (st && seq > st.quota.stories + st.quota.listening) fail(ctx, file, 'V05', `story sequence ${seq} > quota.stories + quota.listening (${st.quota.stories} + ${st.quota.listening}) for ${st.id}`, id);
   if (s.kind !== 'story' && s.kind !== 'dialogue') fail(ctx, file, 'V07', `kind must be story|dialogue`, id);
   if (!(REGISTER_TAGS as readonly string[]).includes(String(s.register))) fail(ctx, file, 'V07', `register "${String(s.register)}" is not a RegisterTag`, id);
   const station = st?.number ?? n ?? 0;
@@ -1681,6 +1753,147 @@ function checkStoryItem(ctx: Ctx, f: LoadedFile, s: StoryItem): void {
     if (!isObject(ln as unknown as Json)) return;
     for (const v of strs(ln.plusOne)) if (!ctx.vocab.has(v)) fail(ctx, file, 'V06', `lines[${i}].plusOne "${v}" does not resolve`, id);
   });
+  checkListeningFields(ctx, f, s, { station, lines, questions, speakers, kanaLines });
+}
+
+/* ── V41 / V42 / V43 (per text) — listening pieces, design 08 §5 ─────────── */
+
+/** `DICTATION_MAX_MORAE` (src/input/listening/set.ts): every line of an audioFirst piece through Station 15 stays dictable (design 08 §3, V41). */
+export const PIECE_LINE_MAX_MORAE = 22;
+
+/** Morae of a line's kana for the V41 cap: punctuation and spaces are not morae (design 08 §5). */
+export function lineMorae(kana: string): number {
+  return moraCount(kana.replace(/[、。！？「」『』〜…・\s　]/gu, ''));
+}
+
+interface StoryParts {
+  station: number;
+  lines: StoryLine[];
+  questions: StoryItem['comprehension'];
+  speakers: Set<string>;
+  kanaLines: string[];
+}
+
+function checkListeningFields(ctx: Ctx, f: LoadedFile, s: StoryItem, parts: StoryParts): void {
+  const file = f.rel;
+  const id = s.id;
+  const { station, lines, questions, speakers } = parts;
+  const genre = s.genre as unknown;
+  const audioFirst = s.audioFirst as unknown;
+  // V41 genre and audioFirst
+  if (genre !== undefined) {
+    if (!(LISTENING_GENRES as readonly string[]).includes(String(genre))) fail(ctx, file, 'V41', `genre "${String(genre)}" is not a ListeningGenre`, id);
+    else {
+      const from = GENRE_FROM_STATION[genre as ListeningGenre];
+      if (from > station) fail(ctx, file, 'V41', `genre "${String(genre)}" only from Station ${from} (this text is at Station ${station})`, id);
+    }
+  }
+  if (audioFirst !== undefined) {
+    if (audioFirst !== true) fail(ctx, file, 'V41', `audioFirst is true or omitted (got ${JSON.stringify(audioFirst)})`, id);
+    if (genre === undefined) fail(ctx, file, 'V41', `audioFirst requires genre`, id);
+  }
+  // V41 narrator only on a speaker-less text
+  if (s.narrator !== undefined && s.kind === 'dialogue') fail(ctx, file, 'V41', `narrator only on kind "story" (a dialogue names its speakers per line)`, id);
+  // V41 emotion
+  lines.forEach((ln, i) => {
+    if (!isObject(ln as unknown as Json) || ln.emotion === undefined) return;
+    if (!(LINE_EMOTIONS as readonly string[]).includes(String(ln.emotion))) fail(ctx, file, 'V41', `lines[${i}].emotion "${String(ln.emotion)}" is not a LineEmotion`, id);
+    else if (s.kind === 'story' && s.narrator === undefined) warn(ctx, file, 'V41', `lines[${i}].emotion on a story line without narrator (no cast voice to style)`, id);
+  });
+  // V41 question kinds and lineRef
+  let gist = 0;
+  questions.forEach((q, i) => {
+    if (!isObject(q as unknown as Json)) return;
+    const p = `comprehension[${i}]`;
+    if (q.kind !== undefined) {
+      if (!(QUESTION_KINDS as readonly string[]).includes(String(q.kind))) fail(ctx, file, 'V41', `${p}.kind "${String(q.kind)}" is not a QuestionKind`, id);
+      else {
+        if (q.kind === 'gist') gist++;
+        if (q.kind === 'speaker' && s.kind !== 'dialogue') fail(ctx, file, 'V41', `${p}.kind "speaker" only in a dialogue`, id);
+      }
+    }
+    if (q.lineRef !== undefined && (!Number.isInteger(q.lineRef) || q.lineRef < 0 || q.lineRef >= lines.length)) {
+      fail(ctx, file, 'V41', `${p}.lineRef ${String(q.lineRef)} is not a line index (0–${Math.max(0, lines.length - 1)})`, id);
+    }
+  });
+  const inListeningFile = LISTENING_FILE_RE.test(file);
+  if (audioFirst === true) {
+    if (gist === 0) fail(ctx, file, 'V41', `an audioFirst text needs ≥ 1 comprehension question with kind "gist"`, id);
+    if (station <= 15) {
+      lines.forEach((ln, i) => {
+        if (!isObject(ln as unknown as Json) || typeof ln.kana !== 'string') return;
+        const m = lineMorae(ln.kana);
+        if (m > PIECE_LINE_MAX_MORAE) fail(ctx, file, 'V41', `lines[${i}] is ${m} morae > ${PIECE_LINE_MAX_MORAE} (every line of a piece is dictable through Station 15)`, id);
+      });
+    }
+    if (s.kind === 'dialogue' && s.learnerSpeaker !== undefined && !speakers.has(s.learnerSpeaker)) {
+      fail(ctx, file, 'V41', `audioFirst dialogue: learnerSpeaker "${s.learnerSpeaker}" is not one of its speakers (${[...speakers].join(', ')}); omit it unless the piece is also a role-play`, id);
+    }
+    // V43 placement — the same switch as the per-station count (design 08 §5: F at release, W before)
+    const v43 = atRelease(ctx);
+    if (station <= 3) v43(ctx, file, 'V43', `audioFirst pieces only from Station 4 (none at Stations 1–3)`, id);
+    if (!inListeningFile) v43(ctx, file, 'V43', `an audioFirst text lives in stories/<level>/listening-s${String(station).padStart(2, '0')}.json, not in ${file.split('/').pop() ?? file}`, id);
+  } else if (inListeningFile) {
+    atRelease(ctx)(ctx, file, 'V43', `listening-sNN.json holds audioFirst pieces only (this text has no audioFirst: true)`, id);
+  }
+  // V42 cast: every speaker label and narrator resolves in cast.json (F in strict mode, W otherwise)
+  const labels = new Set<string>(speakers);
+  if (typeof s.narrator === 'string') labels.add(s.narrator);
+  for (const name of labels) {
+    ctx.castUsed.add(name);
+    if (ctx.cast !== null && !ctx.cast.has(name)) {
+      const report = ctx.strict ? fail : warn;
+      report(ctx, file, 'V42', `${name === s.narrator ? 'narrator' : 'speaker'} "${name}" does not resolve in ${ctx.castFile} (add the local there with gender and age before the packet ships)`, id);
+    }
+  }
+}
+
+const DEFAULT_CAST_FILE = 'scripts/audio/cast.json';
+
+/** Names of a cast file in any of the shapes `CastInput` allows (design 08 §6; V42). */
+export function castNames(raw: CastInput): Set<string> {
+  const out = new Set<string>();
+  const addEntry = (e: unknown) => {
+    if (typeof e === 'string') out.add(e);
+    else if (e && typeof e === 'object' && typeof (e as { name?: unknown }).name === 'string') out.add((e as { name: string }).name);
+  };
+  if (Array.isArray(raw)) {
+    for (const e of raw) addEntry(e);
+    return out;
+  }
+  if (!raw || typeof raw !== 'object') return out;
+  const obj = raw as Record<string, unknown>;
+  for (const key of ['speakers', 'cast', 'entries', 'voices']) {
+    if (Array.isArray(obj[key])) {
+      for (const e of obj[key] as unknown[]) addEntry(e);
+      return out;
+    }
+  }
+  for (const [k, v] of Object.entries(obj)) {
+    if (k.startsWith('$') || k === 'schema' || k === 'engine' || k === 'version' || k === 'generatedAt') continue;
+    if (v && typeof v === 'object') out.add(typeof (v as { name?: unknown }).name === 'string' ? (v as { name: string }).name : k);
+  }
+  return out;
+}
+
+function loadCast(ctx: Ctx, cast: string | CastInput | undefined): void {
+  if (cast !== undefined && typeof cast !== 'string') {
+    ctx.cast = castNames(cast);
+    return;
+  }
+  const here = dirname(fileURLToPath(import.meta.url));
+  const p = typeof cast === 'string' ? resolve(cast) : join(here, 'audio', 'cast.json');
+  ctx.castFile = typeof cast === 'string' ? cast.split(sep).join('/') : DEFAULT_CAST_FILE;
+  if (!existsSync(p)) {
+    warn(ctx, ctx.castFile, 'V42', `cast check skipped: ${ctx.castFile} not found (speakers and narrators are not resolved; --cast <path>)`);
+    return;
+  }
+  try {
+    ctx.cast = castNames(JSON.parse(readFileSync(p, 'utf8')) as CastInput);
+  } catch (e) {
+    fail(ctx, ctx.castFile, 'V42', `invalid cast file: ${(e as Error).message}`);
+    ctx.cast = new Set();
+  }
 }
 
 /* ── per file (V22 casual share) ─────────────────────────────────────────── */
@@ -2113,8 +2326,10 @@ function checkQuotas(ctx: Ctx): void {
     if (ctx.vocab.size + ctx.kanji.size + ctx.grammar.size > 0) warn(ctx, 'stations/', 'V34', 'no item carries a station yet (run content:assign); quotas not checked');
     return;
   }
+  // V34 amendment (design 08 §5): `quota.stories` counts the texts without audioFirst; the pieces are V43's.
   const storyCounts = new Map<number, number>();
   for (const s of ctx.stories.values()) {
+    if (s.audioFirst === true) continue;
     const n = stationOfId(String(s.stationId))?.number;
     if (n !== undefined) storyCounts.set(n, (storyCounts.get(n) ?? 0) + 1);
   }
@@ -2130,7 +2345,7 @@ function checkQuotas(ctx: Ctx): void {
       if (Math.abs(have - q) > q * 0.1 + 1e-9) soft(ctx, `stations/${String(st.number).padStart(2, '0')}.json`, 'V34', `${st.id} ${kind}: ${have} vs quota ${q} (±10 %)`);
     }
     const stories = storyCounts.get(st.number) ?? 0;
-    if (stories !== st.quota.stories && (ctx.strict || stories > st.quota.stories)) soft(ctx, `stations/${String(st.number).padStart(2, '0')}.json`, 'V34', `${st.id} stories: ${stories} vs quota ${st.quota.stories}`);
+    if (stories !== st.quota.stories && (ctx.strict || stories > st.quota.stories)) soft(ctx, `stations/${String(st.number).padStart(2, '0')}.json`, 'V34', `${st.id} stories: ${stories} vs quota ${st.quota.stories} (texts without audioFirst)`);
   }
   // level totals
   const levelCounts: Record<'vocab' | 'kanji' | 'grammar', Map<string, number>> = { vocab: new Map(), kanji: new Map(), grammar: new Map() };
@@ -2305,6 +2520,207 @@ function unresolvedSpans(pool: MatchPool, plain: string, lenient = false): strin
   return out;
 }
 
+/* ── V43 / V45 / V42 corpus-wide — listening quota, minutes band, unused cast ── */
+
+/**
+ * Target speech length of one piece per belt in seconds (design 08 §3 "Length" column: ≤ 60 s Yellow,
+ * ≤ 90 s Orange, ≤ 2 min Green, ≤ 3 min Blue and Purple, ≤ 4 min Brown, ≤ 5 min Black; 0 = no pieces).
+ * 2 pieces × these over Stations 4–53 ≈ 284 min, the ≈ 4.7 h of design 08 §2. V45's band for a station is
+ * its pieces × the belt target, ±30 %.
+ */
+export const PIECE_TARGET_SECONDS: Record<Belt, number> = { white: 0, yellow: 60, orange: 90, green: 120, blue: 180, purple: 180, brown: 240, black: 300 };
+
+const KANA_CHAR_RE = /[ぁ-ゖァ-ヺー]/gu;
+
+/** Speech estimate of one line (design 08 §2, `scripts/listening-report.ts`): kana chars ÷ 7 s + 0.5 s. */
+export function speechSeconds(kana: string): number {
+  return (kana.match(KANA_CHAR_RE)?.length ?? 0) / 7 + 0.5;
+}
+
+/** Σ speech estimate over a text's lines (design 08 §2 estimate; V45). */
+export function textSpeechSeconds(lines: readonly StoryLine[]): number {
+  let s = 0;
+  for (const ln of lines) if (isObject(ln as unknown as Json) && typeof ln.kana === 'string') s += speechSeconds(ln.kana);
+  return s;
+}
+
+function listeningFileFor(st: StationDef): string {
+  return `stories/${stationLevel(st)}/listening-s${String(st.number).padStart(2, '0')}.json`;
+}
+
+function checkListening(ctx: Ctx): void {
+  const pieces = new Map<number, StoryItem[]>();
+  let total = 0;
+  for (const s of ctx.stories.values()) {
+    if (s.audioFirst !== true) continue;
+    const n = stationOfId(String(s.stationId))?.number;
+    if (n === undefined) continue;
+    total++;
+    const arr = pieces.get(n) ?? [];
+    arr.push(s);
+    pieces.set(n, arr);
+  }
+  // V43 per-station count (design 08 §5 "F at release, W before"): every station off quota is listed, under or over,
+  // with or without --strict; F only with --strict --listening-release. While no piece exists at all (Pass 4 not
+  // started) the list would be 50 identical rows, so strict mode notes it once and plain mode stays silent.
+  if (total === 0) {
+    if (ctx.strict) warn(ctx, 'stories/', 'V43', 'no audioFirst piece in the corpus yet (Pass 4): quota.listening not checked');
+  } else {
+    const report = atRelease(ctx);
+    for (const st of STATIONS) {
+      const have = pieces.get(st.number)?.length ?? 0;
+      const q = st.quota.listening;
+      if (have !== q) report(ctx, listeningFileFor(st), 'V43', `${st.id} listening pieces: ${have} vs quota.listening ${q}`);
+    }
+  }
+  // V45 minutes band (W)
+  for (const [n, arr] of pieces) {
+    const st = STATIONS[n - 1];
+    if (!st) continue;
+    const target = PIECE_TARGET_SECONDS[st.belt];
+    if (target === 0) continue;
+    const sum = arr.reduce((a, s) => a + textSpeechSeconds(Array.isArray(s.lines) ? s.lines : []), 0);
+    const band = arr.length * target;
+    if (sum < band * 0.7 || sum > band * 1.3) {
+      warn(ctx, listeningFileFor(st), 'V45', `${st.id} pieces speak ≈ ${Math.round(sum)} s, outside ±30 % of the ${st.belt} band (${arr.length} × ${target} s = ${band} s; kana chars ÷ 7 + 0.5 s per line)`);
+    }
+  }
+  // V42 W: a cast entry no text uses
+  if (ctx.cast !== null) {
+    for (const name of [...ctx.cast].sort()) if (!ctx.castUsed.has(name)) warn(ctx, ctx.castFile, 'V42', `cast entry "${name}" is used by no text`);
+  }
+}
+
+/* ── V46 own-station all-known example ───────────────────────────────────── */
+
+const V46_PUNCT_RE = /^[\p{P}\p{S}\s]$/u;
+const V46_HIRAGANA_RE = /^[ぁ-ゖー]$/u;
+const V46_KANJI_NUMERAL_RE = /^[〇零一二三四五六七八九十百千万億兆]$/u;
+
+interface V46Index {
+  byFirst: Map<string, string[]>;
+  /** inflection stems: the hiragana that follows them (okurigana, inflection) belongs to the word */
+  stems: Set<string>;
+  /** single-kanji stems resolve only before okurigana (`stemApplies`) */
+  oneCharStems: Set<string>;
+}
+const v46IndexCache = new WeakMap<MatchPool, V46Index>();
+function v46Index(pool: MatchPool): V46Index {
+  let idx = v46IndexCache.get(pool);
+  if (idx) return idx;
+  const byFirst = new Map<string, string[]>();
+  const stems = new Set(pool.prefixes.map((p) => p.s));
+  const oneCharStems = new Set<string>();
+  for (const p of pool.prefixes) if (p.s.length === 1 && !pool.exact.has(p.s)) oneCharStems.add(p.s);
+  const all = new Set<string>([...pool.exact.keys(), ...pool.forms.keys(), ...stems, ...pool.counters.map((c) => c.s), ...pool.hints.map((h) => h.h), ...FUNCTION_TOKENS, ...CAST_NAMES]);
+  // `matchToken` links a token contained in a cloze hint (ください ⊂ てください); here the て/で-form hint minus its て/で is the surface.
+  for (const h of pool.hints) if (h.h.length >= 3 && /^[てで]/.test(h.h)) all.add(h.h.slice(1));
+  for (const s of all) {
+    if (!s) continue;
+    const bucket = byFirst.get(s.charAt(0)) ?? [];
+    bucket.push(s);
+    byFirst.set(s.charAt(0), bucket);
+  }
+  for (const bucket of byFirst.values()) bucket.sort((a, b) => b.length - a.length);
+  idx = { byFirst, stems, oneCharStems };
+  v46IndexCache.set(pool, idx);
+  return idx;
+}
+
+/**
+ * V46 segmentation (design 08 §3 Pass 4b, §4 step 2): greedy longest match of a plain sentence over the
+ * pool's surfaces (exact, inflected forms, stems, counters, cloze hints, function tokens, cast names);
+ * kanji numerals and punctuation are known; the hiragana after an inflection stem is its okurigana. What
+ * is left over is unknown when it holds a kanji / katakana or is a hiragana run of two or more characters
+ * (a lone hiragana — お / ご prefixes, a stray particle variant — is tolerated). Returns the unknown runs.
+ *
+ * TODO(pipeline-pools): this segmenter is the validator's stand-in, more lenient than the pool builder (it
+ * tolerates a lone hiragana and treats kanji numerals as known). The arbiter of "enters the pool" is
+ * `scripts/linker.ts linkSentence(pool, plain).unknown === 0` (design 08 §4 step 1), which the pipeline-pools
+ * owner lands with `buildPools`. When it exists, `checkOwnStationExamples` rebases its verdict on it (this
+ * function stays as the message's unknown-run lister, or goes) and a cross-check test asserts that every vocab
+ * item V46 passes has ≥ 1 ref in `buildPools` output for its own station — V46 is an F gate for Stations 4–15 at
+ * release, so the two tokenizers must agree.
+ */
+export function ownStationUnknowns(pool: MatchPool, plain: string): string[] {
+  const idx = v46Index(pool);
+  const out: string[] = [];
+  let pending = '';
+  const flush = () => {
+    if (pending && (UNRESOLVED_SPAN_RE.test(pending) || [...pending].length >= 2)) out.push(pending);
+    pending = '';
+  };
+  let off = 0;
+  while (off < plain.length) {
+    const c = String.fromCodePoint(plain.codePointAt(off) as number);
+    if (V46_PUNCT_RE.test(c)) {
+      flush();
+      off += c.length;
+      continue;
+    }
+    if (V46_KANJI_NUMERAL_RE.test(c)) {
+      flush();
+      while (off < plain.length && V46_KANJI_NUMERAL_RE.test(plain.charAt(off))) off++;
+      continue;
+    }
+    let hit: string | null = null;
+    const bucket = idx.byFirst.get(plain.charAt(off));
+    if (bucket) {
+      for (const s of bucket) {
+        if (plain.startsWith(s, off) && (!idx.oneCharStems.has(s) || stemApplies(s, plain.slice(off)))) {
+          hit = s;
+          break;
+        }
+      }
+    }
+    if (hit) {
+      flush();
+      off += hit.length;
+      if (idx.stems.has(hit)) while (off < plain.length && V46_HIRAGANA_RE.test(plain.charAt(off))) off++;
+      continue;
+    }
+    pending += c;
+    off += c.length;
+  }
+  flush();
+  return out;
+}
+
+/**
+ * V46 (design 08 §5): every vocab item has ≥ 1 example whose content tokens all link inside the cumulative
+ * allowlist ≤ the item's station — the sentence the listening pool (§4) can serve as i+0 at the station
+ * the word is learned. W during Pass 4b; F for Stations 4–15 with `--strict --listening-release`. Needs
+ * bundles (silent without them, like V36 / V40).
+ */
+function checkOwnStationExamples(ctx: Ctx): void {
+  if (ctx.bundles.size === 0) return;
+  const pools = new Map<number, MatchPool>();
+  const poolFor = (station: number): MatchPool => {
+    let p = pools.get(station);
+    if (!p) {
+      p = buildPool(ctx, cum(ctx, station, 'vocabIds'), cum(ctx, station, 'grammarIds'), [], station <= 3);
+      pools.set(station, p);
+    }
+    return p;
+  };
+  for (const f of ctx.files) {
+    if (f.pathKind !== 'vocab' || f.parseError) continue;
+    for (const it of f.items) {
+      const v = it as unknown as VocabItem;
+      if (typeof v.id !== 'string' || typeof v.station !== 'number') continue;
+      const examples = Array.isArray(v.examples) ? v.examples : [];
+      const plains = examples.filter((ex) => isObject(ex as unknown as Json) && typeof ex.ja === 'string').map((ex) => toPlain(ex.ja));
+      if (plains.length === 0) continue;
+      const pool = poolFor(allowlistStationFor(v.station));
+      const unknowns = plains.map((p) => ownStationUnknowns(pool, p));
+      if (unknowns.some((u) => u.length === 0)) continue;
+      const report = v.station >= 4 && v.station <= 15 ? atRelease(ctx) : warn;
+      const detail = unknowns.map((u, i) => `examples[${i}]: ${u.join(' ')}`).join('; ');
+      report(ctx, f.rel, 'V46', `no example links fully inside the Station ${v.station} allowlist (own-station all-known example for the listening pool, Pass 4b) — ${detail}`, v.id);
+    }
+  }
+}
+
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Report                                                                     */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -2326,8 +2742,9 @@ export function formatReport(result: ValidateResult, root: string, perRuleCap = 
     for (const x of arr) {
       const key = `${x.sev}${x.rule}`;
       const n = shown.get(key) ?? 0;
-      if (x.sev === 'F' && n >= perRuleCap) {
-        suppressed.set(x.rule, (suppressed.get(x.rule) ?? 0) + 1);
+      // The cap applies per severity and rule (a V46 sweep over the corpus is ≈ 1,200 warnings); `--json` holds every row.
+      if (n >= perRuleCap) {
+        suppressed.set(key, (suppressed.get(key) ?? 0) + 1);
         continue;
       }
       shown.set(key, n + 1);
@@ -2338,7 +2755,7 @@ export function formatReport(result: ValidateResult, root: string, perRuleCap = 
       lines.push(...rows);
     }
   }
-  for (const [rule, n] of [...suppressed.entries()].sort()) lines.push(`… ${n} more ${rule} failures not shown (cap ${perRuleCap} per rule)`);
+  for (const [key, n] of [...suppressed.entries()].sort()) lines.push(`… ${n} more ${key.slice(1)} ${key.startsWith('F') ? 'failures' : 'warnings'} not shown (cap ${perRuleCap} per rule; --json lists them all)`);
   const byRule = new Map<string, number>();
   for (const f of result.failures) byRule.set(f.rule, (byRule.get(f.rule) ?? 0) + 1);
   if (byRule.size > 0) lines.push(`failures by rule: ${[...byRule.entries()].sort().map(([r, n]) => `${r}=${n}`).join(' ')}`);
@@ -2352,19 +2769,35 @@ export function formatReport(result: ValidateResult, root: string, perRuleCap = 
 /* CLI                                                                        */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function parseArgs(argv: string[]): { strict: boolean; json: boolean; only?: string; fixTokenIds: boolean; root?: string } {
-  const out: { strict: boolean; json: boolean; only?: string; fixTokenIds: boolean; root?: string } = { strict: false, json: false, fixTokenIds: false };
+interface CliArgs {
+  strict: boolean;
+  json: boolean;
+  only?: string;
+  fixTokenIds: boolean;
+  root?: string;
+  cast?: string;
+  listeningRelease: boolean;
+}
+
+const USAGE =
+  'usage: node scripts/validate-content.ts [--strict] [--json] [--only <glob-or-path>] [--fix-tokenids] [--root <dir>] [--cast <path>] [--listening-release]\n';
+
+function parseArgs(argv: string[]): CliArgs {
+  const out: CliArgs = { strict: false, json: false, fixTokenIds: false, listeningRelease: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === '--strict') out.strict = true;
     else if (a === '--json') out.json = true;
     else if (a === '--fix-tokenids') out.fixTokenIds = true;
+    else if (a === '--listening-release') out.listeningRelease = true;
     else if (a === '--only') out.only = argv[++i];
     else if (a.startsWith('--only=')) out.only = a.slice(7);
     else if (a === '--root') out.root = argv[++i];
     else if (a.startsWith('--root=')) out.root = a.slice(7);
+    else if (a === '--cast') out.cast = argv[++i];
+    else if (a.startsWith('--cast=')) out.cast = a.slice(7);
     else if (a === '--help' || a === '-h') {
-      process.stdout.write('usage: node scripts/validate-content.ts [--strict] [--json] [--only <glob-or-path>] [--fix-tokenids] [--root <dir>]\n');
+      process.stdout.write(USAGE);
       process.exit(0);
     }
   }
@@ -2375,15 +2808,17 @@ function main(): void {
   const args = parseArgs(process.argv.slice(2));
   const here = dirname(fileURLToPath(import.meta.url));
   const root = resolve(args.root ?? join(here, '..', 'public', 'content'));
-  const opts: ValidateOptions = { strict: args.strict, fixTokenIds: args.fixTokenIds };
+  const opts: ValidateOptions = { strict: args.strict, fixTokenIds: args.fixTokenIds, listeningRelease: args.listeningRelease };
   if (args.only !== undefined) opts.only = args.only;
+  if (args.cast !== undefined) opts.cast = args.cast;
   const result = validate(root, opts);
   if (args.json) {
     process.stdout.write(JSON.stringify({ failures: result.failures, warnings: result.warnings, linked: result.linked, files: result.files, bundles: result.bundles }, null, 2) + '\n');
   } else {
     process.stdout.write(formatReport(result, root) + '\n');
   }
-  process.exit(result.failures.length > 0 ? 1 : 0);
+  // exitCode, not exit(): a large report piped to another process (`--json | jq`) must drain first.
+  process.exitCode = result.failures.length > 0 ? 1 : 0;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main();

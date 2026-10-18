@@ -91,6 +91,22 @@ export type StepParams = Partial<{
   missionId: string;
   /** Untimed re-test of an arcade miss. */
   recheck: boolean;
+  /**
+   * Clip key the step's audio plays through the voice pack (design 08 §8):
+   * `${itemId}#ex${k}` for an example sentence, `${storyId}#L${i}` for a
+   * line, `${itemId}` for a bare word. Set by the planner for sentence-listen,
+   * shadow and pattern-cloze examples; drills pass it as `SpeakOptions.clip`.
+   */
+  clip: string;
+  /**
+   * Pool refs of an Ear Walk (design 08 §10.4): `listening-set` in pool mode
+   * hears these i+0 / i+1 sentences (`v-n5-0249#ex0`, `g-n5-024#ex1`,
+   * `s-07-2#L3`) instead of a text; the set emits `listening:set` with
+   * `storyId: null`, `refs`, `mode: 'walk'`.
+   */
+  refs: string[];
+  /** Clause of a long line to dictate, `[fromMora, toMora)` over the cue's `clauses` (design 08 §9: lines over `DICTATION_MAX_MORAE`). */
+  clause: [number, number];
 }>;
 
 export type StepTag = 'intro' | '+3' | '+10' | 'recovery' | 'relearn';

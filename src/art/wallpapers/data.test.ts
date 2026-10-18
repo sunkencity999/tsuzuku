@@ -7,7 +7,7 @@ import { NAME_MAX_GLYPHS, type CardTuple } from '../../shared/store-types';
 import { WRITING_PREFIX } from '../../shared/writing';
 import { epochDay } from '../../shared/time';
 import { card, DEFAULT_TEST_NOW, makeTestStore } from '../../store/testing';
-import { isWallpaperData, masteredItems, normalizeData, sampleData, SENTENCE_MAX_GLYPHS, validateData, wallpaperData } from './data';
+import { isWallpaperData, listenHoursFrom, masteredItems, normalizeData, sampleData, SENTENCE_MAX_GLYPHS, validateData, wallpaperData } from './data';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const DAY_MS = 86_400_000;
@@ -118,6 +118,29 @@ describe('wallpaperData', () => {
     expect(d.dictatedSentence).toBeUndefined();
     expect(d.sentenceOfChoice).toBeUndefined();
   });
+
+  it('listenHours = hours of the ledger’s listen rows, dojo and outside alike; other kinds do not count (design 08 §11, 茶屋の灯)', async () => {
+    const s = await makeTestStore({
+      cards: CARDS,
+      save: {
+        ledger: {
+          entries: [
+            [TODAY - 1, 90, 0, 0], // listen, in the dojo
+            [TODAY - 2, 30, 0, 1], // listen, outside
+            [TODAY - 3, 600, 1, 1], // read
+            [TODAY - 4, 45, 2, 1], // watch
+          ],
+        },
+      },
+    });
+    const d = await wallpaperData({}, { store: s, content: createFakeLoader() });
+    expect(d.listenHours).toBe(2);
+    expect(listenHoursFrom([])).toBe(0);
+    expect(listenHoursFrom(s.meta().ledger.entries)).toBe(2);
+    // an override still wins and survives normalisation (the Studio passes its data through normalizeData)
+    expect((await wallpaperData({ listenHours: 47 }, { store: s, content: createFakeLoader() })).listenHours).toBe(47);
+    expect(normalizeData({ ...sampleData(1), listenHours: 47 }).listenHours).toBe(47);
+  });
   it('Gojūon reaction times and words this month come from the log', async () => {
     const s = await fullStore();
     const gojuon = DRILL_IDS.indexOf('gojuon-fighter');
@@ -227,6 +250,8 @@ describe('validateData / normalizeData', () => {
     expect(problems.some((p) => p.startsWith('chosenKanji'))).toBe(true);
     expect(problems.some((p) => p.startsWith('xp'))).toBe(true);
     expect(problems.some((p) => p.startsWith('badgesInOrder'))).toBe(true);
+    expect(validateData({ ...sampleData(1), listenHours: -1 }).some((p) => p.startsWith('listenHours'))).toBe(true);
+    expect(validateData({ ...sampleData(1), listenHours: 12.5 })).toEqual([]);
     expect(validateData(null)).toEqual(['not an object']);
     expect(validateData(42)).toEqual(['not an object']);
   });

@@ -1,5 +1,6 @@
 /**
- * TSUZUKU — the 28 Kakejiku (掛け軸) unlock definitions (design 06 §3).
+ * TSUZUKU — the 29 Kakejiku (掛け軸) unlock definitions (design 06 §3; 茶屋の灯
+ * from design 08 §11). `WALLPAPER_DEFS` is exported in `WALLPAPER_IDS` order.
  *
  * `when(m, ev?, cards?)` is the unlock predicate; `progress(m, cards?)` (0–1)
  * exists for the pieces tied to a counter, which reveal in quadrants at
@@ -22,7 +23,7 @@ import { romajiToKana } from '../shared/kana-ime';
 import type { Belt, Facet } from '../content/types';
 import type { CardTuple, EpochDay, LogEntry, SaveMeta, Store, WallpaperEntry } from '../shared/store-types';
 import { epochDay, monthKey } from '../shared/time';
-import { KANA_SETS, isBrown, kanaStable, type CardReader, type TriggerEvent } from './badge-defs';
+import { KANA_SETS, isBrown, kanaStable, ledgerHoursOf, type CardReader, type TriggerEvent } from './badge-defs';
 import { S } from './defs-strings';
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -77,6 +78,11 @@ export interface WallpaperData {
   arcGrammar: string[];
   sentenceOfChoice?: string;
   date: EpochDay;
+  /**
+   * Hours of `listen` rows in the ledger, dojo and outside alike (design 08 §11: one chōchin per
+   * 10 h on 茶屋の灯); `art/wallpapers/data.ts wallpaperData` fills the same field from the same rows.
+   */
+  listenHours: number;
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -165,7 +171,10 @@ const station = (n: number, living: boolean): Spec => ({
 
 const dan = (n: number, living: boolean): Spec => ({ living, events: SHINSA, when: (m) => m.profile.dan >= n });
 
-export const WALLPAPER_DEFS: readonly WallpaperDef[] = [
+/** 茶屋の灯 — ledger listen hours at the unlock; quadrants reveal at a quarter, half and three quarters of it (design 08 §11). */
+export const CHAYA_LANTERNS_HOURS = 100;
+
+const DEFS_BY_GROUP: readonly WallpaperDef[] = [
   def('torii-dawn', { living: false, events: REP, when: (m, _ev, cards) => hiraganaGreen(cards) >= 1, progress: (m, cards) => hiraganaGreen(cards) }),
   def('kana-grid', { living: true, events: GATE, when: (m) => whiteCleared(m) === 3, progress: (m) => whiteCleared(m) / 3 }),
   def('neon-alley', { living: true, events: PROMO, when: (m) => m.stats.vocabBrown >= 100, progress: (m) => ratio(m.stats.vocabBrown, 100) }),
@@ -211,7 +220,23 @@ export const WALLPAPER_DEFS: readonly WallpaperDef[] = [
   def('kyoto-arrival', { living: false, events: SHINSA, when: (m) => m.progress.shinsaPassed.includes('black') || m.profile.dan >= 1 }),
   def('road-continues', dan(10, true)),
   def('end-card', { living: true, events: ['session:finished'], when: (m) => m.stats.sessions >= 100, progress: (m) => ratio(m.stats.sessions, 100) }),
+  // design 08 §11: living; quadrants at 25 / 50 / 75 / 100 h of ledger listen hours, dojo rows and outside rows alike.
+  def('chaya-lanterns', {
+    living: true,
+    events: ['ledger:entry', 'listen:played', 'listening:set'],
+    when: (m) => ledgerHoursOf(m).listen >= CHAYA_LANTERNS_HOURS,
+    progress: (m) => ratio(ledgerHoursOf(m).listen, CHAYA_LANTERNS_HOURS),
+  }),
 ];
+
+/** Position in `WALLPAPER_IDS`; an id the catalog does not list yet sorts last (stable), so the table never throws. */
+function catalogIndex(id: WallpaperId): number {
+  const i = WALLPAPER_IDS.indexOf(id);
+  return i < 0 ? WALLPAPER_IDS.length : i;
+}
+
+/** The 29 definitions in `WALLPAPER_IDS` order (design 06 §3 + design 08 §11). */
+export const WALLPAPER_DEFS: readonly WallpaperDef[] = [...DEFS_BY_GROUP].sort((a, b) => catalogIndex(a.id) - catalogIndex(b.id));
 
 export const WALLPAPER_BY_ID: Readonly<Record<WallpaperId, WallpaperDef>> = Object.fromEntries(WALLPAPER_DEFS.map((d) => [d.id, d])) as Record<WallpaperId, WallpaperDef>;
 
@@ -413,6 +438,8 @@ export function buildData(store: Store, get: ItemResolver, o: BuildDataOptions =
     wordsThisMonth: wordsIntroducedInMonth(log, today, m.profile.tz),
     arcGrammar: arc.map((g) => g.text),
     date: today,
+    // design 08 §11: the ledger's listen hours light the teahouse lanterns.
+    listenHours: ledgerHoursOf(m).listen,
   };
   if (m.profile.chosenKanji) data.chosenKanji = m.profile.chosenKanji;
   if (o.sentenceOfChoice) data.sentenceOfChoice = o.sentenceOfChoice;

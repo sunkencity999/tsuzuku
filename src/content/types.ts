@@ -6,7 +6,7 @@
  * The validator (`scripts/validate-content.ts`), the station assigner
  * (`scripts/assign-stations.ts`), the writer packets and the app all read
  * from these shapes. Rules enforced by the validator are listed with their
- * ids (V01…V36) in `docs/CONTENT_GUIDE.md`; JSDoc below cites them.
+ * ids (V01…V46) in `docs/CONTENT_GUIDE.md`; JSDoc below cites them.
  *
  * Design intent for parallel AI writers:
  *  - flat objects, string-union enums, no nested optional mazes;
@@ -25,6 +25,7 @@
  *  component   c-person                 `c-<canonical-name>`     kebab-case canonical component name
  *  michikusa   m-07-1                   `m-<station 01..53>-<1..4>`
  *  station     st-07                    `st-<01..53>`            (STATIONS below; `st-00` = Nihonbashi)
+ *  pool        pool-07                  `pool-<station 01..53>`  generated listening pool (design 08 §4); not an item id
  *
  * Ids are immutable once shipped; renames go through `ContentManifest.redirects`.
  * Gaps in a sequence are allowed (dedupe may drop rows); an id is never reused.
@@ -56,7 +57,12 @@ export type Level = (typeof LEVELS)[number];
 export const BELT_IDS = ['white', 'yellow', 'orange', 'green', 'blue', 'purple', 'brown', 'black'] as const;
 export type Belt = (typeof BELT_IDS)[number];
 
-/** Content file kinds; also the first path segment of each content directory. */
+/**
+ * Content file kinds; also the first path segment of each content directory.
+ * `pool` (design 08 §4–§5) is the generated listening pool `listening/pool-<NN>.json`
+ * (`ListeningPool`, schema `tsuzuku.pool/1`): listed in the manifest like `stations/NN.json`,
+ * never a `ContentFile`, never hand-written, skipped by the validator's walk.
+ */
 export const CONTENT_KINDS = [
   'kana',
   'vocab',
@@ -67,6 +73,7 @@ export const CONTENT_KINDS = [
   'component',
   'michikusa',
   'station',
+  'pool',
 ] as const;
 export type ContentKind = (typeof CONTENT_KINDS)[number];
 
@@ -346,7 +353,7 @@ export interface WordExample {
   en: string;
 }
 
-/** Comprehension question for stories (V21). */
+/** Comprehension question for stories (V21; listening fields V41). */
 export interface ComprehensionQuestion {
   /** English through Station 15; Japanese (with ruby) allowed from Station 16. */
   q: string;
@@ -354,7 +361,74 @@ export interface ComprehensionQuestion {
   choices: [string, string, string, string];
   /** Index into `choices`. */
   answer: 0 | 1 | 2 | 3;
+  /** What the question tests (design 08 §5); the Arena asks `gist` first. `speaker` only in a dialogue (V41). */
+  kind?: QuestionKind;
+  /** Index into `lines` of the line that answers the question; a miss replays this line (design 08 §9). Must be a valid line index (V41). */
+  lineRef?: number;
 }
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Listening pieces (design 08 §3, §5)                                        */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/** Genres of audio-first listening pieces (design 08 §3 belt table); `StoryItem.genre`. */
+export const LISTENING_GENRES = [
+  'exchange',
+  'self-intro',
+  'phone',
+  'directions',
+  'voicemail',
+  'casual-talk',
+  'narrative',
+  'announcement',
+  'weather',
+  'interview',
+  'news',
+  'drama',
+  'debate',
+  'lecture',
+  'essay',
+] as const;
+export type ListeningGenre = (typeof LISTENING_GENRES)[number];
+
+/** First station at which a genre may appear (design 08 §3); V41 fails a piece placed earlier. */
+export const GENRE_FROM_STATION: Record<ListeningGenre, number> = {
+  exchange: 4,
+  'self-intro': 4,
+  phone: 8,
+  directions: 10,
+  voicemail: 10,
+  'casual-talk': 10,
+  narrative: 16,
+  announcement: 16,
+  weather: 16,
+  interview: 25,
+  news: 32,
+  drama: 32,
+  debate: 39,
+  lecture: 39,
+  essay: 47,
+};
+
+/** Genres whose pieces count as authentic-style listening for the 耳 cap (design 08 §12). */
+export const AUTHENTIC_GENRES: ReadonlySet<ListeningGenre> = new Set<ListeningGenre>(['casual-talk', 'interview', 'news', 'drama', 'debate', 'lecture']);
+
+/**
+ * Authentic-style text (design 08 §12): a bridge text, an `AUTHENTIC_GENRES` piece, or a casual
+ * dialogue (the 29 existing casual non-bridge dialogues from Station 10). Minutes on such texts —
+ * a passed `listening:set` at ≥ 1.0× or a `listen:played` with the gist question right — feed
+ * `stats.listeningAuthenticMinutes`.
+ */
+export const isAuthenticText = (s: Pick<StoryItem, 'bridge' | 'genre' | 'kind' | 'register'>): boolean =>
+  !!s.bridge || (!!s.genre && AUTHENTIC_GENRES.has(s.genre)) || (s.kind === 'dialogue' && s.register === 'casual');
+
+/** Voice style of one line (design 08 §5–§6); only changes the rendered voice, never the text. `StoryLine.emotion`. */
+export const LINE_EMOTIONS = ['neutral', 'warm', 'annoyed', 'sad', 'glad', 'whisper'] as const;
+export type LineEmotion = (typeof LINE_EMOTIONS)[number];
+
+/** Comprehension question kinds (design 08 §5); `ComprehensionQuestion.kind`. */
+export const QUESTION_KINDS = ['gist', 'detail', 'number', 'speaker', 'inference'] as const;
+export type QuestionKind = (typeof QUESTION_KINDS)[number];
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Kana                                                                       */
@@ -567,9 +641,16 @@ export interface StoryLine {
    * every wrong option plausible and carrying its `recast`). Required for `dialogue` texts in Pass 2.
    */
   options?: { text: string; kind: 'best' | 'ok' | 'register-wrong' | 'grammar-wrong'; recast?: string }[];
+  /** Voice style for the rendered clip (design 08 §5); ∈ `LINE_EMOTIONS` (V41, W on a `story` line without `narrator`). */
+  emotion?: LineEmotion;
 }
 
-/** One graded reading or dialogue. 137 in V1 (3 per station for 1–31, 2 for 32–53). File: `stories/<level>/stories-s<NN>.json`. */
+/**
+ * One graded reading or dialogue. 137 texts in V1 (3 per station for 1–31, 2 for 32–53) in
+ * `stories/<level>/stories-s<NN>.json`, plus the audio-first listening pieces (design 08 §3:
+ * `quota.listening` = 2 per station 4–53, ids after the station's texts) in their own
+ * `stories/<level>/listening-s<NN>.json` files with the same schema (V43 checks the placement).
+ */
 export interface StoryItem {
   /** `s-07-1` — station number (2 digits) + sequence 1–9. */
   id: string;
@@ -593,8 +674,17 @@ export interface StoryItem {
   names?: string[];
   /** Native Bridge passage (Station 27+): authentic register, 93 % coverage target (`COVERAGE_TARGETS.bridge`). */
   bridge?: boolean;
-  /** For dialogues reused in role-play: the `speaker` label the learner plays. */
+  /**
+   * For dialogues reused in role-play: the `speaker` label the learner plays. On an `audioFirst`
+   * dialogue it is set only when the piece should also be a role-play (design 08 §5, §11); then V27 applies.
+   */
   learnerSpeaker?: string;
+  /** Listening piece genre (design 08 §3); ∈ `LISTENING_GENRES`, first allowed at `GENRE_FROM_STATION[genre]` (V41). */
+  genre?: ListeningGenre;
+  /** Audio-first piece (design 08 §3): heard before it is read; requires `genre`; lives in `listening-s<NN>.json` (V41, V43). */
+  audioFirst?: true;
+  /** Cast name of a speaker-less text's reader (`kind: 'story'` only, V41): the caller of a one-sided phone piece, `anchor`, `lecturer`, `reader` (design 08 §6). Resolves in `scripts/audio/cast.json` (V42). */
+  narrator?: string;
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -681,7 +771,10 @@ export interface StationQuota {
   vocab: number;
   kanji: number;
   grammar: number;
+  /** Texts without `audioFirst` (V34 amendment, design 08 §5). */
   stories: number;
+  /** Audio-first listening pieces (design 08 §3): 0 for Stations 1–3, 2 for 4–53 (V43). Story sequence ≤ `stories + listening` (V05). */
+  listening: number;
 }
 
 export interface StationDef {
@@ -754,7 +847,8 @@ export interface ManifestStation {
   number: number;
   /** `stations/07.json`. */
   path: string;
-  counts: Record<Exclude<ContentKind, 'conjugation' | 'component' | 'station'>, number>;
+  /** Item counts per kind; `pool` is a file kind without items (design 08 §5), so it is excluded like `station`. */
+  counts: Record<Exclude<ContentKind, 'conjugation' | 'component' | 'station' | 'pool'>, number>;
 }
 
 /** `public/content/manifest.json` — generated, never hand-written (V35). */
@@ -776,6 +870,30 @@ export interface ContentManifest {
   redirects: Record<string, string>;
 }
 
+/**
+ * One graded listening sentence in a pool (design 08 §4). `ref` is the clip key (design 08 §8):
+ * `v-n5-0249#ex0`, `g-n5-024#ex1`, `s-07-2#L3`; `ids` are the content tokens' item ids (every one
+ * inside the cumulative allowlist ≤ the pool's station); `kana` is the sentence reading, `morae`
+ * its mora count (speech estimate = morae ÷ 7 s + 0.5 s).
+ */
+export interface PoolRef {
+  ref: string;
+  ids: string[];
+  kana: string;
+  morae: number;
+}
+
+/**
+ * `listening/pool-<NN>.json` (design 08 §4–§5): every sentence whose `knownAt = max(station of ids)`
+ * equals `station`. Generated by `content:assign`, listed in the manifest as type `pool`, regenerated
+ * byte-identically (V44, reported by `content:index`'s default check). Not a `ContentFile`.
+ */
+export interface ListeningPool {
+  schema: 'tsuzuku.pool/1';
+  station: number;
+  refs: PoolRef[];
+}
+
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Id grammar and ruby regex (shared by validator and runtime)                */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -790,6 +908,8 @@ export const ID_PATTERNS: Record<ContentKind, RegExp> = {
   component: /^c-[a-z]+(-[a-z]+)*$/,
   michikusa: /^m-(0[1-9]|[1-4]\d|5[0-3])-[1-4]$/,
   station: /^st-(0\d|[1-4]\d|5[0-3])$/,
+  /** Pool file id (design 08 §5): the file stem of `listening/pool-<NN>.json`, Stations 01–53. */
+  pool: /^pool-(0[1-9]|[1-4]\d|5[0-3])$/,
 };
 
 /** Matches one ruby `{base|reading}`; group 1 = base, group 2 = reading. */
@@ -830,6 +950,7 @@ const st = (
   kanji: number,
   grammar: number,
   stories: number,
+  listening: number,
   gateJa: string,
   gateEn: string,
 ): StationDef => ({
@@ -841,72 +962,76 @@ const st = (
   jlpt,
   gateJa,
   gateEn,
-  quota: { vocab, kanji, grammar, stories },
+  quota: { vocab, kanji, grammar, stories, listening },
 });
 
-/** The 53 Tōkaidō stations (design 02 §1). Totals: vocab 6,350 · kanji 1,000 · grammar 450 · stories 137 (3 per station 1–31, 2 per station 32–53). */
+/**
+ * The 53 Tōkaidō stations (design 02 §1). Totals: vocab 6,350 · kanji 1,000 · grammar 450 ·
+ * stories 137 (3 per station 1–31, 2 per station 32–53) · listening pieces 100 (design 08 §3:
+ * 0 for Stations 1–3, 2 per station 4–53). Row columns: vocab, kanji, grammar, stories, listening.
+ */
 export const STATIONS: readonly StationDef[] = [
   // White — kana
-  st(1, '品川', 'Shinagawa', 'white', null, 20, 0, 0, 3, '潮の関守', 'Tide Keeper'),
-  st(2, '川崎', 'Kawasaki', 'white', null, 20, 0, 0, 3, '渡しの関守', 'Ferry Keeper'),
-  st(3, '神奈川', 'Kanagawa', 'white', null, 40, 0, 0, 3, '湊の関守', 'Port Keeper'),
+  st(1, '品川', 'Shinagawa', 'white', null, 20, 0, 0, 3, 0, '潮の関守', 'Tide Keeper'),
+  st(2, '川崎', 'Kawasaki', 'white', null, 20, 0, 0, 3, 0, '渡しの関守', 'Ferry Keeper'),
+  st(3, '神奈川', 'Kanagawa', 'white', null, 40, 0, 0, 3, 0, '湊の関守', 'Port Keeper'),
   // Yellow — N5-A
-  st(4, '保土ヶ谷', 'Hodogaya', 'yellow', 5, 60, 8, 8, 3, '坂の関守', 'Hill Keeper'),
-  st(5, '戸塚', 'Totsuka', 'yellow', 5, 60, 8, 8, 3, '夜明けの関守', 'Dawn Keeper'),
-  st(6, '藤沢', 'Fujisawa', 'yellow', 5, 60, 8, 7, 3, '松林の関守', 'Pine Grove Keeper'),
-  st(7, '平塚', 'Hiratsuka', 'yellow', 5, 60, 8, 8, 3, '七夕の関守', 'Tanabata Keeper'),
-  st(8, '大磯', 'Ōiso', 'yellow', 5, 60, 8, 7, 3, '浜辺の関守', 'Shore Keeper'),
-  st(9, '小田原', 'Odawara', 'yellow', 5, 60, 8, 7, 3, '城下の関守', 'Castle Town Keeper'),
+  st(4, '保土ヶ谷', 'Hodogaya', 'yellow', 5, 60, 8, 8, 3, 2, '坂の関守', 'Hill Keeper'),
+  st(5, '戸塚', 'Totsuka', 'yellow', 5, 60, 8, 8, 3, 2, '夜明けの関守', 'Dawn Keeper'),
+  st(6, '藤沢', 'Fujisawa', 'yellow', 5, 60, 8, 7, 3, 2, '松林の関守', 'Pine Grove Keeper'),
+  st(7, '平塚', 'Hiratsuka', 'yellow', 5, 60, 8, 8, 3, 2, '七夕の関守', 'Tanabata Keeper'),
+  st(8, '大磯', 'Ōiso', 'yellow', 5, 60, 8, 7, 3, 2, '浜辺の関守', 'Shore Keeper'),
+  st(9, '小田原', 'Odawara', 'yellow', 5, 60, 8, 7, 3, 2, '城下の関守', 'Castle Town Keeper'),
   // Orange — N5-B
-  st(10, '箱根', 'Hakone', 'orange', 5, 60, 9, 8, 3, '大関所の関守', 'Great Checkpoint Keeper'),
-  st(11, '三島', 'Mishima', 'orange', 5, 60, 9, 8, 3, '湧水の関守', 'Spring Keeper'),
-  st(12, '沼津', 'Numazu', 'orange', 5, 60, 9, 7, 3, '港市の関守', 'Harbor Market Keeper'),
-  st(13, '原', 'Hara', 'orange', 5, 60, 9, 8, 3, '富士見の関守', 'Fuji-View Keeper'),
-  st(14, '吉原', 'Yoshiwara', 'orange', 5, 60, 8, 7, 3, '左富士の関守', 'Left-Fuji Keeper'),
-  st(15, '蒲原', 'Kanbara', 'orange', 5, 60, 8, 7, 3, '雪夜の関守', 'Snowy Night Keeper'),
+  st(10, '箱根', 'Hakone', 'orange', 5, 60, 9, 8, 3, 2, '大関所の関守', 'Great Checkpoint Keeper'),
+  st(11, '三島', 'Mishima', 'orange', 5, 60, 9, 8, 3, 2, '湧水の関守', 'Spring Keeper'),
+  st(12, '沼津', 'Numazu', 'orange', 5, 60, 9, 7, 3, 2, '港市の関守', 'Harbor Market Keeper'),
+  st(13, '原', 'Hara', 'orange', 5, 60, 9, 8, 3, 2, '富士見の関守', 'Fuji-View Keeper'),
+  st(14, '吉原', 'Yoshiwara', 'orange', 5, 60, 8, 7, 3, 2, '左富士の関守', 'Left-Fuji Keeper'),
+  st(15, '蒲原', 'Kanbara', 'orange', 5, 60, 8, 7, 3, 2, '雪夜の関守', 'Snowy Night Keeper'),
   // Green — N4
-  st(16, '由比', 'Yui', 'green', 4, 72, 22, 10, 3, '薩埵峠の関守', 'Satta Pass Keeper'),
-  st(17, '興津', 'Okitsu', 'green', 4, 72, 22, 10, 3, '清見の関守', 'Kiyomi Keeper'),
-  st(18, '江尻', 'Ejiri', 'green', 4, 72, 22, 10, 3, '突風の関守', 'Gust Keeper'),
-  st(19, '府中', 'Fuchū', 'green', 4, 72, 22, 10, 3, '駿府の関守', 'Sunpu Keeper'),
-  st(20, '鞠子', 'Mariko', 'green', 4, 72, 22, 10, 3, 'とろろ汁の関守', 'Tororo Keeper'),
-  st(21, '岡部', 'Okabe', 'green', 4, 72, 22, 10, 3, '宇津ノ谷の関守', 'Utsunoya Pass Keeper'),
-  st(22, '藤枝', 'Fujieda', 'green', 4, 72, 22, 10, 3, '継立の関守', 'Relay Keeper'),
-  st(23, '島田', 'Shimada', 'green', 4, 72, 22, 10, 3, '大井川の関守', 'Ōi River Keeper'),
-  st(24, '金谷', 'Kanaya', 'green', 4, 74, 24, 10, 3, '川越しの関守', 'River Crossing Keeper'),
+  st(16, '由比', 'Yui', 'green', 4, 72, 22, 10, 3, 2, '薩埵峠の関守', 'Satta Pass Keeper'),
+  st(17, '興津', 'Okitsu', 'green', 4, 72, 22, 10, 3, 2, '清見の関守', 'Kiyomi Keeper'),
+  st(18, '江尻', 'Ejiri', 'green', 4, 72, 22, 10, 3, 2, '突風の関守', 'Gust Keeper'),
+  st(19, '府中', 'Fuchū', 'green', 4, 72, 22, 10, 3, 2, '駿府の関守', 'Sunpu Keeper'),
+  st(20, '鞠子', 'Mariko', 'green', 4, 72, 22, 10, 3, 2, 'とろろ汁の関守', 'Tororo Keeper'),
+  st(21, '岡部', 'Okabe', 'green', 4, 72, 22, 10, 3, 2, '宇津ノ谷の関守', 'Utsunoya Pass Keeper'),
+  st(22, '藤枝', 'Fujieda', 'green', 4, 72, 22, 10, 3, 2, '継立の関守', 'Relay Keeper'),
+  st(23, '島田', 'Shimada', 'green', 4, 72, 22, 10, 3, 2, '大井川の関守', 'Ōi River Keeper'),
+  st(24, '金谷', 'Kanaya', 'green', 4, 74, 24, 10, 3, 2, '川越しの関守', 'River Crossing Keeper'),
   // Blue — N3-A (Plateau Arc begins)
-  st(25, '日坂', 'Nissaka', 'blue', 3, 121, 25, 8, 3, '小夜の中山の関守', 'Sayo-no-Nakayama Keeper'),
-  st(26, '掛川', 'Kakegawa', 'blue', 3, 121, 25, 8, 3, '秋風の関守', 'Autumn Wind Keeper'),
-  st(27, '袋井', 'Fukuroi', 'blue', 3, 121, 25, 8, 3, '出茶屋の関守', 'Teahouse Keeper'),
-  st(28, '見付', 'Mitsuke', 'blue', 3, 121, 25, 8, 3, '天竜川の関守', 'Tenryū Keeper'),
-  st(29, '浜松', 'Hamamatsu', 'blue', 3, 121, 25, 8, 3, '冬枯れの関守', 'Winter Field Keeper'),
-  st(30, '舞坂', 'Maisaka', 'blue', 3, 121, 25, 8, 3, '今切の関守', 'Imagire Keeper'),
-  st(31, '新居', 'Arai', 'blue', 3, 121, 25, 8, 3, '新居関所の関守', 'Arai Checkpoint Keeper'),
+  st(25, '日坂', 'Nissaka', 'blue', 3, 121, 25, 8, 3, 2, '小夜の中山の関守', 'Sayo-no-Nakayama Keeper'),
+  st(26, '掛川', 'Kakegawa', 'blue', 3, 121, 25, 8, 3, 2, '秋風の関守', 'Autumn Wind Keeper'),
+  st(27, '袋井', 'Fukuroi', 'blue', 3, 121, 25, 8, 3, 2, '出茶屋の関守', 'Teahouse Keeper'),
+  st(28, '見付', 'Mitsuke', 'blue', 3, 121, 25, 8, 3, 2, '天竜川の関守', 'Tenryū Keeper'),
+  st(29, '浜松', 'Hamamatsu', 'blue', 3, 121, 25, 8, 3, 2, '冬枯れの関守', 'Winter Field Keeper'),
+  st(30, '舞坂', 'Maisaka', 'blue', 3, 121, 25, 8, 3, 2, '今切の関守', 'Imagire Keeper'),
+  st(31, '新居', 'Arai', 'blue', 3, 121, 25, 8, 3, 2, '新居関所の関守', 'Arai Checkpoint Keeper'),
   // Purple — N3-B
-  st(32, '白須賀', 'Shirasuka', 'purple', 3, 122, 25, 8, 2, '潮見坂の関守', 'Shiomizaka Keeper'),
-  st(33, '二川', 'Futagawa', 'purple', 3, 122, 25, 8, 2, '猿ヶ馬場の関守', 'Saru-ga-Baba Keeper'),
-  st(34, '吉田', 'Yoshida', 'purple', 3, 122, 25, 8, 2, '豊川橋の関守', 'Toyokawa Bridge Keeper'),
-  st(35, '御油', 'Goyu', 'purple', 3, 122, 25, 8, 2, '旅籠の関守', 'Inn Keeper'),
-  st(36, '赤坂', 'Akasaka', 'purple', 3, 122, 25, 7, 2, '宿の灯の関守', 'Lantern Inn Keeper'),
-  st(37, '藤川', 'Fujikawa', 'purple', 3, 122, 25, 7, 2, '棒鼻の関守', 'Bōbana Keeper'),
-  st(38, '岡崎', 'Okazaki', 'purple', 3, 121, 25, 8, 2, '矢矧橋の関守', 'Yahagi Bridge Keeper'),
+  st(32, '白須賀', 'Shirasuka', 'purple', 3, 122, 25, 8, 2, 2, '潮見坂の関守', 'Shiomizaka Keeper'),
+  st(33, '二川', 'Futagawa', 'purple', 3, 122, 25, 8, 2, 2, '猿ヶ馬場の関守', 'Saru-ga-Baba Keeper'),
+  st(34, '吉田', 'Yoshida', 'purple', 3, 122, 25, 8, 2, 2, '豊川橋の関守', 'Toyokawa Bridge Keeper'),
+  st(35, '御油', 'Goyu', 'purple', 3, 122, 25, 8, 2, 2, '旅籠の関守', 'Inn Keeper'),
+  st(36, '赤坂', 'Akasaka', 'purple', 3, 122, 25, 7, 2, 2, '宿の灯の関守', 'Lantern Inn Keeper'),
+  st(37, '藤川', 'Fujikawa', 'purple', 3, 122, 25, 7, 2, 2, '棒鼻の関守', 'Bōbana Keeper'),
+  st(38, '岡崎', 'Okazaki', 'purple', 3, 121, 25, 8, 2, 2, '矢矧橋の関守', 'Yahagi Bridge Keeper'),
   // Brown — N2 (Plateau Arc ends)
-  st(39, '池鯉鮒', 'Chiryū', 'brown', 2, 212, 44, 12, 2, '馬市の関守', 'Horse Market Keeper'),
-  st(40, '鳴海', 'Narumi', 'brown', 2, 212, 44, 11, 2, '絞りの関守', 'Shibori Keeper'),
-  st(41, '宮', 'Miya', 'brown', 2, 212, 44, 11, 2, '熱田の関守', 'Atsuta Keeper'),
-  st(42, '桑名', 'Kuwana', 'brown', 2, 212, 44, 11, 2, '七里の渡しの関守', 'Seven-Ri Ferry Keeper'),
-  st(43, '四日市', 'Yokkaichi', 'brown', 2, 213, 44, 11, 2, '三重川の関守', 'Mie River Keeper'),
-  st(44, '石薬師', 'Ishiyakushi', 'brown', 2, 213, 44, 11, 2, '薬師の関守', 'Yakushi Keeper'),
-  st(45, '庄野', 'Shōno', 'brown', 2, 213, 43, 11, 2, '白雨の関守', 'Sudden Shower Keeper'),
-  st(46, '亀山', 'Kameyama', 'brown', 2, 213, 43, 12, 2, '雪晴れの関守', 'Snow Clearing Keeper'),
+  st(39, '池鯉鮒', 'Chiryū', 'brown', 2, 212, 44, 12, 2, 2, '馬市の関守', 'Horse Market Keeper'),
+  st(40, '鳴海', 'Narumi', 'brown', 2, 212, 44, 11, 2, 2, '絞りの関守', 'Shibori Keeper'),
+  st(41, '宮', 'Miya', 'brown', 2, 212, 44, 11, 2, 2, '熱田の関守', 'Atsuta Keeper'),
+  st(42, '桑名', 'Kuwana', 'brown', 2, 212, 44, 11, 2, 2, '七里の渡しの関守', 'Seven-Ri Ferry Keeper'),
+  st(43, '四日市', 'Yokkaichi', 'brown', 2, 213, 44, 11, 2, 2, '三重川の関守', 'Mie River Keeper'),
+  st(44, '石薬師', 'Ishiyakushi', 'brown', 2, 213, 44, 11, 2, 2, '薬師の関守', 'Yakushi Keeper'),
+  st(45, '庄野', 'Shōno', 'brown', 2, 213, 43, 11, 2, 2, '白雨の関守', 'Sudden Shower Keeper'),
+  st(46, '亀山', 'Kameyama', 'brown', 2, 213, 43, 12, 2, 2, '雪晴れの関守', 'Snow Clearing Keeper'),
   // Black — N1 core (no new kanji in V1; jōyō remainder is a content hook)
-  st(47, '関', 'Seki', 'black', 1, 214, 0, 10, 2, '関の関守', 'Keeper of the Barrier'),
-  st(48, '坂下', 'Sakashita', 'black', 1, 214, 0, 10, 2, '筆捨山の関守', 'Fudesute Keeper'),
-  st(49, '土山', 'Tsuchiyama', 'black', 1, 214, 0, 10, 2, '春雨の関守', 'Spring Rain Keeper'),
-  st(50, '水口', 'Minakuchi', 'black', 1, 214, 0, 10, 2, '干瓢の関守', 'Kanpyō Keeper'),
-  st(51, '石部', 'Ishibe', 'black', 1, 214, 0, 10, 2, '目川の関守', 'Megawa Keeper'),
-  st(52, '草津', 'Kusatsu', 'black', 1, 215, 0, 10, 2, '追分の関守', 'Fork Keeper'),
-  st(53, '大津', 'Ōtsu', 'black', 1, 215, 0, 10, 2, '走井の関守', 'Hashirii Keeper'),
+  st(47, '関', 'Seki', 'black', 1, 214, 0, 10, 2, 2, '関の関守', 'Keeper of the Barrier'),
+  st(48, '坂下', 'Sakashita', 'black', 1, 214, 0, 10, 2, 2, '筆捨山の関守', 'Fudesute Keeper'),
+  st(49, '土山', 'Tsuchiyama', 'black', 1, 214, 0, 10, 2, 2, '春雨の関守', 'Spring Rain Keeper'),
+  st(50, '水口', 'Minakuchi', 'black', 1, 214, 0, 10, 2, 2, '干瓢の関守', 'Kanpyō Keeper'),
+  st(51, '石部', 'Ishibe', 'black', 1, 214, 0, 10, 2, 2, '目川の関守', 'Megawa Keeper'),
+  st(52, '草津', 'Kusatsu', 'black', 1, 215, 0, 10, 2, 2, '追分の関守', 'Fork Keeper'),
+  st(53, '大津', 'Ōtsu', 'black', 1, 215, 0, 10, 2, 2, '走井の関守', 'Hashirii Keeper'),
 ];
 
 /** Maximum items per hand-written content file (V02). */

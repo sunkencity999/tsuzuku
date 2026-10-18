@@ -2,9 +2,11 @@
  * TSUZUKU — hash routes (ARCHITECTURE §6, design 07 §1).
  *
  * `#/` dojo · onboarding · train/:mode · scroll/:id · road · station/:n ·
- * gate/:n · shinsa/:belt · story/:id · listen/:id · taiwa/:id · dan · library ·
- * collections/:tab · studio/:wallpaperId · records · ledger · settings ·
- * backup · about. Never hand-write `#/...`: use `href()`.
+ * gate/:n · shinsa/:belt · story/:id · story/:id/listen · listen/:id ·
+ * taiwa/:id · radio · dan · library · collections/:tab · studio/:wallpaperId ·
+ * records · ledger · settings · backup · about. Never hand-write `#/...`: use
+ * `href()`. `story/:id/listen` (Read-along) and `radio` (茶屋ラジオ) are
+ * design 08 §10.2 / §10.3.
  */
 import { signal, type Signal } from '@preact/signals';
 import { BELT_IDS, type Belt } from '../content/types';
@@ -23,9 +25,12 @@ export type Route =
   | { name: 'station'; n: number }
   | { name: 'gate'; n: number }
   | { name: 'shinsa'; belt: Belt }
-  | { name: 'story'; id: string }
+  /** `mode: 'listen'` = Read-along (`#/story/:id/listen`, design 08 §10.3); absent = the plain reader. */
+  | { name: 'story'; id: string; mode?: 'listen' }
   | { name: 'listen'; id: string }
   | { name: 'taiwa'; id: string }
+  /** 茶屋ラジオ (`#/radio`, design 08 §10.2): a non-session listening surface. */
+  | { name: 'radio' }
   | { name: 'dan' }
   | { name: 'library' }
   | { name: 'collections'; tab: CollectionsTab }
@@ -48,8 +53,9 @@ export function href(r: Route): string {
       return '#/';
     case 'train':
       return `#/train/${r.mode}`;
-    case 'scroll':
     case 'story':
+      return r.mode ? `#/story/${enc(r.id)}/${r.mode}` : `#/story/${enc(r.id)}`;
+    case 'scroll':
     case 'listen':
     case 'taiwa':
       return `#/${r.name}/${enc(r.id)}`;
@@ -74,6 +80,7 @@ const WALLPAPER_SET: ReadonlySet<string> = new Set(WALLPAPER_IDS);
 const PLAIN: ReadonlySet<string> = new Set([
   'onboarding',
   'road',
+  'radio',
   'dan',
   'library',
   'records',
@@ -111,6 +118,8 @@ export function parseHash(hash: string): Route {
   if (segs.length === 0) return DEFAULT_ROUTE;
   const [head, p1] = segs as [string, string | undefined];
   if (segs.length === 1 && PLAIN.has(head)) return { name: head as 'onboarding' };
+  // `#/story/:id/listen` — the Read-along (design 08 §10.3); any other third segment is unknown.
+  if (segs.length === 3 && head === 'story' && p1 !== undefined && segs[2] === 'listen') return { name: 'story', id: p1, mode: 'listen' };
   if (segs.length !== 2 || p1 === undefined) return DEFAULT_ROUTE;
   switch (head) {
     case 'train':
@@ -205,11 +214,13 @@ export function titleFor(r: Route): string {
     case 'shinsa':
       return `審査 Shinsa ${BELT_TITLE[r.belt]} · ${APP}`;
     case 'story':
-      return `旅日記 Story · ${APP}`;
+      return r.mode === 'listen' ? `読み聞かせ Read-along · ${APP}` : `旅日記 Story · ${APP}`;
     case 'listen':
       return `聴解 Listening · ${APP}`;
     case 'taiwa':
       return `対話 Taiwa · ${APP}`;
+    case 'radio':
+      return `茶屋ラジオ Radio · ${APP}`;
     case 'dan':
       return `段 Dan · ${APP}`;
     case 'library':

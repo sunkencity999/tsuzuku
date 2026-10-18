@@ -147,6 +147,14 @@ export interface Settings {
   verticalText: boolean;
   /** "Speed affects grading": default off in Zen, on otherwise. */
   speedGrading: boolean;
+  /**
+   * Which voice `speak()` prefers (design 08 §13): `'pack'` (default) plays the
+   * pre-rendered VOICEVOX clips when the pack has the key and falls back to
+   * the device voice; `'device'` forces `speechSynthesis` even with a pack.
+   */
+  audioSource: 'pack' | 'device';
+  /** No idle sprite prefetch, no Radio sprite beyond the current track (design 08 §13); auto-on under `navigator.connection.saveData`. */
+  dataSaver: boolean;
 }
 
 export interface Streak {
@@ -198,6 +206,15 @@ export interface Progress {
   welcomeBackDue: boolean;
   /** Story / Michikusa ids read to the end in the Reader (first read counts). */
   storiesRead?: string[];
+  /**
+   * Text ids heard on either listening surface (design 08 §10.2–§10.4): a
+   * passed Arena set, a Radio track or a Read-along appends here. A set or
+   * track is `cold` when its id is absent at start; Radio draws cold texts
+   * from the complement. Never a read mark (that is `storiesRead`).
+   */
+  listened?: string[];
+  /** Ids of first-contact teach cards the learner dismissed (`shared/ui/TeachOnce`, design 08 §11). */
+  teachSeen?: string[];
 }
 
 export interface Quests {
@@ -339,6 +356,17 @@ export const STAT_KEYS = [
   'comebacks',
   'exports',
   'imports',
+  // design 08 §12 — listening counters
+  /** Minutes of 茶屋ラジオ actually played (`listen:played` with `source: 'radio'`). */
+  'radioMinutes',
+  /** First hearings on either surface: an Arena set on a text not yet in `progress.listened`, or a cold Radio track whose gist question was answered. */
+  'coldSets',
+  /** Cold sets passed (Arena ≥ `PASS_RATIO`) or cold Radio gist questions answered correctly. */
+  'coldSetsPassed',
+  /** Authentic-style listening (bridge / `AUTHENTIC_GENRES` / casual dialogue) at ≥ 1.0×, understood; feeds the 耳 cap with the ledger's outside hours. */
+  'listeningAuthenticMinutes',
+  /** Highest speed tier at which a `listening:set` with every question right (`total ≥ 3`) was passed; seeded from `settings.speedTier` at migration. */
+  'bestCleanTier',
 ] as const;
 export type StatKey = (typeof STAT_KEYS)[number];
 export type Stats = Record<StatKey, number>;

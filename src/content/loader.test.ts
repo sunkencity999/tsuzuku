@@ -1,4 +1,4 @@
-import type { ContentFile, ContentItem, ContentManifest, GrammarItem, KanjiItem, ManifestFile, StoryItem, VocabItem } from './types';
+import type { ContentFile, ContentItem, ContentManifest, GrammarItem, KanjiItem, ListeningPool, ManifestFile, StoryItem, VocabItem } from './types';
 import { ContentError, createLoader, isChunk, type ContentLoader } from './loader';
 import * as loaderModule from './loader';
 import { FIXTURE, FIXTURE_REDIRECT_FROM, G, KANJI, PATHS, V, createFakeLoader, fixtureFetch, type Fixture, type FixtureFetchOptions } from './fixtures';
@@ -410,6 +410,124 @@ describe('redirects, kinds, stations of ids', () => {
   it('does not expose the conjugation table', () => {
     expect('conjugationTable' in loaderModule).toBe(false);
     expect(Object.keys(loaderModule).some((k) => /conjugation/i.test(k))).toBe(false);
+  });
+});
+
+describe('listening pools (design 08 §4)', () => {
+  const POOL_PATH = 'listening/pool-04.json';
+  const POOL_01_PATH = 'listening/pool-01.json';
+  const POOL_04: ListeningPool = {
+    schema: 'tsuzuku.pool/1',
+    station: 4,
+    refs: [
+      { ref: `${V.飲む}#ex0`, ids: [V.私, G.は, V.コーヒー, V.飲む, G.ます], kana: 'わたしはコーヒーをのみます', morae: 13 },
+      { ref: 's-04-1#L2', ids: [V.犬, G.は, V.水, V.飲む, G.ます], kana: 'いぬはみずをのみます', morae: 10 },
+    ],
+  };
+  const POOL_01: ListeningPool = { schema: 'tsuzuku.pool/1', station: 1, refs: [] };
+  const base = FIXTURE.manifest.files.find((f) => f.path === PATHS.stories) as ManifestFile;
+  const poolFile = (path: string, station: number, count: number): ManifestFile => ({ ...base, path, type: 'pool', level: null, count, belts: [], stations: [station] });
+
+  /** The fixture with both pool files listed in the manifest and served. */
+  function withPools(files: Record<string, unknown> = { [POOL_PATH]: POOL_04, [POOL_01_PATH]: POOL_01 }): Fixture {
+    const manifest: ContentManifest = { ...FIXTURE.manifest, files: [...FIXTURE.manifest.files, poolFile(POOL_01_PATH, 1, 0), poolFile(POOL_PATH, 4, POOL_04.refs.length)] };
+    return withManifest(manifest, files);
+  }
+
+  it('pool(n) fetches listening/pool-NN.json through the manifest once and caches it; concurrent calls share the fetch', async () => {
+    const fetch = fixtureFetch(withPools());
+    const loader = createLoader(fetch, './content/');
+    const [a, b] = await Promise.all([loader.pool(4), loader.pool(4)]);
+    expect(a).toBe(b);
+    expect(a.station).toBe(4);
+    expect(a.refs.map((r) => r.ref)).toEqual([`${V.飲む}#ex0`, 's-04-1#L2']);
+    expect(fetch.calls).toEqual([PATHS.manifest, POOL_PATH]);
+    expect(await loader.pool(4)).toBe(a);
+    expect(fetch.calls).toHaveLength(2);
+    const p1 = await loader.pool(1);
+    expect(p1.refs).toEqual([]);
+    expect(fetch.calls).toEqual([PATHS.manifest, POOL_PATH, POOL_01_PATH]);
+  });
+
+  it('a station with no pool in the manifest rejects with missing-pool and fetches nothing', async () => {
+    const fetch = fixtureFetch(withPools());
+    const loader = createLoader(fetch, './content/');
+    await expect(loader.pool(7)).rejects.toMatchObject({ code: 'missing-pool', path: 'listening/pool-07.json' });
+    await expect(loader.pool(7)).rejects.toBeInstanceOf(ContentError);
+    expect(fetch.calls).toEqual([PATHS.manifest]);
+    // the shipped fixture manifest (no pools yet) behaves the same
+    const { loader: plain, fetch: plainFetch } = make();
+    await expect(plain.pool(4)).rejects.toMatchObject({ code: 'missing-pool' });
+    expect(plainFetch.calls).toEqual([PATHS.manifest]);
+  });
+
+  it('a wrong schema or a pool for another station is a schema error; a 404 is an http error and can be retried', async () => {
+    const bad = fixtureFetch(withPools({ [POOL_PATH]: { schema: 'tsuzuku.content/1', items: [] }, [POOL_01_PATH]: { ...POOL_01, station: 2 } }));
+    const loader = createLoader(bad, './content/');
+    await expect(loader.pool(4)).rejects.toMatchObject({ code: 'schema', path: POOL_PATH });
+    await expect(loader.pool(1)).rejects.toMatchObject({ code: 'schema', path: POOL_01_PATH });
+    const missing = fixtureFetch(withPools(), { missing: [POOL_PATH] });
+    const l2 = createLoader(missing, './content/');
+    await expect(l2.pool(4)).rejects.toMatchObject({ code: 'http', status: 404, path: POOL_PATH });
+    await expect(l2.pool(4)).rejects.toMatchObject({ code: 'http' });
+    expect(missing.calls.filter((p) => p === POOL_PATH)).toHaveLength(2);
+    expect(await l2.pool(1)).toEqual(POOL_01);
+  });
+
+  it('pool files never enter the id lookup, the item index or preloadStation; station bundles are unchanged', async () => {
+    const fetch = fixtureFetch(withPools());
+    const loader = createLoader(fetch, './content/');
+    await loader.preloadStation(4);
+    expect(fetch.calls).not.toContain(POOL_PATH);
+    expect(fetch.calls).not.toContain(POOL_01_PATH);
+    const b = await loader.station(4);
+    expect(b).toEqual(FIXTURE.stations[1]);
+    // an unknown id scans its level's item files only
+    expect(await loader.getAsync('v-n5-0099')).toBeUndefined();
+    expect(await loader.getAsync('s-04-9')).toBeUndefined();
+    expect(fetch.calls).not.toContain(POOL_PATH);
+    // and loading the pool indexes no items
+    await loader.pool(4);
+    expect(loader.get(`${V.飲む}#ex0`)).toBeUndefined();
+    expect(loader.get('s-04-1#L2')).toBeUndefined();
+    expect(loader.stationOf('s-04-1')).toBe(4);
+  });
+
+  it('the pool is mirrored into the content cache like an item file', async () => {
+    const stores = new Map<string, Map<string, Response>>();
+    const cs = {
+      open: (name: string) => {
+        let m = stores.get(name);
+        if (!m) {
+          m = new Map();
+          stores.set(name, m);
+        }
+        const store = m;
+        return Promise.resolve({
+          match: (req: RequestInfo | URL) => Promise.resolve(store.get(String(req))?.clone()),
+          put: (req: RequestInfo | URL, res: Response) => {
+            store.set(String(req), res);
+            return Promise.resolve();
+          },
+        } as unknown as Cache);
+      },
+      keys: () => Promise.resolve([...stores.keys()]),
+      has: (name: string) => Promise.resolve(stores.has(name)),
+      delete: (name: string) => Promise.resolve(stores.delete(name)),
+      match: () => Promise.resolve(undefined),
+    };
+    vi.stubGlobal('caches', cs as unknown as CacheStorage);
+    try {
+      const a = fixtureFetch(withPools());
+      await createLoader(a, './content/').pool(4);
+      expect(a.calls).toEqual([PATHS.manifest, POOL_PATH]);
+      const b = fixtureFetch(withPools());
+      const got = await createLoader(b, './content/').pool(4);
+      expect(got.refs).toHaveLength(2);
+      expect(b.calls).toEqual([PATHS.manifest]); // served from the mirror
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 

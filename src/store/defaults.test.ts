@@ -1,12 +1,14 @@
 import { BELT_IDS, ERROR_TAGS } from '../content/types';
 import { SAVE_SCHEMA, SLICE_KEYS, STAT_KEYS } from '../shared/store-types';
 import {
+  FRESH_BEST_CLEAN_TIER,
   INTENSITY_PRESETS,
   INTENSITY_SCALE,
   STANDARD_NEW_PER_DAY,
   beltForStation,
   effectiveNewPerDay,
   freshSave,
+  freshStats,
   newPerDayFor,
   newPerDayTotal,
 } from './defaults';
@@ -89,10 +91,24 @@ describe('freshSave', () => {
     expect(freshSave(now, 'UTC').seed).not.toBe(s.seed);
   });
 
-  it('carries every slice, every stat key at 0 and every error tag', () => {
+  it('carries every slice, every stat key at 0 (bestCleanTier at 1) and every error tag', () => {
     for (const k of SLICE_KEYS) expect(s).toHaveProperty(k);
-    for (const k of STAT_KEYS) expect(s.stats[k]).toBe(0);
+    for (const k of STAT_KEYS) expect(s.stats[k]).toBe(k === 'bestCleanTier' ? FRESH_BEST_CLEAN_TIER : 0);
     for (const t of ERROR_TAGS) expect(s.weakPoints[t]).toEqual({ n: 0, ewma: 0, active: false, peak: 0 });
+  });
+
+  it('listening defaults (design 08 §11–§13): the voice pack, data saver off, nothing heard or taught, counters at 0, bestCleanTier 1', () => {
+    expect(s.settings.audioSource).toBe('pack');
+    expect(s.settings.dataSaver).toBe(false);
+    expect(s.progress.listened).toEqual([]);
+    expect(s.progress.teachSeen).toEqual([]);
+    expect(s.stats.radioMinutes).toBe(0);
+    expect(s.stats.coldSets).toBe(0);
+    expect(s.stats.coldSetsPassed).toBe(0);
+    expect(s.stats.listeningAuthenticMinutes).toBe(0);
+    expect(FRESH_BEST_CLEAN_TIER).toBe(1);
+    expect(s.stats.bestCleanTier).toBe(FRESH_BEST_CLEAN_TIER);
+    expect(freshStats().bestCleanTier).toBe(FRESH_BEST_CLEAN_TIER);
   });
 
   it('starts the learner as 無名 at White, Lv 1, speaking self, Dojo feel with speed grading on', () => {

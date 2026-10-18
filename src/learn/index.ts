@@ -16,6 +16,8 @@ export * from './known';
 export * from './governors';
 export * from './intro-policy';
 export * from './queue';
+// design 08 §4: the i+0 / i+1 pool selector the Ear Walk, Radio, planner and Station page share
+export * from './pool';
 
 export { toRating, isMature, isSlow, SCORE_BANDS, SHADOW_BANDS, MATURE_S } from './grading';
 export { judgeRate, shouldJudge, judgeOptions, rubricJudge, perceptionJudge, rubricPasses, honestyRate } from './judge';

@@ -87,4 +87,37 @@ describe('bus', () => {
     expect(bad).toBeTruthy();
     expectTypeOf<Events['attempt:graded']['rating']>().toEqualTypeOf<1 | 2 | 3 | 4 | null>();
   });
+
+  it('listening:set accepts storyId null with refs in walk mode and the text-mode shape unchanged (design 08 §10.4)', () => {
+    const seen: Events['listening:set'][] = [];
+    bus.on('listening:set', (p) => seen.push(p));
+    const walk: Events['listening:set'] = { storyId: null, refs: ['v-n5-0249#ex0', 's-07-2#L3'], correct: 5, total: 6, rate: 1, minutes: 2.5, mode: 'walk', cold: false };
+    const text: Events['listening:set'] = { storyId: 's-07-1', correct: 6, total: 6, rate: 1.1, minutes: 3, genre: 'news', bridge: false, authentic: true, cold: true, mode: 'text' };
+    const legacy: Events['listening:set'] = { storyId: 's-04-1', correct: 4, total: 6, rate: 0.9, minutes: 2 };
+    bus.emit('listening:set', walk);
+    bus.emit('listening:set', text);
+    bus.emit('listening:set', legacy);
+    expect(seen.map((p) => p.storyId)).toEqual([null, 's-07-1', 's-04-1']);
+    expect(seen[0]?.refs).toHaveLength(2);
+    expectTypeOf<Events['listening:set']['storyId']>().toEqualTypeOf<string | null>();
+    expectTypeOf<Events['listening:set']['mode']>().toEqualTypeOf<'text' | 'walk' | undefined>();
+    // @ts-expect-error — refs are strings
+    const bad: Events['listening:set'] = { storyId: null, refs: [1], correct: 0, total: 0, rate: 1, minutes: 0 };
+    expect(bad).toBeTruthy();
+  });
+
+  it('listen:played with gistCorrect null type-checks and round-trips (design 08 §12)', () => {
+    const seen: Events['listen:played'][] = [];
+    bus.on('listen:played', (p) => seen.push(p));
+    const radio: Events['listen:played'] = { source: 'radio', refs: ['s-07-1'], seconds: 600, rate: 1.1, cold: false, authentic: true, gistCorrect: true };
+    const readalong: Events['listen:played'] = { source: 'readalong', refs: ['s-04-1'], seconds: 300, rate: 0.9, cold: true, authentic: false, gistCorrect: null };
+    bus.emit('listen:played', radio);
+    bus.emit('listen:played', readalong);
+    expect(seen).toEqual([radio, readalong]);
+    expectTypeOf<Events['listen:played']['gistCorrect']>().toEqualTypeOf<boolean | null>();
+    expectTypeOf<Events['listen:played']['source']>().toEqualTypeOf<'radio' | 'readalong'>();
+    // @ts-expect-error — only radio and readalong log passive hearing
+    const bad: Events['listen:played'] = { source: 'arena', refs: [], seconds: 0, rate: 1, cold: false, authentic: false, gistCorrect: null };
+    expect(bad).toBeTruthy();
+  });
 });

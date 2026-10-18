@@ -928,3 +928,403 @@ describe('validator accuracy (round 2)', () => {
     expect(validate(root, { strict: true }).failures.filter((f) => f.rule === 'V35')).toEqual([]);
   });
 });
+
+/* ── design 08 §5: listening pieces — V41 / V42 / V43 / V45 / V46, the V05 / V34 amendments, the pool skip ── */
+
+import { castNames, lineMorae, ownStationUnknowns, PIECE_LINE_MAX_MORAE, PIECE_TARGET_SECONDS, POOL_FILE_RE, speechSeconds, textSpeechSeconds } from './validate-content.ts';
+import { buildMatchPool } from './linker.ts';
+import type { GrammarItem, StoryLine, VocabItem } from '../src/content/types.ts';
+
+const CAST = join(here, '__fixtures__', 'cast.sample.json');
+const POOL = join(here, '__fixtures__', 'pool.sample.json');
+/** A path that never exists, so these tests do not depend on whether scripts/audio/cast.json has landed. */
+const NO_CAST = join(here, '__fixtures__', 'no-such-cast.json');
+const LISTENING = 'stories/n5/listening-s04.json';
+
+/** validate() with the cast check pointed at an absent file unless the test says otherwise. */
+function v(root: string, o: Parameters<typeof validate>[1] = {}): ValidateResult {
+  return validate(root, { cast: NO_CAST, ...o });
+}
+
+/**
+ * A valid Station 4 audio-first dialogue built from the fixture text: `genre: 'exchange'`, no `learnerSpeaker`
+ * (not a role-play, so V27 does not apply), gist / detail / speaker questions each with a `lineRef`.
+ */
+function piece(root: string, id = 's-04-4', over: Json = {}): Json {
+  const story = JSON.parse(readFileSync(join(root, 'stories/n5/stories-s04.json'), 'utf8')) as Json;
+  const base = item(story);
+  const lines = (base['lines'] as Json[]).map((l) => {
+    const { options: _o, accept: _a, mustInclude: _m, ...rest } = l;
+    return rest;
+  });
+  const comprehension = (base['comprehension'] as Json[]).map((q, i) => ({ ...q, kind: ['gist', 'detail', 'speaker'][i], lineRef: i }));
+  const { learnerSpeaker: _ls, ...rest } = base;
+  return { ...rest, id, titleJa: '{水|みず}', titleEn: 'Water', genre: 'exchange', audioFirst: true, lines, comprehension, ...over };
+}
+
+/** A speaker-less (`kind: 'story'`) piece read by a cast narrator — the one-sided shape of design 08 §3. */
+function storyPiece(root: string, id = 's-04-4', over: Json = {}): Json {
+  const p = piece(root, id);
+  const lines = (p['lines'] as Json[]).map((l) => {
+    const { speaker: _s, aizuchiSlot: _z, ...rest } = l;
+    return rest;
+  });
+  const comprehension = (p['comprehension'] as Json[]).map((q) => ({ ...q, kind: q['kind'] === 'speaker' ? 'detail' : q['kind'] }));
+  return { ...p, kind: 'story', narrator: 'anchor', lines, comprehension, ...over };
+}
+
+function writeStoryFile(root: string, rel: string, items: Json[], level = 'n5'): void {
+  mkdirSync(dirname(join(root, rel)), { recursive: true });
+  writeFileSync(join(root, rel), JSON.stringify({ schema: 'tsuzuku.content/1', type: 'story', level, writer: 'fixture-listening', items }, null, 2) + '\n');
+}
+
+const LONG_LINE = {
+  ja: 'わたしはまいあさがっこうでともだちとパンをたべます。',
+  kana: 'わたしはまいあさがっこうでともだちとパンをたべます。',
+  en: 'Every morning I eat bread with my friends at school.',
+  tokens: ['わたし', 'は', 'まいあさ', 'がっこう', 'で', 'ともだち', 'と', 'パン', 'を', 'たべます', '。'],
+};
+
+describe('listening pieces (design 08 §5) — placement, pool skip, pipeline', () => {
+  it('a valid piece in listening-s04.json passes; listening/pool-NN.json is skipped by the walk; anything else under listening/ is still V08', () => {
+    const root = copyFixture();
+    writeStoryFile(root, LISTENING, [piece(root)]);
+    mkdirSync(join(root, 'listening'));
+    cpSync(POOL, join(root, 'listening/pool-04.json'));
+    const r = v(root);
+    expect(r.failures).toEqual([]);
+    expect(r.files).toBe(10);
+    expect(r.warnings.filter((w) => w.file.startsWith('listening/'))).toEqual([]);
+    expect(rules(r.warnings)).not.toContain('V01');
+    expect(rules(r.warnings)).not.toContain('V08');
+    expect(POOL_FILE_RE.test('listening/pool-07.json')).toBe(true);
+    expect(POOL_FILE_RE.test('listening/pool-7.json')).toBe(false);
+    writeFileSync(join(root, 'listening/notes.json'), '{}\n');
+    expect(v(root).failures.map((f) => `${f.rule} ${f.file}`)).toEqual(['V08 listening/notes.json']);
+    rmSync(join(root, 'listening/notes.json'));
+    // strict after the pipeline: the piece joins the station bundle and nothing but the tiny-corpus quota rule fails
+    pipeline(root);
+    const s = v(root, { strict: true });
+    expect(rules(s.failures)).toEqual(['V34']);
+    const b = JSON.parse(readFileSync(join(root, 'stations/04.json'), 'utf8')) as { storyIds: string[] };
+    expect(b.storyIds).toEqual(['s-04-1', 's-04-4']);
+    const m = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')) as { files: { path: string; type: string; stations: number[] }[]; totals: Record<string, number> };
+    expect(m.files.find((f) => f.path === LISTENING)).toMatchObject({ type: 'story', stations: [4] });
+    expect(m.totals['pool']).toBe(0);
+  });
+
+  it('V05 amendment: a sequence up to quota.stories + quota.listening is accepted, one beyond it fails', () => {
+    const root = copyFixture();
+    writeStoryFile(root, LISTENING, [piece(root, 's-04-5')]);
+    expect(v(root).failures.filter((f) => f.rule === 'V05')).toEqual([]);
+    writeStoryFile(root, LISTENING, [piece(root, 's-04-6')]);
+    expect(v(root).failures.filter((f) => f.rule === 'V05').map((f) => f.message)).toEqual(['story sequence 6 > quota.stories + quota.listening (3 + 2) for st-04']);
+  });
+});
+
+describe('V41 listening fields (F)', () => {
+  it('genre before its station, an unknown genre, audioFirst without genre, audioFirst: false', () => {
+    const root = copyFixture();
+    writeStoryFile(root, LISTENING, [
+      piece(root, 's-04-2', { genre: 'news' }),
+      piece(root, 's-04-4', { genre: 'podcast' }),
+      piece(root, 's-04-5', { genre: undefined }),
+    ]);
+    const msgs = v(root).failures.filter((f) => f.rule === 'V41').map((f) => `${f.id} ${f.message}`);
+    expect(msgs).toContain('s-04-2 genre "news" only from Station 32 (this text is at Station 4)');
+    expect(msgs).toContain('s-04-4 genre "podcast" is not a ListeningGenre');
+    expect(msgs).toContain('s-04-5 audioFirst requires genre');
+    const root2 = copyFixture();
+    writeStoryFile(root2, LISTENING, [piece(root2, 's-04-4', { audioFirst: false })]);
+    expect(v(root2).failures.filter((f) => f.rule === 'V41').map((f) => f.message)).toContain('audioFirst is true or omitted (got false)');
+  });
+
+  it('narrator on a dialogue, a speaker-kind question in a story, lineRef out of range, an unknown question kind', () => {
+    const root = copyFixture();
+    const dialogue = piece(root, 's-04-4', { narrator: 'ケン' });
+    (dialogue['comprehension'] as Json[])[2]!['lineRef'] = 99;
+    (dialogue['comprehension'] as Json[])[1]!['kind'] = 'trivia';
+    const story = storyPiece(root, 's-04-5');
+    (story['comprehension'] as Json[])[2]!['kind'] = 'speaker';
+    writeStoryFile(root, LISTENING, [dialogue, story]);
+    const msgs = v(root).failures.filter((f) => f.rule === 'V41').map((f) => `${f.id} ${f.message}`);
+    expect(msgs).toContain('s-04-4 narrator only on kind "story" (a dialogue names its speakers per line)');
+    expect(msgs).toContain('s-04-4 comprehension[2].lineRef 99 is not a line index (0–11)');
+    expect(msgs).toContain('s-04-4 comprehension[1].kind "trivia" is not a QuestionKind');
+    expect(msgs).toContain('s-04-5 comprehension[2].kind "speaker" only in a dialogue');
+    // the narrator-read story piece itself is fine (no speakers, questions gist/detail/detail)
+    expect(msgs.filter((m) => m.startsWith('s-04-5 ')).length).toBe(1);
+  });
+
+  it('a 25-mora line at Station 4 fails the dictable cap, no gist question fails, emotion is checked', () => {
+    const root = copyFixture();
+    const p = piece(root);
+    (p['lines'] as Json[])[2] = { speaker: 'ケン', ...LONG_LINE, emotion: 'shouting' };
+    (p['lines'] as Json[])[3]!['emotion'] = 'warm';
+    (p['comprehension'] as Json[])[0]!['kind'] = 'detail';
+    writeStoryFile(root, LISTENING, [p]);
+    const r = v(root);
+    const msgs = r.failures.filter((f) => f.rule === 'V41').map((f) => f.message);
+    expect(lineMorae(LONG_LINE.kana)).toBe(25);
+    expect(lineMorae('はい、ほんです。')).toBe(6);
+    expect(PIECE_LINE_MAX_MORAE).toBe(22);
+    expect(msgs).toContain('lines[2] is 25 morae > 22 (every line of a piece is dictable through Station 15)');
+    expect(msgs).toContain('an audioFirst text needs ≥ 1 comprehension question with kind "gist"');
+    expect(msgs).toContain('lines[2].emotion "shouting" is not a LineEmotion');
+    expect(msgs.filter((m) => /emotion/.test(m)).length).toBe(1); // warm is fine on a dialogue line
+    // the same long line at Station 16 is not capped (cap is through Station 15; the Station 16 file is a different fixture station)
+    const root2 = copyFixture();
+    writeStoryFile(root2, 'stories/n4/listening-s16.json', [piece(root2, 's-16-4', { stationId: 'st-16', genre: 'narrative', lines: (p['lines'] as Json[]).map((l) => ({ ...l, emotion: undefined })) })], 'n4');
+    expect(v(root2).failures.filter((f) => f.rule === 'V41' && /morae/.test(f.message))).toEqual([]);
+  });
+
+  it('emotion on a story line without narrator is a W; with a narrator it is silent', () => {
+    const root = copyFixture();
+    const withNarrator = storyPiece(root, 's-04-4');
+    (withNarrator['lines'] as Json[])[0]!['emotion'] = 'whisper';
+    const without = storyPiece(root, 's-04-5', { narrator: undefined });
+    (without['lines'] as Json[])[0]!['emotion'] = 'whisper';
+    writeStoryFile(root, LISTENING, [withNarrator, without]);
+    const r = v(root);
+    expect(r.failures.filter((f) => f.rule === 'V41')).toEqual([]);
+    expect(r.warnings.filter((f) => f.rule === 'V41').map((f) => `${f.id} ${f.message}`)).toEqual(['s-04-5 lines[0].emotion on a story line without narrator (no cast voice to style)']);
+  });
+
+  it('an audioFirst dialogue with a learnerSpeaker that is not one of its speakers fails V41 (and V25); without learnerSpeaker V27 is not required', () => {
+    const root = copyFixture();
+    writeStoryFile(root, LISTENING, [piece(root, 's-04-4', { learnerSpeaker: 'アオ' }), piece(root, 's-04-5')]);
+    const r = v(root);
+    expect(r.failures.filter((f) => f.rule === 'V41').map((f) => `${f.id} ${f.message}`)).toEqual([
+      's-04-4 audioFirst dialogue: learnerSpeaker "アオ" is not one of its speakers (ケン, ハナ); omit it unless the piece is also a role-play',
+    ]);
+    expect(r.failures.some((f) => f.rule === 'V25' && f.id === 's-04-4')).toBe(true);
+    expect(r.failures.filter((f) => f.rule === 'V27')).toEqual([]);
+    // naming a real speaker turns the piece into a role-play: V27 now asks for the learner-line fields
+    const root2 = copyFixture();
+    writeStoryFile(root2, LISTENING, [piece(root2, 's-04-4', { learnerSpeaker: 'ハナ' })]);
+    const r2 = v(root2);
+    expect(r2.failures.filter((f) => f.rule === 'V41')).toEqual([]);
+    expect(r2.failures.some((f) => f.rule === 'V27' && /learner line/.test(f.message))).toBe(true);
+  });
+});
+
+describe('V42 cast (F in strict mode, W otherwise)', () => {
+  it('an unknown speaker is a W without --strict and an F with it; a narrator resolves like a speaker; unused entries warn', () => {
+    const root = copyFixture();
+    writeStoryFile(root, LISTENING, [piece(root, 's-04-4'), storyPiece(root, 's-04-5')]);
+    mutate(root, LISTENING, (d) => {
+      for (const ln of item(d)['lines'] as Json[]) if (ln['speaker'] === 'ケン') ln['speaker'] = '山田さん';
+    });
+    const w = validate(root, { cast: CAST });
+    const v42 = w.warnings.filter((f) => f.rule === 'V42');
+    expect(v42.find((f) => f.id === 's-04-4')?.message).toMatch(/^speaker "山田さん" does not resolve in .*cast\.sample\.json/);
+    expect(v42.filter((f) => f.id === 's-04-5')).toEqual([]); // narrator 'anchor' is in the cast
+    expect(v42.filter((f) => /used by no text/.test(f.message)).map((f) => /"(.+)"/.exec(f.message)?.[1]).sort()).toEqual(['lecturer', 'reader', '森さん', '田中さん']);
+    expect(w.failures.filter((f) => f.rule === 'V42')).toEqual([]);
+    const s = validate(root, { cast: CAST, strict: true });
+    expect(s.failures.filter((f) => f.rule === 'V42').map((f) => f.id)).toEqual(['s-04-4']);
+    // an unknown narrator is reported as such
+    writeStoryFile(root, LISTENING, [storyPiece(root, 's-04-5', { narrator: 'ghost' })]);
+    expect(validate(root, { cast: CAST, strict: true }).failures.filter((f) => f.rule === 'V42').map((f) => f.message)).toEqual([expect.stringMatching(/^narrator "ghost" does not resolve/)]);
+  });
+
+  it('an absent cast file is exactly one "cast check skipped" W and never an F; a parsed cast in any supported shape works', () => {
+    const root = copyFixture();
+    writeStoryFile(root, LISTENING, [piece(root)]);
+    const a = validate(root, { cast: NO_CAST });
+    expect(a.warnings.filter((f) => f.rule === 'V42').map((f) => f.message)).toEqual([expect.stringMatching(/^cast check skipped: .*no-such-cast\.json not found/)]);
+    expect(validate(root, { cast: NO_CAST, strict: true }).failures.filter((f) => f.rule === 'V42')).toEqual([]);
+    expect(castNames({ speakers: [{ name: 'ハナ' }, 'anchor'] })).toEqual(new Set(['ハナ', 'anchor']));
+    expect(castNames([{ name: 'ケン' }, { character: 'no name' }])).toEqual(new Set(['ケン']));
+    expect(castNames({ schema: 'tsuzuku.cast/1', ハナ: { character: '九州そら' }, anchor: { character: '波音リツ' } })).toEqual(new Set(['ハナ', 'anchor']));
+    expect(castNames(null)).toEqual(new Set());
+    // a parsed object passed directly is used as the cast
+    const r = validate(root, { cast: { speakers: [{ name: 'ハナ' }] }, strict: true });
+    const f42 = r.failures.filter((f) => f.rule === 'V42');
+    expect(f42.map((f) => f.id).sort()).toEqual(['s-04-1', 's-04-4']); // one row per text that uses the unknown speaker
+    for (const f of f42) expect(f.message).toMatch(/^speaker "ケン" does not resolve in scripts\/audio\/cast\.json/);
+  });
+});
+
+describe('V43 quota and placement (F at release, W before)', () => {
+  it('3 pieces at a station: every station off quota is W, under or over, with or without --strict; F with --strict --listening-release; pieces never count as stories (V34 amendment)', () => {
+    const root = copyFixture();
+    writeStoryFile(root, LISTENING, [piece(root, 's-04-2'), piece(root, 's-04-4'), piece(root, 's-04-5')]);
+    const w = v(root);
+    expect(w.failures.filter((f) => f.rule === 'V43')).toEqual([]);
+    const w43 = w.warnings.filter((f) => f.rule === 'V43').map((f) => `${f.file} ${f.message}`);
+    expect(w43.length).toBe(50); // st-04 over quota + the 49 stations from 5 that hold no piece yet (Stations 1–3 have quota 0)
+    expect(w43).toContain('stories/n5/listening-s04.json st-04 listening pieces: 3 vs quota.listening 2');
+    expect(w43).toContain('stories/n1/listening-s53.json st-53 listening pieces: 0 vs quota.listening 2');
+    expect(w43.some((m) => / st-0[1-3] /.test(m))).toBe(false);
+    pipeline(root);
+    const s = v(root, { strict: true });
+    expect(s.failures.filter((f) => f.rule === 'V43')).toEqual([]);
+    expect(s.warnings.filter((f) => f.rule === 'V43').length).toBe(50);
+    const rel = v(root, { strict: true, listeningRelease: true });
+    const f43 = rel.failures.filter((f) => f.rule === 'V43');
+    expect(f43.length).toBe(50);
+    expect(f43.find((f) => f.file === LISTENING)?.message).toBe('st-04 listening pieces: 3 vs quota.listening 2');
+    expect(f43.find((f) => f.file === 'stories/n1/listening-s53.json')?.message).toBe('st-53 listening pieces: 0 vs quota.listening 2');
+    expect(rel.failures.find((f) => f.rule === 'V34' && /st-04 stories/.test(f.message))?.message).toBe('st-04 stories: 1 vs quota 3 (texts without audioFirst)');
+  });
+
+  it('with no piece anywhere, strict mode notes once that the listening quota is not checked (Pass 4 has not started) and never fails', () => {
+    const root = copyFixture();
+    pipeline(root);
+    expect(v(root).warnings.filter((f) => f.rule === 'V43')).toEqual([]);
+    const s = v(root, { strict: true, listeningRelease: true });
+    expect(s.failures.filter((f) => f.rule === 'V43')).toEqual([]);
+    expect(s.warnings.filter((f) => f.rule === 'V43').map((f) => f.message)).toEqual(['no audioFirst piece in the corpus yet (Pass 4): quota.listening not checked']);
+  });
+
+  it('placement: an audioFirst text inside stories-sNN.json and a plain text inside listening-sNN.json (W before release, F only with --strict --listening-release — one switch for the whole rule)', () => {
+    const root = copyFixture();
+    const plain = piece(root, 's-04-5', { audioFirst: undefined, genre: undefined });
+    const misplaced = piece(root, 's-04-4');
+    writeStoryFile(root, LISTENING, [plain]);
+    mutate(root, 'stories/n5/stories-s04.json', (d) => {
+      (d['items'] as Json[]).push(misplaced);
+    });
+    const w = v(root);
+    expect(w.failures.filter((f) => f.rule === 'V43')).toEqual([]);
+    const msgs = w.warnings.filter((f) => f.rule === 'V43').map((f) => `${f.id} ${f.message}`);
+    expect(msgs).toContain('s-04-4 an audioFirst text lives in stories/<level>/listening-s04.json, not in stories-s04.json');
+    expect(msgs).toContain('s-04-5 listening-sNN.json holds audioFirst pieces only (this text has no audioFirst: true)');
+    pipeline(root);
+    const strict = v(root, { strict: true });
+    expect(strict.failures.filter((f) => f.rule === 'V43')).toEqual([]);
+    expect(strict.warnings.filter((f) => f.rule === 'V43' && typeof f.id === 'string').map((f) => f.id).sort()).toEqual(['s-04-4', 's-04-5']);
+    const rel = v(root, { strict: true, listeningRelease: true });
+    expect(rel.failures.filter((f) => f.rule === 'V43' && typeof f.id === 'string').map((f) => f.id).sort()).toEqual(['s-04-4', 's-04-5']);
+    expect(rel.warnings.filter((f) => f.rule === 'V43')).toEqual([]);
+  });
+
+  it('no pieces at Stations 1–3: a Station 2 piece is refused by V43, by V41 (genre gate) and by the V05 sequence (quota.listening 0)', () => {
+    const root = copyFixture();
+    writeStoryFile(root, 'stories/kana/listening-s02.json', [piece(root, 's-02-4', { stationId: 'st-02' })], 'kana');
+    const r = v(root);
+    const w43 = r.warnings.filter((f) => f.rule === 'V43').map((f) => f.message);
+    expect(w43).toContain('audioFirst pieces only from Station 4 (none at Stations 1–3)');
+    expect(w43).toContain('st-02 listening pieces: 1 vs quota.listening 0');
+    expect(r.failures.some((f) => f.rule === 'V41' && f.message === 'genre "exchange" only from Station 4 (this text is at Station 2)')).toBe(true);
+    expect(r.failures.some((f) => f.rule === 'V05' && f.message === 'story sequence 4 > quota.stories + quota.listening (3 + 0) for st-02')).toBe(true);
+  });
+});
+
+describe('V45 minutes band (W)', () => {
+  it('two short pieces warn, two pieces near the belt target do not; the estimate is kana chars ÷ 7 + 0.5 s per line', () => {
+    expect(speechSeconds('はい、ほんです。')).toBeCloseTo(6 / 7 + 0.5, 6);
+    expect(PIECE_TARGET_SECONDS.yellow).toBe(60);
+    expect(PIECE_TARGET_SECONDS.white).toBe(0);
+    const root = copyFixture();
+    writeStoryFile(root, LISTENING, [piece(root, 's-04-4'), piece(root, 's-04-5')]);
+    const short = v(root).warnings.filter((f) => f.rule === 'V45');
+    expect(short.map((f) => `${f.file} ${f.message}`)).toEqual([expect.stringMatching(/^stories\/n5\/listening-s04\.json st-04 pieces speak ≈ \d+ s, outside ±30 % of the yellow band \(2 × 60 s = 120 s; kana chars ÷ 7 \+ 0\.5 s per line\)$/)]);
+    // 17 lines of 21 kana ≈ 3.5 s each ≈ 60 s per piece → 119 s for two, inside [84, 156]
+    const long: Json = {
+      ja: 'はい、{大|おお}きいです。{私|わたし}は{学校|がっこう}へ{行|い}きます。',
+      kana: 'はい、おおきいです。わたしはがっこうへいきます。',
+      en: 'Yes, it is big. I am going to school.',
+      tokens: ['はい', '、', '大きい', 'です', '。', '私', 'は', '学校', 'へ', '行きます', '。'],
+    };
+    const lines = Array.from({ length: 17 }, (_, i) => ({ ...long, speaker: i % 2 ? 'ケン' : 'ハナ' }));
+    expect(textSpeechSeconds(lines as unknown as StoryLine[])).toBeCloseTo(17 * (21 / 7 + 0.5), 6);
+    writeStoryFile(root, LISTENING, [piece(root, 's-04-4', { lines }), piece(root, 's-04-5', { lines })]);
+    const r = v(root);
+    expect(r.warnings.filter((f) => f.rule === 'V45')).toEqual([]);
+    expect(r.failures.filter((f) => f.rule === 'V41')).toEqual([]);
+  });
+});
+
+describe('V46 own-station all-known example (W; F for Stations 4–15 with --strict --listening-release)', () => {
+  it('ownStationUnknowns: numerals, punctuation, function tokens, cast names, inflections and okurigana after a stem are known; a lone hiragana is tolerated', () => {
+    const vocab = JSON.parse(readFileSync(join(GOOD, 'vocab/n5/vocab-n5-001.json'), 'utf8')) as { items: VocabItem[] };
+    const grammar = JSON.parse(readFileSync(join(GOOD, 'grammar/n5/grammar-n5-001.json'), 'utf8')) as { items: GrammarItem[] };
+    const pool = buildMatchPool(vocab.items, grammar.items);
+    expect(ownStationUnknowns(pool, '私は学生です。')).toEqual([]);
+    expect(ownStationUnknowns(pool, '水を飲んで、パンを食べました。')).toEqual([]);
+    expect(ownStationUnknowns(pool, 'お水をください。')).toEqual([]);
+    expect(ownStationUnknowns(pool, 'パンを三つ食べました。')).toEqual([]);
+    expect(ownStationUnknowns(pool, '大きかったですね。')).toEqual([]);
+    expect(ownStationUnknowns(pool, 'ハナさんは学校へいきます。')).toEqual([]);
+    expect(ownStationUnknowns(pool, 'りんごを食べます。')).toEqual(['りんご']);
+    expect(ownStationUnknowns(pool, '龍の水です。')).toEqual(['龍']);
+    expect(ownStationUnknowns(pool, 'ハナさんはコーヒーを飲みます。')).toEqual(['コーヒー']);
+    // だ is the copula function token, so the unknown run stops before it; the verdict (not all-known) is what V46 reads
+    expect(ownStationUnknowns(pool, '学校へ行って、本を読んだ。')).toEqual(['読ん']);
+    expect(ownStationUnknowns(pool, '本を読みました。')).toEqual(['読み']);
+  });
+
+  it('the good fixture is clean; an item whose every example uses a word outside its allowlist warns, fails at release for Stations 4–15, and one all-known example is enough', () => {
+    const root = copyFixture();
+    pipeline(root);
+    expect(v(root).warnings.filter((f) => f.rule === 'V46')).toEqual([]);
+    mutate(root, 'vocab/n5/vocab-n5-001.json', (d) => {
+      item(d, 7)['examples'] = [
+        { ja: '{龍|りゅう}の{水|みず}です。', kana: 'りゅうのみずです。', en: 'It is dragon water.' },
+        { ja: 'りんごと{水|みず}。', kana: 'りんごとみず。', en: 'An apple and water.' },
+      ];
+    });
+    const w = v(root);
+    const v46 = w.warnings.filter((f) => f.rule === 'V46');
+    expect(v46.map((f) => f.id)).toEqual(['v-n5-0008']);
+    expect(v46[0]!.message).toBe('no example links fully inside the Station 1 allowlist (own-station all-known example for the listening pool, Pass 4b) — examples[0]: 龍; examples[1]: りんご');
+    expect(w.failures.filter((f) => f.rule === 'V46')).toEqual([]);
+    // Station 1 is White: never an F (the release switch covers Stations 4–15)
+    expect(v(root, { strict: true, listeningRelease: true }).failures.filter((f) => f.rule === 'V46')).toEqual([]);
+    // the same item placed at Station 4 fails at release and only at release
+    mutate(root, 'vocab/n5/vocab-n5-001.json', (d) => {
+      item(d, 7)['station'] = 4;
+    });
+    expect(v(root, { strict: true }).failures.filter((f) => f.rule === 'V46')).toEqual([]);
+    expect(v(root, { strict: true, listeningRelease: true }).failures.filter((f) => f.rule === 'V46').map((f) => `${f.id} ${f.message}`)).toEqual([
+      'v-n5-0008 no example links fully inside the Station 4 allowlist (own-station all-known example for the listening pool, Pass 4b) — examples[0]: 龍; examples[1]: りんご',
+    ]);
+    mutate(root, 'vocab/n5/vocab-n5-001.json', (d) => {
+      (item(d, 7)['examples'] as Json[]).push({ ja: '{水|みず}を{飲|の}みます。', kana: 'みずをのみます。', en: 'I drink water.' });
+    });
+    expect(v(root, { strict: true, listeningRelease: true }).failures.filter((f) => f.rule === 'V46')).toEqual([]);
+    expect(v(root).warnings.filter((f) => f.rule === 'V46')).toEqual([]);
+  });
+
+  it('is silent without station bundles', () => {
+    const root = copyFixture();
+    mutate(root, 'vocab/n5/vocab-n5-001.json', (d) => {
+      item(d, 7)['examples'] = [{ ja: '{龍|りゅう}の{水|みず}です。', kana: 'りゅうのみずです。', en: 'It is dragon water.' }];
+    });
+    expect(rules(v(root).warnings)).not.toContain('V46');
+  });
+});
+
+describe('formatReport caps warnings per rule too', () => {
+  it('shows at most perRuleCap rows of one warning rule and counts the rest', () => {
+    const r: ValidateResult = {
+      failures: [],
+      warnings: Array.from({ length: 45 }, (_, i) => ({ file: 'vocab/n5/vocab-n5-001.json', id: `v-n5-${String(i + 1).padStart(4, '0')}`, rule: 'V46', message: 'no example links fully inside the Station 4 allowlist' })),
+      linked: 0,
+      files: 1,
+      bundles: true,
+    };
+    const text = formatReport(r, '/root', 40);
+    expect(text.split('\n').filter((l) => /^ {2}W V46 /.test(l)).length).toBe(40);
+    expect(text).toContain('… 5 more V46 warnings not shown (cap 40 per rule; --json lists them all)');
+    expect(text).toContain('TOTAL: 0 failures, 45 warnings in 1 file');
+  });
+});
+
+/* ── the shipped corpus (docs/listening-plan.json contracts.tests: "the shipped corpus passes with 0 new F") ── */
+
+describe('the shipped corpus (public/content) under the design 08 rules', () => {
+  it('strict mode: no V41–V46 failure; V42 warns once that the cast check is skipped while scripts/audio/cast.json is absent', () => {
+    const r = validate(join(here, '..', 'public', 'content'), { strict: true });
+    expect(r.bundles).toBe(true);
+    expect(r.failures.filter((f) => /^V4[1-6]$/.test(f.rule))).toEqual([]);
+    const v42 = r.warnings.filter((f) => f.rule === 'V42');
+    if (existsSync(join(here, 'audio', 'cast.json'))) {
+      expect(v42.some((f) => /^cast check skipped/.test(f.message))).toBe(false);
+    } else {
+      expect(v42.map((f) => f.message)).toEqual([expect.stringMatching(/^cast check skipped: /)]);
+    }
+  }, 120_000);
+});

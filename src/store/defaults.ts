@@ -9,6 +9,13 @@
  * belt table) — the forecast, the projection, the Road page and the session
  * pickers all read it from here. Pure: `now` and `tz` are injected; the only
  * entropy is `randomSeed()` (shared/hash.ts), used once for `seed`.
+ *
+ * Listening (design 08 §11–§13): `settings.audioSource` starts at `'pack'` and
+ * `dataSaver` off (the shell flips it on under `navigator.connection.saveData`;
+ * the default stays pure), `progress.listened` / `teachSeen` start empty, and
+ * the five listening counters start at 0 except `bestCleanTier`, which a NEW
+ * save starts at `FRESH_BEST_CLEAN_TIER` (1); an existing save is seeded from
+ * its `speedTier` by `migrations.fillMeta` so no 耳 radar drops on upgrade.
  */
 import { BELTS, ERROR_TAGS, type Belt } from '../content/types';
 import { randomSeed } from '../shared/hash';
@@ -100,9 +107,17 @@ export function beltForStation(station: number): Belt {
   return station <= 0 ? 'white' : 'black';
 }
 
+/**
+ * `stats.bestCleanTier` of a brand-new save (design 08 §12): the lowest speed
+ * tier, since no clean listening set has been shown yet. An existing save is
+ * seeded from its `settings.speedTier` by `migrations.fillMeta` instead.
+ */
+export const FRESH_BEST_CLEAN_TIER = 1;
+
 export function freshStats(): Stats {
   const s = {} as Record<string, number>;
   for (const k of STAT_KEYS) s[k] = 0;
+  s.bestCleanTier = FRESH_BEST_CLEAN_TIER;
   return s as Stats;
 }
 
@@ -134,6 +149,10 @@ export function defaultSettings(): Settings {
     verticalText: false,
     // "Speed affects grading": default off in Zen, on otherwise; the default feel is Dojo.
     speedGrading: true,
+    // design 08 §13: pre-rendered VOICEVOX clips when the build ships a pack (per-clip fallback to the
+    // device voice); data saver off — the shell turns it on under `navigator.connection.saveData`.
+    audioSource: 'pack',
+    dataSaver: false,
   };
 }
 
@@ -185,6 +204,9 @@ export function freshSave(now: number, tz: string): SaveMeta {
       awayDays: 0,
       welcomeBackDue: false,
       storiesRead: [],
+      // design 08 §10–§11: text ids heard in the Arena, Radio or Read-along; teach cards dismissed.
+      listened: [],
+      teachSeen: [],
     },
     quests: { day: 0, ids: [], done: [] },
     collections: { badges: {}, wallpapers: {}, stamps: {}, michikusa: [] },

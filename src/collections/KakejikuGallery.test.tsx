@@ -81,12 +81,12 @@ describe('gallery helpers', () => {
 });
 
 describe('<KakejikuGallery>', () => {
-  it('renders all 28 scrolls with locked vs unlocked states, chips and Studio links', async () => {
+  it('renders all 29 scrolls with locked vs unlocked states, chips and Studio links', async () => {
     await mount(false);
     const cards = root.querySelectorAll('.kakejiku-card');
     expect(cards).toHaveLength(WALLPAPER_IDS.length);
     expect(root.querySelector('.kakejiku-gallery')?.getAttribute('data-unlocked')).toBe('2');
-    expect(root.querySelector('.kakejiku-gallery__lede')?.textContent).toContain('2 of 28');
+    expect(root.querySelector('.kakejiku-gallery__lede')?.textContent).toContain('2 of 29');
 
     const torii = card('torii-dawn');
     expect(torii.dataset.state).toBe('unlocked');
@@ -110,7 +110,7 @@ describe('<KakejikuGallery>', () => {
     expect(card('daruma').textContent).toContain('Left eye painted');
     // without thumbnails no <img>, but every art slot has an accessible label
     expect(root.querySelectorAll('img')).toHaveLength(0);
-    expect(root.querySelectorAll('.kakejiku-card__pending[role="img"]')).toHaveLength(28);
+    expect(root.querySelectorAll('.kakejiku-card__pending[role="img"]')).toHaveLength(29);
   });
 
   it('counter pieces show a progress ring and the revealed quadrant count', async () => {

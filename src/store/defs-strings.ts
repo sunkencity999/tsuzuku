@@ -59,6 +59,9 @@ const BADGES: Record<BadgeId, NamedCopy> = {
   'speed-reader': { en: 'Speed Reader', ja: '速読', describe: 'A Speed Read at 300 cpm or more with the question answered right.' },
   'golden-ear': { en: 'Golden Ear', ja: '地獄耳', describe: 'One hundred dictation lines at 95 % at normal speed.' },
   'fast-ear': { en: 'Fast Forward', ja: '倍速の耳', describe: 'Twenty Listening Arena sets passed at 1.25× or faster.' },
+  // design 08 §11: Teahouse Radio minutes; texts understood on the first hearing, Arena or Radio alike.
+  'teahouse-regular': { en: 'Teahouse Regular', ja: '茶屋の常連', describe: 'Ten hours of Teahouse Radio heard.' },
+  'first-hearing': { en: 'First Hearing', ja: '初耳', describe: 'Twenty texts understood on the first hearing.' },
   voice: { en: 'Voice Unlocked', ja: '声出し', describe: 'One shadow line passed.' },
   'shadow-warrior': { en: 'Shadow Warrior', ja: '影武者', describe: 'Five hundred shadow lines passed.' },
   aizuchi: { en: 'Aizuchi Master', ja: '相槌名人', describe: 'Twenty role-plays with 80 % of the aizuchi slots hit.' },
@@ -115,6 +118,8 @@ const WALLPAPERS: Record<WallpaperId, NamedCopy> = {
   'kyoto-arrival': { en: 'Kyoto Arrival', ja: '京の橋', describe: 'The Shodan Shinsa passed.' },
   'road-continues': { en: 'The Road Continues', ja: '無限の道', describe: 'Jūdan: one thousand training days and 1,500 ledger hours.' },
   'end-card': { en: 'End Card', ja: 'つづく', describe: 'One hundred sessions.' },
+  // design 08 §11: ledger listen hours, dojo rows and outside rows alike; one chōchin per ten.
+  'chaya-lanterns': { en: 'Teahouse Lanterns', ja: '茶屋の灯', describe: 'One hundred hours of listening in the ledger, dojo and world together. A lantern for every ten.' },
 };
 
 export const S = {
@@ -160,9 +165,15 @@ export const S = {
   flagEstimated: '(estimated)',
   flagNoVoice: '(no voice)',
   explainVocab: 'Retrievability summed over {rec} receptive and {prod} productive word cards.',
-  explainEar: 'Listening tier {tier} of 5 at {acc} % dictation accuracy. Synthetic: every voice in the app is text-to-speech.',
+  // 耳 (design 08 §12). `explainEarCap` is filled by store/perapera.ts with {cap, goal, app, ext, reach}: `goal` is the
+  // top step of EAR_CAP_STEP_HOURS, `app` the dojo's authentic minutes / 60, `ext` the ledger's outside listen + watch
+  // hours, `reach` the hours the dojo alone can carry (the corpus-walking test keeps it honest).
+  explainEar: "Listening tier {tier} of 5 at {acc} % dictation accuracy. Synthetic: every voice in the dojo is a VOICEVOX character voice. The ledger's outside hours are real people.",
   explainEarNoData: 'Listening tier {tier} of 5. No dictation lines yet, so the floor applies.',
-  explainEarCap: 'Held at 70 until the ledger holds 20 hours of outside listening ({hours} h so far).',
+  explainEarCap:
+    'Held at {cap} until {goal} h of authentic-style listening: {app} h in the dojo (bridge, casual talk, news, lectures at full speed, understood) + {ext} h outside so far. The dojo alone can carry you to about {reach} h; the rest is the world.',
+  explainEarComp: 'Understood on first hearing: {passed} of {sets} texts ({rate} %). Counts from ten first hearings; 80 % reads as full, 0 % as half.',
+  explainEarTier: 'Tier {tier} of 5: the fastest clean set so far ran at {rate}×. The dial may sit higher; the radar reads the tier you have shown.',
   explainRead: 'Best Speed Read {cpm} cpm; 500 cpm reads as 100.',
   explainReadNoData: 'No Speed Read yet.',
   explainMouthRecognition: 'Shadow pass rate {rate} % and {wpm} words in one minute, by recognition.',

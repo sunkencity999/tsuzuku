@@ -46,7 +46,7 @@ describe('peraperaNow (design 05 §11)', () => {
     expect(r.available).toEqual([true, true, true, true, false]);
     expect(r.explain).toHaveLength(5);
     expect(r.explain[1]).toContain('tier 2');
-    expect(r.explain[1]).toContain('20 hours');
+    expect(r.explain[1]).toContain('20 h of authentic-style listening');
     expect(r.explain[2]).toBe(S.explainReadNoData);
     expect(r.explain[4]).toBe(S.explainRegisterUnavailable);
     expect(PERAPERA_LABELS).toEqual(['語彙', '耳', '読', '口', '場']);
@@ -81,7 +81,8 @@ describe('peraperaNow (design 05 §11)', () => {
     let r = peraperaNow(s.meta(), s.cards, s.now());
     expect(r.axes[1]).toBe(EAR_CAP);
     expect(r.explain[1]).toContain('100 %');
-    expect(r.explain[1]).toContain('0 h so far');
+    expect(r.explain[1]).toContain('+ 0 h outside so far');
+    expect(r.explain[1]).not.toContain('{');
     // 19.9 h of listening and watching: still capped.
     store.patch('ledger', (l) => ({ ...l, entries: [[TODAY - 2, 10 * 60, 0, 1], [TODAY - 1, 9 * 60 + 54, 2, 1], [TODAY, 600, 1, 1], [TODAY, 600, 0, 0]] }));
     expect(externalListeningHours(store.meta())).toBeCloseTo(19.9);
