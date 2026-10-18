@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ReadableStream } from 'node:stream/web';
 import { type FetchLike, type SpawnLike, fetchAudioPack, NONE_MESSAGE, streamToFile } from './fetch-audio-pack.ts';
+import { emptyPointer } from './pack.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const sha = (b: Buffer): string => createHash('sha256').update(b).digest('hex');
@@ -143,11 +144,11 @@ describe('fetch-audio-pack — streaming download with verification', () => {
     expect(s.spawns).toEqual([]);
   });
 
-  it('an empty asset list (the committed placeholder) exits 0 with the none message and never calls the network', async () => {
+  it('an empty asset list (the placeholder a checkout ships before the first pack is published) exits 0 with the none message and never calls the network', async () => {
     const tmp = mkdtempSync(join(tmpdir(), 'tsuzuku-fetch-'));
     made.push(tmp);
     const pointer = join(tmp, 'audio-pack.json');
-    writeFileSync(pointer, readFileSync(join(here, '..', '..', 'public', 'audio-pack.json'), 'utf8'));
+    writeFileSync(pointer, JSON.stringify(emptyPointer(), null, 2));
     const calls: string[] = [];
     const log: string[] = [];
     const r = await fetchAudioPack({

@@ -48,14 +48,33 @@ describe('pack — tar contents and the pointer', () => {
     expect(tiersOf(manifestOf({ files: [] }))).toEqual(['core']);
   });
 
-  it('buildPointer names the tag and the sorted assets with the credits; emptyPointer is the committed placeholder shape', () => {
+  it('buildPointer names the tag and the sorted assets with the credits; emptyPointer is the placeholder shape; the committed pointer is the placeholder or a well-formed release', () => {
     const p = buildPointer(manifestOf(), [
       { tier: 'pool', name: assetName('a-0123456789', 'pool'), sha256: 'p', bytes: 2 },
       { tier: 'core', name: assetName('a-0123456789', 'core'), sha256: 'c', bytes: 1 },
     ]);
     expect(p).toEqual({ schema: 'tsuzuku.audio-pack/1', repo: PACK_REPO, audioVersion: 'a-0123456789', tag: releaseTag('a-0123456789'), assets: [{ tier: 'core', name: 'tsuzuku-audio-a-0123456789-core.tar', sha256: 'c', bytes: 1 }, { tier: 'pool', name: 'tsuzuku-audio-a-0123456789-pool.tar', sha256: 'p', bytes: 2 }], credits: ['VOICEVOX:九州そら'] });
     expect(emptyPointer()).toEqual({ schema: 'tsuzuku.audio-pack/1', repo: PACK_REPO, audioVersion: null, tag: null, assets: [], credits: [] });
-    expect(JSON.parse(readFileSync(join(here, '..', '..', 'public', 'audio-pack.json'), 'utf8'))).toEqual(emptyPointer());
+    // public/audio-pack.json: the placeholder until the first `audio:pack` + publish, a release pointer after
+    // (audio-a-d2d42f75c3, 2026-10-18). Either way its shape is what fetch-audio-pack.ts and CI rely on.
+    const committed = JSON.parse(readFileSync(join(here, '..', '..', 'public', 'audio-pack.json'), 'utf8')) as ReturnType<typeof emptyPointer>;
+    expect(committed.schema).toBe('tsuzuku.audio-pack/1');
+    expect(committed.repo).toBe(PACK_REPO);
+    if (committed.audioVersion === null) {
+      expect(committed).toEqual(emptyPointer());
+    } else {
+      expect(committed.audioVersion).toMatch(/^a-[0-9a-f]{10}$/);
+      expect(committed.tag).toBe(releaseTag(committed.audioVersion));
+      expect(committed.assets.length).toBeGreaterThan(0);
+      for (const a of committed.assets) {
+        expect(a.name).toBe(assetName(committed.audioVersion, a.tier));
+        expect(a.sha256).toMatch(/^[0-9a-f]{64}$/);
+        expect(a.bytes).toBeGreaterThan(0);
+      }
+      expect(committed.assets.map((a) => a.tier)).toContain('core');
+      expect(committed.credits.length).toBeGreaterThan(0);
+      for (const c of committed.credits) expect(c).toMatch(/^VOICEVOX:/);
+    }
   });
 });
 
