@@ -7,8 +7,8 @@
  * field-mission. Each drill file follows the D export convention
  * (`export const meta: ExerciseMeta` + a component named like the file).
  * Registration is idempotent (an id already registered is left alone) and
- * never touches D's 26 drills or the runner ids. The three standalone pages
- * are re-exported for `src/app/pages.ts`.
+ * never touches D's 26 drills or the runner ids. The four standalone pages
+ * (Story, Listen, Taiwa, Radio) are re-exported for `src/app/pages.ts`.
  */
 import type { FunctionComponent } from 'preact';
 import type { DrillId } from '@/content/types';
@@ -26,6 +26,8 @@ import { WritingDojo, meta as writingDojoMeta } from './writing/WritingDojo';
 export { default as StoryPage } from './pages/StoryPage';
 export { default as ListenPage } from './pages/ListenPage';
 export { default as TaiwaPage } from './pages/TaiwaPage';
+// design 08 §10.2: 茶屋ラジオ (#/radio), a non-session surface (`PAGE_SOURCES.radio`, needsExercises false)
+export { default as RadioPage } from './pages/RadioPage';
 
 /** The 9 drills group F registers (module plan), in design-04 order. */
 export const F_DRILL_IDS = [

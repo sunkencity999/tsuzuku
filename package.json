@@ -15,7 +15,13 @@
     "content:validate": "node scripts/validate-content.ts",
     "content:assign": "node scripts/assign-stations.ts",
     "content:index": "node scripts/build-content-index.ts",
-    "content:all": "npm run content:validate && npm run content:assign && npm run content:index && npm run content:validate -- --strict"
+    "content:report": "node scripts/listening-report.ts",
+    "content:all": "npm run content:validate && npm run content:assign && npm run content:index && npm run content:report && npm run content:validate -- --strict --listening-release",
+    "audio:render": "node scripts/audio/render-audio.ts",
+    "audio:pack": "node scripts/audio/pack.ts",
+    "audio:publish": "node scripts/audio/publish.ts --dry-run",
+    "audio:fetch": "node scripts/audio/fetch-audio-pack.ts",
+    "audio:check": "node scripts/audio/check-audio.ts"
   },
   "dependencies": {
     "@preact/signals": "2.11.3",

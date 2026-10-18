@@ -1,0 +1,62 @@
+{
+ "name": "quartz",
+ "text": "クォーツ",
+ "kana": "クォーツ",
+ "styleId": 16,
+ "note": "kana example word: クォーツ misread as クオオツ (want クォーツ) — the step-2 patch must carry no ー (the is_kana parser rejects it)",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ク",
+      "consonant": "k",
+      "consonant_length": 0.09246058017015457,
+      "vowel": "u",
+      "vowel_length": 0.09151789546012878,
+      "pitch": 5.664365768432617
+     },
+     {
+      "text": "オ",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "o",
+      "vowel_length": 0.12249993532896042,
+      "pitch": 5.808865547180176
+     },
+     {
+      "text": "オ",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "o",
+      "vowel_length": 0.13568729162216187,
+      "pitch": 5.725326061248779
+     },
+     {
+      "text": "ツ",
+      "consonant": "ts",
+      "consonant_length": 0.190825417637825,
+      "vowel": "u",
+      "vowel_length": 0.10576172173023224,
+      "pitch": 5.453925132751465
+     }
+    ],
+    "accent": 2,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "クオ'オツ"
+ }
+}

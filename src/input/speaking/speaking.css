@@ -155,6 +155,26 @@
   border-top: 1px dotted var(--line);
   height: 0;
 }
+/* punctuation cells own no mora of the cue (design 08 §9): narrower, quiet */
+.pitch-strip__mora[data-punct='true'] {
+  min-width: 0.8em;
+  color: var(--fg-muted);
+}
+/* Shadow sweep (design 08 §9, clip path only): the spoken mora lights, the ones behind it settle */
+.pitch-strip__mora[data-timing='active'] {
+  background: color-mix(in srgb, var(--ai) 22%, transparent);
+  border-radius: var(--radius-sm);
+}
+.pitch-strip__mora[data-timing='past'] {
+  color: var(--fg-muted);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pitch-strip__mora {
+    transition:
+      background var(--dur-1) var(--ease),
+      color var(--dur-1) var(--ease);
+  }
+}
 
 /* ── recorder ─────────────────────────────────────────────────────────── */
 .recorder {

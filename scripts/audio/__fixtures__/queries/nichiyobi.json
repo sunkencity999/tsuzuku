@@ -1,0 +1,70 @@
+{
+ "name": "nichiyobi",
+ "text": "日曜日",
+ "kana": "にちようび",
+ "styleId": 16,
+ "note": "vocab word 日曜日 (kanji example reuse)",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ニ",
+      "consonant": "n",
+      "consonant_length": 0.0313834622502327,
+      "vowel": "i",
+      "vowel_length": 0.1203327476978302,
+      "pitch": 5.426889896392822
+     },
+     {
+      "text": "チ",
+      "consonant": "ch",
+      "consonant_length": 0.15469683706760406,
+      "vowel": "i",
+      "vowel_length": 0.07791654765605927,
+      "pitch": 5.736913204193115
+     },
+     {
+      "text": "ヨ",
+      "consonant": "y",
+      "consonant_length": 0.07424527406692505,
+      "vowel": "o",
+      "vowel_length": 0.09130028635263443,
+      "pitch": 5.8164286613464355
+     },
+     {
+      "text": "オ",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "o",
+      "vowel_length": 0.1366051882505417,
+      "pitch": 5.768426418304443
+     },
+     {
+      "text": "ビ",
+      "consonant": "b",
+      "consonant_length": 0.07110978662967682,
+      "vowel": "i",
+      "vowel_length": 0.1441641002893448,
+      "pitch": 5.399505138397217
+     }
+    ],
+    "accent": 3,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ニチヨ'オビ"
+ }
+}

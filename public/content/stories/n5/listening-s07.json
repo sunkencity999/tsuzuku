@@ -1,0 +1,1433 @@
+{
+  "schema": "tsuzuku.content/1",
+  "type": "story",
+  "level": "n5",
+  "writer": "listening-s07",
+  "generatedAt": "2026-10-17T00:00:00Z",
+  "items": [
+    {
+      "id": "s-07-4",
+      "stationId": "st-07",
+      "titleJa": "{夜|よる}の{七夕|たなばた}",
+      "titleEn": "Tanabata at night",
+      "kind": "dialogue",
+      "register": "polite",
+      "genre": "exchange",
+      "audioFirst": true,
+      "learnerSpeaker": "ハナ",
+      "names": [
+        "ユウタ",
+        "平塚",
+        "七夕"
+      ],
+      "lines": [
+        {
+          "ja": "あ、お{姉|ねえ}さん！こんばんは！こちらです！",
+          "kana": "あ、おねえさん！こんばんは！こちらです！",
+          "en": "Oh, miss! Good evening! Over here!",
+          "tokens": [
+            "あ",
+            "、",
+            "お姉さん",
+            "！",
+            "こんばんは",
+            "！",
+            "こちら",
+            "です",
+            "！"
+          ],
+          "speaker": "ユウタ",
+          "emotion": "glad",
+          "tokenIds": [
+            null,
+            null,
+            "v-n5-0090",
+            null,
+            "v-n5-0007",
+            null,
+            "v-n5-0189",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "こんばんは、ユウタくん。{七時|しちじ}に{来|き}ましたよ。",
+          "kana": "こんばんは、ユウタくん。しちじにきましたよ。",
+          "en": "Good evening, Yūta. Here I am, at seven.",
+          "tokens": [
+            "こんばんは",
+            "、",
+            "ユウタくん",
+            "。",
+            "七時",
+            "に",
+            "来ました",
+            "よ",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "こんばんは、ユウタくん。七時に来ましたよ。",
+              "kind": "best"
+            },
+            {
+              "text": "こんばんは。七時に来ました。",
+              "kind": "ok",
+              "recast": "こんばんは、ユウタくん。七時に来ましたよ。"
+            },
+            {
+              "text": "こんばんは、ユウタくん。七時で来ましたよ。",
+              "kind": "grammar-wrong",
+              "recast": "こんばんは、ユウタくん。七時に来ましたよ。"
+            },
+            {
+              "text": "こんばんは、ユウタくん。七時に来たよ。",
+              "kind": "register-wrong",
+              "recast": "こんばんは、ユウタくん。七時に来ましたよ。"
+            }
+          ],
+          "mustInclude": [
+            "こんばんは",
+            "来ました"
+          ],
+          "accept": [
+            "こんばんは。七時に来ました。",
+            "こんばんは、ユウタくん。七時ですよ。"
+          ],
+          "speaker": "ハナ",
+          "tokenIds": [
+            "v-n5-0007",
+            null,
+            null,
+            null,
+            "v-n5-0154",
+            "v-n5-0121",
+            "v-n5-0275",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "お{姉|ねえ}さん、{夜|よる}の{七夕|たなばた}はどうですか。",
+          "kana": "おねえさん、よるのたなばたはどうですか。",
+          "en": "Miss, how do you like Tanabata at night?",
+          "tokens": [
+            "お姉さん",
+            "、",
+            "夜",
+            "の",
+            "七夕",
+            "は",
+            "どう",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ユウタ",
+          "tokenIds": [
+            "v-n5-0090",
+            null,
+            "v-n5-0143",
+            "v-n5-0126",
+            null,
+            "v-n5-0118",
+            "v-n5-0060",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "とてもきれいですね。{静|しず}かじゃないですね。",
+          "kana": "とてもきれいですね。しずかじゃないですね。",
+          "en": "It's so pretty. And not quiet at all, is it?",
+          "tokens": [
+            "とても",
+            "きれい",
+            "です",
+            "ね",
+            "。",
+            "静か",
+            "じゃない",
+            "です",
+            "ね",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "とてもきれいですね。静かじゃないですね。",
+              "kind": "best"
+            },
+            {
+              "text": "ええ、とてもきれいですね。",
+              "kind": "ok",
+              "recast": "とてもきれいですね。静かじゃないですね。"
+            },
+            {
+              "text": "とてもきれいなですね。静かじゃないですね。",
+              "kind": "grammar-wrong",
+              "recast": "とてもきれいですね。静かじゃないですね。"
+            },
+            {
+              "text": "すごくきれいだね。静かじゃないね。",
+              "kind": "register-wrong",
+              "recast": "とてもきれいですね。静かじゃないですね。"
+            }
+          ],
+          "mustInclude": [
+            "きれい"
+          ],
+          "accept": [
+            "ええ、とてもきれいですね。",
+            "とてもきれいです。にぎやかですね。"
+          ],
+          "speaker": "ハナ",
+          "plusOne": [
+            "v-n5-0397"
+          ],
+          "emotion": "warm",
+          "tokenIds": [
+            "g-n5-028",
+            "v-n5-0397",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0386",
+            "v-n5-0132",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "お{姉|ねえ}さん、どれが{大|おお}きいですか。",
+          "kana": "おねえさん、どれがおおきいですか。",
+          "en": "Miss, which one is big?",
+          "tokens": [
+            "お姉さん",
+            "、",
+            "どれ",
+            "が",
+            "大きい",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ユウタ",
+          "tokenIds": [
+            "v-n5-0090",
+            null,
+            "v-n5-0058",
+            "v-n5-0119",
+            "v-n5-0350",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "あれです。あの{青|あお}いのがとても{大|おお}きいです。",
+          "kana": "あれです。あのあおいのがとてもおおきいです。",
+          "en": "That one. That blue one is very big.",
+          "tokens": [
+            "あれ",
+            "です",
+            "。",
+            "あの",
+            "青い",
+            "の",
+            "が",
+            "とても",
+            "大きい",
+            "です",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "あれです。あの青いのがとても大きいです。",
+              "kind": "best"
+            },
+            {
+              "text": "あの青いのです。とても大きいです。",
+              "kind": "ok",
+              "recast": "あれです。あの青いのがとても大きいです。"
+            },
+            {
+              "text": "あれです。あの青いがとても大きいです。",
+              "kind": "grammar-wrong",
+              "recast": "あれです。あの青いのがとても大きいです。"
+            },
+            {
+              "text": "あれ。あの青いの、すごく大きい。",
+              "kind": "register-wrong",
+              "recast": "あれです。あの青いのがとても大きいです。"
+            }
+          ],
+          "mustInclude": [
+            "青い",
+            "大きい"
+          ],
+          "accept": [
+            "あの青いのです。とても大きいです。",
+            "あれです。青いのが大きいです。"
+          ],
+          "speaker": "ハナ",
+          "tokenIds": [
+            "v-n5-0047",
+            "v-n5-0132",
+            null,
+            "v-n5-0050",
+            "v-n5-0166",
+            "v-n5-0126",
+            "v-n5-0119",
+            "g-n5-028",
+            "v-n5-0350",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{大|おお}きいですね。{長|なが}いのはどれですか。",
+          "kana": "おおきいですね。ながいのはどれですか。",
+          "en": "It is big. And which one is long?",
+          "tokens": [
+            "大きい",
+            "です",
+            "ね",
+            "。",
+            "長い",
+            "の",
+            "は",
+            "どれ",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ユウタ",
+          "plusOne": [
+            "v-n5-0373"
+          ],
+          "tokenIds": [
+            "v-n5-0350",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0373",
+            "v-n5-0126",
+            "v-n5-0118",
+            "v-n5-0058",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "{黄色|きいろ}いのです。{下|した}まで{長|なが}いですね。",
+          "kana": "きいろいのです。したまでながいですね。",
+          "en": "The yellow one. It's long, right down to the bottom.",
+          "tokens": [
+            "黄色い",
+            "の",
+            "です",
+            "。",
+            "下",
+            "まで",
+            "長い",
+            "です",
+            "ね",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "黄色いのです。下まで長いですね。",
+              "kind": "best"
+            },
+            {
+              "text": "黄色いのです。とても長いですね。",
+              "kind": "ok",
+              "recast": "黄色いのです。下まで長いですね。"
+            },
+            {
+              "text": "黄色いのです。下に長いですね。",
+              "kind": "grammar-wrong",
+              "recast": "黄色いのです。下まで長いですね。"
+            },
+            {
+              "text": "黄色いの。下まで長いね。",
+              "kind": "register-wrong",
+              "recast": "黄色いのです。下まで長いですね。"
+            }
+          ],
+          "mustInclude": [
+            "黄色い",
+            "長い"
+          ],
+          "accept": [
+            "黄色いのです。とても長いですね。",
+            "黄色いのが長いです。"
+          ],
+          "speaker": "ハナ",
+          "plusOne": [
+            "v-n5-0373"
+          ],
+          "tokenIds": [
+            "v-n5-0262",
+            "v-n5-0126",
+            "v-n5-0132",
+            null,
+            "v-n5-0149",
+            "v-n5-0131",
+            "v-n5-0373",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "はい。{白|しろ}いのはあまり{長|なが}くないです。",
+          "kana": "はい。しろいのはあまりながくないです。",
+          "en": "Yes. The white one isn't very long.",
+          "tokens": [
+            "はい",
+            "。",
+            "白い",
+            "の",
+            "は",
+            "あまり",
+            "長くない",
+            "です",
+            "。"
+          ],
+          "speaker": "ユウタ",
+          "plusOne": [
+            "v-n5-0373"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0167",
+            "v-n5-0126",
+            "v-n5-0118",
+            "g-n5-028",
+            "v-n5-0373",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "そうですね。{白|しろ}いのは{小|ちい}さいですね。",
+          "kana": "そうですね。しろいのはちいさいですね。",
+          "en": "You're right. The white one is small.",
+          "tokens": [
+            "そうですね",
+            "。",
+            "白い",
+            "の",
+            "は",
+            "小さい",
+            "です",
+            "ね",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "そうですね。白いのは小さいですね。",
+              "kind": "best"
+            },
+            {
+              "text": "ええ、白いのは小さいです。",
+              "kind": "ok",
+              "recast": "そうですね。白いのは小さいですね。"
+            },
+            {
+              "text": "そうですね。白いのは小さいなですね。",
+              "kind": "grammar-wrong",
+              "recast": "そうですね。白いのは小さいですね。"
+            },
+            {
+              "text": "うん、白いのは小さいね。",
+              "kind": "register-wrong",
+              "recast": "そうですね。白いのは小さいですね。"
+            }
+          ],
+          "mustInclude": [
+            "白い",
+            "小さい"
+          ],
+          "accept": [
+            "ええ、白いのは小さいです。",
+            "そうですね。小さいですね。"
+          ],
+          "speaker": "ハナ",
+          "tokenIds": [
+            "v-n5-0023",
+            null,
+            "v-n5-0167",
+            "v-n5-0126",
+            "v-n5-0118",
+            "v-n5-0351",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "お{姉|ねえ}さん、{色|いろ}はいくつありますか。",
+          "kana": "おねえさん、いろはいくつありますか。",
+          "en": "Miss, how many colors are there?",
+          "tokens": [
+            "お姉さん",
+            "、",
+            "色",
+            "は",
+            "いくつ",
+            "あります",
+            "か",
+            "。"
+          ],
+          "speaker": "ユウタ",
+          "tokenIds": [
+            "v-n5-0090",
+            null,
+            "v-n5-0160",
+            "v-n5-0118",
+            "v-n5-0062",
+            "v-n5-0272",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "{赤|あか}、{青|あお}、{黄色|きいろ}、{白|しろ}、{緑|みどり}。{五|いつ}つですね。",
+          "kana": "あか、あお、きいろ、しろ、みどり。いつつですね。",
+          "en": "Red, blue, yellow, white, green. Five, right?",
+          "tokens": [
+            "赤",
+            "、",
+            "青",
+            "、",
+            "黄色",
+            "、",
+            "白",
+            "、",
+            "緑",
+            "。",
+            "五つ",
+            "です",
+            "ね",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "赤、青、黄色、白、緑。五つですね。",
+              "kind": "best"
+            },
+            {
+              "text": "赤と青と黄色と白と緑。五つです。",
+              "kind": "ok",
+              "recast": "赤、青、黄色、白、緑。五つですね。"
+            },
+            {
+              "text": "赤、青、黄色、白、緑。五枚ですね。",
+              "kind": "grammar-wrong",
+              "recast": "赤、青、黄色、白、緑。五つですね。"
+            },
+            {
+              "text": "赤、青、黄色、白、緑。五つだね。",
+              "kind": "register-wrong",
+              "recast": "赤、青、黄色、白、緑。五つですね。"
+            }
+          ],
+          "mustInclude": [
+            "五つ"
+          ],
+          "accept": [
+            "五つですね。",
+            "赤と青と黄色と白と緑。五つです。"
+          ],
+          "speaker": "ハナ",
+          "tokenIds": [
+            "v-n5-0161",
+            null,
+            "v-n5-0162",
+            null,
+            "v-n5-0261",
+            null,
+            "v-n5-0163",
+            null,
+            "v-n5-0264",
+            null,
+            "v-n5-0111",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "はい、{五|いつ}つです。{七夕|たなばた}は{好|す}きですか。",
+          "kana": "はい、いつつです。たなばたはすきですか。",
+          "en": "Yes, five. Do you like Tanabata?",
+          "tokens": [
+            "はい",
+            "、",
+            "五つ",
+            "です",
+            "。",
+            "七夕",
+            "は",
+            "好き",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ユウタ",
+          "plusOne": [
+            "v-n5-0392"
+          ],
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0111",
+            "v-n5-0132",
+            null,
+            null,
+            "v-n5-0118",
+            "v-n5-0392",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "とても{好|す}きです。{平塚|ひらつか}はにぎやかですね。",
+          "kana": "とてもすきです。ひらつかはにぎやかですね。",
+          "en": "I love it. Hiratsuka is so lively.",
+          "tokens": [
+            "とても",
+            "好き",
+            "です",
+            "。",
+            "平塚",
+            "は",
+            "にぎやか",
+            "です",
+            "ね",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "とても好きです。平塚はにぎやかですね。",
+              "kind": "best"
+            },
+            {
+              "text": "はい、好きです。にぎやかですね。",
+              "kind": "ok",
+              "recast": "とても好きです。平塚はにぎやかですね。"
+            },
+            {
+              "text": "とても好きです。平塚はにぎやかいですね。",
+              "kind": "grammar-wrong",
+              "recast": "とても好きです。平塚はにぎやかですね。"
+            },
+            {
+              "text": "うん、好き。にぎやかだね。",
+              "kind": "register-wrong",
+              "recast": "とても好きです。平塚はにぎやかですね。"
+            }
+          ],
+          "mustInclude": [
+            "好き"
+          ],
+          "accept": [
+            "はい、好きです。にぎやかですね。",
+            "はい、とても好きです。"
+          ],
+          "speaker": "ハナ",
+          "plusOne": [
+            "v-n5-0392"
+          ],
+          "emotion": "warm",
+          "tokenIds": [
+            "g-n5-028",
+            "v-n5-0392",
+            "v-n5-0132",
+            null,
+            null,
+            "v-n5-0118",
+            "v-n5-0387",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "そうですね。お{姉|ねえ}さん、{明日|あした}も{来|き}ますか。",
+          "kana": "そうですね。おねえさん、あしたもきますか。",
+          "en": "It is. Miss, will you come tomorrow too?",
+          "tokens": [
+            "そうですね",
+            "。",
+            "お姉さん",
+            "、",
+            "明日",
+            "も",
+            "来ます",
+            "か",
+            "。"
+          ],
+          "speaker": "ユウタ",
+          "tokenIds": [
+            "v-n5-0023",
+            null,
+            "v-n5-0090",
+            null,
+            "v-n5-0138",
+            "v-n5-0125",
+            "v-n5-0275",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "{明日|あした}は{歩|ある}きます。おやすみなさい、ユウタくん。",
+          "kana": "あしたはあるきます。おやすみなさい、ユウタくん。",
+          "en": "Tomorrow I walk on. Good night, Yūta.",
+          "tokens": [
+            "明日",
+            "は",
+            "歩きます",
+            "。",
+            "おやすみなさい",
+            "、",
+            "ユウタくん",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "明日は歩きます。おやすみなさい、ユウタくん。",
+              "kind": "best"
+            },
+            {
+              "text": "明日は歩きます。おやすみなさい。",
+              "kind": "ok",
+              "recast": "明日は歩きます。おやすみなさい、ユウタくん。"
+            },
+            {
+              "text": "明日に歩きます。おやすみなさい、ユウタくん。",
+              "kind": "grammar-wrong",
+              "recast": "明日は歩きます。おやすみなさい、ユウタくん。"
+            },
+            {
+              "text": "明日は歩く。おやすみ、ユウタくん。",
+              "kind": "register-wrong",
+              "recast": "明日は歩きます。おやすみなさい、ユウタくん。"
+            }
+          ],
+          "mustInclude": [
+            "歩きます",
+            "おやすみなさい"
+          ],
+          "accept": [
+            "明日は歩きます。おやすみなさい。",
+            "明日も歩きます。おやすみなさい、ユウタくん。"
+          ],
+          "speaker": "ハナ",
+          "tokenIds": [
+            "v-n5-0138",
+            "v-n5-0118",
+            "v-n5-0301",
+            null,
+            "v-n5-0009",
+            null,
+            null,
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0001",
+        "v-n5-0007",
+        "v-n5-0009",
+        "v-n5-0023",
+        "v-n5-0047",
+        "v-n5-0050",
+        "v-n5-0058",
+        "v-n5-0060",
+        "v-n5-0062",
+        "v-n5-0090",
+        "v-n5-0111",
+        "v-n5-0132",
+        "v-n5-0138",
+        "v-n5-0143",
+        "v-n5-0149",
+        "v-n5-0154",
+        "v-n5-0160",
+        "v-n5-0161",
+        "v-n5-0162",
+        "v-n5-0163",
+        "v-n5-0166",
+        "v-n5-0167",
+        "v-n5-0189",
+        "v-n5-0261",
+        "v-n5-0262",
+        "v-n5-0264",
+        "v-n5-0272",
+        "v-n5-0275",
+        "v-n5-0301",
+        "v-n5-0350",
+        "v-n5-0351",
+        "v-n5-0373",
+        "v-n5-0386",
+        "v-n5-0387",
+        "v-n5-0392",
+        "v-n5-0397"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-005",
+        "g-n5-006",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-009",
+        "g-n5-010",
+        "g-n5-011",
+        "g-n5-014",
+        "g-n5-017",
+        "g-n5-020",
+        "g-n5-024",
+        "g-n5-025",
+        "g-n5-026",
+        "g-n5-027",
+        "g-n5-028",
+        "g-n5-030",
+        "g-n5-031"
+      ],
+      "comprehension": [
+        {
+          "q": "What are Hana and Yūta doing?",
+          "choices": [
+            "Comparing the streamers at night",
+            "Buying a hat at a stall",
+            "Writing wishes on paper strips",
+            "Waiting for a bus to Fujisawa"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "How many colors do they count?",
+          "choices": [
+            "Three",
+            "Four",
+            "Five",
+            "Six"
+          ],
+          "answer": 2,
+          "kind": "number",
+          "lineRef": 11
+        },
+        {
+          "q": "Which streamer does Hana say is very big?",
+          "choices": [
+            "The red one",
+            "The blue one",
+            "The white one",
+            "The yellow one"
+          ],
+          "answer": 1,
+          "kind": "detail",
+          "lineRef": 5
+        },
+        {
+          "q": "Which streamer is not very long?",
+          "choices": [
+            "The blue one",
+            "The yellow one",
+            "The green one",
+            "The white one"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 8
+        }
+      ],
+      "recapEn": "Hana keeps her promise and comes back to the Hiratsuka arcade at seven. Under the lit streamers Yūta quizzes her: the blue one is very big, the yellow one long to the ground, the white one not very long and small. They count five colors. She loves Tanabata; tomorrow she walks on, so they say good night."
+    },
+    {
+      "id": "s-07-5",
+      "stationId": "st-07",
+      "titleJa": "ユウタです",
+      "titleEn": "I'm Yūta",
+      "kind": "story",
+      "register": "polite",
+      "genre": "self-intro",
+      "audioFirst": true,
+      "narrator": "ユウタ",
+      "names": [
+        "ユウタ",
+        "石井さん",
+        "平塚",
+        "七夕"
+      ],
+      "lines": [
+        {
+          "ja": "こんにちは、お{兄|にい}さん。とても{暑|あつ}いですね。",
+          "kana": "こんにちは、おにいさん。とてもあついですね。",
+          "en": "Hello, mister. It's really hot, isn't it?",
+          "tokens": [
+            "こんにちは",
+            "、",
+            "お兄さん",
+            "。",
+            "とても",
+            "暑い",
+            "です",
+            "ね",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0006",
+            null,
+            "v-n5-0089",
+            null,
+            "g-n5-028",
+            "g-n5-024",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "お{兄|にい}さんは{上|うえ}を{見|み}ませんね。{暑|あつ}いですか。",
+          "kana": "おにいさんはうえをみませんね。あついですか。",
+          "en": "You're not looking up, mister. Too hot?",
+          "tokens": [
+            "お兄さん",
+            "は",
+            "上",
+            "を",
+            "見ません",
+            "ね",
+            "。",
+            "暑い",
+            "です",
+            "か",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0089",
+            "v-n5-0118",
+            "v-n5-0148",
+            "v-n5-0120",
+            "v-n5-0276",
+            "v-n5-0128",
+            null,
+            "g-n5-024",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "はじめまして。ユウタです。{八歳|はっさい}です。",
+          "kana": "はじめまして。ユウタです。はっさいです。",
+          "en": "Nice to meet you. I'm Yūta. I'm eight.",
+          "tokens": [
+            "はじめまして",
+            "。",
+            "ユウタ",
+            "です",
+            "。",
+            "八歳",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0017",
+            null,
+            null,
+            "v-n5-0132",
+            null,
+            "v-n5-0116",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "うちは{平塚|ひらつか}です。{学校|がっこう}は{近|ちか}くです。",
+          "kana": "うちはひらつかです。がっこうはちかくです。",
+          "en": "My home is in Hiratsuka. My school is close by.",
+          "tokens": [
+            "うち",
+            "は",
+            "平塚",
+            "です",
+            "。",
+            "学校",
+            "は",
+            "近く",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0146",
+            "v-n5-0118",
+            null,
+            "v-n5-0132",
+            null,
+            "v-n5-0097",
+            "v-n5-0118",
+            "v-n5-0185",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{学校|がっこう}まで{歩|ある}きます。{十分|じゅっぷん}です。",
+          "kana": "がっこうまであるきます。じゅっぷんです。",
+          "en": "I walk to school. It takes ten minutes.",
+          "tokens": [
+            "学校",
+            "まで",
+            "歩きます",
+            "。",
+            "十分",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0097",
+            "v-n5-0131",
+            "v-n5-0301",
+            null,
+            "v-n5-0155",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{学校|がっこう}はあまり{好|す}きじゃないです。",
+          "kana": "がっこうはあまりすきじゃないです。",
+          "en": "I don't like school very much.",
+          "tokens": [
+            "学校",
+            "は",
+            "あまり",
+            "好き",
+            "じゃない",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0392"
+          ],
+          "emotion": "annoyed",
+          "tokenIds": [
+            "v-n5-0097",
+            "v-n5-0118",
+            "g-n5-028",
+            "v-n5-0392",
+            "v-n5-0132",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{毎日|まいにち}、{宿題|しゅくだい}がありますよ。",
+          "kana": "まいにち、しゅくだいがありますよ。",
+          "en": "There's homework every single day.",
+          "tokens": [
+            "毎日",
+            "、",
+            "宿題",
+            "が",
+            "あります",
+            "よ",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0140",
+            null,
+            "v-n5-0105",
+            "v-n5-0119",
+            "v-n5-0272",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "{七夕|たなばた}はとても{好|す}きです。にぎやかです。",
+          "kana": "たなばたはとてもすきです。にぎやかです。",
+          "en": "Tanabata, though, I really like. It's lively.",
+          "tokens": [
+            "七夕",
+            "は",
+            "とても",
+            "好き",
+            "です",
+            "。",
+            "にぎやか",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0392"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            null,
+            "v-n5-0118",
+            "g-n5-028",
+            "v-n5-0392",
+            "v-n5-0132",
+            null,
+            "v-n5-0387",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{平塚|ひらつか}の{七夕|たなばた}はとても{有名|ゆうめい}ですよ。",
+          "kana": "ひらつかのたなばたはとてもゆうめいですよ。",
+          "en": "Hiratsuka's Tanabata is very famous, you know.",
+          "tokens": [
+            "平塚",
+            "の",
+            "七夕",
+            "は",
+            "とても",
+            "有名",
+            "です",
+            "よ",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            null,
+            "v-n5-0118",
+            "g-n5-028",
+            "v-n5-0391",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "あの{赤|あか}いのは、{学校|がっこう}で{作|つく}りました。",
+          "kana": "あのあかいのは、がっこうでつくりました。",
+          "en": "That red one, we made at school.",
+          "tokens": [
+            "あの",
+            "赤い",
+            "の",
+            "は",
+            "、",
+            "学校",
+            "で",
+            "作りました",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0050",
+            "v-n5-0165",
+            "v-n5-0126",
+            "v-n5-0118",
+            null,
+            "v-n5-0097",
+            "v-n5-0122",
+            "v-n5-0294",
+            null
+          ]
+        },
+        {
+          "ja": "{友達|ともだち}と{作|つく}りました。とても{大|おお}きいです。",
+          "kana": "ともだちとつくりました。とてもおおきいです。",
+          "en": "I made it with my friends. It's really big.",
+          "tokens": [
+            "友達",
+            "と",
+            "作りました",
+            "。",
+            "とても",
+            "大きい",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0070",
+            "v-n5-0124",
+            "v-n5-0294",
+            null,
+            "g-n5-028",
+            "v-n5-0350",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{緑|みどり}と{黄色|きいろ}の{紙|かみ}も{使|つか}いました。",
+          "kana": "みどりときいろのかみもつかいました。",
+          "en": "We used green and yellow paper too.",
+          "tokens": [
+            "緑",
+            "と",
+            "黄色",
+            "の",
+            "紙",
+            "も",
+            "使いました",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0264",
+            "v-n5-0124",
+            "v-n5-0261",
+            "v-n5-0126",
+            "v-n5-0241",
+            "v-n5-0125",
+            "v-n5-0295",
+            null
+          ]
+        },
+        {
+          "ja": "あそこの{人|ひと}は、{私|わたし}のおばあさんです。",
+          "kana": "あそこのひとは、わたしのおばあさんです。",
+          "en": "That person over there is my grandma.",
+          "tokens": [
+            "あそこ",
+            "の",
+            "人",
+            "は",
+            "、",
+            "私",
+            "の",
+            "おばあさん",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0053",
+            "v-n5-0126",
+            "v-n5-0066",
+            "v-n5-0118",
+            null,
+            "v-n5-0041",
+            "v-n5-0126",
+            "v-n5-0092",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{石井|いしい}さんです。とても{元気|げんき}です。",
+          "kana": "いしいさんです。とてもげんきです。",
+          "en": "That's Ishii-san. She's full of energy.",
+          "tokens": [
+            "石井さん",
+            "です",
+            "。",
+            "とても",
+            "元気",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0132",
+            null,
+            "g-n5-028",
+            "v-n5-0388",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{七夕|たなばた}の{紙|かみ}に「{黒|くろ}いカメラ」と{書|か}きました。",
+          "kana": "たなばたのかみに「くろいカメラ」とかきました。",
+          "en": "On my wish strip I wrote 'a black camera'.",
+          "tokens": [
+            "七夕",
+            "の",
+            "紙",
+            "に",
+            "「",
+            "黒い",
+            "カメラ",
+            "」",
+            "と",
+            "書きました",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            "v-n5-0241",
+            "v-n5-0121",
+            null,
+            "v-n5-0168",
+            "v-n5-0238",
+            null,
+            "v-n5-0124",
+            "v-n5-0282",
+            null
+          ]
+        },
+        {
+          "ja": "お{兄|にい}さんは？{七夕|たなばた}は{好|す}きですか。",
+          "kana": "おにいさんは？たなばたはすきですか。",
+          "en": "What about you, mister? Do you like Tanabata?",
+          "tokens": [
+            "お兄さん",
+            "は",
+            "？",
+            "七夕",
+            "は",
+            "好き",
+            "です",
+            "か",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0392"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            "v-n5-0089",
+            "v-n5-0118",
+            null,
+            null,
+            "v-n5-0118",
+            "v-n5-0392",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0006",
+        "v-n5-0017",
+        "v-n5-0041",
+        "v-n5-0050",
+        "v-n5-0053",
+        "v-n5-0066",
+        "v-n5-0070",
+        "v-n5-0089",
+        "v-n5-0092",
+        "v-n5-0097",
+        "v-n5-0105",
+        "v-n5-0116",
+        "v-n5-0132",
+        "v-n5-0140",
+        "v-n5-0146",
+        "v-n5-0148",
+        "v-n5-0155",
+        "v-n5-0165",
+        "v-n5-0168",
+        "v-n5-0185",
+        "v-n5-0238",
+        "v-n5-0241",
+        "v-n5-0261",
+        "v-n5-0264",
+        "v-n5-0272",
+        "v-n5-0276",
+        "v-n5-0282",
+        "v-n5-0294",
+        "v-n5-0295",
+        "v-n5-0301",
+        "v-n5-0350",
+        "v-n5-0387",
+        "v-n5-0388",
+        "v-n5-0391",
+        "v-n5-0392"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-006",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-010",
+        "g-n5-011",
+        "g-n5-014",
+        "g-n5-016",
+        "g-n5-017",
+        "g-n5-018",
+        "g-n5-019",
+        "g-n5-021",
+        "g-n5-022",
+        "g-n5-024",
+        "g-n5-025",
+        "g-n5-027",
+        "g-n5-028"
+      ],
+      "comprehension": [
+        {
+          "q": "What is Yūta doing?",
+          "choices": [
+            "Introducing himself to a young man",
+            "Asking Hana to write a wish",
+            "Selling paper strips",
+            "Looking for his grandmother"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "How old is Yūta?",
+          "choices": [
+            "1 year old",
+            "7 years old",
+            "8 years old",
+            "9 years old"
+          ],
+          "answer": 2,
+          "kind": "number",
+          "lineRef": 2
+        },
+        {
+          "q": "What does Yūta not like very much?",
+          "choices": [
+            "Tanabata",
+            "Hiratsuka",
+            "His grandmother",
+            "School"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 5
+        },
+        {
+          "q": "How many minutes does Yūta walk to school?",
+          "choices": [
+            "8 minutes",
+            "10 minutes",
+            "15 minutes",
+            "20 minutes"
+          ],
+          "answer": 1,
+          "kind": "number",
+          "lineRef": 4
+        },
+        {
+          "q": "Who is the person Yūta points to?",
+          "choices": [
+            "His teacher",
+            "His mother",
+            "His grandmother",
+            "Ken's friend"
+          ],
+          "answer": 2,
+          "kind": "detail",
+          "lineRef": 12
+        }
+      ],
+      "recapEn": "In the hot Hiratsuka arcade eight-year-old Yūta introduces himself to Ken, who will not look up: a ten-minute walk to school, which he does not much like, but he loves Tanabata. He and his friends made the big red streamer at school, with green and yellow paper; his grandmother Ishii-san is nearby; his wish strip says 'a black camera'."
+    }
+  ]
+}

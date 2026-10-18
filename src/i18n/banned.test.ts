@@ -197,3 +197,84 @@ describe('banned phrases: the codebase', () => {
     expect(problems, `banned copy outside strings files:\n${problems.join('\n')}`).toEqual([]);
   });
 });
+
+/* ── listening honesty (design 08 §10.1 / §12) ────────────────────────────── */
+
+/**
+ * The listening program's vocabulary rules: a chip, header or label names the
+ * voice as "synthetic voice (VOICEVOX)", "device voice" or "text only" and
+ * never says "recorded voice" (the one place "recorded" may appear is the
+ * Settings voice-pack explanation, `setPackExplain`); and the two perapera
+ * sentences the program retired — "Real listening is the hours you log" (it
+ * would deny the dojo's authentic minutes) and "every voice in the app is
+ * text-to-speech" — are gone for good.
+ */
+const HONESTY_BANNED: RegExp[] = [/\brecorded voices?\b/i, /real listening is the hours you log/i, /every voice in the app is text-to-speech/i];
+/** The exemption: file (repo-relative) and key / line marker. */
+const HONESTY_EXEMPT = { file: /^src\/app\/pages\/strings\.ts$/, key: 'setPackExplain' };
+
+function findHonesty(text: string): string[] {
+  return HONESTY_BANNED.filter((re) => re.test(text)).map((re) => re.source);
+}
+
+describe('listening honesty copy (design 08 §10.1 / §12)', () => {
+  const MUST_FLAG = ['recorded voice', 'A recorded voice reads each line.', 'Recorded voices, clear and consistent.', 'Real listening is the hours you log.', 'Synthetic: every voice in the app is text-to-speech. Real listening is the hours you log.'];
+  const MUST_PASS = [
+    'synthetic voice (VOICEVOX)',
+    'device voice',
+    'text only',
+    'Pre-rendered synthetic voices (VOICEVOX).',
+    "Synthetic: every voice in the dojo is a VOICEVOX character voice. The ledger's outside hours are real people.",
+    '3 voices · synthetic',
+    'Recorded. Play the model, then yours, and compare.', // the learner's own recording, not a voice claim
+  ];
+
+  it.each(MUST_FLAG)('flags %j', (text) => {
+    expect(findHonesty(text).length, text).toBeGreaterThan(0);
+  });
+
+  it.each(MUST_PASS)('allows %j', (text) => {
+    expect(findHonesty(text), text).toEqual([]);
+  });
+
+  it('no strings file or .tsx carries "recorded voice" or the retired sentences (the Settings explanation line is the one exemption)', () => {
+    const problems: string[] = [];
+    for (const f of [...STRINGS_FILES, ...TSX_FILES]) {
+      let text: string;
+      try {
+        text = readFileSync(f, 'utf8');
+      } catch {
+        continue;
+      }
+      const exemptFile = HONESTY_EXEMPT.file.test(rel(f));
+      text.split('\n').forEach((line, i) => {
+        if (exemptFile && line.includes(HONESTY_EXEMPT.key)) return;
+        for (const rule of findHonesty(line)) problems.push(`${rel(f)}:${i + 1}  (rule ${rule})`);
+      });
+    }
+    expect(problems, `listening honesty:\n${problems.join('\n')}`).toEqual([]);
+  });
+
+  it('exported string values of every importable strings module are clean of them too', async () => {
+    const modules = import.meta.glob(['/src/**/strings.ts', '/src/**/strings-*.ts', '/src/**/*-strings.ts']);
+    const problems: string[] = [];
+    let scanned = 0;
+    for (const [path, load] of Object.entries(modules)) {
+      let mod: unknown;
+      try {
+        mod = await load();
+      } catch {
+        continue;
+      }
+      scanned++;
+      const values: { path: string; value: string }[] = [];
+      collectStrings(mod, path, values);
+      for (const { path: p, value } of values) {
+        if (path.endsWith('/src/app/pages/strings.ts') && p.endsWith(`.${HONESTY_EXEMPT.key}`)) continue;
+        for (const rule of findHonesty(value)) problems.push(`${p} = ${JSON.stringify(value)}  (rule ${rule})`);
+      }
+    }
+    expect(scanned).toBeGreaterThan(0);
+    expect(problems, `listening honesty in exported strings:\n${problems.join('\n')}`).toEqual([]);
+  });
+});

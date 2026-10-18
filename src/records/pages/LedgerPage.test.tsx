@@ -6,7 +6,8 @@ import { bus } from '../../shared/events';
 import { epochDay } from '../../shared/time';
 import { resetStoreForTests, store } from '../../store/store';
 import { DEFAULT_TEST_NOW, captureEvents, makeTestStore } from '../../store/testing';
-import LedgerPage, { QUICK_MINUTES, availableMissions } from './LedgerPage';
+import { S } from '../strings';
+import LedgerPage, { QUICK_MINUTES, availableMissions, dojoWeekMinutes, editableMinutes, rowMinutes } from './LedgerPage';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const ROUTE = { name: 'ledger' } as const;
@@ -105,6 +106,51 @@ describe('<LedgerPage> add entry', () => {
     expect(store.ledger.value.entries[0]).toEqual([TODAY - 1, 10, 0, 1]);
     expect(rows[1]?.querySelector('button')).toBeNull(); // app rows are not editable
   });
+
+  it('editing the minutes of a row that carries a note keeps the note (the optional fifth column)', async () => {
+    await makeTestStore({ save: { ledger: { entries: [[TODAY, 20, 2, 1, 'anime, episode 3'], [TODAY, 15, 1, 1]] } } });
+    mount();
+    const edit = root.querySelector('.ledger__today-row button') as HTMLButtonElement;
+    act(() => edit.click());
+    setValue(root.querySelector('.ledger__edit input') as HTMLInputElement, '45', 'input');
+    submit(root.querySelector('form.ledger__edit') as HTMLFormElement);
+    expect(store.ledger.value.entries[0]).toEqual([TODAY, 45, 2, 1, 'anime, episode 3']);
+    expect(store.ledger.value.entries[1]).toEqual([TODAY, 15, 1, 1]);
+    expect(store.ledger.value.entries[1]).toHaveLength(4); // a note-less row stays a 4-tuple
+  });
+
+  it('a fractional app row (Radio / Read-along seconds, to a tenth of a minute — design 08 §12) reads with one decimal; whole rows stay whole', async () => {
+    await makeTestStore({ save: { ledger: { entries: [[TODAY, 0.7, 0, 0], [TODAY, 12, 0, 0], [TODAY, 2.25, 0, 0], [TODAY, 20, 1, 1]] } } });
+    mount();
+    const texts = Array.from(root.querySelectorAll('.ledger__today-text')).map((el) => el.textContent);
+    expect(texts).toEqual(['0.7 min listening · In the app', '12 min listening · In the app', '2.3 min listening · In the app', '20 min reading · Outside']);
+    expect(rowMinutes(0.7)).toBe('0.7');
+    expect(rowMinutes(12)).toBe('12');
+    expect(rowMinutes(1234.56)).toBe('1,234.6');
+    expect(rowMinutes(Number.NaN)).toBe('0');
+  });
+
+  it('the editor opens a fractional row rounded to a whole minute (at least 1), its label says minutes, and it saves whole minutes only', async () => {
+    await makeTestStore({ save: { ledger: { entries: [[TODAY, 0.4, 0, 1], [TODAY, 7.6, 0, 1]] } } });
+    mount();
+    const editButton = (i: number): HTMLButtonElement => Array.from(root.querySelectorAll('.ledger__today-row'))[i]?.querySelector('button') as HTMLButtonElement;
+    const editInput = (): HTMLInputElement => root.querySelector('.ledger__edit input') as HTMLInputElement;
+    act(() => editButton(1).click());
+    expect(editInput().value).toBe('8');
+    expect(root.querySelector('.ledger__edit .field__label')?.textContent).toBe(S.editMinutes);
+    expect(S.editMinutes).toMatch(/minutes/);
+    submit(root.querySelector('form.ledger__edit') as HTMLFormElement);
+    expect(store.ledger.value.entries[1]).toEqual([TODAY, 8, 0, 1]);
+    act(() => editButton(0).click());
+    expect(editInput().value).toBe('1');
+    setValue(editInput(), '2.6', 'input');
+    submit(root.querySelector('form.ledger__edit') as HTMLFormElement);
+    expect(store.ledger.value.entries[0]).toEqual([TODAY, 3, 0, 1]);
+    expect(editableMinutes(0.4)).toBe(1);
+    expect(editableMinutes(7.6)).toBe(8);
+    expect(editableMinutes(25)).toBe(25);
+    expect(editableMinutes(Number.NaN)).toBe(1);
+  });
 });
 
 describe('<LedgerPage> missions', () => {
@@ -171,5 +217,57 @@ describe('<LedgerPage> summaries', () => {
     expect(root.querySelector('a[href="#/records"]')).not.toBeNull();
     expect(findBanned(text)).toEqual([]);
     expect(text).not.toContain('!');
+  });
+});
+
+describe('<LedgerPage> the dojo’s share (design 08 §12)', () => {
+  it('"In the dojo this week: {h} h heard" comes from app listen rows of this week; the ring still counts outside hours only', async () => {
+    await makeTestStore({
+      save: {
+        profile: { belt: 'green' },
+        ledger: {
+          entries: [
+            [TODAY - 20, 120, 0, 0], // dojo listening, an earlier week
+            [TODAY, 30, 0, 0], // dojo listening this week → 0.5 h heard
+            [TODAY, 15, 1, 0], // dojo reading: not "heard"
+            [TODAY, 60, 0, 1], // outside listening: the ring's, not the dojo line's
+          ],
+        },
+      },
+    });
+    mount();
+    expect(dojoWeekMinutes(store.meta(), TODAY)).toBe(30);
+    const line = root.querySelector('[data-dojo-week]');
+    expect(line?.textContent).toContain('In the dojo this week: 0.5 h heard');
+    expect(line?.textContent).toContain(S.weekDojoNote);
+    // External target semantics unchanged: 60 outside minutes against Green's 3 h.
+    expect(root.querySelector('.ring__center')?.textContent).toBe('1 h');
+    expect(root.textContent).toContain('1 h of 3 h outside the app this week');
+    expect(root.querySelector('.ring__fill')?.getAttribute('stroke-dasharray')?.startsWith('71.2')).toBe(true);
+  });
+
+  it('"(reported)" marks outside rows only; the honest-share paragraph is stated; the new copy passes the banned lint', async () => {
+    await makeTestStore({ save: { ledger: { entries: [[TODAY, 20, 0, 1], [TODAY, 10, 0, 0]] } } });
+    mount();
+    expect(root.querySelector('.ledger__h1')?.textContent).not.toContain('(reported)');
+    expect(root.querySelector('#ledger-life-title')?.textContent).not.toContain('(reported)');
+    expect(root.querySelector('[data-tile-external] .tag')?.textContent).toBe('(reported)');
+    expect(root.querySelector('.ledger__week-text .tag')?.textContent).toBe('(reported)');
+    expect(root.querySelectorAll('.tag').length).toBeGreaterThan(0);
+    for (const tag of Array.from(root.querySelectorAll('.ledger__tiles .tag'))) expect(tag.closest('[data-tile-external]')).not.toBeNull();
+
+    const share = root.querySelector('[data-honest-share]');
+    expect(share?.textContent).toContain(S.honestShare);
+    expect(share?.querySelector('[lang="ja"]')?.textContent).toBe('声');
+    expect(share?.textContent).toContain(S.dojoVoicesTitle);
+    expect(S.honestShare).toMatch(/24 hours/);
+    expect(S.honestShare).toMatch(/13 hours/);
+    expect(S.honestShare).toMatch(/70–90 hours/);
+    expect(S.peraperaFlagSynthetic).toBe("Synthetic: every voice in the dojo is a VOICEVOX character voice. The ledger's outside hours are real people.");
+
+    const text = root.textContent ?? '';
+    expect(findBanned(text)).toEqual([]);
+    expect(text).not.toContain('!');
+    expect(text).not.toMatch(/recorded voice|every voice in the app is text-to-speech|real listening is the hours you log/i);
   });
 });

@@ -1,0 +1,93 @@
+{
+ "name": "nandemo",
+ "text": "何でも食べる。",
+ "kana": "なんでもたべる。",
+ "styleId": 16,
+ "note": "sentence: 何でも misread as ナニデモ (want ナンデモ) — ladder step 0 fails",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ナ",
+      "consonant": "n",
+      "consonant_length": 0.03252597898244858,
+      "vowel": "a",
+      "vowel_length": 0.12890513241291046,
+      "pitch": 5.621589183807373
+     },
+     {
+      "text": "ニ",
+      "consonant": "n",
+      "consonant_length": 0.06657009571790695,
+      "vowel": "i",
+      "vowel_length": 0.09538956731557846,
+      "pitch": 5.816429138183594
+     },
+     {
+      "text": "デ",
+      "consonant": "d",
+      "consonant_length": 0.04923517256975174,
+      "vowel": "e",
+      "vowel_length": 0.09713402390480042,
+      "pitch": 5.710328578948975
+     },
+     {
+      "text": "モ",
+      "consonant": "m",
+      "consonant_length": 0.06971722096204758,
+      "vowel": "o",
+      "vowel_length": 0.09003528952598572,
+      "pitch": 5.418280601501465
+     }
+    ],
+    "accent": 1,
+    "pause_mora": null,
+    "is_interrogative": false
+   },
+   {
+    "moras": [
+     {
+      "text": "タ",
+      "consonant": "t",
+      "consonant_length": 0.0884479358792305,
+      "vowel": "a",
+      "vowel_length": 0.09646421670913696,
+      "pitch": 5.236035346984863
+     },
+     {
+      "text": "ベ",
+      "consonant": "b",
+      "consonant_length": 0.054752983152866364,
+      "vowel": "e",
+      "vowel_length": 0.1181168481707573,
+      "pitch": 5.371810436248779
+     },
+     {
+      "text": "ル",
+      "consonant": "r",
+      "consonant_length": 0.04459138959646225,
+      "vowel": "u",
+      "vowel_length": 0.13167323172092438,
+      "pitch": 5.311246871948242
+     }
+    ],
+    "accent": 2,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ナ'ニデモ/タベ'ル"
+ }
+}

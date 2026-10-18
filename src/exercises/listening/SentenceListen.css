@@ -198,6 +198,19 @@
   gap: var(--sp-1);
 }
 
+/* clause mode (design 08 §9): a line over DICTATION_MAX_MORAE is dictated one clause at a time */
+.listen__clause-note {
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+}
+.listen[data-clause='true'] .listen__player {
+  border-color: var(--ai);
+}
+.listen__clause {
+  padding-left: var(--sp-3);
+  border-left: 3px solid var(--ai);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .listen__play,
   .listen__submit {

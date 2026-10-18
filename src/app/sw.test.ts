@@ -364,6 +364,81 @@ describe('public/sw.js', () => {
     expect(sw.self.clients.claim).toHaveBeenCalledTimes(1);
   });
 
+  it('audio sprites are NOT intercepted: the request passes through to the network and nothing is stored (design 08 §8)', async () => {
+    const sw = load(async () => ok('bytes', 'video/webm'));
+    const sprite = fetchEvent({ url: `${BASE}audio/sprites/s07/s-07-1-ab12cd34.webm`, method: 'GET' });
+    sw.dispatch('fetch', sprite);
+    const kana = fetchEvent({ url: `${BASE}audio/sprites/kana/row-a-00000000.webm`, method: 'GET', mode: 'cors' });
+    sw.dispatch('fetch', kana);
+    expect(sprite.response).toBeNull();
+    expect(kana.response).toBeNull();
+    expect(sw.fetch).not.toHaveBeenCalled();
+    expect(await sw.caches.keys()).toEqual([]);
+    // even when the audio bucket already holds something, a sprite request is never answered from here
+    const bucket = await sw.caches.open('tsuzuku-audio-v1');
+    await bucket.put(`${BASE}audio/sprites/s07/s-07-1-ab12cd34.webm`, ok('cached', 'video/webm'));
+    const again = fetchEvent({ url: `${BASE}audio/sprites/s07/s-07-1-ab12cd34.webm`, method: 'GET' });
+    sw.dispatch('fetch', again);
+    expect(again.response).toBeNull();
+  });
+
+  it('audio/manifest.json and audio/<audioVersion>/*.json are stale-while-revalidate in tsuzuku-audio-v1, which survives activate; content/** stays untouched', async () => {
+    const sw = load(async (req) => ok(urlOf(req).endsWith('manifest.json') ? '{"audioVersion":"a-1"}' : '{"v-n5-0001":{"start":0}}'));
+    const manifest = `${BASE}audio/manifest.json`;
+    const words = `${BASE}audio/a-0123456789/n5/words.json`;
+    const first = fetchEvent({ url: manifest, method: 'GET' });
+    sw.dispatch('fetch', first);
+    expect(await (await first.response!).text()).toBe('{"audioVersion":"a-1"}');
+    const w = fetchEvent({ url: words, method: 'GET' });
+    sw.dispatch('fetch', w);
+    expect(await (await w.response!).text()).toBe('{"v-n5-0001":{"start":0}}');
+    expect(sw.fetch).toHaveBeenCalledTimes(2);
+    const audio = sw.caches.caches.get('tsuzuku-audio-v1')!;
+    expect(audio, 'audio bucket').toBeDefined();
+    expect(audio.store.has(manifest)).toBe(true);
+    expect(audio.store.has(words)).toBe(true);
+    expect(sw.caches.caches.has(RUNTIME)).toBe(false);
+    expect(sw.caches.caches.has(SHELL)).toBe(false);
+    // stale copy now, the fresh copy on the next load
+    sw.fetch.mockImplementation(async () => ok('{"audioVersion":"a-2"}'));
+    const second = fetchEvent({ url: manifest, method: 'GET' });
+    sw.dispatch('fetch', second);
+    expect(await (await second.response!).text()).toBe('{"audioVersion":"a-1"}');
+    await new Promise((r) => setTimeout(r, 0));
+    const third = fetchEvent({ url: manifest, method: 'GET' });
+    sw.dispatch('fetch', third);
+    expect(await (await third.response!).text()).toBe('{"audioVersion":"a-2"}');
+    // offline: the cached index still answers
+    sw.fetch.mockImplementation(async () => {
+      throw new TypeError('offline');
+    });
+    const offline = fetchEvent({ url: words, method: 'GET' });
+    sw.dispatch('fetch', offline);
+    expect((await offline.response!).status).toBe(200);
+    // activate drops old shell / runtime caches and keeps the audio bucket
+    await sw.caches.open('tsuzuku-shell-0.0.1-00000000');
+    await sw.caches.open('tsuzuku-runtime-0.0.1-00000000');
+    const act = extendable();
+    sw.dispatch('activate', act);
+    await act.done;
+    const names = await sw.caches.keys();
+    expect(names).toContain('tsuzuku-audio-v1');
+    expect(names).not.toContain('tsuzuku-shell-0.0.1-00000000');
+    expect(names).not.toContain('tsuzuku-runtime-0.0.1-00000000');
+    expect(audio.store.has(manifest)).toBe(true);
+    // content/** is still not intercepted
+    const item = fetchEvent({ url: `${BASE}content/vocab/n5/vocab-n5-001.json`, method: 'GET' });
+    sw.dispatch('fetch', item);
+    const bundle = fetchEvent({ url: `${BASE}content/stations/07.json`, method: 'GET' });
+    sw.dispatch('fetch', bundle);
+    expect(item.response).toBeNull();
+    expect(bundle.response).toBeNull();
+    // the committed release pointer at the root is not an audio index
+    const pointer = fetchEvent({ url: `${BASE}audio-pack.json`, method: 'GET' });
+    sw.dispatch('fetch', pointer);
+    expect(pointer.response).toBeNull();
+  });
+
   it('SKIP_WAITING messages call skipWaiting; other messages are ignored', () => {
     const sw = load(async () => ok('x'));
     sw.dispatch('message', { data: { type: 'HELLO' } });

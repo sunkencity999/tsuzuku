@@ -8,14 +8,33 @@
  * or 飴 — a loaded homophone with a different pitch is drawn beside it as
  * the contrast (`pitchPairPool`: the planner's `params.distractorIds` first,
  * when it set them, then the item's own `confusables`, so a planner list that
- * holds no pitch homophone still falls back to the item's own pairs).
+ * holds no pitch homophone still falls back to the item's own pairs), each
+ * with a Hear button so the two can be compared.
  * `params.choices` may carry the four labels in the planner's order (kanji
  * names, as `session/builder.PITCH_PATTERNS`); `params.answer` is one of them.
+ *
+ * Voice pack (design 08 §7–§8, §10.4): a word plays through its pack clip
+ * ONLY when the clip's accent was verified against the dictionary pitch
+ * (`ClipCue.pitchVerified`), and the step uses ONE source for the word and
+ * its contrast — when either half lacks a verified cue, both go through the
+ * device voice (no `clip` key: the pack never text-matches a bare word), so
+ * timbre can never leak the answer and an unverified clip never "proves" a
+ * pattern. On the pack path the reveal also plays `${id}#ga` (the word with
+ * が behind it) when the pack has it and its own accent was not flagged as a
+ * mismatch (`pitchVerified !== false`: a take the verifier rejected never
+ * "proves" the pattern either; an unflagged one still plays), since a
+ * tail-high drop is audible only with a particle; the が note is written per
+ * pattern (flat stays high on が, tail-high drops onto it, head- / mid-high
+ * dropped inside the word), and the contrast note says the clip follows the
+ * dictionary pattern; on the device path the note says the voice only
+ * approximates it. With no pack (`nullAudio`, every existing double) nothing
+ * changes.
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { content } from '@/content/loader';
 import type { VocabItem } from '@/content/types';
+import { speak, type ClipCue } from '@/shared/audio';
 import type { AttemptResult, ExerciseMeta, ExerciseProps } from '@/shared/exercise-types';
 import { equivalentJa } from '@/shared/jp';
 import type { StepParams } from '@/shared/session-types';
@@ -23,9 +42,10 @@ import { useExerciseKeys } from '@/shared/ui/ExerciseFrame';
 import { PITCH_TYPES, PitchGlyph, PitchLine, pitchType, type PitchType } from '../PitchLine';
 import { gradePitch } from '../check';
 import { PITCH_TYPE_LABEL, S as X } from '../strings';
+import { clipCue, isPitchVerified } from '../voice';
 import { MissingItem, missingResult, useLatency } from '../kana/KanaFlash';
-import { Speaker, WordHead, isVocabItem, speakWord } from './MeaningGuard';
-import { S } from './strings';
+import { Speaker, WordHead, isVocabItem } from './MeaningGuard';
+import { S, fill } from './strings';
 import './vocab.css';
 
 export const meta: ExerciseMeta = {
@@ -70,6 +90,39 @@ export function minimalPairOf(item: VocabItem, pool: readonly VocabItem[]): Voca
   return pool.find((v) => v.id !== item.id && v.pitch !== undefined && v.pitch !== item.pitch && equivalentJa(v.kana, item.kana)) ?? null;
 }
 
+/**
+ * Whether the step may use the voice pack at all (design 08 §8): the word's
+ * clip AND the contrast's clip (when there is a contrast) both exist and were
+ * verified against the dictionary pitch. One `false` sends BOTH halves through
+ * the device voice. `verified` is injectable for tests; the default reads the
+ * live audio slot through `exercises/voice.ts`.
+ */
+export function pitchClipsVerified(item: Pick<VocabItem, 'id'>, pair: Pick<VocabItem, 'id'> | null, verified: (key: string) => boolean = isPitchVerified): boolean {
+  return verified(item.id) && (pair === null || verified(pair.id));
+}
+
+/** The word + が take (design 08 §3 T3 ear set): clip key `${id}#ga`. */
+export function gaClipKey(item: Pick<VocabItem, 'id'>): string {
+  return `${item.id}#ga`;
+}
+
+/**
+ * Whether the reveal may play the `#ga` take: it exists AND the verifier did
+ * not flag its accent (`pitchVerified !== false`; an unflagged take plays —
+ * the plan's "when present"). `cue` is injectable for tests.
+ */
+export function gaTakePlayable(item: Pick<VocabItem, 'id'>, cue: (key: string) => ClipCue | undefined = clipCue): boolean {
+  const c = cue(gaClipKey(item));
+  return c !== undefined && c.pitchVerified !== false;
+}
+
+/** The が note for the revealed pattern: what the particle shows for THIS word (a flat word stays high on it, a tail-high word drops onto it, the rest dropped inside the word). */
+export function gaNoteFor(type: PitchType | null): string {
+  if (type === 'heiban') return S.pitchGaNoteFlat;
+  if (type === 'odaka') return S.pitchGaNoteTail;
+  return S.pitchGaNoteInside;
+}
+
 export function PitchEar(p: ExerciseProps): JSX.Element {
   return <PitchEarBody key={p.step.id} {...p} />;
 }
@@ -82,15 +135,21 @@ function PitchEarBody(p: ExerciseProps): JSX.Element {
   const [done, setDone] = useState<AttemptResult | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   const [replays, setReplays] = useState(0);
+  const [gaPlayed, setGaPlayed] = useState(false);
   const replaysRef = useRef(0);
   const fired = useRef(false);
   const types = useMemo(() => pitchChoiceTypes(p.step.params), [p.step.params]);
   const correctType = item ? pitchType(item.kana, item.pitch ?? 0) : null;
   const correctIdx = correctType ? types.indexOf(correctType) : -1;
   const pair = useMemo(() => (item ? minimalPairOf(item, pitchPairPool(item, p.step.params)) : null), [item, p.step.params]);
+  // One source for the whole step, decided once per step (design 08 §8 / §10.4).
+  const useClips = useMemo(() => (item ? pitchClipsVerified(item, pair) : false), [item, pair]);
+
+  /** The word (or its contrast) through the step's one source: the verified clip, else the device voice (no clip key). */
+  const playWord = (v: VocabItem): Promise<void> => speak(v.word, useClips ? { kana: v.kana, clip: v.id } : { kana: v.kana });
 
   const play = (): void => {
-    if (item) void speakWord(item);
+    if (item) void playWord(item);
   };
   useEffect(() => {
     play();
@@ -110,6 +169,11 @@ function PitchEarBody(p: ExerciseProps): JSX.Element {
     fired.current = true;
     setDone(r);
     p.onResult(r);
+    // The reveal (pack path only): the word with が behind it, when the pack has that take and the verifier did not reject it.
+    if (item && useClips && gaTakePlayable(item)) {
+      setGaPlayed(true);
+      void speak(`${item.word}が`, { kana: `${item.kana}が`, clip: gaClipKey(item) });
+    }
   };
 
   const pick = (i: number): void => {
@@ -131,8 +195,14 @@ function PitchEarBody(p: ExerciseProps): JSX.Element {
     return i === correctIdx ? 'missed' : 'idle';
   };
 
+  const hear = (v: VocabItem): JSX.Element => (
+    <button type="button" class="btn btn--ghost btn--sm pitch-contrast__hear" aria-label={fill(S.hearWord, { word: v.word })} onClick={() => void playWord(v)}>
+      <span aria-hidden="true">▶</span> <span lang="ja">{v.word}</span>
+    </button>
+  );
+
   return (
-    <div class="drill pitch-ear" data-exercise="pitch-ear" data-correct-index={correctIdx}>
+    <div class="drill pitch-ear" data-exercise="pitch-ear" data-correct-index={correctIdx} data-source={useClips ? 'clips' : 'synth'}>
       <p class="drill__prompt">{X.choosePitch}</p>
       <WordHead item={item} mode={p.furigana} kana />
       <div class="drill__row drill__row--between">
@@ -170,27 +240,30 @@ function PitchEarBody(p: ExerciseProps): JSX.Element {
       </div>
 
       {done ? (
-        <div class="drill__after pitch-contrast" data-correct={done.correct ? 'true' : 'false'}>
-          <div class="pitch-contrast__row">
+        <div class="drill__after pitch-contrast" data-correct={done.correct ? 'true' : 'false'} data-source={useClips ? 'clips' : 'synth'}>
+          <div class="pitch-contrast__row" role="group" aria-label={S.pitchCompareLabel}>
             <span class="drill__ja" lang="ja">
               {item.word}
             </span>
             <PitchLine kana={item.kana} pitch={item.pitch ?? 0} />
             <span>{item.meanings[0]}</span>
+            {hear(item)}
           </div>
+          {gaPlayed ? <p class="drill__hint pitch-contrast__ga">{gaNoteFor(correctType)}</p> : null}
           {pair ? (
             <>
               <span class="drill__label">{S.pitchContrast}</span>
-              <div class="pitch-contrast__row" data-pair={pair.id}>
+              <div class="pitch-contrast__row" data-pair={pair.id} role="group" aria-label={S.pitchCompareLabel}>
                 <span class="drill__ja" lang="ja">
                   {pair.word}
                 </span>
                 <PitchLine kana={pair.kana} pitch={pair.pitch ?? 0} />
                 <span>{pair.meanings[0]}</span>
+                {hear(pair)}
               </div>
             </>
           ) : null}
-          <p class="drill__hint">{S.pitchDatasetNote}</p>
+          <p class="drill__hint pitch-contrast__note">{useClips ? S.pitchClipNote : S.pitchDatasetNote}</p>
           {item.collocations && item.collocations.length > 0 ? (
             <div>
               <span class="drill__label">{X.collocations}</span>

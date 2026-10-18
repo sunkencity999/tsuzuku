@@ -4,8 +4,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { STATIONS } from '../src/content/types.ts';
-import type { ComponentDef, GrammarItem, KanjiItem, StationBundle, VocabItem } from '../src/content/types.ts';
-import { assign, bundlesFromCorpus, buildMatchPool, matchToken, orderRankedVocab, placeComponents, stemApplies, topoSortKanji, vocabSurfaceList } from './assign-stations.ts';
+import type { ComponentDef, GrammarItem, KanjiItem, StationBundle, StoryItem, VocabItem } from '../src/content/types.ts';
+import { assign, buildPoolFiles, buildPools, bundlesFromCorpus, buildMatchPool, compareRefs, linkSentence, matchToken, orderRankedVocab, placeComponents, readPoolCorpus, sentenceMorae, stationPools, stemApplies, stringifyPool, topoSortKanji, vocabSurfaceList, writePools } from './assign-stations.ts';
 import type { PlanEntry } from './assign-stations.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -105,9 +105,10 @@ function grammarItem(n: number): GrammarItem {
     jlpt: 5,
     register: 'neutral',
     examples: [
-      { ja: 'あです。', kana: 'あです。', en: 'A.' },
-      { ja: 'いです。', kana: 'いです。', en: 'I.' },
-      { ja: 'うです。', kana: 'うです。', en: 'U.' },
+      // the words of v-n5-0001 … 0003 (Station 1): a grammar example links its words and lands at the grammar's own station
+      { ja: `${kanaWord(50001)}です。`, kana: `${kanaWord(50001)}です。`, en: 'A.' },
+      { ja: `${kanaWord(50002)}です。`, kana: `${kanaWord(50002)}です。`, en: 'I.' },
+      { ja: `${kanaWord(50003)}です。`, kana: `${kanaWord(50003)}です。`, en: 'U.' },
     ],
     clozeHints: ['です'],
     mistakes: [],
@@ -453,5 +454,161 @@ describe('assign-stations — synthetic N5 corpus', () => {
     for (const b of r.bundles.slice(7)) expect([...b.vocabIds].sort()).toEqual([...plain.bundles[b.number - 1]!.vocabIds].sort());
     expect(allVocab(root).find((v) => v.id === 'v-n5-0271')!.station).toBe(6);
     expect(allVocab(root).find((v) => v.id === 'v-n5-0253')!.station).toBe(7);
+  });
+
+  it('writes the 53 listening pools (design 08 §4): an example lands at the station of its latest id, an out-of-corpus token keeps a sentence out, story lines enter by their tokenIds, refs are sorted and a second run is byte-identical', () => {
+    const { root, plan } = synthCorpus();
+    // v-n5-0249 (file 2) borrows the word of v-n5-0700 (file 6), so its example's latest id sits at a later station
+    const rel2 = 'vocab/n5/vocab-n5-002.json';
+    const items2 = readItems<VocabItem>(root, rel2);
+    const w249 = kanaWord(249 + 50000);
+    const w700 = kanaWord(700 + 50000);
+    items2.find((x) => x.id === 'v-n5-0249')!.examples = [{ ja: `${w249}と${w700}です。`, kana: `${w249}と${w700}です。`, en: 'x' }];
+    items2.find((x) => x.id === 'v-n5-0250')!.examples = [{ ja: `${kanaWord(250 + 50000)}とりんごです。`, kana: `${kanaWord(250 + 50000)}とりんごです。`, en: 'x' }];
+    writeJson(join(root, rel2), { schema: 'tsuzuku.content/1', type: 'vocab', level: 'n5', items: items2 });
+    const allow = tmp('allow-');
+    const r = assign(root, plan, { allowlistsDir: allow });
+    const station = (id: string) => allVocab(root).find((x) => x.id === id)!.station!;
+    expect(station('v-n5-0700')).toBeGreaterThan(station('v-n5-0249'));
+    expect(r.pools.length).toBe(53);
+    expect(r.pools.map((p) => p.station)).toEqual(Array.from({ length: 53 }, (_, i) => i + 1));
+    const holder = r.pools.find((p) => p.refs.some((x) => x.ref === 'v-n5-0249#ex0'))!;
+    expect(holder.station).toBe(station('v-n5-0700'));
+    const ref249 = holder.refs.find((x) => x.ref === 'v-n5-0249#ex0')!;
+    expect(ref249).toEqual({ ref: 'v-n5-0249#ex0', ids: ['v-n5-0249', 'v-n5-0700'], kana: `${w249}と${w700}です。`, morae: sentenceMorae(`${w249}と${w700}です。`) });
+    // りんご links nowhere in this corpus: the sentence enters no pool
+    expect(r.pools.some((p) => p.refs.some((x) => x.ref.startsWith('v-n5-0250#')))).toBe(false);
+    // a plain example sits at its own station; the fixture story's line enters by its tokenIds at the text's station (its one id is from Station 1)
+    expect(r.pools.find((p) => p.refs.some((x) => x.ref === 'v-n5-0001#ex0'))!.station).toBe(station('v-n5-0001'));
+    const p4 = r.pools.find((p) => p.station === 4)!;
+    expect(p4.refs[0]).toMatchObject({ ref: 's-04-1#L0', ids: ['v-n5-0001'] });
+    // sorted stories → grammar → vocab, by id then index
+    for (const p of r.pools) expect([...p.refs].sort(compareRefs).map((x) => x.ref)).toEqual(p.refs.map((x) => x.ref));
+    expect(p4.refs.map((x) => x.ref.charAt(0)).join('')).toMatch(/^s*g*v*$/);
+    expect(p4.refs.some((x) => x.ref.startsWith('g-n5-'))).toBe(true);
+    // files on disk, byte-stable, regenerated identically by buildPools and by a second assign
+    const dir = join(root, 'listening');
+    expect(readdirSync(dir).sort()).toEqual(Array.from({ length: 53 }, (_, i) => `pool-${String(i + 1).padStart(2, '0')}.json`));
+    const text = readFileSync(join(dir, 'pool-04.json'), 'utf8');
+    expect(text).toBe(stringifyPool(p4));
+    expect(JSON.parse(text)).toMatchObject({ schema: 'tsuzuku.pool/1', station: 4 });
+    expect(r.report).toMatch(/wrote 53 listening pools \(53 changed\)/);
+    const snapshot = () => Object.fromEntries(readdirSync(dir).sort().map((f) => [f, readFileSync(join(dir, f), 'utf8')]));
+    const before = snapshot();
+    const again = assign(root, plan, { allowlistsDir: allow });
+    expect(snapshot()).toEqual(before);
+    expect(again.report).toMatch(/wrote 53 listening pools \(0 changed\)/);
+    const regenerated = buildPools(root, bundlesFromCorpus(root)).pools;
+    for (const p of regenerated) expect(stringifyPool(p)).toBe(before[`pool-${String(p.station).padStart(2, '0')}.json`]);
+    // a hand edit is undone by writePools alone (the --pools-only path), which touches nothing else
+    writeFileSync(join(dir, 'pool-04.json'), text.replace('"morae": ', '"morae": 9'));
+    const stories = readFileSync(join(root, 'stories/n5/stories-s04.json'), 'utf8');
+    const w = writePools(root, bundlesFromCorpus(root));
+    expect(w.changed).toEqual(['listening/pool-04.json']);
+    expect(readFileSync(join(dir, 'pool-04.json'), 'utf8')).toBe(text);
+    expect(readFileSync(join(root, 'stories/n5/stories-s04.json'), 'utf8')).toBe(stories);
+    // a dry run writes no pools
+    expect(assign(root, plan, { write: false, allowlistsDir: allow }).pools).toEqual([]);
+  });
+
+  it("story lines enter by their writers' tokenIds, not by the segmenter: ids ⊆ tokenIds, a line the segmenter cannot cover still enters at its text's station, a plusOne line lands where the plusOne word is introduced, a line with an unknown content token is absent; an example's ids start with its owner even when the segmenter leaves the headword unlinked", () => {
+    const { root, plan } = synthCorpus();
+    const w1 = kanaWord(1 + 50000);
+    const w700 = kanaWord(700 + 50000);
+    // a grammar hint ました: the V20 matcher counts any token containing it as known (歩きました → the grammar id), the segmenter keeps 歩き unknown (歩く is not in the corpus)
+    const relG = 'grammar/n5/grammar-n5-001.json';
+    const grammar = readItems<GrammarItem>(root, relG);
+    grammar[0]!.clozeHints = ['ました'];
+    writeJson(join(root, relG), { schema: 'tsuzuku.content/1', type: 'grammar', level: 'n5', items: grammar });
+    // a numeral item whose example carries the headword only as a kanji numeral (known, unlinked by the segmenter)
+    const rel2 = 'vocab/n5/vocab-n5-002.json';
+    const items2 = readItems<VocabItem>(root, rel2);
+    const num = items2.find((x) => x.id === 'v-n5-0252')!;
+    num.word = '三';
+    num.kana = 'さん';
+    num.pos = 'num';
+    num.examples = [{ ja: `三${w1}です。`, kana: `さん${w1}です。`, en: 'x' }];
+    writeJson(join(root, rel2), { schema: 'tsuzuku.content/1', type: 'vocab', level: 'n5', items: items2 });
+    const line = (ja: string, tokens: string[], extra: Record<string, unknown> = {}) => ({ ja, kana: ja, en: 'x', tokens, ...extra });
+    writeJson(join(root, 'stories/n5/stories-s04.json'), {
+      schema: 'tsuzuku.content/1',
+      type: 'story',
+      level: 'n5',
+      items: [
+        {
+          id: 's-04-1',
+          stationId: 'st-04',
+          titleJa: 'あ',
+          titleEn: 'A',
+          kind: 'story',
+          register: 'polite',
+          lines: [
+            line(`${w1}です。`, [w1, 'です', '。']), // L0: own-station, one id
+            line('歩きました。', ['歩きました', '。'], { kana: 'あるきました。' }), // L1: linked through the hint rule; the segmenter cannot cover 歩き
+            line(`${w700}です。`, [w700, 'です', '。'], { plusOne: ['v-n5-0700'] }), // L2: plusOne word from a later station
+            line('りんごです。', ['りんご', 'です', '。']), // L3: an unknown content token
+            line('そうですね。', ['そう', 'です', 'ね', '。']), // L4: function tokens only — no id, the text's station
+          ],
+          vocabIds: [],
+          grammarIds: [],
+          comprehension: [],
+          recapEn: 'x',
+          names: ['ミカ'],
+        },
+      ],
+    });
+    const allow = tmp('allow-');
+    const r = assign(root, plan, { allowlistsDir: allow });
+    const station = (id: string) => allVocab(root).find((x) => x.id === id)!.station!;
+    const story = readItems<StoryItem>(root, 'stories/n5/stories-s04.json')[0]!;
+    const tokenIds = story.lines.map((ln) => ln.tokenIds!);
+    expect(tokenIds[0]).toEqual(['v-n5-0001', null, null]);
+    expect(tokenIds[1]).toEqual(['g-n5-001', null]);
+    expect(tokenIds[2]).toEqual(['v-n5-0700', null, null]);
+    expect(tokenIds[3]).toEqual([null, null, null]);
+    expect(tokenIds[4]).toEqual([null, null, null, null]);
+    const where = (ref: string) => r.pools.find((p) => p.refs.some((x) => x.ref === ref));
+    const refOf = (ref: string) => where(ref)!.refs.find((x) => x.ref === ref)!;
+    expect(where('s-04-1#L0')!.station).toBe(4);
+    expect(refOf('s-04-1#L0').ids).toEqual(['v-n5-0001']);
+    // the segmenter alone would reject 歩きました (歩き is an unknown run), the writers' tokenIds admit it at the text's station
+    expect(linkSentence(stationPools(bundlesFromCorpus(root), readPoolCorpus(root))(4), '歩きました。').unknownTokens).toEqual(['歩き']);
+    expect(where('s-04-1#L1')!.station).toBe(4);
+    expect(refOf('s-04-1#L1').ids).toEqual(['g-n5-001']);
+    // the plusOne line sits where its plusOne word is introduced, with that word as its one id
+    expect(station('v-n5-0700')).toBeGreaterThan(4);
+    expect(where('s-04-1#L2')!.station).toBe(station('v-n5-0700'));
+    expect(refOf('s-04-1#L2').ids).toEqual(['v-n5-0700']);
+    // an unknown content token keeps the line out of every pool; a line of function tokens only has no id and sits at its text's station
+    expect(where('s-04-1#L3')).toBeUndefined();
+    expect(where('s-04-1#L4')!.station).toBe(4);
+    expect(refOf('s-04-1#L4').ids).toEqual([]);
+    // every story ref's ids are a subset of its line's non-null tokenIds
+    for (const p of r.pools) {
+      for (const x of p.refs) {
+        if (!x.ref.startsWith('s-')) continue;
+        const i = Number(x.ref.split('#L')[1]);
+        const linked = new Set(tokenIds[i]!.filter((id): id is string => typeof id === 'string'));
+        for (const id of x.ids) expect(linked.has(id), `${x.ref} ${id}`).toBe(true);
+      }
+    }
+    // the verdicts say the same: a story line's ownStation is "lands at its text's station"
+    const { verdicts } = buildPools(root, bundlesFromCorpus(root));
+    expect(verdicts.filter((v) => v.ref.startsWith('s-04-1#')).map((v) => [v.ref, v.knownAt, v.ownStation, v.unknownTokens])).toEqual([
+      ['s-04-1#L0', 4, true, []],
+      ['s-04-1#L1', 4, true, []],
+      ['s-04-1#L2', station('v-n5-0700'), false, []],
+      ['s-04-1#L3', null, false, ['りんご']],
+      ['s-04-1#L4', 4, true, []],
+    ]);
+    // the numeral item's example: 三 is a known, unlinked numeral run for the segmenter, yet the ref carries its owner first and never lands before the owner's station
+    const ex = refOf('v-n5-0252#ex0');
+    expect(ex.ids[0]).toBe('v-n5-0252');
+    expect(ex.ids).toEqual(['v-n5-0252', 'v-n5-0001']);
+    expect(where('v-n5-0252#ex0')!.station).toBe(Math.max(station('v-n5-0252'), station('v-n5-0001')));
+    expect(station('v-n5-0252')).toBeGreaterThan(station('v-n5-0001'));
+    for (const p of r.pools) for (const x of p.refs) if (!x.ref.startsWith('s-')) expect(x.ids[0], x.ref).toBe(x.ref.split('#')[0]);
+    // the plan row's shape: buildPoolFiles returns the pools alone
+    expect(buildPoolFiles(root, bundlesFromCorpus(root))).toEqual(r.pools);
   });
 });

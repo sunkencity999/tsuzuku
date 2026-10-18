@@ -10,7 +10,11 @@
  *  next milestone, the welcome state, resume info (`loadSnapshot`: a snapshot
  *  with malformed card keys is never offered) — and, additively, the Three
  *  Kata, the flame, the Kage standing, the Nemesis callout, the Gatekeeper and
- *  Shinsa availability, the governor notes and the 次回予告 teaser.
+ *  Shinsa availability, the governor notes and the 次回予告 teaser — and
+ *  `radioMinutes` (design 08 §4, §10.2): the minutes of pool sentences the
+ *  learner can follow today at the live known set, for the Dojo's 茶屋ラジオ
+ *  tile ("{n} min of material you can already follow"); `null` when no pool
+ *  is on the road, so the tile keeps its link and drops the number.
  *
  *  `forecastCounts` has no plan context: it adds the Scroll block's minutes
  *  (5 Kumite / 10 Shugyō) and the belt's new-item budget whenever the budget
@@ -26,9 +30,9 @@ import { hashSeed } from '../shared/hash';
 import type { EpochDay } from '../shared/store-types';
 import { store } from '../store';
 import { SHINSA_STATIONS, beltOfStation, forecastCounts, itemBeltOf, stationProgress, streakState, type FlameState, type ForecastCounts } from '../store/derived';
-import { BELT_ORDER, type Scroll } from '../learn';
+import { BELT_ORDER, poolMinutes, selectPool, type Scroll } from '../learn';
 import { S, fill, plural } from './engine-strings';
-import { isGrammar, isVocab, loadPlanContext, pickStories, scrollsForToday, type PlanContext } from './builder';
+import { isGrammar, isVocab, loadPlanContext, pickStories, poolRefs, scrollsForToday, withPools, type PlanContext } from './builder';
 import { jikaiYokoku, milestoneLine, omikuji } from './end-card';
 import { gateAvailable } from './gatekeeper';
 import { kageStanding, type KageStanding } from './kage';
@@ -56,6 +60,14 @@ export interface DojoFeedFull extends DojoFeed {
   overtraining: boolean;
   teaser?: JikaiYokoku;
   proverb: string;
+  /**
+   * Minutes of pool sentences the learner can follow today (design 08 §4:
+   * i+0 at the live known set over the pools ≤ station, `poolMinutes`),
+   * rounded; `null` when no pool is on the road (Stations 1–3, a build before
+   * `content:assign` wrote pools). The Dojo's 茶屋ラジオ tile shows the number
+   * when present and keeps its link either way.
+   */
+  radioMinutes: number | null;
 }
 
 export interface DojoFeedOptions {
@@ -105,6 +117,16 @@ export function sentenceOfDay(ctx: PlanContext, day: EpochDay = ctx.today): { ja
   return ex ? { ja: ex.ja, kana: ex.kana } : undefined;
 }
 
+/**
+ * Minutes of listening the learner can follow today (design 08 §4, §10.1):
+ * `poolMinutes` of the i+0 selection over the pools ≤ station at the live
+ * known set — the live count, never the allowlist figure; `null` without pools.
+ */
+export function radioMinutesFor(ctx: PlanContext): number | null {
+  if ((ctx.pools?.length ?? 0) === 0) return null;
+  return Math.round(poolMinutes(selectPool(poolRefs(ctx), ctx.known, store.cards, ctx.today, { mode: 'i+0' })));
+}
+
 /** Welcome state (design 03 §8). */
 export function welcomeState(): DojoFeed['welcome'] {
   const p = store.progress.value;
@@ -122,7 +144,7 @@ export function resumeInfo(): { stepsLeft: number } | undefined {
 }
 
 export async function dojoFeed(o: DojoFeedOptions = {}): Promise<DojoFeedFull> {
-  const ctx = await loadPlanContext({ loader: o.loader, mode: 'dojo' });
+  const ctx = await withPools(await loadPlanContext({ loader: o.loader, mode: 'dojo' }));
   const today = ctx.today;
   const scrollsToday: Scroll[] = ctx.backlog ? [] : scrollsForToday(ctx, 4);
   const fc = gateForecast(forecastCounts(), scrollsToday.length);
@@ -166,6 +188,7 @@ export async function dojoFeed(o: DojoFeedOptions = {}): Promise<DojoFeedFull> {
     crammingCap: ctx.crammingCap,
     overtraining: ctx.overtraining,
     proverb: omikuji(ctx.seed, today),
+    radioMinutes: radioMinutesFor(ctx),
   };
   const sod = sentenceOfDay(ctx);
   if (sod) feed.sentenceOfDay = { ja: toPlain(sod.ja), kana: sod.kana };

@@ -296,7 +296,9 @@
   "componentIds": [],
   "storyIds": [
     "s-46-1",
-    "s-46-2"
+    "s-46-2",
+    "s-46-3",
+    "s-46-4"
   ],
   "michikusaIds": [
     "m-46-1",
@@ -308,6 +310,7 @@
     "grammar/n2/grammar-n2-003.json",
     "kanji/n2/kanji-n2-004.json",
     "michikusa/michikusa-s46.json",
+    "stories/n2/listening-s46.json",
     "stories/n2/stories-s46.json",
     "vocab/n2/vocab-n2-011.json",
     "vocab/n2/vocab-n2-012.json"

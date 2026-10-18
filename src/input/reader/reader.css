@@ -434,3 +434,61 @@
   background: var(--ai);
   transition: width var(--dur-2) var(--ease);
 }
+
+/* ── read-along (design 08 §10.3) ────────────────────────────────────── */
+.reader__mode {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-size: var(--fs-1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.reader__mode [lang='ja'] {
+  font-family: var(--font-ja);
+  font-size: var(--fs-2);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.reader__line[data-speaking='true'] {
+  background: color-mix(in srgb, var(--sakura) 14%, var(--surface));
+  border-left-color: var(--sakura);
+}
+.reader__lines--vertical .reader__line[data-speaking='true'] {
+  border-top-color: var(--sakura);
+}
+/* karaoke token sweep (design 08 §9): past tokens settle, the active one fills */
+.reader__ja .ruby__token[data-sweep='active'] {
+  background: color-mix(in srgb, var(--ai) 22%, transparent);
+  border-radius: var(--radius-sm);
+  transition: background var(--dur-2) var(--ease);
+}
+.reader__ja .ruby__token[data-sweep='past'] {
+  color: var(--fg-muted);
+}
+.reader__transport {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+.reader__rates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.reader__rate {
+  cursor: pointer;
+  min-height: var(--touch);
+  font: inherit;
+  font-size: var(--fs-2);
+}
+.reader__rate[aria-pressed='true'] {
+  border-color: var(--ai);
+  border-style: double;
+}
+.reader__rate small {
+  margin-left: 0.35em;
+  font-family: var(--font-pixel);
+  color: var(--fg-muted);
+}

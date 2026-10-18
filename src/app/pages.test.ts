@@ -10,8 +10,6 @@ import type { Route, RouteName } from '@/shared/routes';
 import { EXERCISES_BARREL, INPUT_BARREL, PAGE_SOURCES, ROUTE_NAMES, ensureExercises, exercisesReady, loadErrors, moduleAvailable, pageFor, resetExercisesForTests } from './pages';
 
 const exists = (p: string): boolean => existsSync(resolve(process.cwd(), p));
-/** The Radio page (design 08 §10.2) lands with the radio owner; its `PAGE_SOURCES` row is final and points at the F barrel. */
-const RADIO_PAGE = 'src/input/pages/RadioPage.tsx';
 
 /** Which barrel registers which drill (design 07 §13; D 26, F 9). */
 export const D_DRILLS: readonly DrillId[] = [
@@ -149,10 +147,8 @@ describe('pageFor', () => {
     // The dojo case cold-imports the art, session, exercises and input barrels: give it room.
     it(
       `${name} → ${src.module}#${src.export} resolves to a component`,
-      async (ctx) => {
-        // Same convention as the drill-file checks below: not a silent skip of a renamed page (the barrel is on disk and
-        // checked), only the one export whose module has not landed yet.
-        if (name === 'radio' && !exists(RADIO_PAGE)) ctx.skip(`${RADIO_PAGE} not landed yet (radio owner)`);
+      async () => {
+        // Every route, `radio` (design 08 §10.2) included, resolves for real: a renamed page fails here, never as a skip.
         const mod = await pageFor(sampleRoute(name));
         expect(typeof mod.Page).toBe('function');
         if (name === 'dojo') {

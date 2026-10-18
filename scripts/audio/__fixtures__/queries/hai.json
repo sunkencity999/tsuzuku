@@ -1,0 +1,46 @@
+{
+ "name": "hai",
+ "text": "はい",
+ "kana": "はい",
+ "styleId": 16,
+ "note": "word はい pitch 1",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ハ",
+      "consonant": "h",
+      "consonant_length": 0.06407390534877777,
+      "vowel": "a",
+      "vowel_length": 0.15872356295585632,
+      "pitch": 5.819718837738037
+     },
+     {
+      "text": "イ",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "i",
+      "vowel_length": 0.07460995763540268,
+      "pitch": 5.568915843963623
+     }
+    ],
+    "accent": 1,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ハ'イ"
+ }
+}

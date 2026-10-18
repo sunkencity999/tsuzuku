@@ -1,10 +1,19 @@
 /**
  * TSUZUKU — 日本橋 Station 0, onboarding (group A, design 01 §2, 02 §1/§6.1, 03 §4, 06 §7 #10).
  *
- * Under two minutes: name (`<NameField>`, src/app/names) → kana check (46 Kana Flash, a 12-tile
- * confirmation for "I read all kana", or none) → pace with the honest road
- * (months at 100 % / 70 %, in-app hours COMPUTED from the preset, the
- * ≈ 1,200 external hours, TTS notice) → voice test + speech-recognition
+ * Under two minutes: name (`<NameField>`, src/app/names) → Meet ハナ (design 08
+ * §10.5: the dojo's voice says あ・い・う・え・お, each lit as it is spoken, then
+ * こんにちは with the gloss "hello" and no romaji; speech-recognition and theme
+ * choices sit under it) → kana check (46 Kana Flash, a 12-tile confirmation for
+ * "I read all kana", or none; every glyph is spoken as it appears — sound before
+ * symbol) → pace with the honest road (months at 100 % / 70 %, in-app hours
+ * COMPUTED from the preset, the ≈ 1,200 external hours, the honest share of
+ * design 08 §12) → summary.
+ *
+ * Voice honesty (design 08 §8): the install guide reads `voiceAudible` + the
+ * `source` signal (`voiceInstallNeeded`), never `hasJaVoice` alone, so a device
+ * with the voice pack and no Japanese system voice is never nagged; the source
+ * line names "synthetic voice (VOICEVOX)", "device voice" or "text only".
  *
  * The road numbers come from the store's pacing estimate
  * (`store/derived.onboardingEstimate`: station quotas ÷ the preset's rates,
@@ -40,11 +49,11 @@
  * inside a fixed plate (06 §3 safe zones).
  */
 import type { JSX } from 'preact';
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { BELT_IDS, type Belt } from '@/content/types';
 import { markKnown } from '@/learn/apply';
 import { PRESET_RETENTION, presetRate, steadyStateReviews } from '@/learn';
-import { services, speak } from '@/shared/audio';
+import { audioSourceOf, packWillSpeak, services, speak, voiceAudible, type AudioService } from '@/shared/audio';
 import { rngFor, shuffle } from '@/shared/hash';
 import { containsJapanese, equivalentJa } from '@/shared/jp';
 import { romajiToKana } from '@/shared/kana-ime';
@@ -52,6 +61,7 @@ import { navigate, type Route } from '@/shared/routes';
 import type { Intensity, SpeakingMode, Theme } from '@/shared/store-types';
 import { INTENSITY_PRESETS, INTENSITY_SCALE, NAME_MAX_GLYPHS, newPerDayFor, store } from '@/store';
 import { onboardingEstimate, type OnboardingEstimate } from '@/store/derived';
+import { useAudioService } from '../hooks';
 import { EMPTY_NAME_DRAFT, NameField, isKanaName, resolveName, type NameDraft } from '../names/NameField';
 import { S, fmt, num } from './strings';
 import './pages.css';
@@ -83,6 +93,42 @@ export const BASIC_HIRAGANA: readonly KanaCard[] = [
 
 export const KANA_TOTAL = BASIC_HIRAGANA.length;
 export const TILE_COUNT = 12;
+/** The five vowels ハナ says first (design 08 §10.5), in gojūon order; their kana ids are the clip keys. */
+export const MEET_VOWELS: readonly KanaCard[] = BASIC_HIRAGANA.slice(0, 5);
+/** こんにちは — glossed "hello" on the Meet ハナ step, never romanised (05 §13). */
+export const HELLO = 'こんにちは';
+/** On the pack path a vowel lights at its clip's first progress tick; a clip that misses (no ticks) lights after this many ms, so no glyph stays dark. */
+export const MEET_LIGHT_FALLBACK_MS = 150;
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Voice honesty (design 08 §8): what the learner is told about the voice    */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/** The pack counts as a voice only while chosen (`settings.audioSource !== 'device'`, design 08 §13). */
+const packChosenNow = (): boolean => store.settings.value.audioSource !== 'device';
+
+/**
+ * Whether the install guide should show: a pack voice is a voice, so never
+ * while the pack speaks (`source === 'clips'` — capability-correct from mount,
+ * the idle default before any `speak()`), nor while a ready pack is chosen but
+ * the master volume is 0 (the idle `source` then reads `'none'`: the remedy is
+ * the volume, not an OS voice); otherwise only when the device has no Japanese
+ * voice at all. The pack half is the contract-tier `packWillSpeak(a, packChosen)`
+ * (`source` / `packReady` read only together with the setting — a ready pack
+ * the learner has not chosen is the device voice); the device half reads
+ * `voiceAudible` + `hasJaVoice` (never `hasJaVoice` alone), so a learner who
+ * merely muted a device voice is not nagged either.
+ */
+export function voiceInstallNeeded(a: AudioService, packChosen: boolean = packChosenNow()): boolean {
+  if (packWillSpeak(a, packChosen)) return false;
+  return !voiceAudible(a) && !a.hasJaVoice.value;
+}
+
+/** The honesty word for the voice this device will use: pack clips, the device voice, or text only. */
+export function voiceSourceLabel(a: AudioService): string {
+  if (audioSourceOf(a) === 'clips') return S.sourcePack;
+  return voiceAudible(a) ? S.sourceDevice : S.sourceNone;
+}
 
 /** Typed romaji (any Hepburn / kunrei spelling) or kana matches the glyph. */
 export function kanaMatches(typed: string, kana: string): boolean {
@@ -186,8 +232,9 @@ export function steadyReviewsInAYear(preset: Preset, est?: OnboardingEstimate | 
 /* Steps                                                                      */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-type StepName = 'name' | 'kana' | 'pace' | 'voice' | 'done';
-const STEPS: readonly StepName[] = ['name', 'kana', 'pace', 'voice', 'done'];
+type StepName = 'name' | 'voice' | 'kana' | 'pace' | 'done';
+/** Meet ハナ (`voice`) comes BEFORE the kana check: sound before symbol (design 08 §10.5). */
+const STEPS: readonly StepName[] = ['name', 'voice', 'kana', 'pace', 'done'];
 type KanaMode = 'ask' | 'full' | 'tiles' | 'result';
 
 const PACE_COPY: Record<Preset, { name: string; ja: string; desc: string }> = {
@@ -198,7 +245,6 @@ const PACE_COPY: Record<Preset, { name: string; ja: string; desc: string }> = {
 const THEME_COPY: Record<Theme, string> = { auto: S.onbThemeAuto, light: S.onbThemeLight, dark: S.onbThemeDark };
 const SPEECH_COPY: Record<'self' | 'recognition', string> = { self: S.onbSpeechSelf, recognition: S.onbSpeechRecognition };
 const VOICE_GUIDE = [S.onbVoiceGuideWindows, S.onbVoiceGuideMac, S.onbVoiceGuideAndroid, S.onbVoiceGuideIos];
-const HELLO = 'こんにちは';
 
 function Choice(p: { pressed: boolean; onClick(): void; title: string; ja?: string; desc?: string; testId?: string }): JSX.Element {
   return (
@@ -242,9 +288,17 @@ export default function OnboardingPage(_p: { route: Route }): JSX.Element {
   const [intenseAsk, setIntenseAsk] = useState(false);
   const estimates = useMemo(() => ({ casual: roadEstimateFor('casual'), standard: roadEstimateFor('standard'), intense: roadEstimateFor('intense') }), []);
 
-  // voice, speech, theme
+  // Meet ハナ (voice), speech, theme
   const [voiceState, setVoiceState] = useState<'idle' | 'speaking' | 'done'>('idle');
-  const hasJaVoice = services.audio.hasJaVoice.value;
+  /** Index of the vowel being spoken; every earlier one stays lit; `MEET_VOWELS.length` = all five. */
+  const [lit, setLit] = useState(-1);
+  const [greeted, setGreeted] = useState(false);
+  const meetRun = useRef(0);
+  /** A Meet ハナ run is speaking right now (a ref, so the unmount cleanup can read it). */
+  const meetLive = useRef(false);
+  // Subscribed to the slot: the voice step re-renders when main.tsx installs the real audio behind first paint.
+  const audio = useAudioService();
+  const installNag = voiceInstallNeeded(audio);
   const [speaking, setSpeaking] = useState<'self' | 'recognition'>('self');
   const theme = store.settings.value.theme;
   const [saving, setSaving] = useState(false);
@@ -253,8 +307,31 @@ export default function OnboardingPage(_p: { route: Route }): JSX.Element {
     document.getElementById('onb-step')?.focus();
   }, [stepIdx]);
 
-  const next = (): void => setStepIdx((i) => Math.min(STEPS.length - 1, i + 1));
-  const back = (): void => setStepIdx((i) => Math.max(0, i - 1));
+  /**
+   * Stops a Meet ハナ run: the loop's later speak() calls never fire and the
+   * current one is cut, so the sequence never speaks into the kana check (where
+   * every glyph is spoken on reveal) and never touches state after unmount.
+   */
+  const stopMeet = (): void => {
+    meetRun.current++;
+    if (!meetLive.current) return;
+    meetLive.current = false;
+    services.audio.cancel();
+  };
+  useEffect(() => stopMeet, []);
+  const leaveStep = (): void => {
+    if (step !== 'voice') return;
+    stopMeet();
+    setVoiceState((s) => (s === 'speaking' ? 'idle' : s));
+  };
+  const next = (): void => {
+    leaveStep();
+    setStepIdx((i) => Math.min(STEPS.length - 1, i + 1));
+  };
+  const back = (): void => {
+    leaveStep();
+    setStepIdx((i) => Math.max(0, i - 1));
+  };
 
   /* ── kana check ──────────────────────────────────────────────────── */
   const startCheck = (mode: 'full' | 'tiles'): void => {
@@ -299,6 +376,17 @@ export default function OnboardingPage(_p: { route: Route }): JSX.Element {
     if (!current) return;
     answer(kanaMatches(typed, current.kana));
   };
+  /** Sound before symbol (design 08 §10.5): every glyph is spoken as it appears; the kana id is its clip key. */
+  const hearKana = (c: KanaCard): void => {
+    void speak(c.kana, { kana: c.kana, clip: c.id }).catch(() => undefined);
+  };
+  const shownKanaId = step === 'kana' && (kanaMode === 'full' || kanaMode === 'tiles') ? queue[idx]?.id : undefined;
+  useEffect(() => {
+    // Re-speaks only when a new glyph is revealed, never on every keystroke of the answer.
+    if (!shownKanaId) return;
+    const c = queue[idx];
+    if (c) hearKana(c);
+  }, [shownKanaId]);
 
   /* ── pace ────────────────────────────────────────────────────────── */
   const choosePace = (p: Preset): void => {
@@ -313,10 +401,46 @@ export default function OnboardingPage(_p: { route: Route }): JSX.Element {
   /* ── theme (applied live so the learner sees it) ─────────────────── */
   const chooseTheme = (t: Theme): void => store.patch('settings', (s) => (s.theme === t ? s : { ...s, theme: t }));
 
-  /* ── voice ───────────────────────────────────────────────────────── */
-  const testVoice = (): void => {
+  /* ── Meet ハナ (design 08 §10.5) ─────────────────────────────────── */
+  /**
+   * あ・い・う・え・お one by one, then こんにちは. With the pack each glyph is
+   * lit in time: its clip's first `onProgress` tick lights it, and a clip that
+   * misses (synth fallback, no ticks) is lit after `MEET_LIGHT_FALLBACK_MS` so
+   * nothing stays dark; without the pack it lights as its speak() begins. A
+   * second tap restarts; a stale or stopped run never touches state again.
+   */
+  const meetHana = async (): Promise<void> => {
+    const run = ++meetRun.current;
+    meetLive.current = true;
+    const a = services.audio;
+    const pack = audioSourceOf(a) === 'clips';
     setVoiceState('speaking');
-    void speak(HELLO, { kana: HELLO }).finally(() => setVoiceState('done'));
+    setGreeted(false);
+    setLit(-1);
+    for (let i = 0; i < MEET_VOWELS.length; i++) {
+      if (meetRun.current !== run) return;
+      const v = MEET_VOWELS[i]!;
+      // Progress only ever raises the light: a late tick from an earlier clip never dims the ones after it.
+      const light = (): void => {
+        if (meetRun.current === run) setLit((cur) => (cur < i ? i : cur));
+      };
+      if (pack) {
+        const fallback = setTimeout(light, MEET_LIGHT_FALLBACK_MS);
+        await speak(v.kana, { kana: v.kana, clip: v.id, onProgress: light }).catch(() => undefined);
+        clearTimeout(fallback);
+        light();
+      } else {
+        light();
+        await speak(v.kana, { kana: v.kana, clip: v.id }).catch(() => undefined);
+      }
+    }
+    if (meetRun.current !== run) return;
+    setLit(MEET_VOWELS.length);
+    setGreeted(true);
+    await speak(HELLO, { kana: HELLO }).catch(() => undefined);
+    if (meetRun.current !== run) return;
+    meetLive.current = false;
+    setVoiceState('done');
   };
 
   /** The display name: kana mode finalised through the IME, trimmed and cut to the shared cap (the field caps it too; this is the second guard). */
@@ -400,6 +524,10 @@ export default function OnboardingPage(_p: { route: Route }): JSX.Element {
                 <span class="onb__kana-glyph" lang="ja" data-glyph>
                   {current.kana}
                 </span>
+                <button type="button" class="btn btn--sm btn--ghost" onClick={() => hearKana(current)} data-kana-hear>
+                  {S.onbKanaHear}
+                </button>
+                <span class="field__hint">{S.onbKanaSoundFirst}</span>
                 <label class="field">
                   <span class="field__label">{S.onbKanaPrompt}</span>
                   <input
@@ -520,17 +648,47 @@ export default function OnboardingPage(_p: { route: Route }): JSX.Element {
 
         {step === 'voice' ? (
           <>
-            <h2>{S.onbVoiceTitle}</h2>
-            <p class="page__lead">{S.onbVoiceBody}</p>
+            <h2>
+              {S.onbMeetTitle} <span lang="ja">{S.onbMeetName}</span> <span class="onb__gloss">{S.onbMeetNameEn}</span>
+            </h2>
+            <p class="page__lead">{S.onbMeetBody}</p>
+            <p class="muted" data-voice-source>
+              {fmt(S.onbMeetSource, { source: voiceSourceLabel(audio) })}
+            </p>
+            <div class="onb__meet status-window" data-meet>
+              <ul class="onb__vowels" aria-label={S.onbMeetVowels} data-vowels>
+                {MEET_VOWELS.map((v, i) => (
+                  <li key={v.id} class="onb__vowel" lang="ja" data-vowel={v.kana} data-lit={i <= lit ? 'true' : 'false'}>
+                    {v.kana}
+                  </li>
+                ))}
+              </ul>
+              <span class="field__hint">{S.onbMeetVowels}</span>
+              {greeted ? (
+                <div class="onb__greeting" data-greeting>
+                  <span class="onb__greeting-ja" lang="ja">
+                    {HELLO}
+                  </span>
+                  <span class="onb__greeting-en">{S.onbMeetGreetingEn}</span>
+                  <span class="field__hint">{S.onbMeetGreetingNote}</span>
+                </div>
+              ) : null}
+            </div>
             <div class="page__actions">
-              <button type="button" class="hanko" onClick={testVoice} disabled={voiceState === 'speaking'} data-voice-test>
-                <span lang="ja">{S.onbVoicePlay}</span>
+              <button type="button" class="hanko" onClick={() => void meetHana()} disabled={voiceState === 'speaking'} data-voice-test>
+                {voiceState === 'done' ? (
+                  S.onbMeetAgain
+                ) : (
+                  <>
+                    {S.onbMeetPlay} <span lang="ja">{S.onbMeetName}</span>
+                  </>
+                )}
               </button>
               <span class="page__status" role="status">
-                {voiceState === 'speaking' ? S.onbVoiceSpeaking : voiceState === 'done' && hasJaVoice ? S.onbVoiceHeard : ''}
+                {voiceState === 'speaking' ? S.onbVoiceSpeaking : voiceState === 'done' && voiceAudible(audio) ? S.onbVoiceHeard : ''}
               </span>
             </div>
-            {!hasJaVoice ? (
+            {installNag ? (
               <div class="notice" data-voice-guide>
                 <p class="page__modal-text">{S.onbVoiceNone}</p>
                 <details>

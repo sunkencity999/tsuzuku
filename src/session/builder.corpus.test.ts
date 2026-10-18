@@ -19,7 +19,10 @@ import { epochDay } from '../shared/time';
 import type { CardTuple } from '../shared/store-types';
 import { resetStoreForTests } from '../store';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../store/testing';
-import { buildPlan, isGrammar, isKanji, isVocab, loadPlanContext, movableTiles, pickStories, resolveParams, stepForCard, storyCoverage, type PlanContext } from './builder';
+import { LISTENING_SLOTS, WALK_REFS_MIN, buildPlan, isGrammar, isKanji, isVocab, listeningInputSteps, listeningSlot, loadPlanContext, movableTiles, pickStories, poolRefs, resolveParams, stepForCard, storyCoverage, withPools, type PlanContext } from './builder';
+
+/** The heavy corpus walks: well over the 5 s default under load (the lead's note), so each carries its own timeout. */
+const WALK_TIMEOUT = 30_000;
 import { dojoFeed } from './dojo-feed';
 
 const CONTENT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'content');
@@ -124,7 +127,7 @@ describe.skipIf(!existsSync(join(CONTENT, 'manifest.json')))('plans over the rea
       const picked = pickStories({ ...ctx, stories: own }).map((s) => s.id);
       for (const s of own) expect(picked, `${s.id} coverage ${storyCoverage(s, ctx.known, ctx.allowlist).toFixed(3)}`).toContain(s.id);
     }
-  });
+  }, WALK_TIMEOUT);
 
   it('every grammar point with unlocksForms yields a Form Forge / Form Chain head word over its station pool', async () => {
     const loader = corpusLoader();
@@ -145,7 +148,7 @@ describe.skipIf(!existsSync(join(CONTENT, 'manifest.json')))('plans over the rea
       }
     }
     expect(points).toBeGreaterThan(50);
-  });
+  }, WALK_TIMEOUT);
 
   it('Kanji Read blanks a span whose ruby reads as the accepted answer and never cuts a ruby group', async () => {
     const loader = corpusLoader();
@@ -180,7 +183,7 @@ describe.skipIf(!existsSync(join(CONTENT, 'manifest.json')))('plans over the rea
     }
     expect(prompts).toBeGreaterThan(2000);
     expect(inContext).toBeGreaterThan(500);
-  });
+  }, WALK_TIMEOUT);
 
   it('Scramble over the grammar examples: a one-tile sentence is rare and the builder re-routes it to cloze', async () => {
     const loader = corpusLoader();
@@ -202,5 +205,58 @@ describe.skipIf(!existsSync(join(CONTENT, 'manifest.json')))('plans over the rea
       const step = stepForCard({ ...plain, station: 10 }, qc, 'reviews', { exercise: 'scramble', rep });
       expect(step?.exercise, `${g.id} rep ${rep} ${toPlain(g.examples[rep]!.ja)}`).toBe('pattern-cloze');
     }
-  });
+  }, WALK_TIMEOUT);
+  it('every station from 4 produces a non-empty listening Input block in every rotation slot, with and without pieces and pools (design 08 §11)', async () => {
+    const loader = corpusLoader();
+    // every item of every station Green in one store for the whole walk: coverage never hides an empty block
+    await makeTestStore({ save: { progress: { station: 53 } }, cards: await cardsBelow(loader, 54) });
+    let pieces = 0;
+    let walks = 0;
+    let stationsWithPools = 0;
+    const slots = new Set<string>();
+    for (let n = 4; n <= 53; n++) {
+      const ctx = await withPools(await loadPlanContext({ loader, station: n, available: all }));
+      const hasPools = (ctx.pools?.length ?? 0) > 0;
+      if (hasPools) stationsWithPools++;
+      const own = ctx.stories.filter((s) => s.audioFirst);
+      pieces += own.length;
+      // the road as it stands, and the road with no piece and no pool file
+      const bare = { ...ctx, stories: ctx.stories.filter((s) => !s.audioFirst), pools: [] };
+      for (const slot of LISTENING_SLOTS) {
+        let day = ctx.today;
+        while (listeningSlot(day) !== slot) day++;
+        for (const c of [ctx, bare]) {
+          const r = listeningInputSteps({ ...c, today: day });
+          const label = `station ${n} slot ${slot} ${c === bare ? 'without' : 'with'} pieces / pools`;
+          expect(r.steps, label).toHaveLength(1);
+          expect(r.steps[0]!.exercise, label).toBe('listening-set');
+          expect(r.steps[0]!.block).toBe('input');
+          if (r.steps[0]!.params.refs) {
+            walks++;
+            expect(r.slot, label).toBe('walk');
+            expect(c === ctx && hasPools, `${label}: a walk only over pool files`).toBe(true);
+            expect(r.steps[0]!.params.refs.length, label).toBeGreaterThanOrEqual(WALK_REFS_MIN);
+            expect(r.storyId).toBeUndefined();
+          } else {
+            expect(r.storyId, label).toBeTruthy();
+            expect(r.steps[0]!.params.storyId).toBe(r.storyId);
+            const served = c.stories.find((s) => s.id === r.storyId);
+            expect(served, label).toBeDefined();
+            if (r.slot === 'piece') expect(served!.audioFirst, label).toBe(true);
+            else expect(c === bare || !served!.audioFirst || r.slot === 'dialogue', label).toBe(true);
+          }
+          if (c === bare) expect(r.slot, label).not.toBe('piece');
+          // nothing heard yet: the piece slot serves a piece wherever the station has one, and the walk slot a walk wherever the pools can fill one
+          if (c === ctx && slot === 'piece' && own.length > 0) expect(r.slot, label).toBe('piece');
+          if (c === ctx && slot === 'walk' && poolRefs(ctx).length >= WALK_REFS_MIN) expect(r.slot, label).toBe('walk');
+          if (r.slot) slots.add(r.slot);
+        }
+      }
+    }
+    // the positive half bites as soon as the content is indexed: pieces → a piece slot was served, pools → walks were served; none → none
+    expect(slots.has('dialogue') || slots.has('story')).toBe(true);
+    expect(slots.has('piece')).toBe(pieces > 0);
+    if (stationsWithPools > 0) expect(walks).toBeGreaterThan(0);
+    else expect(walks).toBe(0);
+  }, 2 * WALK_TIMEOUT);
 });

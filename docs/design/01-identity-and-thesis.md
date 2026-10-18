@@ -38,7 +38,7 @@ Six pillars (five from the winner, one added from the pedagogy panel):
 5. **Rewards are receipts for competence.** Fireworks happen when an item becomes production-stable, a Gatekeeper opens, a belt changes. Never for grinding known items. No randomness anywhere in rewards.
 6. **Failure is a whiff, not a death; forgiveness is a feature.** No lives, no hearts, no energy, no shame copy. Streaks forgive. The end card says "rest."
 
-Honesty clause: the onboarding screen shows the road length at 100 % and at 70 % adherence (see `02`), and states the in-app hours **computed from the chosen preset** — `hoursInApp = Σ_belt expectedMinutes(belt, preset) × days(belt) / 60` ≈ **450 h at Standard** (≈ 300 h Casual, ≈ 650 h Intense; `02 §6.1`) — then says plainly that **≈ 1,200+ hours of real listening, reading and conversation remain outside the app**, that the app's audio is a text-to-speech voice and real listening comes from the hours you log, and that the ledger's 1,500-hour goal runs past Kyoto into the Dan road (`02 §3`).
+Honesty clause: the onboarding screen shows the road length at 100 % and at 70 % adherence (see `02`), and states the in-app hours **computed from the chosen preset** — `hoursInApp = Σ_belt expectedMinutes(belt, preset) × days(belt) / 60` ≈ **450 h at Standard** (≈ 300 h Casual, ≈ 650 h Intense; `02 §6.1`) — then says plainly that **≈ 1,200+ hours of real listening, reading and conversation remain outside the app**, states the honest share of listening the dojo itself supplies (design 08 §12 — the Ledger and About pages' paragraph, verbatim: "Every voice in the dojo is synthetic: VOICEVOX character voices, pre-rendered, clear and consistent on purpose. The dojo holds about 24 hours of sentences and texts, plus about 13 hours of word and phrase clips for drills, and gives you about 70–90 hours of worthwhile listening over the road, because each piece returns at rising speed. That covers the weekly listening target through Orange (from Station 9), about a quarter of it from Green to Purple and an eighth at Brown and Black. Real people mumble, overlap and joke; the ledger’s outside hours exist for that, and the 1,500-hour goal still needs the world."), and that the ledger's 1,500-hour goal runs past Kyoto into the Dan road (`02 §3`). Every voice in the app is synthetic and says so wherever the learner meets it — *synthetic voice (VOICEVOX)* when the voice pack is present, *device voice* otherwise, *text only* without either; the words *recorded*, *native*, *human* and *real* never describe a voice (`src/i18n/banned.test.ts`).
 
 ---
 
@@ -163,7 +163,7 @@ One setting, three values. Scheduling and XP are identical in all three.
 
 | Preset | Timers | Ki / combo | Screen glow, shake | Sound |
 |---|---|---|---|---|
-| **Zen 禅** | hidden | hidden | none | off (TTS only) |
+| **Zen 禅** | hidden | hidden | none | off (the voices still speak — Zen is not mute for voices) |
 | **Dojo 道場** (default) | ring only on mature items | visible, no edge glow | none | soft set |
 | **Arcade 筐体** | ring on mature items | visible with edge glow and rising pitch | yes (reduced-motion aware) | full set, CRT optional |
 
@@ -179,7 +179,7 @@ Adaptive nudge: if two sessions in a row end with error rate > 40 % in Arcade, t
 - Scalable type (rem throughout); minimum 16 px body; 44 px touch targets; answer input in the bottom third on phones; 16 px side gutters, no horizontal scroll.
 - Furigana modes: always / fog (see `05`) / tap / off. Pitch lines drawn as shape, not color only.
 - Reduced motion, no flashing above 3 Hz, Zen preset removes all pressure elements.
-- Speech features degrade: no Japanese TTS voice → kana shown at full size and a one-time install guide; no recognition → self-assessment path with identical XP.
+- Speech features degrade: the voice pack (synthetic VOICEVOX clips, design 08) speaks when present and the device's `speechSynthesis` voice otherwise; with neither → kana shown at full size and a one-time install guide (a pack without a Japanese device voice shows no nag — `packWillSpeak`); no recognition → self-assessment path with identical XP.
 
 ---
 

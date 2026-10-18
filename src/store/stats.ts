@@ -18,12 +18,40 @@
  *            checks (`stats.honesty`, 0–1; `honesty(m)` is null before any check).
  *  storiesRead  `story:read` (any mode/score) appends the id to
  *            `progress.storiesRead` once — the "first read" record.
+ *  listening (design 08 §12; the 耳 axis in `perapera.ts` reads these):
+ *    radioMinutes              `listen:played` seconds / 60, `source: 'radio'` only
+ *                              (badge 茶屋の常連 Teahouse Regular at 600).
+ *    coldSets / coldSetsPassed first hearings on EITHER surface — an Arena
+ *                              `listening:set` with `cold` on a text (`storyId`
+ *                              set; pass → both), or a cold Radio / Read-along
+ *                              track whose gist question was answered (right →
+ *                              both, wrong → `coldSets` only; skipped → nothing).
+ *                              A walk-mode set (`storyId: null`) is pool
+ *                              sentences, not a text: never a first hearing.
+ *    listeningAuthenticMinutes authentic-style listening understood at full
+ *                              speed: a passed set at rate ≥ 1.0 on an authentic
+ *                              text — `authentic` from the emitter
+ *                              (`isAuthenticText`, which alone sees a casual
+ *                              dialogue's register) OR `bridge` OR an
+ *                              `AUTHENTIC_GENRES` `genre`, a disjunction as the
+ *                              plan row writes it — plus `listen:played` with
+ *                              `authentic` (the emitter's "rate ≥ 1.0 and gist
+ *                              right", cold hearings and re-hearings alike).
+ *    bestCleanTier             highest speed tier of a `listening:set` with
+ *                              every question right (`total ≥ 3`); tier =
+ *                              `tierOfRate(rate)`, the nearest `SPEED_TIER_RATES`
+ *                              entry. Never lowered; new saves start at 1,
+ *                              migrated saves at their `speedTier`.
+ *  Minute counters (`bumpMinutes`) hold exact sums of fractional minutes — a
+ *  Radio track is seconds long, and rounding sixty of them a day to a tenth
+ *  (let alone a whole minute) would bias the total; readers round.
  */
-import { DRILL_IDS, type ContentItem, type DrillId, type VocabItem } from '../content/types';
+import { AUTHENTIC_GENRES, DRILL_IDS, type ContentItem, type DrillId, type VocabItem } from '../content/types';
 import { content } from '../content/loader';
-import { bus } from '../shared/events';
+import { SPEED_TIER_RATES } from '../shared/audio';
+import { bus, type Events } from '../shared/events';
 import { isKatakana } from '../shared/jp';
-import { STAT_KEYS, type DailyRow, type EpochDay, type ItemBelt, type SaveMeta, type StatKey, type Store } from '../shared/store-types';
+import { STAT_KEYS, type DailyRow, type EpochDay, type ItemBelt, type SaveMeta, type SpeedTier, type StatKey, type Store } from '../shared/store-types';
 
 export { STAT_KEYS };
 
@@ -36,6 +64,12 @@ export const GOJUON_PERFECT_MS = 60_000;
 export const FAST_RATE = 1.25;
 /** Dictation at 1.0× = speed tier 3. */
 export const TIER_1X = 3;
+/** A listening set passes at two of three questions (equals `PASS_RATIO` in `src/input/listening/set.ts`, which the store may not import). */
+export const LISTENING_PASS_RATIO = 2 / 3;
+/** Smallest set whose perfect score moves `bestCleanTier` (design 08 §12: `total ≥ 3`). */
+export const CLEAN_SET_MIN_TOTAL = 3;
+/** Authentic minutes count only at this playback rate or faster (design 08 §12). */
+export const AUTHENTIC_MIN_RATE = 1;
 
 const ARCADE: ReadonlySet<string> = new Set(['rapid-fire', 'gojuon-fighter']);
 const DRILLS: ReadonlySet<string> = new Set(DRILL_IDS);
@@ -76,6 +110,45 @@ export function isStatKey(k: string): k is StatKey {
   return (STAT_KEYS as readonly string[]).includes(k);
 }
 
+/**
+ * Speed tier of a playback rate: the `SPEED_TIER_RATES` entry nearest to
+ * `rate` (0.75 / 0.9 / 1.0 / 1.1 / 1.25 → 1–5; a tie goes to the slower
+ * tier; `DAN_RATE` 1.5 reads as 5). Design 08 §12 `bestCleanTier`.
+ */
+export function tierOfRate(rate: number): SpeedTier {
+  if (!Number.isFinite(rate)) return 1;
+  let best: SpeedTier = 1;
+  let gap = Number.POSITIVE_INFINITY;
+  for (const t of [1, 2, 3, 4, 5] as const) {
+    const d = Math.abs(SPEED_TIER_RATES[t] - rate);
+    if (d < gap) {
+      gap = d;
+      best = t;
+    }
+  }
+  return best;
+}
+
+/** A set passes at `LISTENING_PASS_RATIO` of its questions (none asked → not a pass). */
+export function listeningSetPassed(p: Pick<Events['listening:set'], 'correct' | 'total'>): boolean {
+  return p.total > 0 && p.correct / p.total >= LISTENING_PASS_RATIO;
+}
+
+/**
+ * Whether a set's text is authentic-style (design 08 §12): `bridge`, an
+ * `AUTHENTIC_GENRES` genre, or the emitter's `authentic` (`isAuthenticText`,
+ * the only one that sees a casual dialogue's register). A disjunction, as the
+ * plan row writes it — any one signal counts, so a payload that carries the
+ * genre but not the flag (or the other way round) is read the same.
+ */
+export function setIsAuthentic(p: Pick<Events['listening:set'], 'authentic' | 'bridge' | 'genre'>): boolean {
+  return p.authentic === true || p.bridge === true || (p.genre !== undefined && AUTHENTIC_GENRES.has(p.genre));
+}
+
+function tenth(x: number): number {
+  return Math.round(x * 10) / 10;
+}
+
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Reducer                                                                    */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -98,6 +171,23 @@ export function startStats(store: Store, o: StatsOptions = {}): () => void {
         const d = delta[k] ?? 0;
         if (d === 0) continue;
         out[k] = (s[k] ?? 0) + d;
+        changed = true;
+      }
+      return changed ? out : s;
+    });
+  }
+
+  /** `bump` for minute counters: fractional, finite, positive deltas; the sum is exact (readers round). */
+  function bumpMinutes(delta: Partial<Record<StatKey, number>>): void {
+    const keys = Object.keys(delta) as StatKey[];
+    if (keys.length === 0) return;
+    store.patch('stats', (s) => {
+      let changed = false;
+      const out = { ...s };
+      for (const k of keys) {
+        const d = delta[k] ?? 0;
+        if (!Number.isFinite(d) || d <= 0) continue;
+        out[k] = (Number.isFinite(s[k]) ? s[k] : 0) + d;
         changed = true;
       }
       return changed ? out : s;
@@ -221,8 +311,28 @@ export function startStats(store: Store, o: StatsOptions = {}): () => void {
       bump(delta);
     }),
     bus.on('listening:set', (p) => {
-      const passed = p.total > 0 && p.correct / p.total >= 2 / 3;
-      bump({ listeningSets: 1, listeningFastPasses: passed && p.rate >= FAST_RATE ? 1 : 0 });
+      const passed = listeningSetPassed(p);
+      const delta: Partial<Record<StatKey, number>> = { listeningSets: 1, listeningFastPasses: passed && p.rate >= FAST_RATE ? 1 : 0 };
+      // Design 08 §12: a first hearing of a TEXT (walk-mode sets hear pool sentences, never a text).
+      if (p.cold && p.storyId !== null) {
+        delta.coldSets = 1;
+        if (passed) delta.coldSetsPassed = 1;
+      }
+      bump(delta);
+      // Authentic-style text, understood, at full speed or faster: the set's wall-clock minutes.
+      if (passed && p.rate >= AUTHENTIC_MIN_RATE && setIsAuthentic(p)) bumpMinutes({ listeningAuthenticMinutes: p.minutes });
+      // Every question right on a real set: the tier the learner has SHOWN (the radar reads this, not the dial).
+      if (p.total >= CLEAN_SET_MIN_TOTAL && p.correct === p.total) setMax('bestCleanTier', tierOfRate(p.rate));
+    }),
+    bus.on('listen:played', (p) => {
+      // Design 08 §10.2 / §10.3 / §12: passive hearing. Minutes are the seconds actually played.
+      const minutes = Number.isFinite(p.seconds) ? Math.max(0, p.seconds) / 60 : 0;
+      const mins: Partial<Record<StatKey, number>> = {};
+      if (p.source === 'radio') mins.radioMinutes = minutes;
+      if (p.authentic) mins.listeningAuthenticMinutes = minutes;
+      bumpMinutes(mins);
+      // A cold track counts as a first hearing only when the gist question was answered (skipped → nothing).
+      if (p.cold && p.gistCorrect !== null) bump({ coldSets: 1, coldSetsPassed: p.gistCorrect ? 1 : 0 });
     }),
     bus.on('line:scored', (p) => {
       if (p.kind === 'dictation') {
@@ -277,8 +387,9 @@ export function startStats(store: Store, o: StatsOptions = {}): () => void {
       if (p.allDone) bump({ fullDays: 1 });
     }),
     bus.on('ledger:entry', (p) => {
-      const minutes = Math.max(0, Math.round(p.minutes));
-      if (minutes > 0) daily((r) => ({ ...r, input: r.input + minutes }));
+      // Ledger rows keep a tenth of a minute (Radio tracks are seconds long), so the daily input does too.
+      const minutes = Number.isFinite(p.minutes) ? Math.max(0, p.minutes) : 0;
+      if (minutes > 0) daily((r) => ({ ...r, input: tenth(r.input + minutes) }));
     }),
   ];
 

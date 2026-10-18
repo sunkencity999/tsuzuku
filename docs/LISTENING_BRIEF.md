@@ -1,5 +1,7 @@
 # TSUZUKU — Listening Writer's Brief (Pass 4 pieces · Pass 4b Yellow examples)
 
+**Status (2026-10-18):** Pass 4 (100 pieces, 2,911 lines, in 50 `listening-sNN.json` files) and Pass 4b (229 rewritten examples in `vocab-n5-001 … 004` and `006`) have landed; the release gate `content:validate -- --strict --listening-release` reports 0 F (`docs/listening-report.md`, content `c-22578c2f0f`). The brief stays as the reference for any later piece, rewrite or new local.
+
 This brief is pasted into every Pass 4 writer prompt together with `docs/CONTENT_GUIDE.md`. It tells one writer agent how to produce **one `listening-sNN.json` file — two audio-first pieces for Station NN** — that validates under V01–V46, and (§18) how a Pass 4b writer rewrites Yellow vocab examples so V46 holds. The spec is `docs/design/08-listening-and-audio.md` (§3 content program, §5 schema and validator, §6 cast, §9 clauses); on conflict design 08 wins on listening, `docs/CONTENT_GUIDE.md` and `src/content/types.ts` win on ids, paths, markup and type names. Everything in the Content Guide still applies to a piece: a piece is a `StoryItem`, nothing more exotic.
 
 **Five rules that override everything else**

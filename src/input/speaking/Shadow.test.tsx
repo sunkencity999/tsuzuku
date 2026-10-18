@@ -214,7 +214,10 @@ describe('<Shadow> recognition path', () => {
     });
     const cap = captureEvents();
     const { onResult } = await mount(step());
-    expect(spoken).toEqual([{ text: '私はコーヒーを飲みます。', o: { kana: undefined, rate: 0.9 } }]);
+    expect(spoken).toHaveLength(1);
+    expect(spoken[0]?.text).toBe('私はコーヒーを飲みます。');
+    expect(spoken[0]?.o).toMatchObject({ kana: undefined, rate: 0.9, clip: `${FIXTURE_STORY_ID}#L3` });
+    expect(typeof spoken[0]?.o?.onProgress).toBe('function');
     expect(q('.shadow')?.getAttribute('data-path')).toBe('recognition');
     expect(q('.shadow')?.getAttribute('data-phase')).toBe('ready');
     expect(q('[data-line="true"]')).not.toBeNull();
@@ -437,5 +440,81 @@ describe('<Shadow> inside the frame (contract #32: the hint key)', () => {
     await settle();
     expect(q('[data-line="true"]')).not.toBeNull();
     expect(q('.exercise-frame__hint')).toBeNull();
+  });
+});
+
+describe('<Shadow> clip timing (design 08 §8 / §9)', () => {
+  it('speak receives params.clip when it is set, else the story line key; a dialogue line passes its speaker', async () => {
+    await setup({ stt: fakeStt(['x']), store: { save: { settings: { speaking: 'recognition' } } } });
+    await mount(step({ params: { storyId: FIXTURE_STORY_ID, lineIndex: 3, rate: 0.9, clip: `${V.飲む}#ex0` } }));
+    expect(spoken).toHaveLength(1);
+    expect(spoken[0]?.o).toMatchObject({ rate: 0.9, clip: `${V.飲む}#ex0` });
+    expect(spoken[0]?.o).not.toHaveProperty('speaker');
+    render(null, root);
+
+    await setup({ stt: fakeStt(['x']), store: { save: { settings: { speaking: 'recognition' } } } });
+    await mount(step({ id: 'sh-dlg', params: { storyId: 's-04-2', lineIndex: 0, rate: 1 } }));
+    expect(spoken[0]?.o).toMatchObject({ clip: 's-04-2#L0', speaker: 'ケン' });
+    // the pure resolver carries the same keys
+    expect(resolveShadowLine({ storyId: FIXTURE_STORY_ID, lineIndex: 3 }, null, get)?.clip).toBe(`${FIXTURE_STORY_ID}#L3`);
+    expect(resolveShadowLine({ storyId: FIXTURE_STORY_ID, lineIndex: 3, clip: 'k' }, null, get)?.clip).toBe('k');
+    expect(resolveShadowLine({ sentence: '飲む', clip: V.飲む }, NOMU, get)?.clip).toBe(V.飲む);
+    expect(resolveShadowLine({ sentence: '飲む' }, NOMU, get)).not.toHaveProperty('clip');
+    expect(resolveShadowLine({ storyId: 's-04-2', lineIndex: 1 }, null, get)?.speaker).toBe('ハナ');
+  });
+
+  it('the pitch strip is labelled "dictionary pattern" and its timing sweeps with onProgress, clearing when the play ends', async () => {
+    await setup({ stt: fakeStt(['x']), store: { save: { settings: { speaking: 'recognition' } } } });
+    await mount(step());
+    expect(q('[data-field="strip-label"]')?.textContent).toBe(S.shadowPitchDictionary);
+    expect(root.textContent).toContain('dictionary pattern');
+    expect(root.textContent).not.toContain('what you heard');
+    expect(q('.pitch-strip')?.getAttribute('aria-label')).toContain(S.shadowPitchDictionary);
+    expect(q('[data-field="strip-caption"]')?.getAttribute('title')).toBe(S.shadowPitchDictionaryHint);
+    const onProgress = spoken[0]?.o?.onProgress;
+    expect(typeof onProgress).toBe('function');
+    act(() => onProgress?.(0.5, 2, 0));
+    const cells = Array.from(root.querySelectorAll('.pitch-strip__mora'));
+    expect(cells.slice(0, 2).map((c) => c.getAttribute('data-timing'))).toEqual(['past', 'past']);
+    expect(cells[2]?.getAttribute('data-timing')).toBe('active');
+    expect(cells[3]?.getAttribute('data-timing')).toBe('ahead');
+    // a finished play clears the timing marks
+    await clickAsync('[data-action="play"]');
+    expect(root.querySelectorAll('.pitch-strip__mora[data-timing]').length).toBe(0);
+  });
+
+  it('the sweep skips punctuation cells: after a mid-line 、 the active cell still follows the cue mora', async () => {
+    await setup({ stt: fakeStt(['x']), store: { save: { settings: { speaking: 'recognition' } } } });
+    await mount(step({ id: 'sh-punct', params: { storyId: 's-04-2', lineIndex: 3, rate: 1 } })); // はい、飲みます。
+    const cells = Array.from(root.querySelectorAll('.pitch-strip__mora'));
+    expect(cells.map((c) => c.textContent)).toEqual(['は', 'い', '、', 'の', 'み', 'ま', 'す', '。']);
+    expect(cells.map((c) => c.getAttribute('data-punct'))).toEqual([null, null, 'true', null, null, null, null, 'true']);
+    const onProgress = spoken[0]?.o?.onProgress;
+    expect(typeof onProgress).toBe('function');
+    act(() => onProgress?.(0.6, 2, 0)); // cue mora 2 = の (the 、 owns no mora)
+    expect(cells.map((c) => c.getAttribute('data-timing'))).toEqual(['past', 'past', 'past', 'active', 'ahead', 'ahead', 'ahead', 'ahead']);
+    act(() => onProgress?.(1.4, 5, 0)); // す
+    expect(cells.map((c) => c.getAttribute('data-timing'))).toEqual(['past', 'past', 'past', 'past', 'past', 'past', 'active', 'ahead']);
+    act(() => onProgress?.(1.0, 1, 0)); // い: the 、 after it is still ahead
+    expect(cells.slice(0, 4).map((c) => c.getAttribute('data-timing'))).toEqual(['past', 'active', 'ahead', 'ahead']);
+  });
+
+  it('with a pack and no device voice, sound off reads as muted, never as the install nag', async () => {
+    await setup({ stt: fakeStt(['x']), store: { save: { settings: { speaking: 'recognition' } } } });
+    installServices({ audio: { ...fakeAudio(false), packReady: signal(true), canSpeak: signal(false) }, stt: fakeStt(['x']) });
+    await mount(step());
+    expect(q('.speak__note[role="status"]')?.textContent).toBe(S.shadowMuted);
+    render(null, root);
+    // no pack and no voice: the install nag stands
+    installServices({ audio: fakeAudio(false), stt: fakeStt(['x']) });
+    await mount(step());
+    expect(q('.speak__note[role="status"]')?.textContent).toBe(S.shadowNoVoice);
+  });
+
+  it('a ready pack the learner has not chosen (settings.audioSource device) is the device voice: sound off with no Japanese voice reads as the install nag, not muted', async () => {
+    await setup({ stt: fakeStt(['x']), store: { save: { settings: { speaking: 'recognition', audioSource: 'device' } } } });
+    installServices({ audio: { ...fakeAudio(false), packReady: signal(true), canSpeak: signal(false) }, stt: fakeStt(['x']) });
+    await mount(step());
+    expect(q('.speak__note[role="status"]')?.textContent).toBe(S.shadowNoVoice);
   });
 });

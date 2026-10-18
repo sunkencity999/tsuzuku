@@ -1,0 +1,46 @@
+{
+ "name": "candy",
+ "text": "飴",
+ "kana": "あめ",
+ "styleId": 16,
+ "note": "word 飴 pitch 0 (heiban): engine accent 2 = mora count — the 雨-with-accent-2 probe reuses this query",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ア",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "a",
+      "vowel_length": 0.11672443151473999,
+      "pitch": 5.401490688323975
+     },
+     {
+      "text": "メ",
+      "consonant": "m",
+      "consonant_length": 0.06014672666788101,
+      "vowel": "e",
+      "vowel_length": 0.18835192918777466,
+      "pitch": 5.435702800750732
+     }
+    ],
+    "accent": 2,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "アメ'"
+ }
+}

@@ -3,8 +3,9 @@
  * (design 04 §6 "Fallback", 05 §4 self-graded).
  *
  *  · Records up to `maxMs` (8 s) through `getUserMedia` + `MediaRecorder`,
- *    then lets the learner play the model (TTS through `speak()`) and their
- *    own take side by side.
+ *    then lets the learner play the model (`speak()` with the line's `clip`
+ *    key and `speaker`, design 08 §8, so the pack serves the same clip the
+ *    drill played) and their own take side by side.
  *  · A three-item checklist (mora count, long vowels, pitch shape — hints
  *    from `scoring.checklistHints`) → `onSelfGrade(checklist)`, fired once.
  *    The caller maps it to a rating (`checklistToRating`) and samples the
@@ -45,8 +46,12 @@ export interface RecorderProps {
   pitch?: number;
   /** Recording cap in ms (default 8 000). */
   maxMs?: number;
-  /** Plays the model; default `speak(toPlain(modelJa), { kana })`. */
+  /** Plays the model; default `speak(toPlain(modelJa), { kana, clip, speaker })`. */
   onPlayModel?(): Promise<void> | void;
+  /** Clip key of the model line (design 08 §8), passed to the default `speak()`. */
+  clip?: string;
+  /** Speaker label of the model line (cast voice on the clip path). */
+  speaker?: string;
   disabled?: boolean;
   /** Media APIs (default: detected from `navigator` / `globalThis`). */
   media?: MediaApis | null;
@@ -191,7 +196,7 @@ export function Recorder(p: RecorderProps): JSX.Element {
       if (p.onPlayModel) await p.onPlayModel();
       else {
         const plain = toPlain(p.modelJa ?? p.modelKana);
-        await speak(plain, { kana: p.modelKana });
+        await speak(plain, { kana: p.modelKana, ...(p.clip ? { clip: p.clip } : {}), ...(p.speaker ? { speaker: p.speaker } : {}) });
       }
     } finally {
       if (alive.current) setPlayingModel(false);

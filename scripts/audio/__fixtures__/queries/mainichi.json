@@ -1,0 +1,62 @@
+{
+ "name": "mainichi",
+ "text": "毎日",
+ "kana": "まいにち",
+ "styleId": 16,
+ "note": "kanji example word with no vocab clip",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "マ",
+      "consonant": "m",
+      "consonant_length": 0.04406537115573883,
+      "vowel": "a",
+      "vowel_length": 0.15831109881401062,
+      "pitch": 5.628516674041748
+     },
+     {
+      "text": "イ",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "i",
+      "vowel_length": 0.10235442221164703,
+      "pitch": 5.871884822845459
+     },
+     {
+      "text": "ニ",
+      "consonant": "n",
+      "consonant_length": 0.08714482188224792,
+      "vowel": "i",
+      "vowel_length": 0.12924513220787048,
+      "pitch": 5.842386245727539
+     },
+     {
+      "text": "チ",
+      "consonant": "ch",
+      "consonant_length": 0.191283717751503,
+      "vowel": "i",
+      "vowel_length": 0.11265552043914795,
+      "pitch": 5.656820297241211
+     }
+    ],
+    "accent": 4,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "マイニチ'"
+ }
+}

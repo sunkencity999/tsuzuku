@@ -2,8 +2,9 @@
  * builder.ts — plans over the fixture corpus and a test store (design 03 §2.4).
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import type { CardKey, Facet } from '../content/types';
-import { FIXTURE_IDS, G, STATION_4, V, createFakeLoader } from '../content/fixtures';
+import type { CardKey, Facet, ListeningPool, PoolRef, StoryItem } from '../content/types';
+import { DIALOGUE, FIXTURE, FIXTURE_DIALOGUE_ID, FIXTURE_IDS, FIXTURE_STORY_ID, G, STATION_1, STATION_4, STORY, V, createFakeLoader, type Fixture } from '../content/fixtures';
+import { moraCount } from '../shared/jp';
 import { bus } from '../shared/events';
 import type { SessionPlan, Step } from '../shared/session-types';
 import { epochDay } from '../shared/time';
@@ -15,11 +16,41 @@ import { fixtureFetch } from '../content/fixtures';
 import { toKana, toPlain } from '../content/ruby';
 import { CardFlag } from '../shared/store-types';
 import { effectiveNewPerDay as storeNewPerDay, newPerDayFor } from '../store';
-import { interleaveViolations, type QueueCard } from '../learn';
+import { ARENA_RECENT_DAYS, interleaveViolations, type QueueCard } from '../learn';
 import { isIntroCheck, isPretestStep } from './scroll';
 import { MICHIKUSA_AFTER_REP } from './blocks';
 import { SessionRunner } from './runner';
-import { accuracy7, buildPlan, effectiveNewPerDay, introducedToday, itemKindOf, loadPlanContext, michikusaFor, pickStories, pitchPattern, resolveParams, splitBunsetsu, stepForCard, storyCoverage } from './builder';
+import {
+  LISTENING_SLOTS,
+  REHEAR_DAYS,
+  WALK_I1_MAX,
+  WALK_REFS_MAX,
+  WALK_REFS_MIN,
+  accuracy7,
+  buildPlan,
+  byLastHearing,
+  effectiveNewPerDay,
+  inputBlockSteps,
+  introducedToday,
+  isSpeakable,
+  itemKindOf,
+  lastHeardGenre,
+  listeningInputSteps,
+  listeningSlot,
+  loadPlanContext,
+  michikusaFor,
+  nextToHear,
+  outputBlockSteps,
+  pickStories,
+  pitchPattern,
+  resolveParams,
+  splitBunsetsu,
+  stepForCard,
+  storyCoverage,
+  walkRefs,
+  withPools,
+  type ListeningSlot,
+} from './builder';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const loader = createFakeLoader();
@@ -540,3 +571,324 @@ describe('first session after Nihonbashi (BUILD_STATUS first-run walk)', () => {
   });
 });
 
+
+/* ── listening (design 08 §4, §10.4, §11) ────────────────────────────── */
+
+const { learnerSpeaker: _noPart, ...DIALOGUE_NO_PART } = DIALOGUE;
+void _noPart;
+/** An audio-first dialogue piece with no part for the learner (a counter exchange): never a role-play. */
+const PIECE: StoryItem = { ...DIALOGUE_NO_PART, id: 's-04-4', titleEn: 'At the counter', audioFirst: true, genre: 'exchange' };
+/** An audio-first told piece (`kind: 'story'`, narrated). */
+const PIECE_2: StoryItem = { ...STORY, id: 's-04-5', titleEn: 'Hana introduces herself', audioFirst: true, genre: 'self-intro', narrator: 'ハナ' };
+
+const exRef = (itemId: string, k: number, ids: string[], kana: string): PoolRef => ({ ref: `${itemId}#ex${k}`, ids, kana, morae: moraCount(kana) });
+function lineRefs(story: StoryItem): PoolRef[] {
+  return story.lines.map((l, i) => ({ ref: `${story.id}#L${i}`, ids: (l.tokenIds ?? []).filter((x): x is string => x !== null), kana: l.kana, morae: moraCount(l.kana) })).filter((r) => r.ids.length > 0);
+}
+/** The Station-4 pool as `content:assign` would write it: every fixture sentence whose words all link, with their ids. */
+const POOL_4: ListeningPool = {
+  schema: 'tsuzuku.pool/1',
+  station: 4,
+  refs: [
+    exRef(V.犬, 0, [V.犬, V.水, V.飲む], 'いぬがみずをのみます。'),
+    exRef(V.水, 0, [V.水], 'みずをください。'),
+    exRef(V.食べる, 0, [V.パン, V.食べる], 'パンをたべます。'),
+    exRef(V.飲む, 0, [V.コーヒー, V.飲む], 'まいあさコーヒーをのみます。'),
+    exRef(V.人, 0, [V.人, G.は, G.です], 'あのひとはケンです。'),
+    exRef(V.コーヒー, 0, [V.コーヒー, G.は, V.おいしい, G.です], 'コーヒーはおいしいです。'),
+    exRef(V.パン, 0, [V.パン, V.食べる], 'パンをたべますか。'),
+    exRef(V.おいしい, 0, [V.水, G.は, V.おいしい, G.です], 'このみずはおいしいです。'),
+    exRef(G.です, 1, [G.は, V.水, G.です], 'これはみずです。'),
+    exRef(G.ます, 1, [V.水, V.飲む, G.ます], 'みずをのみます。'),
+    ...lineRefs(STORY),
+    ...lineRefs(DIALOGUE),
+  ],
+};
+
+/** The fixture with audio-first pieces at Station 4 and (unless `pools: false`) its listening pool. */
+function listeningFixture(o: { pieces?: StoryItem[]; pools?: boolean } = {}): Fixture {
+  const pieces = o.pieces ?? [PIECE, PIECE_2];
+  return {
+    ...FIXTURE,
+    items: { ...FIXTURE.items, ...Object.fromEntries(pieces.map((p) => [p.id, p])) },
+    stations: [STATION_1, { ...STATION_4, storyIds: [...STATION_4.storyIds, ...pieces.map((p) => p.id)] }],
+    ...(o.pools === false ? {} : { pools: { 4: POOL_4 } }),
+  };
+}
+
+describe('listening Input block (design 08 §11)', () => {
+  const L = createFakeLoader(listeningFixture());
+  const ctxFor = async () => withPools(await loadPlanContext({ loader: L, station: 4, available: all }));
+  /** The first day at or after TODAY that opens with `slot` (consecutive listening days walk the slots). */
+  const dayOf = (slot: ListeningSlot): number => {
+    let d = TODAY;
+    while (listeningSlot(d) !== slot) d++;
+    return d;
+  };
+
+  it('rotates: an unheard audio-first piece, a dialogue the next listening day, an Ear Walk the day after', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards() });
+    const ctx = await ctxFor();
+    expect(ctx.pools?.map((p) => p.station)).toEqual([4]);
+    const d0 = dayOf('piece');
+    expect(listeningSlot(d0 + 2)).toBe('dialogue');
+    expect(listeningSlot(d0 + 4)).toBe('walk');
+    const piece = listeningInputSteps({ ...ctx, today: d0 });
+    expect(piece.slot).toBe('piece');
+    expect([PIECE.id, PIECE_2.id]).toContain(piece.storyId);
+    expect(piece.steps[0]!.exercise).toBe('listening-set');
+    expect(piece.steps[0]!.block).toBe('input');
+    expect(piece.steps[0]!.params.storyId).toBe(piece.storyId);
+    expect(piece.steps[0]!.params.refs).toBeUndefined();
+    const dialogue = listeningInputSteps({ ...ctx, today: d0 + 2 });
+    expect(dialogue.slot).toBe('dialogue');
+    expect(dialogue.storyId).toBe(FIXTURE_DIALOGUE_ID);
+    const walk = listeningInputSteps({ ...ctx, today: d0 + 4 });
+    expect(walk.slot).toBe('walk');
+    expect(walk.storyId).toBeUndefined();
+    expect(walk.steps).toHaveLength(1);
+    const refs = walk.steps[0]!.params.refs!;
+    expect(refs.length).toBeGreaterThanOrEqual(WALK_REFS_MIN);
+    expect(refs.length).toBeLessThanOrEqual(WALK_REFS_MAX);
+    expect(walk.steps[0]!.params.storyId).toBeUndefined();
+    expect(walk.steps[0]!.itemId).toBeNull();
+    expect(new Set(refs).size).toBe(refs.length);
+    // every ref is i+0 / i+1 for the fixture known set (here every item is known, so all i+0)
+    const byRef = new Map(POOL_4.refs.map((r) => [r.ref, r]));
+    for (const ref of refs) {
+      const r = byRef.get(ref);
+      expect(r, ref).toBeDefined();
+      expect(r!.ids.filter((id) => !ctx.known.has(id)).length, ref).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('never serves the same genre twice in a row (from progress.listened), and a heard piece is skipped while an unheard one exists', async () => {
+    await makeTestStore({ save: { progress: { station: 4, listened: [PIECE.id] } }, cards: allCards() });
+    const ctx = await ctxFor();
+    const d0 = dayOf('piece');
+    // the last text heard was an `exchange` piece → the other genre's piece is served
+    expect(listeningInputSteps({ ...ctx, today: d0 }).storyId).toBe(PIECE_2.id);
+    store.patch('progress', (p) => ({ ...p, listened: [PIECE_2.id] }));
+    expect(listeningInputSteps({ ...ctx, today: d0 }).storyId).toBe(PIECE.id);
+    // both heard → nothing unheard → the slot falls through to the dialogue
+    store.patch('progress', (p) => ({ ...p, listened: [PIECE.id, PIECE_2.id] }));
+    const fell = listeningInputSteps({ ...ctx, today: d0 });
+    expect(fell.slot).toBe('dialogue');
+    expect(fell.storyId).toBe(FIXTURE_DIALOGUE_ID);
+    // an unheard piece of the same genre as the last hearing is skipped too: the dialogue takes the day
+    const sameGenre = createFakeLoader(listeningFixture({ pieces: [PIECE, { ...PIECE_2, genre: 'exchange' }] }));
+    const ctx2 = await withPools(await loadPlanContext({ loader: sameGenre, station: 4, available: all }));
+    store.patch('progress', (p) => ({ ...p, listened: [PIECE.id] }));
+    const r = listeningInputSteps({ ...ctx2, today: d0 });
+    expect(r.slot).toBe('dialogue');
+    expect(r.storyId).toBe(FIXTURE_DIALOGUE_ID);
+  });
+
+  it('re-serves heard texts by last hearing: a heard text waits behind every unheard one, and once everything is heard the last-hearing order (oldest first) is walked by listening day', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards() });
+    const ctx = await ctxFor();
+    const d1 = dayOf('dialogue');
+    // unheard plain dialogue first, before the unheard pieces
+    expect(listeningInputSteps({ ...ctx, today: d1 }).storyId).toBe(FIXTURE_DIALOGUE_ID);
+    // the dialogue heard ten listening days ago: an unheard piece comes before re-serving it
+    store.patch('progress', (p) => ({ ...p, listened: [FIXTURE_DIALOGUE_ID] }));
+    expect(listeningInputSteps({ ...ctx, today: d1 }).storyId).toBe(PIECE.id);
+    // everything heard: the day walks the last-hearing order (`nextToHear`), whichever order the texts were last heard in
+    const k = Math.floor(Math.abs(d1) / 2); // the listening-day index `nextToHear` reduces modulo the candidates
+    for (const order of [
+      [PIECE.id, FIXTURE_DIALOGUE_ID, PIECE_2.id],
+      [PIECE_2.id, PIECE.id, FIXTURE_DIALOGUE_ID],
+      [FIXTURE_DIALOGUE_ID, PIECE_2.id, PIECE.id],
+    ]) {
+      store.patch('progress', (p) => ({ ...p, listened: order }));
+      // the text heard last has no genre to avoid when it is the dialogue; a piece's genre bars itself, so the rotation runs over the rest
+      const avoid = order[2] === FIXTURE_DIALOGUE_ID ? null : order[2];
+      const cands = order.filter((id) => id !== avoid);
+      expect(listeningInputSteps({ ...ctx, today: d1 }).storyId).toBe(cands[k % cands.length]);
+    }
+    expect(byLastHearing([PIECE, PIECE_2, DIALOGUE], [DIALOGUE.id, PIECE.id]).map((s) => s.id)).toEqual([PIECE_2.id, DIALOGUE.id, PIECE.id]);
+    expect(byLastHearing([PIECE, DIALOGUE, PIECE_2], []).map((s) => s.id)).toEqual([DIALOGUE.id, PIECE.id, PIECE_2.id]);
+    // Radio moves a re-heard id to the back (`progress.listened` is a least-recently-heard order): the dialogue heard
+    // first and then re-heard on the Radio now waits behind the piece
+    expect(byLastHearing([PIECE, PIECE_2, DIALOGUE], [PIECE.id, DIALOGUE.id]).map((s) => s.id)).toEqual([PIECE_2.id, PIECE.id, DIALOGUE.id]);
+  });
+
+  it('once every text is heard the slot rotates by listening day: N heard texts come round every N listening days, never the least-recently-heard one on every day', async () => {
+    // every text heard, the dialogue last (no genre to avoid); no pools, so every slot falls through to the dialogue slot
+    await makeTestStore({ save: { progress: { station: 4, listened: [PIECE.id, PIECE_2.id, FIXTURE_DIALOGUE_ID] } }, cards: allCards() });
+    const ctx = { ...(await ctxFor()), pools: [] as ListeningPool[] };
+    const d0 = dayOf('piece');
+    // a pass appends nothing to progress.listened (append-once), so three consecutive listening days must still differ
+    const served = [d0, d0 + 2, d0 + 4].map((day) => listeningInputSteps({ ...ctx, today: day }).storyId);
+    expect(new Set(served).size).toBe(3);
+    expect([...served].sort()).toEqual([FIXTURE_DIALOGUE_ID, PIECE.id, PIECE_2.id].sort());
+    // the fourth listening day starts the round again
+    expect(listeningInputSteps({ ...ctx, today: d0 + 6 }).storyId).toBe(served[0]);
+    // seven heard texts: a text returns after seven listening days — fourteen calendar days
+    const seven: StoryItem[] = Array.from({ length: 7 }, (_, i) => ({ ...DIALOGUE, id: `s-04-${i + 10}` }));
+    const all7 = seven.map((s) => s.id);
+    const round = Array.from({ length: 7 }, (_, i) => nextToHear(seven, all7, d0 + 2 * i)!.id);
+    expect(new Set(round).size).toBe(7);
+    expect(nextToHear(seven, all7, d0 + 14)!.id).toBe(round[0]);
+    // while any candidate is unheard, the unheard one is served whatever the day
+    for (const day of [d0, d0 + 2, d0 + 4]) expect(nextToHear(seven, all7.slice(1), day)!.id).toBe(all7[0]);
+    expect(nextToHear([], all7, d0)).toBeUndefined();
+  });
+
+  it('a text the Arena passed within 14 days (progress.arenaAt) is closed to the day walk while another candidate is open: a Radio re-hearing between two listening days no longer brings yesterday\'s text back', async () => {
+    const A: StoryItem = { ...DIALOGUE, id: 's-04-20' };
+    const B: StoryItem = { ...DIALOGUE, id: 's-04-21' };
+    const C: StoryItem = { ...DIALOGUE, id: 's-04-22' };
+    const xs = [A, B, C];
+    const d = 3; // listening-day index floor(3 / 2) = 1 → the second of the walked order
+    const listened = [A.id, B.id, C.id];
+    expect(nextToHear(xs, listened, d)!.id).toBe(B.id);
+    // the Arena passes B (stamps arenaAt[B] = d, `listened` unchanged); the Radio then re-hears B (moved to the back, no stamp)
+    const afterRadio = [A.id, C.id, B.id];
+    expect(byLastHearing(xs, afterRadio).map((s) => s.id)).toEqual([A.id, C.id, B.id]);
+    // without the stamp the shifted walk lands on B again on the very next listening day…
+    expect(nextToHear(xs, afterRadio, d + 2)!.id).toBe(B.id);
+    // …with it B stays closed through day + 13 and the walk picks among A and C
+    const stamped = { [B.id]: d };
+    expect(REHEAR_DAYS).toBe(ARENA_RECENT_DAYS); // the one 14-day window (@/learn pool.ts), shared with the Radio
+    expect(REHEAR_DAYS).toBe(14);
+    for (let day = d + 1; day < d + REHEAR_DAYS; day++) expect(nextToHear(xs, afterRadio, day, stamped)!.id, `day ${day}`).not.toBe(B.id);
+    expect(new Set([d + 2, d + 4].map((day) => nextToHear(xs, afterRadio, day, stamped)!.id))).toEqual(new Set([A.id, C.id]));
+    // open again from day + 14 (walk index floor(17 / 2) % 3 = 2 → the last of [A, C, B])
+    expect(nextToHear(xs, afterRadio, d + REHEAR_DAYS, stamped)!.id).toBe(B.id);
+    // every candidate closed: the walk runs over all of them, as without stamps
+    const allClosed = { [A.id]: d, [B.id]: d, [C.id]: d };
+    expect(nextToHear(xs, afterRadio, d + 2, allClosed)!.id).toBe(nextToHear(xs, afterRadio, d + 2)!.id);
+    // an unheard candidate comes first whatever the stamps say
+    expect(nextToHear(xs, [A.id, B.id], d + 2, { [C.id]: d })!.id).toBe(C.id);
+    // seven heard texts, one passed per listening day: each returns exactly 14 days after its pass
+    const seven: StoryItem[] = Array.from({ length: 7 }, (_, i) => ({ ...DIALOGUE, id: `s-04-${i + 30}` }));
+    const all7 = seven.map((s) => s.id);
+    const arenaAt: Record<string, number> = {};
+    const served: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const day = d + 2 * i;
+      const t = nextToHear(seven, all7, day, arenaAt)!;
+      served.push(t.id);
+      arenaAt[t.id] = day;
+    }
+    expect(new Set(served).size).toBe(7);
+    expect(nextToHear(seven, all7, d + 14, arenaAt)!.id).toBe(served[0]);
+    arenaAt[served[0]!] = d + 14;
+    expect(nextToHear(seven, all7, d + 16, arenaAt)!.id).toBe(served[1]);
+    // through the block: the text the dialogue slot served and the Arena passed today is not served again on the next listening day
+    await makeTestStore({ save: { progress: { station: 4, listened: [PIECE.id, PIECE_2.id, FIXTURE_DIALOGUE_ID] } }, cards: allCards() });
+    const ctx = { ...(await ctxFor()), pools: [] as ListeningPool[] };
+    const d0 = dayOf('piece');
+    const first = listeningInputSteps({ ...ctx, today: d0 }).storyId!;
+    store.patch('progress', (p) => ({ ...p, arenaAt: { [first]: d0 } })); // what ListeningArena writes on a passed set
+    for (let day = d0 + 1; day < d0 + REHEAR_DAYS; day++) expect(listeningInputSteps({ ...ctx, today: day }).storyId, `day ${day}`).not.toBe(first);
+    // open again from day + 14: the walk over all three comes round to it within the next three listening days
+    expect(Array.from({ length: 6 }, (_, i) => listeningInputSteps({ ...ctx, today: d0 + REHEAR_DAYS + i }).storyId)).toContain(first);
+  });
+
+  it('a kana track in progress.listened (the Radio) does not lift the genre rule: the last TEXT heard still bars a same-genre piece; a plain dialogue heard last does lift it', async () => {
+    const sameGenre = createFakeLoader(listeningFixture({ pieces: [PIECE, { ...PIECE_2, genre: 'exchange' }] }));
+    await makeTestStore({ save: { progress: { station: 4, listened: [PIECE.id, 'morae-beats'] } }, cards: allCards() });
+    const ctx = await withPools(await loadPlanContext({ loader: sameGenre, station: 4, available: all }));
+    expect(lastHeardGenre(ctx)).toBe('exchange');
+    const r = listeningInputSteps({ ...ctx, today: dayOf('piece') });
+    expect(r.slot).toBe('dialogue');
+    expect(r.storyId).toBe(FIXTURE_DIALOGUE_ID);
+    // a plain dialogue heard last has no genre: the unheard same-genre piece is served
+    store.patch('progress', (p) => ({ ...p, listened: [PIECE.id, FIXTURE_DIALOGUE_ID, 'morae-beats'] }));
+    expect(lastHeardGenre(ctx)).toBeUndefined();
+    expect(listeningInputSteps({ ...ctx, today: dayOf('piece') }).storyId).toBe(PIECE_2.id);
+    // only kana tracks heard: nothing to avoid
+    store.patch('progress', (p) => ({ ...p, listened: ['morae-beats'] }));
+    expect(lastHeardGenre(ctx)).toBeUndefined();
+  });
+
+  it('an Ear Walk keeps room for i+1 sentences: with a rehearsable unknown word the walk carries two sentences with that one unknown, after the i+0 ones', async () => {
+    const cards = allCards();
+    delete cards[`${V.犬}#rec`]; // 犬 unknown…
+    cards[`${V.犬}#listen`] = due(); // …with a listen card due today: the word FSRS wants rehearsed
+    await makeTestStore({ save: { progress: { station: 4 } }, cards });
+    const ctx = await ctxFor();
+    expect(ctx.known.has(V.犬)).toBe(false);
+    const byRef = new Map(POOL_4.refs.map((r) => [r.ref, r]));
+    expect(POOL_4.refs.filter((r) => r.ids.includes(V.犬)).length).toBeGreaterThanOrEqual(WALK_I1_MAX);
+    const refs = walkRefs(ctx);
+    expect(refs).toHaveLength(WALK_REFS_MAX);
+    const unknowns = refs.map((ref) => byRef.get(ref)!.ids.filter((id) => !ctx.known.has(id)));
+    expect(unknowns.filter((u) => u.length === 1 && u[0] === V.犬)).toHaveLength(WALK_I1_MAX);
+    expect(unknowns.filter((u) => u.length === 0)).toHaveLength(WALK_REFS_MAX - WALK_I1_MAX);
+    expect(unknowns.map((u) => u.length)).toEqual([0, 0, 0, 0, 0, 0, 1, 1]);
+    // the walk step carries them
+    const walk = listeningInputSteps({ ...ctx, today: dayOf('walk') });
+    expect(walk.slot).toBe('walk');
+    expect(walk.steps[0]!.params.refs!.some((ref) => byRef.get(ref)!.ids.includes(V.犬))).toBe(true);
+    // without a listen card the unknown word is not rehearsable: the walk is all i+0
+    delete cards[`${V.犬}#listen`];
+    await makeTestStore({ save: { progress: { station: 4 } }, cards });
+    const ctx2 = await ctxFor();
+    const refs2 = walkRefs(ctx2);
+    expect(refs2).toHaveLength(WALK_REFS_MAX);
+    expect(refs2.every((ref) => byRef.get(ref)!.ids.every((id) => ctx2.known.has(id)))).toBe(true);
+  });
+
+  it('without pieces and without pools the block still listens: the dialogue in every slot, and a covered story as the last resort', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards() });
+    const plain = createFakeLoader(listeningFixture({ pieces: [], pools: false }));
+    const ctx = await withPools(await loadPlanContext({ loader: plain, station: 4, available: all }));
+    expect(ctx.pools).toEqual([]);
+    for (const slot of LISTENING_SLOTS) {
+      const r = listeningInputSteps({ ...ctx, today: dayOf(slot) });
+      expect(r.steps, slot).toHaveLength(1);
+      expect(r.storyId, slot).toBe(FIXTURE_DIALOGUE_ID);
+      expect(r.steps[0]!.params.refs).toBeUndefined();
+    }
+    // a station with no dialogue at all: a covered story is heard as a set rather than an empty block
+    const r = listeningInputSteps({ ...ctx, stories: ctx.stories.filter((s) => s.kind === 'story') });
+    expect(r.slot).toBe('story');
+    expect(r.storyId).toBe(FIXTURE_STORY_ID);
+    // and with nothing covered the block is honestly empty
+    expect(listeningInputSteps({ ...ctx, known: new Set<string>() }).steps).toHaveLength(0);
+  });
+
+  it('a Shugyō on a listening day carries the block from the rotation (end to end through buildPlan)', async () => {
+    // the Shugyō listens on odd days (blocks.ts): move the clock to one
+    const day = TODAY % 2 === 1 ? TODAY : TODAY + 1;
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards(), now: () => DEFAULT_TEST_NOW + (day - TODAY) * 86_400_000 });
+    const plan = await buildPlan('shugyo', { loader: L, available: all });
+    const input = plan.steps.filter((s) => s.block === 'input');
+    expect(input).toHaveLength(1);
+    expect(input[0]!.exercise).toBe('listening-set');
+    if (listeningSlot(day) === 'walk') {
+      expect(input[0]!.params.refs!.length).toBeGreaterThanOrEqual(WALK_REFS_MIN);
+      expect(plan.meta.storyId).toBeUndefined();
+    } else {
+      expect(input[0]!.params.storyId).toBe(plan.meta.storyId);
+    }
+  });
+
+  it('the role-play Output block never picks an audio-first dialogue without learnerSpeaker, and does pick one with it', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards() });
+    const ctx = await ctxFor();
+    expect(isSpeakable(PIECE)).toBe(false);
+    expect(pickStories({ ...ctx, stories: [PIECE, STORY] }, { speakable: true })).toEqual([]);
+    const none = outputBlockSteps({ ...ctx, stories: [PIECE, STORY] }, 'role-play', 1);
+    expect(none.some((s) => s.exercise === 'role-play')).toBe(false);
+    const withPart: StoryItem = { ...PIECE, learnerSpeaker: 'ケン' };
+    expect(isSpeakable(withPart)).toBe(true);
+    const rp = outputBlockSteps({ ...ctx, stories: [withPart, STORY] }, 'role-play', 1);
+    expect(rp).toHaveLength(1);
+    expect(rp[0]!.exercise).toBe('role-play');
+    expect(rp[0]!.params.storyId).toBe(withPart.id);
+    // the reading Input block's dialogue fallback takes the same speakable dialogue, never a part-less piece
+    expect(inputBlockSteps({ ...ctx, stories: [PIECE] }, 'story').steps).toHaveLength(0);
+    expect(inputBlockSteps({ ...ctx, stories: [withPart] }, 'story').storyId).toBe(withPart.id);
+    // and never reads an unheard piece as an episode: pieces are heard before they are read
+    expect(inputBlockSteps({ ...ctx, stories: [PIECE_2, STORY] }, 'story').storyId).toBe(FIXTURE_STORY_ID);
+    expect(inputBlockSteps({ ...ctx, stories: [PIECE_2] }, 'story').steps).toHaveLength(0);
+    // a heard piece reads as an ordinary first read (design 08 §10.3)
+    store.patch('progress', (p) => ({ ...p, listened: [PIECE_2.id], storiesRead: [FIXTURE_STORY_ID] }));
+    expect(inputBlockSteps({ ...ctx, stories: [PIECE_2, STORY] }, 'story').storyId).toBe(PIECE_2.id);
+    expect(inputBlockSteps({ ...ctx, stories: [PIECE_2] }, 'story').storyId).toBe(PIECE_2.id);
+  });
+});

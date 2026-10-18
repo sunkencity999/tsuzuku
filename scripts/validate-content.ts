@@ -50,6 +50,7 @@ import { readdirSync, readFileSync, statSync, existsSync, writeFileSync } from '
 import { join, relative, resolve, dirname, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { moraCount, speechMorae } from '../src/shared/jp.ts';
 import {
   BELT_IDS,
   CONJ_FORMS,
@@ -95,7 +96,7 @@ import { KANJI_RE, hasKanji, parseRuby, toKana, toPlain } from '../src/content/r
 import type { RubySegment } from '../src/content/ruby.ts';
 import { buildIndex, deriveContentVersion, isDerivedVersion, listContentFiles } from './build-content-index.ts';
 import { bundlesFromCorpus, stringifyJson } from './assign-stations.ts';
-import { allowlistStationFor, AUX_VERBS, buildMatchPool, CAST_NAMES, cumulativeIds, FUNCTION_TOKENS, matchToken, stemApplies } from './linker.ts';
+import { allowlistStationFor, AUX_VERBS, buildMatchPool, CAST_NAMES, cumulativeIds, FUNCTION_TOKENS, linkSentence, matchToken, stemApplies } from './linker.ts';
 import type { MatchPool } from './linker.ts';
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -312,17 +313,11 @@ function loadBundles(root: string): Map<number, StationBundle> {
 /* Small language helpers                                                     */
 /* ────────────────────────────────────────────────────────────────────────── */
 
+/** The small kana that attach to the mora before them (mirrors `src/shared/jp.ts`; used by the V20 kana-glyph check). */
 const SMALL_FOLLOWERS = new Set(['ゃ', 'ゅ', 'ょ', 'ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ゎ', 'ャ', 'ュ', 'ョ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ヮ']);
 
-/** Same semantics as `shared/jp.ts` moraCount: small kana attach to the previous mora. */
-export function moraCount(kana: string): number {
-  let n = 0;
-  for (const ch of kana) {
-    if (SMALL_FOLLOWERS.has(ch) && n > 0) continue;
-    n++;
-  }
-  return n;
-}
+/** V18 pitch bounds count morae with `src/shared/jp.ts` `moraCount` (small kana attach to the previous mora); re-exported for the tests. */
+export { moraCount };
 
 const HIRAGANA_RE = /^[ぁ-ゖ]+$/;
 const KATAKANA_RE = /^[ァ-ヺ]+$/;
@@ -1761,9 +1756,13 @@ function checkStoryItem(ctx: Ctx, f: LoadedFile, s: StoryItem): void {
 /** `DICTATION_MAX_MORAE` (src/input/listening/set.ts): every line of an audioFirst piece through Station 15 stays dictable (design 08 §3, V41). */
 export const PIECE_LINE_MAX_MORAE = 22;
 
-/** Morae of a line's kana for the V41 cap: punctuation and spaces are not morae (design 08 §5). */
+/**
+ * Morae of a line's kana for the V41 cap: punctuation and spaces are not morae (design 08 §5). One body with the
+ * clip cues' `m` / `c` indexes, the planner's clause and the drills' clause cut: `speechMorae` (`src/shared/jp.ts`,
+ * `RE_NOT_MORA` dropped, small kana folded).
+ */
 export function lineMorae(kana: string): number {
-  return moraCount(kana.replace(/[、。！？「」『』〜…・\s　]/gu, ''));
+  return speechMorae(kana).length;
 }
 
 interface StoryParts {
@@ -2593,104 +2592,14 @@ function checkListening(ctx: Ctx): void {
 
 /* ── V46 own-station all-known example ───────────────────────────────────── */
 
-const V46_PUNCT_RE = /^[\p{P}\p{S}\s]$/u;
-const V46_HIRAGANA_RE = /^[ぁ-ゖー]$/u;
-const V46_KANJI_NUMERAL_RE = /^[〇零一二三四五六七八九十百千万億兆]$/u;
-
-interface V46Index {
-  byFirst: Map<string, string[]>;
-  /** inflection stems: the hiragana that follows them (okurigana, inflection) belongs to the word */
-  stems: Set<string>;
-  /** single-kanji stems resolve only before okurigana (`stemApplies`) */
-  oneCharStems: Set<string>;
-}
-const v46IndexCache = new WeakMap<MatchPool, V46Index>();
-function v46Index(pool: MatchPool): V46Index {
-  let idx = v46IndexCache.get(pool);
-  if (idx) return idx;
-  const byFirst = new Map<string, string[]>();
-  const stems = new Set(pool.prefixes.map((p) => p.s));
-  const oneCharStems = new Set<string>();
-  for (const p of pool.prefixes) if (p.s.length === 1 && !pool.exact.has(p.s)) oneCharStems.add(p.s);
-  const all = new Set<string>([...pool.exact.keys(), ...pool.forms.keys(), ...stems, ...pool.counters.map((c) => c.s), ...pool.hints.map((h) => h.h), ...FUNCTION_TOKENS, ...CAST_NAMES]);
-  // `matchToken` links a token contained in a cloze hint (ください ⊂ てください); here the て/で-form hint minus its て/で is the surface.
-  for (const h of pool.hints) if (h.h.length >= 3 && /^[てで]/.test(h.h)) all.add(h.h.slice(1));
-  for (const s of all) {
-    if (!s) continue;
-    const bucket = byFirst.get(s.charAt(0)) ?? [];
-    bucket.push(s);
-    byFirst.set(s.charAt(0), bucket);
-  }
-  for (const bucket of byFirst.values()) bucket.sort((a, b) => b.length - a.length);
-  idx = { byFirst, stems, oneCharStems };
-  v46IndexCache.set(pool, idx);
-  return idx;
-}
-
-/**
- * V46 segmentation (design 08 §3 Pass 4b, §4 step 2): greedy longest match of a plain sentence over the
- * pool's surfaces (exact, inflected forms, stems, counters, cloze hints, function tokens, cast names);
- * kanji numerals and punctuation are known; the hiragana after an inflection stem is its okurigana. What
- * is left over is unknown when it holds a kanji / katakana or is a hiragana run of two or more characters
- * (a lone hiragana — お / ご prefixes, a stray particle variant — is tolerated). Returns the unknown runs.
- *
- * TODO(pipeline-pools): this segmenter is the validator's stand-in, more lenient than the pool builder (it
- * tolerates a lone hiragana and treats kanji numerals as known). The arbiter of "enters the pool" is
- * `scripts/linker.ts linkSentence(pool, plain).unknown === 0` (design 08 §4 step 1), which the pipeline-pools
- * owner lands with `buildPools`. When it exists, `checkOwnStationExamples` rebases its verdict on it (this
- * function stays as the message's unknown-run lister, or goes) and a cross-check test asserts that every vocab
- * item V46 passes has ≥ 1 ref in `buildPools` output for its own station — V46 is an F gate for Stations 4–15 at
- * release, so the two tokenizers must agree.
- */
-export function ownStationUnknowns(pool: MatchPool, plain: string): string[] {
-  const idx = v46Index(pool);
-  const out: string[] = [];
-  let pending = '';
-  const flush = () => {
-    if (pending && (UNRESOLVED_SPAN_RE.test(pending) || [...pending].length >= 2)) out.push(pending);
-    pending = '';
-  };
-  let off = 0;
-  while (off < plain.length) {
-    const c = String.fromCodePoint(plain.codePointAt(off) as number);
-    if (V46_PUNCT_RE.test(c)) {
-      flush();
-      off += c.length;
-      continue;
-    }
-    if (V46_KANJI_NUMERAL_RE.test(c)) {
-      flush();
-      while (off < plain.length && V46_KANJI_NUMERAL_RE.test(plain.charAt(off))) off++;
-      continue;
-    }
-    let hit: string | null = null;
-    const bucket = idx.byFirst.get(plain.charAt(off));
-    if (bucket) {
-      for (const s of bucket) {
-        if (plain.startsWith(s, off) && (!idx.oneCharStems.has(s) || stemApplies(s, plain.slice(off)))) {
-          hit = s;
-          break;
-        }
-      }
-    }
-    if (hit) {
-      flush();
-      off += hit.length;
-      if (idx.stems.has(hit)) while (off < plain.length && V46_HIRAGANA_RE.test(plain.charAt(off))) off++;
-      continue;
-    }
-    pending += c;
-    off += c.length;
-  }
-  flush();
-  return out;
-}
-
 /**
  * V46 (design 08 §5): every vocab item has ≥ 1 example whose content tokens all link inside the cumulative
  * allowlist ≤ the item's station — the sentence the listening pool (§4) can serve as i+0 at the station
- * the word is learned. W during Pass 4b; F for Stations 4–15 with `--strict --listening-release`. Needs
- * bundles (silent without them, like V36 / V40).
+ * the word is learned. The arbiter is the pool builder's own linker (`scripts/linker.ts linkSentence`,
+ * `unknown === 0` against the same cumulative pool `buildPools` links an example against first), so an
+ * item that passes here always has a ref in its own station's `listening/pool-NN.json`; the message lists
+ * the unknown tokens per example. W during Pass 4b; F for Stations 4–15 with `--strict --listening-release`.
+ * Needs bundles (silent without them, like V36 / V40).
  */
 function checkOwnStationExamples(ctx: Ctx): void {
   if (ctx.bundles.size === 0) return;
@@ -2712,10 +2621,10 @@ function checkOwnStationExamples(ctx: Ctx): void {
       const plains = examples.filter((ex) => isObject(ex as unknown as Json) && typeof ex.ja === 'string').map((ex) => toPlain(ex.ja));
       if (plains.length === 0) continue;
       const pool = poolFor(allowlistStationFor(v.station));
-      const unknowns = plains.map((p) => ownStationUnknowns(pool, p));
-      if (unknowns.some((u) => u.length === 0)) continue;
+      const links = plains.map((p) => linkSentence(pool, p));
+      if (links.some((l) => l.unknown === 0)) continue;
       const report = v.station >= 4 && v.station <= 15 ? atRelease(ctx) : warn;
-      const detail = unknowns.map((u, i) => `examples[${i}]: ${u.join(' ')}`).join('; ');
+      const detail = links.map((l, i) => `examples[${i}]: ${l.unknownTokens.join(' ')}`).join('; ');
       report(ctx, f.rel, 'V46', `no example links fully inside the Station ${v.station} allowlist (own-station all-known example for the listening pool, Pass 4b) — ${detail}`, v.id);
     }
   }

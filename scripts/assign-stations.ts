@@ -28,6 +28,17 @@
  *    against the station's cumulative allowlist. The matcher itself
  *    (`buildMatchPool` / `matchToken`, inflected forms, function tokens) lives
  *    in `scripts/linker.ts`, shared with the validator and re-exported here.
+ * 8. Writes the listening pools `listening/pool-NN.json` (design 08 §4;
+ *    `buildPools` in `scripts/linker.ts`): every vocab / grammar example whose
+ *    content tokens all link somewhere in the corpus (ids: the owner item
+ *    first, then the linked tokens) and every story line whose writers'
+ *    `tokenIds` from step 7 link every content token (ids = those tokenIds),
+ *    at `knownAt = max(station of every id)` — never before the owner's own
+ *    station — serialised by `stringifyPool` (one ref per line). `content:index`'s default check
+ *    regenerates them in memory and fails on any difference (V44).
+ *    `--pools-only` rewrites just the pools from the bundles and files on
+ *    disk — no item, bundle, allowlist or story file is touched — for a pool
+ *    refresh while writers are editing content.
  *
  * Idempotent: a second run rewrites byte-identical files. Bundles are derived
  * from the `station` fields on disk (`bundlesFromCorpus`), which is also what
@@ -38,7 +49,7 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { STATIONS } from '../src/content/types.ts';
-import { allowlistStationFor, buildMatchPool, CAST_NAMES, cumulativeIds, matchToken } from './linker.ts';
+import { allowlistStationFor, buildMatchPool, buildPools, CAST_NAMES, cumulativeIds, matchToken, poolPath, stringifyPool } from './linker.ts';
 import type {
   ComponentDef,
   ContentKind,
@@ -46,6 +57,7 @@ import type {
   KanaItem,
   KanjiItem,
   Level,
+  ListeningPool,
   MichikusaItem,
   StationBundle,
   StationDef,
@@ -138,6 +150,8 @@ export interface AssignResult {
   missingFiles: string[];
   /** Story lines linked with tokenIds (0 on a dry run). */
   linked: number;
+  /** The listening pools written (design 08 §4; empty on a dry run). */
+  pools: ListeningPool[];
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -501,6 +515,8 @@ export function assign(root: string, plan: PlanEntry[], opts: AssignOptions = {}
   }
   // Linker: StoryLine.tokenIds from the V20 match (must precede content:index so the manifest hashes linked files).
   const link = write ? linkStories(root, bundles, true) : { linked: 0, changed: [] };
+  // Listening pools (design 08 §4), from the linked files on disk.
+  const pools = write ? writePools(root, bundles) : { pools: [] as ListeningPool[], changed: [] as string[] };
 
   // Quota report.
   reportLines.push('station  belt    vocab      kanji     grammar   kana  comp  stories  michikusa');
@@ -536,8 +552,44 @@ export function assign(root: string, plan: PlanEntry[], opts: AssignOptions = {}
   if (missingFiles.length > 0) reportLines.push(`plan files missing on disk: ${missingFiles.length} (${missingFiles.slice(0, 5).join(', ')}${missingFiles.length > 5 ? ', …' : ''})`);
   reportLines.push(write ? `wrote ${rewritten} changed content file(s), ${bundles.length} bundles, ${Object.keys(allowlists).length} allowlists → ${allowlistsDir}` : 'dry run: nothing written');
   reportLines.push(write ? `linked ${link.linked} story line(s); ${link.changed.length} story file(s) rewritten with tokenIds` : 'dry run: stories not linked');
+  if (write) reportLines.push(poolReportLine(pools.pools, pools.changed.length));
   reportLines.push('("!" = outside ±10 % of quota)');
-  return { bundles, allowlists, report: reportLines.join('\n'), assigned: assignedCount, missingFiles, linked: link.linked };
+  return { bundles, allowlists, report: reportLines.join('\n'), assigned: assignedCount, missingFiles, linked: link.linked, pools: pools.pools };
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Listening pools (design 08 §4): listening/pool-NN.json                     */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+export interface WritePoolsResult {
+  pools: ListeningPool[];
+  /** Pool files written (absent before or different). */
+  changed: string[];
+}
+
+/**
+ * Builds the 53 pools from the bundles and the content on disk (`buildPools`)
+ * and writes `listening/pool-NN.json` for each, byte-stable (`stringifyPool`;
+ * unchanged files are left alone). Nothing else is written, so this is safe
+ * to run while writers edit item or story files.
+ */
+export function writePools(root: string, bundles: readonly StationBundle[]): WritePoolsResult {
+  root = resolve(root);
+  const { pools } = buildPools(root, bundles);
+  const changed: string[] = [];
+  for (const p of pools) {
+    const rel = poolPath(p.station);
+    if (writeIfChanged(join(root, rel), stringifyPool(p))) changed.push(rel);
+  }
+  return { pools, changed };
+}
+
+/** `wrote 53 listening pools (3 changed): 13,688 refs — stories 3,179 · grammar 1,550 · vocab 8,883`. */
+export function poolReportLine(pools: readonly ListeningPool[], changed: number): string {
+  const n = (k: string) => pools.reduce((acc, p) => acc + p.refs.filter((r) => r.ref.startsWith(k)).length, 0);
+  const total = pools.reduce((acc, p) => acc + p.refs.length, 0);
+  const fmt = (x: number) => x.toLocaleString('en-US');
+  return `wrote ${pools.length} listening pools (${changed} changed): ${fmt(total)} refs — stories ${fmt(n('s-'))} · grammar ${fmt(n('g-'))} · vocab ${fmt(n('v-'))}`;
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -846,8 +898,8 @@ function buildAllowlists(bundles: StationBundle[], storyNames: Map<number, strin
 /* Linker: token → item id lives in scripts/linker.ts (shared with the validator); re-exported here */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-export { allowlistStationFor, AUX_VERBS, buildMatchPool, CAST_NAMES, cumulativeIds, FUNCTION_TOKENS, inflectedForms, matchToken, stemApplies } from './linker.ts';
-export type { MatchPool, TokenMatch } from './linker.ts';
+export { allowlistStationFor, AUX_VERBS, buildMatchPool, buildPoolFiles, buildPools, CAST_NAMES, compareRefs, cumulativeIds, FUNCTION_TOKENS, inflectedForms, linkSentence, matchToken, plusOneIdsOf, poolPath, readPoolCorpus, segmentSentence, sentenceMorae, stationPools, stemApplies, stringifyPool } from './linker.ts';
+export type { BuiltPools, MatchPool, PoolCorpus, PoolVerdict, SentenceLink, TokenMatch } from './linker.ts';
 
 export interface LinkResult {
   /** Story lines whose tokenIds were computed. */
@@ -913,6 +965,7 @@ function main(): void {
   let planPath = join(here, '..', 'docs', 'content-plan.json');
   let allowlistsDir = join(here, '..', 'docs', 'allowlists');
   let dry = false;
+  let poolsOnly = false;
   let posFloors: readonly PosFloor[] = DEFAULT_POS_FLOORS;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
@@ -920,11 +973,18 @@ function main(): void {
     else if (a === '--plan') planPath = argv[++i] ?? planPath;
     else if (a === '--allowlists') allowlistsDir = argv[++i] ?? allowlistsDir;
     else if (a === '--dry-run') dry = true;
+    else if (a === '--pools-only') poolsOnly = true;
     else if (a === '--no-pos-floors') posFloors = [];
     else if (a === '--help' || a === '-h') {
-      process.stdout.write('usage: node scripts/assign-stations.ts [--root <content dir>] [--plan <content-plan.json>] [--allowlists <dir>] [--dry-run] [--no-pos-floors]\n');
+      process.stdout.write('usage: node scripts/assign-stations.ts [--root <content dir>] [--plan <content-plan.json>] [--allowlists <dir>] [--dry-run] [--pools-only] [--no-pos-floors]\n  --pools-only rewrites listening/pool-NN.json from the bundles and files on disk and touches nothing else\n');
       process.exit(0);
     }
+  }
+  if (poolsOnly) {
+    const bundles = bundlesFromCorpus(resolve(root));
+    const r = writePools(resolve(root), bundles);
+    process.stdout.write(poolReportLine(r.pools, r.changed.length) + '\n');
+    return;
   }
   const plan = readJson<PlanEntry[]>(resolve(planPath));
   const result = assign(resolve(root), plan, { write: !dry, allowlistsDir: resolve(allowlistsDir), posFloors });

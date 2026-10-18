@@ -34,6 +34,11 @@
  * `teachSeen` keep only id-like strings (`ID_LIKE`, ≤ `ID_MAX` glyphs — a
  * truncated id names nothing, so a bad entry is dropped, never cut) and are
  * capped at `LISTENED_MAX` / `TEACH_SEEN_MAX` newest entries (`ARRAY_CAPS`);
+ * `progress.arenaAt` (optional, the Arena's last pass per text — `checkArenaAt`)
+ * keeps id-like keys whose value is a non-negative integer EpochDay, drops the
+ * rest, is capped at `ARENA_AT_MAX` entries keeping the NEWEST days, and is
+ * left absent on a save that never had it — a non-object, or an object with
+ * nothing valid left, is removed rather than kept as `{}`;
  * a save from before the listening counters is seeded with
  * `stats.bestCleanTier = settings.speedTier` so no 耳 radar drops on upgrade
  * (a new save starts at `FRESH_BEST_CLEAN_TIER`). Additive fields need no
@@ -58,6 +63,7 @@ import {
   type Intensity,
   type LogEntry,
   type Profile,
+  type Progress,
   type Retention,
   type SaveMeta,
   type Settings,
@@ -173,6 +179,8 @@ const idLike: Guard = (x) => (typeof x === 'string' && x.length <= ID_MAX && ID_
 export const LISTENED_MAX = 4096;
 /** Newest entries kept in `progress.teachSeen` (design 08 §11; a few dozen teach cards exist). */
 export const TEACH_SEEN_MAX = 256;
+/** Entries kept in `progress.arenaAt` (design 08 §10.2; 237 texts, with room for release trains) — the newest days survive the cap. */
+export const ARENA_AT_MAX = 1024;
 /** Per-array caps keyed by template path; arrays not listed are uncapped. */
 const ARRAY_CAPS: Record<string, number> = {
   'progress.listened': LISTENED_MAX,
@@ -361,6 +369,46 @@ function checkProfile(pr: Profile, d: Profile, tz: string, coerced: string[]): P
 }
 
 /**
+ * `progress.arenaAt` is optional (not in the `freshSave` template, so `coerce`
+ * passes it through): text id → EpochDay of the last passed Arena set. Keys
+ * must be id-like, values finite non-negative integers; anything else is
+ * dropped, a non-object — or an object with nothing valid left — is removed
+ * (one shape for "nothing valid": absent, never `{}`), and over
+ * `ARENA_AT_MAX` entries the OLDEST days go (original key order kept). Absent
+ * stays absent; an honest `{}` is left as it is.
+ */
+function checkArenaAt(pr: Progress, coerced: string[]): Progress {
+  const have: unknown = pr.arenaAt;
+  if (have === undefined) return pr;
+  if (!isObject(have)) {
+    coerced.push('progress.arenaAt');
+    const out = { ...pr };
+    delete out.arenaAt;
+    return out;
+  }
+  let changed = false;
+  let kept: [string, number][] = [];
+  for (const [k, v] of Object.entries(have)) {
+    if (idLike(k) !== undefined && isInt(v, 0, Number.MAX_SAFE_INTEGER)) kept.push([k, v]);
+    else changed = true;
+  }
+  if (kept.length > ARENA_AT_MAX) {
+    const byDay = kept.map((_, i) => i).sort((a, b) => kept[a][1] - kept[b][1]);
+    const drop = new Set(byDay.slice(0, kept.length - ARENA_AT_MAX));
+    kept = kept.filter((_, i) => !drop.has(i));
+    changed = true;
+  }
+  if (!changed) return pr;
+  coerced.push('progress.arenaAt');
+  if (kept.length === 0) {
+    const out = { ...pr };
+    delete out.arenaAt;
+    return out;
+  }
+  return { ...pr, arenaAt: Object.fromEntries(kept) };
+}
+
+/**
  * Fill every slice with defaults for keys the document lacks (additive fields
  * of newer builds) and repair fields of the wrong type or value (see the module header).
  */
@@ -381,6 +429,7 @@ function fillMeta(raw: Raw, coerced: string[]): SaveMeta {
   const meta = out as unknown as SaveMeta;
   meta.profile = checkProfile(meta.profile, d.profile, tz, coerced);
   meta.settings = checkSettings(meta.settings, d.settings, coerced);
+  meta.progress = checkArenaAt(meta.progress, coerced);
   // design 08 §12: a save from before the listening counters keeps the radar it had — `bestCleanTier` is
   // seeded from the chosen speed tier (a NEW save starts at FRESH_BEST_CLEAN_TIER through freshStats).
   // Additive, not a repair: nothing is pushed to `coerced`.

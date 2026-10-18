@@ -26,6 +26,15 @@
  *             content/**                   → NOT intercepted: the loader's own
  *                                            `tsuzuku-content-<version>` cache is the
  *                                            single offline store and is pruned per manifest
+ *             audio/sprites/**             → NOT intercepted (design 08 §8): a cache-first
+ *                                            rule here would grow Cache Storage without bound
+ *                                            (Radio streams up to 45 min of sprites a sitting);
+ *                                            src/audio/clips.ts owns the `tsuzuku-audio-v1`
+ *                                            bucket and writes it only for the station prefetch
+ *                                            and the belts the learner downloads, pruned per manifest
+ *             audio/manifest.json,
+ *             audio/<audioVersion>/**.json → stale-while-revalidate into the stable
+ *                                            `tsuzuku-audio-v1` bucket (never cleared here)
  *             assets/**                    → cache-first (hashed, immutable per release)
  *             fonts/**                     → cache-first in the stable fonts cache
  *             (a cache-first miss while offline answers 504, never a rejected promise)
@@ -40,6 +49,8 @@ const CACHE_VERSION = '__TSUZUKU_BUILD__';
 const SHELL_CACHE = 'tsuzuku-shell-' + CACHE_VERSION;
 const RUNTIME_CACHE = 'tsuzuku-runtime-' + CACHE_VERSION;
 const FONTS_CACHE = 'tsuzuku-fonts-v1';
+// Shared with src/audio/clips.ts (AUDIO_CACHE): the worker only adds the small indexes to it.
+const AUDIO_CACHE = 'tsuzuku-audio-v1';
 const OWN_PREFIXES = ['tsuzuku-shell-', 'tsuzuku-runtime-'];
 const BASE = new URL('./', self.location.href);
 const SHELL_URLS = ['./', './index.html', './manifest.webmanifest', './favicon.svg'].map(function (p) {
@@ -200,6 +211,14 @@ self.addEventListener('fetch', function (event) {
   }
   if (rel.startsWith('content/')) {
     // Unversioned paths: left to the network and the loader's versioned cache.
+    return;
+  }
+  if (rel.startsWith('audio/sprites/')) {
+    // Pass-through: clips.ts reads the audio bucket itself and fills it only on prefetch / download.
+    return;
+  }
+  if (rel === 'audio/manifest.json' || (rel.startsWith('audio/') && rel.endsWith('.json'))) {
+    event.respondWith(staleWhileRevalidate(request, AUDIO_CACHE));
     return;
   }
   if (rel.startsWith('assets/')) {

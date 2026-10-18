@@ -523,9 +523,9 @@
           "en": "I don't understand the meaning of this kanji."
         },
         {
-          "ja": "ケンは{日本語|にほんご}がよく{分|わ}かります。",
-          "kana": "ケンはにほんごがよくわかります。",
-          "en": "Ken understands Japanese well."
+          "ja": "{昨日|きのう}の{宿題|しゅくだい}は{分|わ}かりましたか。",
+          "kana": "きのうのしゅくだいはわかりましたか。",
+          "en": "Did you understand yesterday's homework?"
         }
       ],
       "notes": "Takes が, not を: 日本語が分かる. Often written in kana.",
@@ -1122,9 +1122,9 @@
           "en": "I ride my bike to school every day."
         },
         {
-          "ja": "{田中|たなか}さんは{九時|くじ}のバスに{乗|の}りました。",
-          "kana": "たなかさんはくじのバスにのりました。",
-          "en": "Mr. Tanaka got on the nine o'clock bus."
+          "ja": "{田中|たなか}さんは{前|まえ}のドアから{乗|の}りました。",
+          "kana": "たなかさんはまえのドアからのりました。",
+          "en": "Mr. Tanaka got on through the front door."
         }
       ],
       "notes": "The vehicle takes に: 電車に乗る.",
@@ -1158,9 +1158,9 @@
           "en": "I get off the bus at the station and walk five minutes."
         },
         {
-          "ja": "どこで{電車|でんしゃ}を{降|お}りますか。",
-          "kana": "どこででんしゃをおりますか。",
-          "en": "Where do we get off the train?"
+          "ja": "{田中|たなか}さんは{学校|がっこう}の{前|まえ}で{降|お}りました。",
+          "kana": "たなかさんはがっこうのまえでおりました。",
+          "en": "Mr. Tanaka got off in front of the school."
         }
       ],
       "notes": "The vehicle takes を: バスを降りる. 下りる is used for stairs and hills.",
@@ -1731,9 +1731,9 @@
       "trans": "vi",
       "examples": [
         {
-          "ja": "{去年|きょねん}、{家|うち}の{犬|いぬ}が{死|し}にました。",
-          "kana": "きょねん、うちのいぬがしにました。",
-          "en": "My dog died last year."
+          "ja": "{去年|きょねん}、おじいさんが{死|し}にました。",
+          "kana": "きょねん、おじいさんがしにました。",
+          "en": "My grandfather died last year."
         },
         {
           "ja": "この{魚|さかな}はもう{死|し}んでいます。",
@@ -1763,9 +1763,9 @@
       "trans": "vt",
       "examples": [
         {
-          "ja": "{兄|あに}は{大学|だいがく}で{日本語|にほんご}を{教|おし}えています。",
-          "kana": "あにはだいがくでにほんごをおしえています。",
-          "en": "My older brother teaches Japanese at a university."
+          "ja": "{兄|あに}は{学校|がっこう}で{日本語|にほんご}を{教|おし}えています。",
+          "kana": "あにはがっこうでにほんごをおしえています。",
+          "en": "My older brother teaches Japanese at a school."
         },
         {
           "ja": "{田中|たなか}さんの{家|いえ}を{教|おし}えてください。",
@@ -1934,9 +1934,9 @@
           "en": "I'll start studying Japanese next month."
         },
         {
-          "ja": "{田中|たなか}さんは{去年|きょねん}、{料理|りょうり}を{始|はじ}めました。",
-          "kana": "たなかさんはきょねん、りょうりをはじめました。",
-          "en": "Mr. Tanaka took up cooking last year."
+          "ja": "ハナは{今朝|けさ}、{宿題|しゅくだい}を{始|はじ}めました。",
+          "kana": "ハナはけさ、しゅくだいをはじめました。",
+          "en": "Hana started her homework this morning."
         }
       ],
       "station": 8
@@ -2171,9 +2171,9 @@
           "en": "Birds are flying in the sky."
         },
         {
-          "ja": "{今朝|けさ}、{大|おお}きい{鳥|とり}が{家|いえ}の{上|うえ}を{飛|と}びました。",
-          "kana": "けさ、おおきいとりがいえのうえをとびました。",
-          "en": "This morning a big bird flew over the house."
+          "ja": "{田中|たなか}さんの{帽子|ぼうし}が{飛|と}びましたよ。",
+          "kana": "たなかさんのぼうしがとびましたよ。",
+          "en": "Mr. Tanaka, your hat flew off!"
         }
       ],
       "notes": "The space flown through takes を: 空を飛ぶ.",
@@ -2202,9 +2202,9 @@
           "en": "You need money for a trip."
         },
         {
-          "ja": "この{本|ほん}はもう{要|い}りません。",
-          "kana": "このほんはもういりません。",
-          "en": "I don't need this book anymore."
+          "ja": "{昨日|きのう}は{傘|かさ}が{要|い}りませんでした。",
+          "kana": "きのうはかさがいりませんでした。",
+          "en": "I didn't need an umbrella yesterday."
         }
       ],
       "notes": "Godan: 要ります・要らない. Takes が. Same sound as いる (to be) but a different verb.",
@@ -2336,9 +2336,9 @@
           "en": "Last week I climbed a mountain with my family."
         },
         {
-          "ja": "{今年|ことし}の{夏|なつ}、{山|やま}に{登|のぼ}りませんか。",
-          "kana": "ことしのなつ、やまにのぼりませんか。",
-          "en": "Would you like to climb a mountain this summer?"
+          "ja": "アオは{毎晩|まいばん}、{本棚|ほんだな}の{上|うえ}に{登|のぼ}ります。",
+          "kana": "アオはまいばん、ほんだなのうえにのぼります。",
+          "en": "Ao climbs onto the bookshelf every night."
         }
       ],
       "notes": "登る for mountains and trees; 上る for stairs and rivers.",
@@ -2372,9 +2372,9 @@
           "en": "It will probably rain tomorrow."
         },
         {
-          "ja": "{昨日|きのう}の{夜|よる}、{雪|ゆき}が{降|ふ}りました。",
-          "kana": "きのうのよる、ゆきがふりました。",
-          "en": "It snowed last night."
+          "ja": "{昨日|きのう}は{朝|あさ}から{晩|ばん}まで{降|ふ}っていました。",
+          "kana": "きのうはあさからばんまでふっていました。",
+          "en": "It rained from morning till night yesterday."
         }
       ],
       "notes": "Only for precipitation: 雨が降る, 雪が降る. 降っています = it is raining.",
@@ -2410,9 +2410,9 @@
           "en": "I gave my mother flowers for her birthday."
         },
         {
-          "ja": "ケンは{毎日|まいにち}アオに{魚|さかな}をあげます。",
-          "kana": "ケンはまいにちアオにさかなをあげます。",
-          "en": "Ken gives Ao fish every day."
+          "ja": "{明日|あした}、ケンはハナに{本|ほん}をあげます。",
+          "kana": "あした、ケンはハナにほんをあげます。",
+          "en": "Tomorrow Ken will give Hana a book."
         }
       ],
       "notes": "Giving outward from the speaker's side; the receiver takes に.",
@@ -2487,9 +2487,9 @@
           "en": "A friend gave me some sweets."
         },
         {
-          "ja": "{兄|あに}はよく{本|ほん}をくれます。",
-          "kana": "あにはよくほんをくれます。",
-          "en": "My older brother often gives me books."
+          "ja": "{来週|らいしゅう}、{兄|あに}が{古|ふる}いカメラをくれます。",
+          "kana": "らいしゅう、あにがふるいカメラをくれます。",
+          "en": "Next week my older brother will give me his old camera."
         }
       ],
       "notes": "Only when the receiver is the speaker or an in-group member. Irregular imperative くれ.",
@@ -2526,9 +2526,9 @@
           "en": "I lent my bike to my younger brother."
         },
         {
-          "ja": "すみません、ペンを{貸|か}してください。",
-          "kana": "すみません、ペンをかしてください。",
-          "en": "Excuse me, could you lend me a pen?"
+          "ja": "{来週|らいしゅう}、{田中|たなか}さんにカメラを{貸|か}します。",
+          "kana": "らいしゅう、たなかさんにカメラをかします。",
+          "en": "Next week I'll lend Mr. Tanaka my camera."
         }
       ],
       "notes": "Lending outward. The borrower takes に.",
@@ -2630,9 +2630,9 @@
           "en": "I'll pay for lunch."
         },
         {
-          "ja": "{本|ほん}のお{金|かね}は{母|はは}が{払|はら}いました。",
-          "kana": "ほんのおかねはははがはらいました。",
-          "en": "My mother paid for the book."
+          "ja": "{田中|たなか}さんは{傘|かさ}に{千円|せんえん}{払|はら}いました。",
+          "kana": "たなかさんはかさにせんえんはらいました。",
+          "en": "Mr. Tanaka paid a thousand yen for an umbrella."
         }
       ],
       "collocations": [
@@ -2725,9 +2725,9 @@
           "en": "This dog is really big, isn't it?"
         },
         {
-          "ja": "{田中|たなか}さんは{大|おお}きい{家|いえ}に{住|す}んでいます。",
-          "kana": "たなかさんはおおきいいえにすんでいます。",
-          "en": "Mr. Tanaka lives in a big house."
+          "ja": "{昨日|きのう}、{大|おお}きい{傘|かさ}を{買|か}いました。",
+          "kana": "きのう、おおきいかさをかいました。",
+          "en": "Yesterday I bought a big umbrella."
         }
       ],
       "notes": "Before a noun 大きな is also common: 大きな犬.",
@@ -2947,9 +2947,9 @@
           "en": "I've been feeling sick since this morning."
         },
         {
-          "ja": "{昨日|きのう}は{天気|てんき}が{悪|わる}かったです。",
-          "kana": "きのうはてんきがわるかったです。",
-          "en": "The weather was bad yesterday."
+          "ja": "{田中|たなか}さんは{悪|わる}い{人|ひと}じゃないです。",
+          "kana": "たなかさんはわるいひとじゃないです。",
+          "en": "Mr. Tanaka is not a bad person."
         }
       ],
       "notes": "Also \"sorry / my fault\" in casual speech: 悪い！",
@@ -3073,9 +3073,9 @@
           "en": "On hot days I drink cold water."
         },
         {
-          "ja": "この{牛乳|ぎゅうにゅう}は{冷|つめ}たくておいしいです。",
-          "kana": "このぎゅうにゅうはつめたくておいしいです。",
-          "en": "This milk is cold and delicious."
+          "ja": "{今朝|けさ}のお{風呂|ふろ}は{冷|つめ}たかったです。",
+          "kana": "けさのおふろはつめたかったです。",
+          "en": "The bath was cold this morning."
         }
       ],
       "notes": "Objects and liquids; also a cold, unfriendly person. Cold weather is 寒い.",
@@ -3382,9 +3382,9 @@
           "en": "There are a lot of people in this town, aren't there?"
         },
         {
-          "ja": "{今年|ことし}の{夏|なつ}は{暑|あつ}い{日|ひ}が{多|おお}かったです。",
-          "kana": "ことしのなつはあついひがおおかったです。",
-          "en": "There were a lot of hot days this summer."
+          "ja": "{今週|こんしゅう}は{宿題|しゅくだい}が{多|おお}かったです。",
+          "kana": "こんしゅうはしゅくだいがおおかったです。",
+          "en": "There was a lot of homework this week."
         }
       ],
       "notes": "Predicate use (人が多い); before a noun use 多くの or たくさんの, not 多い人.",
@@ -3687,9 +3687,9 @@
           "en": "I can't handle alcohol well."
         },
         {
-          "ja": "アオはまだ{小|ちい}さくて{弱|よわ}いです。",
-          "kana": "アオはまだちいさくてよわいです。",
-          "en": "Ao is still small and weak."
+          "ja": "{去年|きょねん}、アオは{小|ちい}さくて{弱|よわ}かったです。",
+          "kana": "きょねん、アオはちいさくてよわかったです。",
+          "en": "Last year Ao was small and weak."
         }
       ],
       "notes": "〜に弱い = weak against / bad at: 寒さに弱い, 数字に弱い.",
@@ -3851,9 +3851,9 @@
           "en": "This park is quiet and nice."
         },
         {
-          "ja": "{図書館|としょかん}はとても{静|しず}かでした。",
-          "kana": "としょかんはとてもしずかでした。",
-          "en": "The library was very quiet."
+          "ja": "{教室|きょうしつ}はとても{静|しず}かでした。",
+          "kana": "きょうしつはとてもしずかでした。",
+          "en": "The classroom was very quiet."
         }
       ],
       "notes": "Set phrase: 静かにしてください = please be quiet.",
@@ -3883,9 +3883,9 @@
           "en": "The area in front of the station is always lively."
         },
         {
-          "ja": "{土曜日|どようび}の{町|まち}はにぎやかでした。",
-          "kana": "どようびのまちはにぎやかでした。",
-          "en": "The town was lively on Saturday."
+          "ja": "{昨日|きのう}の{学校|がっこう}はとてもにぎやかでした。",
+          "kana": "きのうのがっこうはとてもにぎやかでした。",
+          "en": "School was very lively yesterday."
         }
       ],
       "notes": "Positive liveliness of places and people; noisy in a bad way is うるさい.",
@@ -3952,9 +3952,9 @@
           "en": "The convenience store near the station is really handy."
         },
         {
-          "ja": "{日本|にほん}の{電車|でんしゃ}はとても{便利|べんり}でした。",
-          "kana": "にほんのでんしゃはとてもべんりでした。",
-          "en": "The trains in Japan were very convenient."
+          "ja": "{便利|べんり}なカメラを{買|か}いました。",
+          "kana": "べんりなカメラをかいました。",
+          "en": "I bought a handy camera."
         }
       ],
       "confusables": [
@@ -3984,9 +3984,9 @@
           "en": "Buses are infrequent here, so it's inconvenient."
         },
         {
-          "ja": "{不便|ふべん}な{町|まち}には{住|す}みたくないです。",
-          "kana": "ふべんなまちにはすみたくないです。",
-          "en": "I don't want to live in an inconvenient town."
+          "ja": "{前|まえ}の{家|いえ}はとても{不便|ふべん}でした。",
+          "kana": "まえのいえはとてもふべんでした。",
+          "en": "My previous house was very inconvenient."
         }
       ],
       "confusables": [
@@ -4017,9 +4017,9 @@
           "en": "There is a famous temple in this town."
         },
         {
-          "ja": "この{店|みせ}のパンは{有名|ゆうめい}です。",
-          "kana": "このみせのパンはゆうめいです。",
-          "en": "This shop's bread is famous."
+          "ja": "この{学校|がっこう}の{先生|せんせい}はとても{有名|ゆうめい}です。",
+          "kana": "このがっこうのせんせいはとてもゆうめいです。",
+          "en": "The teacher at this school is very famous."
         }
       ],
       "notes": "Famous for something: 〜で有名.",

@@ -38,6 +38,15 @@ import type { CardTuple, CardsApi, EpochDay } from '../shared/store-types';
  */
 export const IMPLICIT_WINDOW_DAYS = 3;
 
+/**
+ * Design 08 §10.2 / §11 "worked on recently": a text whose last PASSED Arena
+ * set (`progress.arenaAt`) is within this many days is never cold for Radio,
+ * comes first among its re-hearings, and is closed to the session builder's
+ * dialogue slot. One constant for `input/listening/radio-playlist.ts` and
+ * `session/builder.ts` (neither may import the other).
+ */
+export const ARENA_RECENT_DAYS = 14;
+
 /** Speech estimate per clip (design 08 §2, `scripts/listening-report.ts`): morae ÷ 7 s + 0.5 s. */
 export const MORAE_PER_SECOND = 7;
 export const CLIP_PAD_SECONDS = 0.5;

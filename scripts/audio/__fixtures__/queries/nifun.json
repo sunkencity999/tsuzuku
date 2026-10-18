@@ -1,0 +1,101 @@
+{
+ "name": "nifun",
+ "text": "二分で着きます。",
+ "kana": "にふんでつきます。",
+ "styleId": 16,
+ "note": "sentence: 二分 misread as ニブン (want ニフン) — ladder step 0 fails",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ニ",
+      "consonant": "n",
+      "consonant_length": 0.032309651374816895,
+      "vowel": "i",
+      "vowel_length": 0.1334758996963501,
+      "pitch": 5.383208751678467
+     },
+     {
+      "text": "ブ",
+      "consonant": "b",
+      "consonant_length": 0.07290463149547577,
+      "vowel": "u",
+      "vowel_length": 0.15003342926502228,
+      "pitch": 5.478547096252441
+     },
+     {
+      "text": "ン",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "N",
+      "vowel_length": 0.12491072714328766,
+      "pitch": 5.678773403167725
+     },
+     {
+      "text": "デ",
+      "consonant": "d",
+      "consonant_length": 0.02742873877286911,
+      "vowel": "e",
+      "vowel_length": 0.10561615973711014,
+      "pitch": 5.701702117919922
+     }
+    ],
+    "accent": 4,
+    "pause_mora": null,
+    "is_interrogative": false
+   },
+   {
+    "moras": [
+     {
+      "text": "ツ",
+      "consonant": "ts",
+      "consonant_length": 0.06882970780134201,
+      "vowel": "U",
+      "vowel_length": 0.09982074797153473,
+      "pitch": 0
+     },
+     {
+      "text": "キ",
+      "consonant": "k",
+      "consonant_length": 0.08432598412036896,
+      "vowel": "i",
+      "vowel_length": 0.0590878427028656,
+      "pitch": 5.675309181213379
+     },
+     {
+      "text": "マ",
+      "consonant": "m",
+      "consonant_length": 0.06993476301431656,
+      "vowel": "a",
+      "vowel_length": 0.10923537611961365,
+      "pitch": 5.599410057067871
+     },
+     {
+      "text": "ス",
+      "consonant": "s",
+      "consonant_length": 0.08146330714225769,
+      "vowel": "U",
+      "vowel_length": 0.15473045408725739,
+      "pitch": 0
+     }
+    ],
+    "accent": 3,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ニブンデ'/_ツキマ'_ス"
+ }
+}

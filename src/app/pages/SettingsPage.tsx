@@ -15,18 +15,20 @@
  * the Backup page's Replace dialog.
  */
 import type { JSX } from 'preact';
-import { useRef, useState } from 'preact/hooks';
-import { services, speak, type VoiceInfo } from '@/shared/audio';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { BELTS, BELT_IDS, type Belt } from '@/content/types';
+import { packWillSpeak, saveDataRequested, services, speak, type AudioPackInfo, type AudioService, type ClipPlayer, type VoiceInfo } from '@/shared/audio';
 import { equivalentJa } from '@/shared/jp';
 import { href, navigate, type Route } from '@/shared/routes';
 import type { Feel, FuriganaMode, Intensity, Retention, Settings, SpeakingMode, SpeedTier, Theme } from '@/shared/store-types';
 import { KanaInput } from '@/shared/ui/KanaInput';
 import { CEILING_BYTES, INTENSITY_PRESETS, newPerDayFor, resetSave, store } from '@/store';
 import { currentBelt } from '@/store/derived';
+import { useAudioService, useClipPlayer } from '../hooks';
 import { ICS_FILENAME, buildIcs, downloadIcs } from '../ics';
 import { useDialogFocus } from '../use-dialog-focus';
 import { steadyReviewsInAYear } from './OnboardingPage';
-import { S, WEEKDAYS, fmt, num } from './strings';
+import { BELT_NAME, S, WEEKDAYS, fmt, num } from './strings';
 import './pages.css';
 
 export interface SettingsPageProps {
@@ -60,6 +62,11 @@ const SPEAKING: readonly { id: SpeakingMode; name: string }[] = [
   { id: 'self', name: S.setSpeakingSelf },
   { id: 'recognition', name: S.setSpeakingRecognition },
   { id: 'off', name: S.setSpeakingOff },
+];
+/** `Settings.audioSource` (design 08 §13): the pack's VOICEVOX clips first, or the device voice for everything. */
+const AUDIO_SOURCES: readonly { id: Settings['audioSource']; name: string; ja?: string }[] = [
+  { id: 'pack', name: S.setAudioSourcePack, ja: S.setPackTitleJa },
+  { id: 'device', name: S.setAudioSourceDevice },
 ];
 const RETENTIONS: readonly Retention[] = [0.85, 0.9, 0.95];
 const TIERS: readonly SpeedTier[] = [1, 2, 3, 4, 5];
@@ -103,6 +110,57 @@ export function parseTime(v: string): { hour: number; minute: number } {
 
 export function kbOf(bytes: number): number {
   return Math.round(bytes / 1024);
+}
+
+/**
+ * Bytes as a learner reads them (design 08 §13 "38 MB · 490 MB"): KB under a
+ * megabyte, MB with one decimal under ten, whole MB to a gigabyte, GB beyond.
+ */
+export function formatBytes(bytes: number): string {
+  const KB = 1024;
+  const MB = KB * 1024;
+  const GB = MB * 1024;
+  if (!Number.isFinite(bytes) || bytes <= 0) return fmt(S.mb, { n: 0 });
+  if (bytes < MB) return fmt(S.kb, { n: Math.max(1, Math.round(bytes / KB)) });
+  if (bytes < GB) {
+    const mb = bytes / MB;
+    return fmt(S.mb, { n: mb < 10 ? String(Math.round(mb * 10) / 10) : num(mb) });
+  }
+  return fmt(S.gb, { n: String(Math.round((bytes / GB) * 10) / 10) });
+}
+
+/** `navigator.connection.saveData` where the browser exposes it (design 08 §13: data saver auto-on) — the contract-tier body in `@/shared/audio`, re-exported for the page's tests. */
+export { saveDataRequested };
+
+/** The manifest summary once the pack is ready, else null (absent, loading or no player installed). */
+export function packInfo(clips: ClipPlayer | undefined): AudioPackInfo | null {
+  if (!clips || clips.ready.value !== 'ready') return null;
+  return clips.info.value;
+}
+
+/**
+ * A pack voice is a voice (design 08 §8): the pack will speak — the contract-tier
+ * `packWillSpeak(a, packChosen)` with the store's choice as the default. `source`
+ * is capability-correct from mount (before any `speak()` it holds the idle
+ * default), so `'clips'` says so while the pack is chosen — a ready pack under
+ * `settings.audioSource === 'device'` is the device voice whatever `source` reads.
+ * A ready pack the learner chose counts too while the master volume is 0 (the
+ * idle `source` then reads `'none'`): the remedy is the volume, not an OS voice.
+ */
+export function packSpeaks(a: AudioService, packChosen: boolean = store.settings.value.audioSource !== 'device'): boolean {
+  return packWillSpeak(a, packChosen);
+}
+
+/** The browser forces data saving (design 08 §13): the switch shows the effective state, `settings.dataSaver || saveDataRequested()`. */
+export function dataSaverEffective(s: Pick<Settings, 'dataSaver'>, forced: boolean = saveDataRequested()): boolean {
+  return s.dataSaver || forced;
+}
+
+/** The data-saver auto-on ran this boot (design 08 §13): once, so a learner who switches it off is not overruled on the next visit. */
+let dataSaverAutoApplied = false;
+/** Tests: forget that the auto-on ran. */
+export function resetDataSaverAutoForTests(): void {
+  dataSaverAutoApplied = false;
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -161,6 +219,178 @@ function Confirm(p: { text: string; yes: string; no: string; onYes(): void; onNo
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
+/* 音声パック voice pack card (design 08 §13)                                 */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+interface BeltJob {
+  belt: Belt;
+  done: number;
+  total: number;
+}
+
+function beltLabel(belt: Belt): string {
+  return BELT_NAME[belt] ?? belt;
+}
+
+/**
+ * Sizes come from the runtime manifest (`clips.info`) and the Cache API
+ * (`clips.cacheUsage()`), never guessed; Download / Remove go through the
+ * player. While the player is still being installed or its manifest probe runs
+ * the card says it is looking (a transient line, never the definitive no-pack
+ * sentence for a build that has one); a settled `undefined` player or
+ * `ready === 'absent'` is the no-pack sentence: the device voice speaks.
+ */
+function VoicePackCard(p: { belt: Belt }): JSX.Element {
+  const { clips, settled } = useClipPlayer();
+  const ready = clips ? clips.ready.value : settled ? 'absent' : 'unknown';
+  const info = packInfo(clips);
+  const state: 'probing' | 'absent' | 'ready' = !clips ? (settled ? 'absent' : 'probing') : ready === 'absent' ? 'absent' : ready === 'ready' && info ? 'ready' : 'probing';
+  const mine = info?.belts[p.belt];
+  const [usage, setUsage] = useState<number | null>(null);
+  const [job, setJob] = useState<BeltJob | null>(null);
+  const [note, setNote] = useState('');
+  const alive = useRef(true);
+
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+
+  const refreshUsage = (): void => {
+    if (!clips || ready !== 'ready') return;
+    clips.cacheUsage().then(
+      (u) => {
+        if (alive.current) setUsage(u.bytes);
+      },
+      () => {
+        if (alive.current) setUsage(null);
+      },
+    );
+  };
+  useEffect(refreshUsage, [clips, ready]);
+
+  const download = (belt: Belt): void => {
+    if (!clips || job) return;
+    setNote('');
+    setJob({ belt, done: 0, total: info?.belts[belt]?.bytes ?? 0 });
+    clips
+      .download(belt, (done, total) => {
+        if (alive.current) setJob({ belt, done, total });
+      })
+      .then(
+        () => {
+          if (!alive.current) return;
+          setJob(null);
+          setNote(fmt(S.setPackDownloaded, { belt: beltLabel(belt) }));
+          refreshUsage();
+        },
+        () => {
+          if (!alive.current) return;
+          setJob(null);
+          setNote(S.setPackFailed);
+          refreshUsage();
+        },
+      );
+  };
+
+  const remove = (belt: Belt): void => {
+    if (!clips || job) return;
+    clips.remove(belt).then(
+      () => {
+        if (!alive.current) return;
+        setNote(fmt(S.setPackRemoved, { belt: beltLabel(belt) }));
+        refreshUsage();
+      },
+      () => {
+        if (alive.current) setNote(S.setPackRemoveFailed);
+      },
+    );
+  };
+
+  const pct = job && job.total > 0 ? Math.min(100, Math.round((job.done / job.total) * 100)) : 0;
+
+  return (
+    <div class="set__pack status-window" data-voice-pack data-pack-state={state}>
+      <h3 class="set__pack-title">
+        <span lang="ja">{S.setPackTitleJa}</span>
+        <span>{S.setPackTitle}</span>
+      </h3>
+      <p class="set__pack-explain">{S.setPackExplain}</p>
+      {state === 'probing' ? (
+        <p class="muted" data-pack-loading>
+          {S.setPackLoading}
+        </p>
+      ) : state === 'absent' || !info ? (
+        <p class="muted" data-pack-none>
+          {S.setPackNone}
+        </p>
+      ) : (
+        <>
+          <p data-pack-sizes>
+            {mine
+              ? fmt(S.setPackSizes, {
+                  belt: formatBytes(mine.bytes),
+                  all: formatBytes(info.totals.bytes),
+                  device: usage === null ? S.setPackCounting : formatBytes(usage),
+                })
+              : fmt(S.setPackSizesNoBelt, {
+                  all: formatBytes(info.totals.bytes),
+                  device: usage === null ? S.setPackCounting : formatBytes(usage),
+                })}
+          </p>
+          <h4 class="set__pack-h4">{S.setPackBeltsTitle}</h4>
+          <p class="field__hint">{S.setPackBeltsHint}</p>
+          <ul class="set__pack-belts">
+            {BELT_IDS.map((belt) => {
+              const b = info.belts[belt];
+              if (!b) return null;
+              const def = BELTS.find((x) => x.id === belt);
+              const busy = job?.belt === belt;
+              return (
+                <li key={belt} class="set__pack-belt" data-pack-belt={belt} data-busy={busy ? 'true' : 'false'}>
+                  <span class="set__pack-belt-name">
+                    {def ? (
+                      <span lang="ja" aria-hidden="true">
+                        {def.nameJa}
+                      </span>
+                    ) : null}
+                    <span>{beltLabel(belt)}</span>
+                  </span>
+                  <span class="set__pack-belt-size pixel">
+                    {formatBytes(b.bytes)}
+                    {S.separator}
+                    {fmt(S.minutesShort, { n: num(b.seconds / 60) })}
+                  </span>
+                  {busy ? (
+                    <div class="progress progress--ai" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={fmt(S.setPackDownloading, { belt: beltLabel(belt), pct })} data-pack-progress>
+                      <div class="progress__fill" style={{ width: `${Math.max(1, pct)}%` }} />
+                    </div>
+                  ) : null}
+                  <span class="set__pack-belt-actions">
+                    <button type="button" class="btn btn--sm" disabled={job !== null} onClick={() => download(belt)} data-pack-download={belt}>
+                      {S.setPackDownload}
+                    </button>
+                    <button type="button" class="btn btn--sm btn--ghost" disabled={job !== null} onClick={() => remove(belt)} data-pack-remove={belt}>
+                      {S.setPackRemove}
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p class="page__status" role="status" data-pack-note>
+            {job ? fmt(S.setPackDownloading, { belt: beltLabel(job.belt), pct }) : note}
+          </p>
+          <p class="field__hint">{S.setPackSafari}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
 /* Page                                                                       */
 /* ────────────────────────────────────────────────────────────────────────── */
 
@@ -175,11 +405,25 @@ export default function SettingsPage(p: SettingsPageProps): JSX.Element {
   const [resetTyped, setResetTyped] = useState('');
   const [resetAsk, setResetAsk] = useState(false);
   const [resetDone, setResetDone] = useState(false);
-  // Read the signal first: voices arrive asynchronously (voiceschanged / poll), and the
-  // list is recomputed on every render so a late batch fills the pickers.
-  const hasJaVoice = services.audio.hasJaVoice.value;
-  const voices = japaneseVoices(services.audio.voices());
+  // Subscribed to the slot (the real audio lands behind first paint) and read the signal first:
+  // voices arrive asynchronously (voiceschanged / poll), and the list is recomputed on every
+  // render so a late batch fills the pickers.
+  const audio = useAudioService();
+  const hasJaVoice = audio.hasJaVoice.value;
+  const voices = japaneseVoices(audio.voices());
   const download = p.download ?? downloadIcs;
+
+  // Data saver follows the browser's own request (design 08 §13), once per boot: the store
+  // default stays pure, and a learner who switches it off afterwards keeps that choice.
+  // The switch itself shows the EFFECTIVE state and is read-only while the browser asks for
+  // data saving — idle downloads are off whatever the setting says, the hint says so, and a tap
+  // that could change nothing visible writes nothing (the learner's stored choice stays theirs).
+  const saverForced = saveDataRequested();
+  useEffect(() => {
+    if (dataSaverAutoApplied || !saverForced) return;
+    dataSaverAutoApplied = true;
+    if (!store.settings.value.dataSaver) setField('dataSaver', true);
+  }, []);
 
   const choosePace = (v: Intensity): void => {
     if (v === 'intense') {
@@ -345,11 +589,17 @@ export default function SettingsPage(p: SettingsPageProps): JSX.Element {
       {/* ── Audio ─────────────────────────────────────────────────────── */}
       <section class="panel page__section" aria-labelledby="set-audio">
         <h2 id="set-audio">{S.setAudio}</h2>
+        <VoicePackCard belt={profile.belt} />
+        <div class="field">
+          <span class="field__label">{S.setAudioSource}</span>
+          <Radios name="audioSource" label={S.setAudioSource} value={s.audioSource} options={AUDIO_SOURCES} onChange={(v) => setField('audioSource', v)} />
+          <span class="field__hint">{S.setAudioSourceHint}</span>
+        </div>
         <div class="set__grid set__grid--2">
           <label class="field">
             <span class="field__label">{S.setVoice}</span>
             <select class="select" value={s.ttsVoiceURI ?? ''} onChange={(e) => setField('ttsVoiceURI', e.currentTarget.value || undefined)} data-setting="ttsVoiceURI">
-              <option value="">{voices.length === 0 && !hasJaVoice ? S.setVoiceNone : S.setVoiceDefault}</option>
+              <option value="">{voices.length === 0 && !hasJaVoice ? (packSpeaks(audio, s.audioSource !== 'device') ? S.setVoiceNonePack : S.setVoiceNone) : S.setVoiceDefault}</option>
               {voices.map((v) => (
                 <option key={v.uri} value={v.uri}>
                   {v.name} · {v.network ? S.setVoiceNetwork : S.setVoiceLocal}
@@ -384,10 +634,13 @@ export default function SettingsPage(p: SettingsPageProps): JSX.Element {
               <option key={t} value={String(t)}>
                 {t}
                 {S.separator}
-                {fmt(S.setSpeedTierHint, { rate: services.audio.rateForTier(t) })}
+                {fmt(S.setSpeedTierHint, { rate: audio.rateForTier(t) })}
               </option>
             ))}
           </select>
+          <span class="field__hint" data-speed-note>
+            {S.setSpeedTierNote}
+          </span>
         </label>
         <label class="field">
           <span class="field__label">{S.setSound}</span>
@@ -410,6 +663,9 @@ export default function SettingsPage(p: SettingsPageProps): JSX.Element {
           </span>
           <span class="field__hint">{S.setSoundHint}</span>
         </label>
+        <div class="set__switches">
+          <Switch id="dataSaver" checked={dataSaverEffective(s, saverForced)} disabled={saverForced} label={S.setDataSaver} hint={saverForced ? S.setDataSaverForced : S.setDataSaverHint} onChange={(v) => setField('dataSaver', v)} />
+        </div>
         <div class="field">
           <span class="field__label">{S.setSpeaking}</span>
           <Radios name="speaking" label={S.setSpeaking} value={s.speaking} options={SPEAKING} onChange={(v) => setField('speaking', v)} />

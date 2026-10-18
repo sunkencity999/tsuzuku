@@ -8,7 +8,13 @@
  *   initStore({slot, now, storage})   → await ready → the Layout and the page render
  *   startPerapera(store)              monthly Perapera snapshot (now + every day:rolled)
  *   startRouter() · registerSw()
- *   installServices(createWebAudio(), createStt())   from @/audio (F), fire-and-forget
+ *   installServices(createWebAudio({ clips }), createStt())   from @/audio (F), fire-and-forget;
+ *     clips = createClipPlayer({ prefetchAllowed }) — the voice pack (design 08 §8) reads
+ *     ./audio/manifest.json behind first paint (404 → device voice only, never a throw);
+ *     once the services are in, the current station's small indexes load at once (so the
+ *     first speak() hits the pack) and its sprites prefetch at the next idle moment
+ *     (`whenIdle`) unless the learner's `settings.dataSaver` or
+ *     `navigator.connection.saveData` says not to
  *   loadOverlays() → overlays.value   CeremonyHost from @/art (G), fire-and-forget
  *
  * Nothing but the store blocks first paint (design 07 §9 budgets): audio, the
@@ -20,7 +26,7 @@
  */
 import { signal } from '@preact/signals';
 import { render } from 'preact';
-import { installServices } from '@/shared/audio';
+import { installServices, saveDataRequested as sharedSaveDataRequested, services, type ClipPlayer } from '@/shared/audio';
 import { navigate, route } from '@/shared/routes';
 import { initStore, store } from '@/store';
 import { startPerapera } from '@/store/derived';
@@ -44,6 +50,12 @@ export interface BootOptions {
   slot?: number;
   /** Load `@/audio` and install the real services (default true; tests keep `nullAudio`). */
   audio?: boolean;
+  /**
+   * The voice pack player to hand `createWebAudio` (design 08 §8). Default: the
+   * barrel's `createClipPlayer()`; `null` installs the device voice alone. Tests
+   * pass a double to watch the boot prefetch.
+   */
+  clips?: ClipPlayer | null;
   /** Load `@/art` for the ceremony overlay (default true). */
   overlays?: boolean;
   /** Register the service worker (default true; a no-op outside production). */
@@ -86,20 +98,75 @@ async function optional(file: string, what: string): Promise<AnyModule | null> {
   }
 }
 
-async function installAudio(): Promise<void> {
+/** `navigator.connection.saveData` — the contract-tier body in `@/shared/audio`, re-exported for the boot tests. */
+export { saveDataRequested } from '@/shared/audio';
+
+/** Design 08 §13: no idle sprite prefetch under the learner's data saver or the browser's. */
+export function prefetchAllowed(): boolean {
+  return !store.settings.value.dataSaver && !sharedSaveDataRequested();
+}
+
+/** Fallback delay for `whenIdle` where `requestIdleCallback` is missing (Safari). */
+export const IDLE_FALLBACK_MS = 2000;
+
+/** Runs `fn` once the browser is idle (`requestIdleCallback`, 5 s ceiling), else after `IDLE_FALLBACK_MS`. */
+export function whenIdle(fn: () => void): void {
+  const g = globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+  if (typeof g.requestIdleCallback === 'function') g.requestIdleCallback(fn, { timeout: 5000 });
+  else setTimeout(fn, IDLE_FALLBACK_MS);
+}
+
+async function installAudio(o: BootOptions): Promise<void> {
   const m = await optional(AUDIO_BARREL, 'audio services');
-  if (!m) return;
+  if (!m) {
+    // Settle: `servicesVersion` bumps so Settings / About stop saying "Looking for the voice pack" (nullAudio stays).
+    installServices({});
+    return;
+  }
+  let clips: ClipPlayer | undefined;
   try {
-    const audio = typeof m.createWebAudio === 'function' ? (m.createWebAudio as () => unknown)() : undefined;
+    if (o.clips === undefined) {
+      // The pack reads ./audio/manifest.json behind first paint; a 404 makes it `absent`, never a throw.
+      clips =
+        typeof m.createClipPlayer === 'function'
+          ? (m.createClipPlayer as (opts: { prefetchAllowed: () => boolean }) => ClipPlayer)({ prefetchAllowed })
+          : undefined;
+    } else clips = o.clips ?? undefined;
+  } catch (err) {
+    console.warn('[boot] voice pack unavailable', err);
+    clips = undefined;
+  }
+  try {
+    const audio = typeof m.createWebAudio === 'function' ? (m.createWebAudio as (opts: { clips?: ClipPlayer }) => unknown)({ clips }) : undefined;
     const stt = typeof m.createStt === 'function' ? (m.createStt as () => unknown)() : undefined;
     installServices({
       audio: audio as Parameters<typeof installServices>[0]['audio'],
       stt: stt as Parameters<typeof installServices>[0]['stt'],
     });
   } catch (err) {
-    // Silence is a feature, not a crash: nullAudio stays installed.
+    // Silence is a feature, not a crash: nullAudio stays installed — but settle so the pack card stops waiting.
     console.warn('[boot] audio services failed to start', err);
+    installServices({});
+    return;
   }
+  if (!clips) return;
+  const player = clips;
+  const station = Math.max(1, store.progress.value.station);
+  // The station's small indexes load now, data saver or not, so the first speak() hits the pack (design 08 §13
+  // limits data saver to sprites); the 1–3 MB sprite prefetch waits for an idle moment and re-checks the setting.
+  try {
+    void Promise.resolve(player.loadStation(station)).catch(() => undefined);
+  } catch (err) {
+    console.warn('[boot] voice pack index load skipped', err);
+  }
+  if (!prefetchAllowed()) return;
+  whenIdle(() => {
+    try {
+      if (services.audio.clips === player && prefetchAllowed()) player.prefetchStation(station);
+    } catch (err) {
+      console.warn('[boot] voice pack prefetch skipped', err);
+    }
+  });
 }
 
 async function loadOverlays(): Promise<FunctionComponent[]> {
@@ -137,7 +204,7 @@ export async function boot(root: HTMLElement, o: BootOptions = {}): Promise<void
   if (o.sw !== false) void registerSw();
 
   // Behind first paint: audio services and the ceremony overlay.
-  if (o.audio !== false) void installAudio();
+  if (o.audio !== false) void installAudio(o);
   if (o.overlays !== false) {
     void loadOverlays().then((list) => {
       overlays.value = list;

@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { markKnown, retireItem } from '@/learn/apply';
 import { content, type ContentLoader } from '../../content/loader';
 import type { ContentItem, Facet, MichikusaItem } from '../../content/types';
-import { services, speak } from '../../shared/audio';
+import { packWillSpeak, services, speak, voiceAudible, type AudioService } from '../../shared/audio';
 import type { Route } from '../../shared/routes';
 import type { ItemBelt, ItemKind } from '../../shared/store-types';
 import { formatEraDate } from '../../shared/time';
@@ -57,6 +57,21 @@ export type LibraryView = 'items' | 'michikusa';
 
 const FACET_JA: Record<Facet, string> = { rec: '認', listen: '聴', prod: '産', pitch: '高', read: '読', comp: '部', cloze: '穴' };
 
+/**
+ * Nothing will be heard and no pack voice is coming (design 08 §8): the
+ * "no voice" status reads the contract-tier `packWillSpeak(a, packChosen)` for
+ * the pack (`source` / `packReady` only together with the setting: a ready pack
+ * under the device-voice setting is the device voice; a ready pack the learner
+ * chose is a voice even while the master volume is 0 and the idle `source`
+ * reads `'none'`) and `voiceAudible` + `hasJaVoice` for the device, never
+ * `hasJaVoice` alone — so a chosen pack without a device voice shows no notice,
+ * and a learner who merely muted a voice is not told to install one.
+ */
+export function voiceMissing(a: AudioService, packChosen: boolean = store.settings.value.audioSource !== 'device'): boolean {
+  if (packWillSpeak(a, packChosen)) return false;
+  return !voiceAudible(a) && !a.hasJaVoice.value;
+}
+
 function stationLabel(g: { station: number; def: StationGroup['def'] }): JSX.Element {
   if (g.station === UNPLACED || !g.def) return <span>{S.stationUnplaced}</span>;
   return (
@@ -81,7 +96,7 @@ function ItemDetail(p: { item: LibraryItem; surface: Surface; onClose(): void; o
   const listen = (): void => {
     if (!surface.speak) return;
     void speak(surface.speak.text, { kana: surface.speak.kana }).catch(() => undefined);
-    if (!services.audio.hasJaVoice.value) setStatus(S.noVoice);
+    if (voiceMissing(services.audio)) setStatus(S.noVoice);
   };
   const known = (): void => {
     markKnown(item.id, item.kind);

@@ -59,6 +59,37 @@
   margin: 0;
 }
 
+/* ── speakers, source chip, genre (design 08 §10.4) ───────────────────── */
+.arena__speakers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+}
+.arena__speakers-label {
+  font-family: var(--font-pixel);
+  font-size: var(--fs-1);
+}
+.arena__speaker-name {
+  color: var(--fg);
+  font-size: var(--fs-3);
+}
+.arena__speaker-name + .arena__speaker-name::before {
+  content: '·';
+  margin-right: var(--sp-2);
+  color: var(--fg-muted);
+}
+.arena__source {
+  font-family: var(--font-pixel);
+}
+/* surface-scoping anchor named in ui.css's TeachOnce note; the base already has margin: 0 */
+.arena .teach-once {
+  margin: 0;
+}
+
 /* ── listen stage: speakers as two bands, no text ─────────────────────── */
 .arena__stage {
   display: grid;
@@ -92,6 +123,10 @@
 }
 .arena__wave[data-slot='b'][data-on='true'] {
   background: var(--sakura);
+}
+/* a set is playing: idle bands fade back so the lit one reads as the voice */
+.arena__waves[data-busy='true'] .arena__wave:not([data-on='true']) {
+  background: color-mix(in srgb, var(--line) 55%, var(--surface));
 }
 .arena[data-feel='arcade'] .arena__wave[data-on='true'] {
   box-shadow: 0 0 8px var(--neon-c);
@@ -155,6 +190,70 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-2);
+}
+
+/* ── karaoke (design 08 §9): line (data-speaking) + token sweep or mora dots ── */
+.arena__transcript .ruby__token[data-sung='true'] {
+  background: color-mix(in srgb, var(--kin) 22%, transparent);
+  transition: background var(--dur-2) var(--ease);
+}
+.arena__transcript .ruby__token[data-sung='now'] {
+  background: color-mix(in srgb, var(--kin) 45%, transparent);
+  box-shadow: 0 2px 0 var(--kin);
+  transition: background var(--dur-1) var(--ease);
+}
+.arena__mora-dots {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+  min-height: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.arena__line:not(:has(.arena__speaker)) .arena__mora-dots {
+  grid-column: 1 / -1;
+}
+.arena__mora-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+  transition: background var(--dur-1) var(--ease), transform var(--dur-1) var(--ease);
+}
+.arena__mora-dot[data-on='done'] {
+  background: color-mix(in srgb, var(--kin) 55%, var(--line));
+}
+.arena__mora-dot[data-on='true'] {
+  background: var(--kin);
+  transform: scale(1.5);
+}
+.arena__credits {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+  list-style: none;
+  border-left: 3px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.arena__credits-title {
+  font-family: var(--font-pixel);
+  font-size: var(--fs-1);
+}
+.arena__credit [lang='ja'] {
+  color: var(--fg);
+}
+.arena__clause-note {
+  margin: 0;
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
 }
 
 /* ── questions ────────────────────────────────────────────────────────── */
@@ -363,19 +462,32 @@
   border-radius: var(--radius-sm);
   background: var(--raised);
 }
+.arena__state--missing {
+  border-left-style: dashed;
+}
 
 /* ── motion ───────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .arena__wave,
   .arena__line,
-  .arena__choice {
+  .arena__choice,
+  .arena__mora-dot,
+  .arena__transcript .ruby__token[data-sung] {
     transition: none;
+  }
+  .arena__mora-dot[data-on='true'] {
+    transform: none;
   }
 }
 .reduced-motion .arena__wave,
 .reduced-motion .arena__line,
-.reduced-motion .arena__choice {
+.reduced-motion .arena__choice,
+.reduced-motion .arena__mora-dot,
+.reduced-motion .arena__transcript .ruby__token[data-sung] {
   transition: none;
+}
+.reduced-motion .arena__mora-dot[data-on='true'] {
+  transform: none;
 }
 .feel-zen .arena__wave[data-on='true'],
 .arena[data-feel='zen'] .arena__wave[data-on='true'] {

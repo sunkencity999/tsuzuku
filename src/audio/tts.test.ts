@@ -3,7 +3,10 @@
  * fake timers. Settings come from a signal so no store is needed.
  */
 import { signal } from '@preact/signals';
-import { SPEED_TIER_RATES, nullAudio } from '../shared/audio';
+import { SPEED_TIER_RATES, audioSourceOf, nullAudio, type AudioPackInfo, type ClipCue, type ClipPlayOptions, type ClipPlayer, type ClipReady } from '../shared/audio';
+import { stripDisplayMarks as sharedStrip, textToSpeak as sharedTextToSpeak } from '../shared/speak-text';
+import { nearestRate } from './clips';
+import { S } from './strings';
 import { PAIR_OFFSET, type VoiceLike } from './voices';
 import {
   MAX_UTTERANCE_CHARS,
@@ -12,6 +15,8 @@ import {
   VOICE_POLL_TOTAL_MS,
   createWebAudio,
   estimateMs,
+  installAdvice,
+  packChosenIn,
   splitUtterance,
   stripDisplayMarks,
   textToSpeak,
@@ -175,96 +180,10 @@ describe('estimateMs / textToSpeak', () => {
     expect(estimateMs('飲む', 1)).toBeGreaterThan(estimateMs('のむ', 1));
   });
 
-  it('sentences speak the plain surface (ruby stripped), never the kana', () => {
-    expect(textToSpeak('{私|わたし}はコーヒーを{飲|の}みます。', 'わたしはコーヒーをのみます。')).toBe('私はコーヒーを飲みます。');
-    expect(textToSpeak('私はコーヒーを飲みます。')).toBe('私はコーヒーを飲みます。');
-  });
-
-  it('an isolated word speaks its kana when given (単漢字 are misread alone)', () => {
-    expect(textToSpeak('日', 'ひ')).toBe('ひ');
+  it('stripDisplayMarks / textToSpeak ARE the shared/speak-text functions (one body; their cases live in speak-text.test.ts)', () => {
+    expect(stripDisplayMarks).toBe(sharedStrip);
+    expect(textToSpeak).toBe(sharedTextToSpeak);
     expect(textToSpeak('{飲|の}む', 'のむ')).toBe('のむ');
-    expect(textToSpeak('飲む')).toBe('飲む');
-    expect(textToSpeak('あ', 'あ')).toBe('あ');
-  });
-
-  it('a short collocation with no kana speaks its plain surface, not the bare word (MeaningGuard speakWord passes no kana for collocations)', () => {
-    expect(textToSpeak('朝ご飯を食べる')).toBe('朝ご飯を食べる');
-    expect(textToSpeak('{朝|あさ}ご{飯|はん}を{食|た}べる')).toBe('朝ご飯を食べる');
-    expect(textToSpeak('日が暮れる')).toBe('日が暮れる');
-    // Why the caller must not forward the word's kana: a collocation this short counts as a word
-    // and the engine would say the bare word instead of the phrase it claims to have played.
-    expect(textToSpeak('朝ご飯を食べる', 'あさごはん')).toBe('あさごはん');
-  });
-});
-
-describe('stripDisplayMarks (display-only marks never reach the engine)', () => {
-  it('strips a leading or trailing 〜 ～ ~ (grammar / michikusa patterns, suffix vocab)', () => {
-    expect(stripDisplayMarks('〜てはいけない')).toBe('てはいけない');
-    expect(stripDisplayMarks('〜ざるを得ない')).toBe('ざるを得ない');
-    expect(stripDisplayMarks('～ている')).toBe('ている');
-    expect(stripDisplayMarks('御〜')).toBe('御');
-    expect(stripDisplayMarks('~ばかり ~')).toBe('ばかり');
-    expect(stripDisplayMarks('〜に越したことはない')).toBe('に越したことはない');
-  });
-
-  it('an interior 〜 slot becomes a pause; a 〜 between digits is a range and stays', () => {
-    expect(stripDisplayMarks('必ずしも〜ではない')).toBe('必ずしも、ではない');
-    expect(stripDisplayMarks('〜より〜の方が')).toBe('より、の方が');
-    expect(stripDisplayMarks('10〜20分かかる')).toBe('10〜20分かかる');
-  });
-
-  it('… and ‥ runs collapse to one pause, never doubling existing punctuation', () => {
-    expect(stripDisplayMarks('ええと……二月に仕事を辞めたんです。')).toBe('ええと、二月に仕事を辞めたんです。');
-    expect(stripDisplayMarks('そう‥‥かな')).toBe('そう、かな');
-    expect(stripDisplayMarks('「けんは？」「……。」')).toBe('「けんは？」「。」');
-    expect(stripDisplayMarks('まあ…。')).toBe('まあ。');
-    expect(stripDisplayMarks('いや...そうだね')).toBe('いや、そうだね');
-    expect(stripDisplayMarks('うーん……')).toBe('うーん');
-  });
-
-  it('「」 around a bare pattern are unwrapped; quotes inside a sentence stay', () => {
-    expect(stripDisplayMarks('「〜てはいけない」')).toBe('てはいけない');
-    expect(stripDisplayMarks('『感動』')).toBe('感動');
-    expect(stripDisplayMarks('明日、「概ねまっすぐ」って書く。')).toBe('明日、「概ねまっすぐ」って書く。');
-    expect(stripDisplayMarks('「はい」「いいえ」')).toBe('「はい」「いいえ」');
-  });
-
-  it('a 1–2 kana optional piece in parentheses is unwrapped; other parentheticals are dropped', () => {
-    expect(stripDisplayMarks('〜に至って(は)')).toBe('に至っては');
-    expect(stripDisplayMarks('〜(ら)れる')).toBe('られる');
-    expect(stripDisplayMarks('〜(さ)せられる')).toBe('させられる');
-    expect(stripDisplayMarks('〜なり (as soon as)')).toBe('なり');
-    expect(stripDisplayMarks('命令形 (imperative)')).toBe('命令形');
-    expect(stripDisplayMarks('（N）のために')).toBe('のために');
-    expect(stripDisplayMarks('(V)ことがある')).toBe('ことがある');
-    expect(stripDisplayMarks('〜(ら)れる (direct passive 受身)')).toBe('られる');
-  });
-
-  it('a spaced / or ／ between alternatives becomes a pause', () => {
-    expect(stripDisplayMarks('〜に至る / 〜に至るまで')).toBe('に至る、に至るまで');
-    expect(stripDisplayMarks('〜ゆえ(に)／〜ゆえの')).toBe('ゆえに、ゆえの');
-  });
-
-  it("nothing speakable left → '' (speak resolves without an utterance)", () => {
-    expect(stripDisplayMarks('〜')).toBe('');
-    expect(stripDisplayMarks('「……」')).toBe('');
-    expect(stripDisplayMarks('(N)')).toBe('');
-  });
-
-  it('real sentence text is untouched (ruby already stripped by textToSpeak)', () => {
-    const line = '石部は、昔、京都から一日で着く宿場町だったそうだ。「京立ち石部泊まり」っていうんだって。';
-    expect(stripDisplayMarks(line)).toBe(line);
-    expect(stripDisplayMarks('私はコーヒーを飲みます。')).toBe('私はコーヒーを飲みます。');
-    expect(stripDisplayMarks('大丈夫ですか？ はい、大丈夫です！')).toBe('大丈夫ですか？ はい、大丈夫です！');
-  });
-
-  it('textToSpeak applies it to the surface and the kana; the word test runs on the cleaned surface', () => {
-    expect(textToSpeak('〜放題', 'ほうだい')).toBe('ほうだい');
-    expect(textToSpeak('〜限り')).toBe('限り');
-    expect(textToSpeak('〜に{越|こ}したことはない', '〜にこしたことはない')).toBe('に越したことはない');
-    expect(textToSpeak('〜てはいけない')).toBe('てはいけない');
-    expect(textToSpeak('{私|わたし}は「〜てはいけない」と{言|い}った。', 'わたしは「〜てはいけない」といった。')).toBe('私は「てはいけない」と言った。');
-    expect(textToSpeak('〜', '〜')).toBe('');
   });
 });
 
@@ -671,5 +590,605 @@ describe('no speechSynthesis', () => {
     svc.dispose();
     expect(synth.listenerCount('voiceschanged')).toBe(0);
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* The voice pack in front of the synth (design 08 §8)                        */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const HANA = 'VOICEVOX:九州そら';
+const KEN = 'VOICEVOX:玄野武宏';
+const SPRITE = 'audio/sprites/s04/examples-01-00000000.webm';
+const cueOf = (key: string, voice = HANA, rate = 1): ClipCue => ({ key, file: SPRITE, start: 0.3, end: 2.4, voice, rate });
+
+interface PlayRecord {
+  cue: ClipCue;
+  o: ClipPlayOptions;
+  finish(r?: { source: 'clips' | 'none'; seconds: number }): void;
+}
+
+/** A `ClipPlayer` double: a cue table, a byText table, a cast map and recorded plays whose `done` the test settles. */
+class FakeClips implements ClipPlayer {
+  ready = signal<ClipReady>('ready');
+  info = signal<AudioPackInfo | null>({ audioVersion: 'a-0123456789', contentVersion: 'c-x', engine: 'VOICEVOX', belts: {}, totals: { bytes: 0, seconds: 0, files: 0 }, credits: [HANA, KEN] });
+  table: Record<string, ClipCue[]> = {
+    'v-n5-0001': [cueOf('v-n5-0001')],
+    'v-n5-0001#ga': [cueOf('v-n5-0001#ga')],
+    'v-n5-0001#def': [cueOf('v-n5-0001#def')],
+    'v-n5-0001#col1': [cueOf('v-n5-0001#col1')],
+    'v-n5-0001#ex1': [cueOf('v-n5-0001#ex1'), cueOf('v-n5-0001#ex1', HANA, 0.85)],
+    'g-n5-001#ex1': [cueOf('g-n5-001#ex1', HANA), cueOf('g-n5-001#ex1', KEN)],
+    's-04-1#L0': [cueOf('s-04-1#L0', KEN)],
+    's-04-1#L1': [cueOf('s-04-1#L1', HANA)],
+    's-04-1': [cueOf('s-04-1', KEN)],
+    'k-h-a': [cueOf('k-h-a')],
+    'j-日': [cueOf('j-日')],
+    'm-04-1': [cueOf('m-04-1')],
+  };
+  texts: Record<string, string> = {
+    '私はコーヒーを飲みます。': 'v-n5-0001#ex1',
+    'おはよう、ハナ。': 's-04-1#L0',
+    'おはようございます。今日もよろしくお願いします。': 'g-n5-001#ex1',
+    '今日はいい天気ですね。': 'g-n5-001#ex1',
+    '石部は、昔、京都から一日で着く宿場町だったそうだ。': 'm-04-1',
+  };
+  cast: Record<string, string> = { ハナ: HANA, ケン: KEN };
+  plays: PlayRecord[] = [];
+  stops = 0;
+  unlocks = 0;
+  disposed = 0;
+  prefetched: number[] = [];
+  /** The real player's additive `unlocked()` (pool built AND accepted); a test sets it to watch the gesture listeners. */
+  unlocked?: () => boolean;
+  cueForCalls: [string, { rate?: number; speaker?: string } | undefined][] = [];
+  textCalls: string[] = [];
+  loadLevel = async (): Promise<void> => undefined;
+  loadStation = async (): Promise<void> => undefined;
+  prefetchStation(n: number): void {
+    this.prefetched.push(n);
+  }
+  cueFor(key: string, o?: { rate?: number; speaker?: string }): ClipCue | undefined {
+    this.cueForCalls.push([key, o]);
+    const v = this.table[key];
+    if (!v) return undefined;
+    let pool = v;
+    if (o?.speaker) {
+      const want = this.cast[o.speaker];
+      const m = want ? v.filter((c) => c.voice === want) : [];
+      if (m.length > 0) pool = m;
+    }
+    return nearestRate(pool, o?.rate ?? 1);
+  }
+  cueForText(text: string, o?: { rate?: number; speaker?: string }): ClipCue | undefined {
+    const spoken = textToSpeak(text);
+    this.textCalls.push(spoken);
+    // sentences only (the real player's rule): punctuation or more than 8 characters
+    if (!/[。！？!?]/.test(spoken) && Array.from(spoken).length <= 8) return undefined;
+    const key = this.texts[spoken.replace(/[\s　]+/g, '')];
+    return key ? this.cueFor(key, o) : undefined;
+  }
+  kanaTracks = async (): Promise<never[]> => [];
+  play(cue: ClipCue, o: ClipPlayOptions): { done: Promise<{ source: 'clips' | 'none'; seconds: number }>; stop(): void } {
+    let resolve: (r: { source: 'clips' | 'none'; seconds: number }) => void = () => undefined;
+    const done = new Promise<{ source: 'clips' | 'none'; seconds: number }>((r) => {
+      resolve = r;
+    });
+    this.plays.push({ cue, o, finish: (r = { source: 'clips', seconds: 1.5 }) => resolve(r) });
+    return {
+      done,
+      stop: () => {
+        this.stops++;
+        resolve({ source: 'clips', seconds: 0.5 });
+      },
+    };
+  }
+  unlock(): void {
+    this.unlocks++;
+  }
+  dispose(): void {
+    this.disposed++;
+  }
+  cacheUsage = async (): Promise<{ bytes: number; files: number }> => ({ bytes: 0, files: 0 });
+  download = async (): Promise<void> => undefined;
+  remove = async (): Promise<void> => undefined;
+}
+
+const packSettings = (over: Partial<TtsSettings> = {}): TtsSettings => ({ ...baseSettings(), audioSource: 'pack', ...over });
+
+const settled = async (): Promise<void> => {
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+};
+
+describe('speak() with a voice pack', () => {
+  it('a clip hit bypasses the synth and resolves on done; source reads clips', async () => {
+    const synth = new FakeSynth([ja('Kyoko')]);
+    const clips = new FakeClips();
+    const svc = make(synth, signal(packSettings()), { clips });
+    let done = false;
+    const p = svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1' }).then(() => {
+      done = true;
+    });
+    expect(synth.spoken).toHaveLength(0);
+    expect(clips.plays).toHaveLength(1);
+    expect(clips.plays[0]?.cue.key).toBe('v-n5-0001#ex1');
+    expect(clips.plays[0]?.o).toMatchObject({ rate: 1, volume: 0.8 });
+    expect(svc.source.value).toBe('clips');
+    expect(audioSourceOf(svc)).toBe('clips');
+    expect(svc.busy()).toBe(true);
+    await settled();
+    expect(done).toBe(false);
+    clips.plays[0]!.finish();
+    await p;
+    expect(done).toBe(true);
+    expect(svc.busy()).toBe(false);
+    expect(synth.spoken).toHaveLength(0);
+  });
+
+  it('with synth undefined (no speechSynthesis) and a cue hit the clip still plays — the guard moved below the clip branch', async () => {
+    const clips = new FakeClips();
+    const svc = make(null, signal(packSettings()), { clips });
+    expect(svc.hasJaVoice.value).toBe(false);
+    expect(svc.canSpeak.value).toBe(true); // (hasJaVoice || packReady) && audible
+    const p = svc.speak('おはよう、ハナ。', { clip: 's-04-1#L0' });
+    expect(clips.plays).toHaveLength(1);
+    expect(svc.source.value).toBe('clips');
+    clips.plays[0]!.finish();
+    await expect(p).resolves.toBeUndefined();
+    // a miss without a synth resolves at once with source none
+    await expect(svc.speak('飲む', { kana: 'のむ' })).resolves.toBeUndefined();
+    expect(svc.source.value).toBe('none');
+  });
+
+  it("audioSource 'device' forces the synth even with a pack", async () => {
+    const synth = new FakeSynth([ja('Kyoko')]);
+    const clips = new FakeClips();
+    const settings = signal(packSettings({ audioSource: 'device' }));
+    const svc = make(synth, settings, { clips });
+    void svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1' });
+    expect(clips.plays).toHaveLength(0);
+    expect(synth.spoken.map((u) => u.text)).toEqual(['私はコーヒーを飲みます。']);
+    expect(svc.source.value).toBe('synth');
+    settings.value = { ...settings.value, audioSource: 'pack' };
+    void svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1' });
+    expect(clips.plays).toHaveLength(1);
+    expect(svc.source.value).toBe('clips');
+  });
+
+  it('cancel() stops a playing clip, resolves its promise and never falls through to the synth', async () => {
+    const synth = new FakeSynth([ja('Kyoko')]);
+    const clips = new FakeClips();
+    const svc = make(synth, signal(packSettings()), { clips });
+    const p = svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1' });
+    expect(svc.busy()).toBe(true);
+    svc.cancel();
+    expect(clips.stops).toBe(1);
+    expect(svc.busy()).toBe(false);
+    await expect(p).resolves.toBeUndefined();
+    expect(synth.spoken).toHaveLength(0);
+    // a new speak() interrupts the clip in flight the same way
+    const q = svc.speak('おはよう、ハナ。', { clip: 's-04-1#L0' });
+    void svc.speak('今日はいい天気ですね。', { clip: 'g-n5-001#ex1' });
+    expect(clips.stops).toBe(2);
+    await expect(q).resolves.toBeUndefined();
+    expect(clips.plays).toHaveLength(3);
+    // navigation cancels the clip too
+    const nav = make(synth, signal(packSettings()), { clips, win: window });
+    void nav.speak('おはよう、ハナ。', { clip: 's-04-1#L0' });
+    window.dispatchEvent(new Event('hashchange'));
+    expect(clips.stops).toBe(3);
+  });
+
+  it('a miss falls through to the utterance path with the a/b slot; a bare word never resolves through text', async () => {
+    const synth = new FakeSynth([ja('Kyoko'), ja('O-Ren')]);
+    const clips = new FakeClips();
+    const svc = make(synth, signal(packSettings({ ttsVoiceURI: 'uri:O-Ren' })), { clips });
+    void svc.speak('B。', { clip: 'nope#L9', voice: 'b' });
+    expect(clips.plays).toHaveLength(0);
+    expect(synth.spoken[0]?.text).toBe('B。');
+    expect(synth.spoken[0]?.voice?.name).toBe('Kyoko');
+    expect(svc.source.value).toBe('synth');
+    void svc.speak('A。', { voice: 'a' });
+    expect(synth.spoken[1]?.voice?.name).toBe('O-Ren');
+    // a word with kana and no key: synth, kana reading
+    void svc.speak('日', { kana: 'ひ' });
+    expect(clips.plays).toHaveLength(0);
+    expect(synth.spoken[2]?.text).toBe('ひ');
+    expect(clips.textCalls).toContain('ひ');
+  });
+
+  it("speaker 'ハナ' resolves the cast voice on the clip path and voice 'a' on the synth path", async () => {
+    const synth = new FakeSynth([ja('Kyoko'), ja('O-Ren')]);
+    const clips = new FakeClips();
+    const svc = make(synth, signal(packSettings()), { clips });
+    void svc.speak('今日はいい天気ですね。', { clip: 'g-n5-001#ex1', speaker: 'ハナ', voice: 'b' });
+    expect(clips.plays[0]?.cue.voice).toBe(HANA);
+    void svc.speak('今日はいい天気ですね。', { clip: 'g-n5-001#ex1', speaker: 'ケン', voice: 'a' });
+    expect(clips.plays[1]?.cue.voice).toBe(KEN);
+    // byText also honours the speaker
+    void svc.speak('今日はいい天気ですね。', { speaker: 'ケン' });
+    expect(clips.plays[2]?.cue.voice).toBe(KEN);
+    expect(clips.cueForCalls.at(-1)).toEqual(['g-n5-001#ex1', { rate: 1, speaker: 'ケン' }]);
+    // pack absent: the synth path keeps the slots, speaker is ignored
+    clips.ready.value = 'absent';
+    void svc.speak('今日はいい天気ですね。', { clip: 'g-n5-001#ex1', speaker: 'ハナ', voice: 'a' });
+    expect(clips.plays).toHaveLength(3);
+    expect(synth.spoken[0]?.voice?.name).toBe('Kyoko');
+    expect(synth.spoken[0]?.pitch).toBe(1);
+    void svc.speak('今日はいい天気ですね。', { speaker: 'ハナ', voice: 'b' });
+    expect(synth.spoken[1]?.voice?.name).toBe('O-Ren');
+  });
+
+  it('the requested rate reaches the pack (nearest native take) and the element (rate / cue.rate is the player’s job)', async () => {
+    const synth = new FakeSynth([ja('Kyoko')]);
+    const clips = new FakeClips();
+    const settings = signal(packSettings({ speedTier: 1 }));
+    const svc = make(synth, settings, { clips });
+    void svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1' });
+    expect(clips.plays[0]?.cue.rate).toBe(0.85);
+    expect(clips.plays[0]?.o.rate).toBe(0.75);
+    void svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1', rate: 1.5 });
+    expect(clips.plays[1]?.cue.rate).toBe(1);
+    expect(clips.plays[1]?.o.rate).toBe(1.5);
+    // clause and onProgress ride along to the player
+    const onProgress = vi.fn();
+    void svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1', clause: [3, 9], onProgress });
+    expect(clips.plays[2]?.o.clause).toEqual([3, 9]);
+    expect(clips.plays[2]?.o.onProgress).toBe(onProgress);
+    expect(clips.plays[2]?.o.wholeTrack).toBeUndefined();
+  });
+
+  it("a clip that cannot play (source 'none': pool not unlocked, sprite missing) falls through to the device voice", async () => {
+    const synth = new FakeSynth([ja('Kyoko')]);
+    const clips = new FakeClips();
+    const svc = make(synth, signal(packSettings()), { clips });
+    const p = svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1' });
+    expect(svc.source.value).toBe('clips');
+    clips.plays[0]!.finish({ source: 'none', seconds: 0 });
+    await settled();
+    expect(synth.spoken.map((u) => u.text)).toEqual(['私はコーヒーを飲みます。']);
+    expect(svc.source.value).toBe('synth');
+    synth.end();
+    await expect(p).resolves.toBeUndefined();
+    // without a synth the fall-through resolves quietly with source none
+    const kiosk = make(null, signal(packSettings()), { clips });
+    const q = kiosk.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1' });
+    clips.plays[1]!.finish({ source: 'none', seconds: 0 });
+    await expect(q).resolves.toBeUndefined();
+    expect(kiosk.source.value).toBe('none');
+  });
+
+  it('volume 0 resolves at once on the clip path too; canSpeak = (hasJaVoice || packReady) && audible', async () => {
+    const clips = new FakeClips();
+    const settings = signal(packSettings({ sound: 0 }));
+    const svc = make(new FakeSynth([en('Alex')]), settings, { clips });
+    expect(svc.hasJaVoice.value).toBe(false);
+    expect(svc.packReady.value).toBe(true);
+    expect(svc.canSpeak.value).toBe(false);
+    expect(voiceAudible(svc)).toBe(false);
+    await expect(svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1' })).resolves.toBeUndefined();
+    expect(clips.plays).toHaveLength(0);
+    expect(svc.source.value).toBe('none');
+    settings.value = { ...settings.value, sound: 0.5 };
+    expect(svc.canSpeak.value).toBe(true);
+    clips.ready.value = 'loading';
+    expect(svc.packReady.value).toBe(false);
+    expect(svc.canSpeak.value).toBe(false);
+    clips.ready.value = 'ready';
+    expect(svc.canSpeak.value).toBe(true);
+    // the pack counts only while chosen: 'device' with no Japanese voice cannot be heard
+    settings.value = { ...settings.value, audioSource: 'device' };
+    expect(svc.canSpeak.value).toBe(false);
+    expect(voiceAudible(svc)).toBe(false);
+    settings.value = { ...settings.value, audioSource: 'pack' };
+    expect(svc.canSpeak.value).toBe(true);
+    // without a pack the old rule holds
+    const plain = make(new FakeSynth([ja('Kyoko')]), signal(baseSettings()));
+    expect(plain.packReady.value).toBe(false);
+    expect(plain.canSpeak.value).toBe(true);
+    expect(plain.clips).toBeUndefined();
+    expect(plain.clipFor?.('v-n5-0001')).toBeUndefined();
+  });
+
+  it('warmUp() unlocks the pack inside the first gesture; clipFor / clips / packReady are set on the service; dispose disposes the player', () => {
+    const synth = new FakeSynth([ja('Kyoko')]);
+    const clips = new FakeClips();
+    const svc = make(synth, signal(packSettings()), { clips, doc: document });
+    expect(svc.clips).toBe(clips);
+    expect(svc.clipFor?.('v-n5-0001#ex1', { rate: 0.8 })?.rate).toBe(0.85);
+    expect(svc.packReady.value).toBe(true);
+    document.dispatchEvent(new Event('pointerdown'));
+    expect(clips.unlocks).toBe(1);
+    expect(synth.spoken).toHaveLength(1); // the warm-up utterance
+    svc.warmUp();
+    expect(clips.unlocks).toBe(2); // unlock is idempotent in the real player
+    svc.dispose();
+    expect(clips.disposed).toBe(1);
+  });
+
+  it('interrupt: false queues a clip behind the clip in flight', async () => {
+    const synth = new FakeSynth([ja('Kyoko')]);
+    const clips = new FakeClips();
+    const svc = make(synth, signal(packSettings()), { clips });
+    const first = svc.speak('おはよう、ハナ。', { clip: 's-04-1#L0' });
+    const second = svc.speak('今日はいい天気ですね。', { clip: 'g-n5-001#ex1', interrupt: false });
+    await settled();
+    expect(clips.plays).toHaveLength(1);
+    expect(clips.stops).toBe(0);
+    clips.plays[0]!.finish();
+    await first;
+    await settled();
+    expect(clips.plays).toHaveLength(2);
+    expect(clips.plays[1]?.cue.key).toBe('g-n5-001#ex1');
+    clips.plays[1]!.finish();
+    await expect(second).resolves.toBeUndefined();
+  });
+
+  it('source names the voice the next speak() would use before any call: clips with a ready pack, synth with a device voice, none otherwise', () => {
+    const clips = new FakeClips();
+    const settings = signal(packSettings());
+    const packed = make(new FakeSynth([en('Alex')]), settings, { clips });
+    expect(packed.source.value).toBe('clips');
+    expect(audioSourceOf(packed)).toBe('clips');
+    clips.ready.value = 'loading';
+    expect(packed.source.value).toBe('none');
+    clips.ready.value = 'ready';
+    settings.value = { ...settings.value, audioSource: 'device' };
+    expect(packed.source.value).toBe('none'); // no Japanese voice and the pack switched off
+    const voiced = make(new FakeSynth([ja('Kyoko')]), signal(packSettings({ audioSource: 'device' })), { clips });
+    expect(voiced.source.value).toBe('synth');
+    const quiet = make(new FakeSynth([ja('Kyoko')]), signal(packSettings({ sound: 0 })), { clips });
+    expect(quiet.source.value).toBe('none');
+    const plain = make(new FakeSynth([ja('Kyoko')]));
+    expect(plain.source.value).toBe('synth');
+    expect(make(new FakeSynth([en('Alex')])).source.value).toBe('none');
+    // a call pins the source it used
+    void plain.speak('はい。');
+    expect(plain.source.value).toBe('synth');
+    void quiet.speak('はい。');
+    expect(quiet.source.value).toBe('none');
+  });
+
+  it('the gesture listeners stay until the pack reports its pool accepted (a refused first gesture is retried on the next one); the synth warm-up stays one-shot', () => {
+    const synth = new FakeSynth([ja('Kyoko')]);
+    const clips = new FakeClips();
+    let accepted = false;
+    clips.unlocked = () => accepted;
+    const svc = make(synth, signal(packSettings()), { clips, doc: document });
+    document.dispatchEvent(new Event('pointerdown'));
+    expect(clips.unlocks).toBe(1);
+    expect(synth.spoken).toHaveLength(1);
+    document.dispatchEvent(new Event('touchend'));
+    expect(clips.unlocks).toBe(2);
+    expect(synth.spoken).toHaveLength(1);
+    accepted = true;
+    document.dispatchEvent(new Event('keydown'));
+    expect(clips.unlocks).toBe(3);
+    document.dispatchEvent(new Event('pointerdown'));
+    expect(clips.unlocks).toBe(3); // the listeners went once the pool was accepted
+    // an absent pack never keeps the listeners alive
+    const gone = new FakeClips();
+    gone.ready.value = 'absent';
+    gone.unlocked = () => false;
+    const synth2 = new FakeSynth([ja('Kyoko')]);
+    make(synth2, signal(packSettings()), { clips: gone, doc: document });
+    document.dispatchEvent(new Event('pointerdown'));
+    document.dispatchEvent(new Event('pointerdown'));
+    expect(gone.unlocks).toBe(1);
+    svc.dispose();
+  });
+
+  it('a pack that is not ready yet (unknown / loading) never delays speak(): the synth speaks', () => {
+    const synth = new FakeSynth([ja('Kyoko')]);
+    const clips = new FakeClips();
+    clips.ready.value = 'loading';
+    const svc = make(synth, signal(packSettings()), { clips });
+    void svc.speak('私はコーヒーを飲みます。', { clip: 'v-n5-0001#ex1' });
+    expect(clips.plays).toHaveLength(0);
+    expect(synth.spoken).toHaveLength(1);
+    expect(svc.source.value).toBe('synth');
+    expect(clips.cueForCalls).toHaveLength(0);
+  });
+
+  it("clipFor(key) applies the pack gate of speak(): undefined while the pack loads or audioSource is 'device', the cue once ready and chosen", () => {
+    const clips = new FakeClips();
+    clips.ready.value = 'loading';
+    const settings = signal(packSettings());
+    const svc = make(new FakeSynth([ja('Kyoko')]), settings, { clips });
+    expect(svc.clipFor?.('v-n5-0001#ex1')).toBeUndefined();
+    expect(clips.cueForCalls).toHaveLength(0); // the player is not even asked
+    clips.ready.value = 'ready';
+    expect(svc.clipFor?.('v-n5-0001#ex1', { rate: 0.8 })).toMatchObject({ key: 'v-n5-0001#ex1', rate: 0.85 });
+    expect(clips.cueForCalls).toHaveLength(1);
+    settings.value = { ...settings.value, audioSource: 'device' };
+    expect(svc.clipFor?.('v-n5-0001#ex1')).toBeUndefined();
+    expect(clips.cueForCalls).toHaveLength(1);
+    settings.value = { ...settings.value, audioSource: 'pack' };
+    expect(svc.clipFor?.('v-n5-0001#ex1')?.key).toBe('v-n5-0001#ex1');
+    expect(svc.clipFor?.('nope')).toBeUndefined(); // a miss is still a miss
+    clips.ready.value = 'absent';
+    expect(svc.clipFor?.('v-n5-0001#ex1')).toBeUndefined();
+    expect(packChosenIn({ audioSource: 'device' })).toBe(false);
+    expect(packChosenIn({ audioSource: 'pack' })).toBe(true);
+    expect(packChosenIn({})).toBe(true); // absent → 'pack'
+  });
+
+  it("the idle source follows state until the first speak(): a pack that becomes ready later flips none → clips; with audioSource 'device' it stays synth / none; voices arriving later flip none → synth", () => {
+    // no Japanese voice, pack still loading → text only; the pack landing → synthetic voice
+    const clips = new FakeClips();
+    clips.ready.value = 'loading';
+    const settings = signal(packSettings());
+    const svc = make(new FakeSynth([en('Alex')]), settings, { clips });
+    expect(audioSourceOf(svc)).toBe('none');
+    expect(svc.canSpeak.value).toBe(false);
+    clips.ready.value = 'ready';
+    expect(audioSourceOf(svc)).toBe('clips');
+    expect(svc.canSpeak.value).toBe(true);
+    // the learner switches to the device voice: no Japanese voice → text only, and the pack landing changes nothing
+    settings.value = { ...settings.value, audioSource: 'device' };
+    expect(audioSourceOf(svc)).toBe('none');
+    clips.ready.value = 'loading';
+    clips.ready.value = 'ready';
+    expect(audioSourceOf(svc)).toBe('none');
+    // a device voice chosen on purpose stays synth whatever the pack does
+    const loading = new FakeClips();
+    loading.ready.value = 'loading';
+    const voiced = make(new FakeSynth([ja('Kyoko')]), signal(packSettings({ audioSource: 'device' })), { clips: loading });
+    expect(audioSourceOf(voiced)).toBe('synth');
+    loading.ready.value = 'ready';
+    expect(audioSourceOf(voiced)).toBe('synth');
+    // voices loading: an empty getVoices() at construction, the Japanese voice arrives on voiceschanged
+    const synth = new FakeSynth([]);
+    const absent = new FakeClips();
+    absent.ready.value = 'absent';
+    const late = make(synth, signal(packSettings()), { clips: absent });
+    expect(audioSourceOf(late)).toBe('none');
+    synth.voices = [ja('Kyoko')];
+    synth.fire('voiceschanged');
+    expect(audioSourceOf(late)).toBe('synth');
+    // the first speak() pins its source; the idle rule no longer applies
+    void late.speak('はい。');
+    expect(late.source.value).toBe('synth');
+    absent.ready.value = 'ready';
+    expect(late.source.value).toBe('synth');
+  });
+
+  it("with the function form of `settings`, canSpeak and the idle source read audioSource at every re-evaluation, not once at construction: a pack chosen → device switch made before the pack lands keeps it none", () => {
+    const clips = new FakeClips();
+    clips.ready.value = 'loading';
+    const current: TtsSettings = packSettings();
+    const svc = make(new FakeSynth([en('Alex')]), undefined, { clips, settings: () => current });
+    expect(audioSourceOf(svc)).toBe('none');
+    current.audioSource = 'device'; // the learner switches while the pack is still loading
+    clips.ready.value = 'ready';
+    expect(audioSourceOf(svc)).toBe('none'); // the construction-time 'pack' is not what counts
+    expect(svc.canSpeak.value).toBe(false);
+    expect(svc.clipFor?.('v-n5-0001#ex1')).toBeUndefined(); // the same gate as speak()
+    // back to the pack: the next re-evaluation (a tracked dependency's VALUE changing — a computed never re-runs for a
+    // plain-object mutation alone, so the pack's unload is observed before the reload) reads the fresh choice
+    current.audioSource = 'pack';
+    clips.ready.value = 'loading';
+    expect(audioSourceOf(svc)).toBe('none');
+    clips.ready.value = 'ready';
+    expect(audioSourceOf(svc)).toBe('clips');
+    expect(svc.canSpeak.value).toBe(true);
+    expect(svc.clipFor?.('v-n5-0001#ex1')?.key).toBe('v-n5-0001#ex1');
+  });
+});
+
+/**
+ * The speak() call sites of the app as they stand (design 08 §8 acceptance): each
+ * row mirrors one caller's exact arguments. A sentence reaches the pack through
+ * `byText` with no edit; a bare word reaches it only through the clip key the
+ * owning drill will pass (`withClip`) — never through its text (homophones).
+ */
+interface Site {
+  site: string;
+  text: string;
+  opt?: Parameters<WebAudioService['speak']>[1];
+  expect: 'clips' | 'synth';
+  /** The key the caller will pass once its owner wires `clip`; the row then plays from the pack. */
+  withClip?: string;
+}
+
+const HELLO = S.voiceTestLine;
+const SITES: Site[] = [
+  { site: 'SettingsPage voice test', text: HELLO, opt: { kana: HELLO, voiceURI: 'uri:Kyoko' }, expect: 'clips' },
+  { site: 'OnboardingPage voice step', text: HELLO, opt: { kana: HELLO }, expect: 'clips' },
+  { site: 'Gloss vocab word', text: '飲む', opt: { kana: 'のむ' }, expect: 'synth', withClip: 'v-n5-0001' },
+  { site: 'Gloss kanji', text: '日', opt: { kana: 'ひ' }, expect: 'synth', withClip: 'j-日' },
+  { site: 'Gloss token', text: 'コーヒー', opt: { kana: 'コーヒー' }, expect: 'synth', withClip: 'v-n5-0001' },
+  { site: 'StoryReader line (slot b)', text: 'おはよう、ハナ。', opt: { kana: 'おはよう、ハナ。', voice: 'b' }, expect: 'clips', withClip: 's-04-1#L0' },
+  { site: 'ListeningArena line', text: 'おはよう、ハナ。', opt: { voice: 'a', rate: 1.1, interrupt: true }, expect: 'clips', withClip: 's-04-1#L0' },
+  { site: 'Recorder model', text: '私はコーヒーを飲みます。', opt: { kana: 'わたしはコーヒーをのみます。' }, expect: 'clips', withClip: 'v-n5-0001#ex1' },
+  { site: 'Shadow line', text: '私はコーヒーを飲みます。', opt: { kana: undefined, rate: 1 }, expect: 'clips', withClip: 'v-n5-0001#ex1' },
+  { site: 'Shadow isolated word', text: '飲む', opt: { kana: 'のむ', rate: 1 }, expect: 'synth', withClip: 'v-n5-0001' },
+  { site: 'RolePlay partner line', text: 'おはよう、ハナ。', opt: { voice: 'b', rate: 0.9, interrupt: true }, expect: 'clips', withClip: 's-04-1#L0' },
+  { site: 'NemesisDossier prompt', text: '飲む', opt: { kana: 'のむ' }, expect: 'synth', withClip: 'v-n5-0001' },
+  { site: 'LibraryPage Listen', text: '飲む', opt: { kana: 'のむ' }, expect: 'synth', withClip: 'v-n5-0001' },
+  { site: 'KanaEar', text: 'あ', opt: { kana: 'あ' }, expect: 'synth', withClip: 'k-h-a' },
+  { site: 'KanaFlash', text: 'あ', opt: { kana: 'あ' }, expect: 'synth', withClip: 'k-h-a' },
+  { site: 'KanaForge', text: 'あ', opt: { kana: 'あ' }, expect: 'synth', withClip: 'k-h-a' },
+  { site: 'PatternCloze prompt', text: '私はコーヒーを飲みます。', opt: { kana: 'わたしはコーヒーをのみます。' }, expect: 'clips', withClip: 'v-n5-0001#ex1' },
+  { site: 'PatternCloze replay (no kana)', text: '私はコーヒーを飲みます。', expect: 'clips', withClip: 'v-n5-0001#ex1' },
+  { site: 'ScrollView example line', text: '私はコーヒーを飲みます。', opt: { kana: 'わたしはコーヒーをのみます。' }, expect: 'clips', withClip: 'v-n5-0001#ex1' },
+  { site: 'MeaningGuard speakWord', text: '飲む', opt: { kana: 'のむ' }, expect: 'synth', withClip: 'v-n5-0001' },
+  { site: 'MeaningGuard speakWord collocation', text: '朝ご飯を食べる', expect: 'synth', withClip: 'v-n5-0001#col1' },
+  { site: 'SessionView perception judge', text: '飲む', expect: 'synth', withClip: 'v-n5-0001' },
+  { site: 'SentenceListen', text: '私はコーヒーを飲みます。', opt: { kana: undefined, rate: 1.25 }, expect: 'clips', withClip: 'v-n5-0001#ex1' },
+  { site: 'MinimalPair (homophones never collapse through text)', text: 'あめ', opt: { kana: 'あめ' }, expect: 'synth', withClip: 'v-n5-0001' },
+  { site: 'MichikusaStep', text: '石部は、昔、京都から一日で着く宿場町だったそうだ。', opt: { kana: 'いしべは、むかし、きょうとからいちにちでつくしゅくばまちだったそうだ。' }, expect: 'clips', withClip: 'm-04-1' },
+  { site: 'TeachCard head word', text: '飲む', opt: { kana: 'のむ' }, expect: 'synth', withClip: 'v-n5-0001' },
+  { site: 'TeachCard example', text: '私はコーヒーを飲みます。', expect: 'clips', withClip: 'v-n5-0001#ex1' },
+];
+
+describe('every existing speak() call site plays pack audio with no edit (text) or through its clip key', () => {
+  it.each(SITES)('$site', async (row) => {
+    const synth = new FakeSynth([ja('Kyoko'), ja('O-Ren')]);
+    const clips = new FakeClips();
+    const svc = make(synth, signal(packSettings()), { clips });
+    const p = svc.speak(row.text, row.opt);
+    if (row.expect === 'clips') {
+      expect(clips.plays, 'played from the pack').toHaveLength(1);
+      expect(synth.spoken).toHaveLength(0);
+      expect(svc.source.value).toBe('clips');
+      clips.plays[0]!.finish();
+    } else {
+      expect(clips.plays, 'device voice').toHaveLength(0);
+      expect(synth.spoken).toHaveLength(1);
+      expect(svc.source.value).toBe('synth');
+      synth.end();
+    }
+    await expect(p).resolves.toBeUndefined();
+    if (row.withClip) {
+      const q = svc.speak(row.text, { ...row.opt, clip: row.withClip });
+      expect(clips.plays.at(-1)?.cue.key, `clip ${row.withClip}`).toBe(row.withClip);
+      expect(svc.source.value).toBe('clips');
+      clips.plays.at(-1)!.finish();
+      await expect(q).resolves.toBeUndefined();
+    }
+  });
+
+  it('the table covers at least the 25 sites of the panel judgment', () => {
+    expect(SITES.length).toBeGreaterThanOrEqual(25);
+    expect(new Set(SITES.map((s) => s.site)).size).toBe(SITES.length);
+  });
+});
+
+describe('installAdvice (the clip-aware install guide)', () => {
+  const UA_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1';
+  it('says the synthetic voices are playing when the pack is ready, nothing with a device voice, the OS guide otherwise', () => {
+    const clips = new FakeClips();
+    const packed = make(new FakeSynth([en('Alex')]), signal(packSettings()), { clips });
+    expect(installAdvice(packed, UA_IOS)).toBe(S.installPackPlaying);
+    expect(S.installPackPlaying).toBe('Synthetic voices (VOICEVOX) are playing; a device voice is optional.');
+    clips.ready.value = 'absent';
+    expect(installAdvice(packed, UA_IOS)).toBe(S.installIos);
+    const voiced = make(new FakeSynth([ja('Kyoko')]), signal(baseSettings()));
+    expect(installAdvice(voiced, UA_IOS)).toBe('');
+    expect(installAdvice(nullAudio, UA_IOS)).toBe(S.installIos);
+    expect(installAdvice({ ...nullAudio, hasJaVoice: signal(true) }, UA_IOS)).toBe('');
+    // a service whose last speak() came from clips (source signal) counts as packed
+    expect(installAdvice({ ...nullAudio, source: signal<'clips' | 'synth' | 'none'>('clips') }, UA_IOS)).toBe(S.installPackPlaying);
+    // the learner's choice gates the pack (contract-tier `packWillSpeak`): a ready pack under audioSource 'device' is the device
+    // voice, so with no Japanese voice the OS guide shows; the default settings are the store's ('pack')
+    const readyPack = { ...nullAudio, packReady: signal(true) };
+    expect(installAdvice(readyPack, UA_IOS, { audioSource: 'device' })).toBe(S.installIos);
+    expect(installAdvice(readyPack, UA_IOS, { audioSource: 'pack' })).toBe(S.installPackPlaying);
+    expect(installAdvice(readyPack, UA_IOS, {})).toBe(S.installPackPlaying); // absent → 'pack'
+    expect(installAdvice(readyPack, UA_IOS)).toBe(S.installPackPlaying);
+    expect(installAdvice({ ...readyPack, hasJaVoice: signal(true) }, UA_IOS, { audioSource: 'device' })).toBe('');
+    clips.ready.value = 'ready';
+    expect(installAdvice(packed, UA_IOS, { audioSource: 'device' })).toBe(S.installIos); // even while the service's own source still reads clips
+    expect(installAdvice(packed, UA_IOS)).toBe(S.installPackPlaying);
+  });
+
+  it('the honesty vocabulary: no chip label says "recorded"', () => {
+    for (const v of [S.sourceClips, S.sourceSynth, S.sourceNone, S.installPackPlaying, S.packAbsent, S.packExplain, S.packLoading]) {
+      expect(v.toLowerCase()).not.toContain('recorded');
+    }
+    expect(S.sourceClips).toBe('synthetic voice (VOICEVOX)');
+    expect(S.sourceSynth).toBe('device voice');
+    expect(S.sourceNone).toBe('text only');
   });
 });

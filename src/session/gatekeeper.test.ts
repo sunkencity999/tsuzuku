@@ -3,7 +3,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import type { CardKey } from '../content/types';
-import { FIXTURE_IDS, G, STATION_4, V, createFakeLoader } from '../content/fixtures';
+import { FIXTURE, FIXTURE_IDS, FIXTURE_STORY_ID, G, STATION_4, V, createFakeLoader } from '../content/fixtures';
 import { bus } from '../shared/events';
 import type { SessionPlan, StepResult } from '../shared/session-types';
 import { epochDay } from '../shared/time';
@@ -14,7 +14,7 @@ import { isMature } from '../learn';
 import { knownIds } from '../store/derived';
 import { SELF_GRADED } from './blocks';
 import { toKana, toPlain } from '../content/ruby';
-import type { StoryItem } from '../content/types';
+import type { GrammarItem, ListeningPool, StoryItem, VocabItem } from '../content/types';
 import {
   ASSISTED_AFTER_ATTEMPTS,
   FLASH_MS,
@@ -472,5 +472,103 @@ describe('Ear phase sentences the learner can know (design 04 §11)', () => {
     expect(lines).toBeGreaterThan(0);
     expect(words).toBeGreaterThan(0);
     expect(ear.some((s) => s.itemId === V.パン && s.params.storyId !== undefined)).toBe(false);
+  });
+});
+
+describe('Ear phase draws own-station pool refs before bare words (design 08 §4)', () => {
+  const POOL: ListeningPool = {
+    schema: 'tsuzuku.pool/1',
+    station: 4,
+    refs: [
+      { ref: `${V.人}#ex0`, ids: [V.人, G.は, G.です], kana: 'あのひとはケンです。', morae: 10 },
+      { ref: `${V.おいしい}#ex0`, ids: [V.水, G.は, V.おいしい, G.です], kana: 'このみずはおいしいです。', morae: 12 },
+      { ref: `${G.です}#ex1`, ids: [G.は, V.水, G.です], kana: 'これはみずです。', morae: 8 },
+      { ref: `${V.飲む}#ex0`, ids: [V.コーヒー, V.飲む], kana: 'まいあさコーヒーをのみます。', morae: 14 },
+      { ref: `${FIXTURE_STORY_ID}#L1`, ids: [V.私, G.は, G.です], kana: 'わたしはハナです。', morae: 9 },
+    ],
+  };
+  /** Station cards with パン, コーヒー and 飲む never introduced, so most story lines carry an unknown id. */
+  function gappedCards(): Record<CardKey, CardTuple> {
+    const cards = stationCards({ matureProd: true, matureRec: true });
+    for (const id of [V.パン, V.コーヒー, V.飲む]) {
+      delete cards[`${id}#rec`];
+      delete cards[`${id}#prod`];
+    }
+    return cards;
+  }
+  const split = (plan: SessionPlan) => {
+    const ear = plan.steps.filter((s) => s.params.phase === 3);
+    return {
+      ear,
+      lines: ear.filter((s) => s.params.storyId !== undefined),
+      refs: ear.filter((s) => s.params.storyId === undefined && /#ex\d+$/.test(s.params.clip ?? '')),
+      words: ear.filter((s) => s.params.storyId === undefined && s.params.clip !== undefined && !s.params.clip.includes('#')),
+    };
+  };
+
+  it('known lines first, then the pool examples whose every word is known (with their clip keys), never a line or example with an unknown id', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: gappedCards() });
+    const L = createFakeLoader({ ...FIXTURE, pools: { 4: POOL } });
+    const known = knownIds(TODAY);
+    for (const id of [V.パン, V.コーヒー, V.飲む]) expect(known.has(id)).toBe(false);
+    const plan = await buildGate(4, { assisted: false, revenge: false, seed: 6, loader: L, available: all });
+    const { ear, lines, refs, words } = split(plan);
+    expect(ear).toHaveLength(12);
+    expect(lines.length + refs.length + words.length).toBe(12);
+    // 5 known lines (the station-1 chunks おはよう / はい hold no card here either) + 3 known pool examples, then 4 bare words
+    expect(lines).toHaveLength(5);
+    expect(refs.map((s) => s.params.clip).sort()).toEqual([`${G.です}#ex1`, `${V.おいしい}#ex0`, `${V.人}#ex0`].sort());
+    expect(words).toHaveLength(4);
+    // the words came only after every known line and known pool example: the four known station words, none unknown
+    for (const s of words) expect(known.has(s.itemId!), `${s.itemId} should be a known word (known ones fill first)`).toBe(true);
+    for (const s of lines) {
+      const line = L.get<StoryItem>(s.params.storyId!)!.lines[s.params.lineIndex!]!;
+      for (const id of line.tokenIds ?? []) if (id !== null) expect(known.has(id), `${s.id}: ${toPlain(line.ja)} uses ${id}`).toBe(true);
+      expect(s.params.clip).toBe(`${s.params.storyId}#L${s.params.lineIndex}`);
+    }
+    for (const s of refs) {
+      const [itemId, ex] = s.params.clip!.split('#ex') as [string, string];
+      const item = L.get<VocabItem | GrammarItem>(itemId)!;
+      const example = item.examples[Number(ex)]!;
+      expect(s.params.sentence).toBe(example.ja);
+      expect(s.params.answer).toBe(example.kana);
+      expect(toKana(s.params.sentence!)).toBe(s.params.answer);
+      expect(s.params.rate).toBe(0.9);
+      expect(s.timed).toBe(false);
+      for (const id of POOL.refs.find((r) => r.ref === s.params.clip)!.ids) expect(known.has(id)).toBe(true);
+    }
+    // a grammar example is keyed on a vocab word of the sentence (its listen or rec card reaches the Grudge List)
+    const desu = refs.find((s) => s.params.clip === `${G.です}#ex1`)!;
+    expect(desu.itemId).toBe(V.水);
+    expect(desu.cardKey).toBe(`${V.水}#rec`);
+    // the pool example with the untaught word (コーヒー) never appears
+    expect(ear.some((s) => s.params.clip === `${V.飲む}#ex0`)).toBe(false);
+  });
+
+  it('bare words come only after the known lines and pool examples run out, known words first, each with its own clip key', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: gappedCards() });
+    // one usable pool example: 5 lines + 1 example → six bare words top the phase up, the four known station words before the two unknown
+    const L = createFakeLoader({ ...FIXTURE, pools: { 4: { ...POOL, refs: [POOL.refs[0]!, POOL.refs[3]!] } } });
+    const known = knownIds(TODAY);
+    const plan = await buildGate(4, { assisted: false, revenge: false, seed: 6, loader: L, available: all });
+    const { lines, refs, words } = split(plan);
+    expect(lines).toHaveLength(5);
+    expect(refs.map((s) => s.params.clip)).toEqual([`${V.人}#ex0`]);
+    expect(words).toHaveLength(6);
+    const knownStationWords = STATION_4.vocabIds.filter((id) => known.has(id));
+    expect(knownStationWords).toHaveLength(4);
+    expect(words.filter((s) => known.has(s.itemId!)).map((s) => s.itemId).sort()).toEqual([...knownStationWords].sort());
+    for (const s of words) {
+      expect(s.params.clip).toBe(s.itemId);
+      expect(STATION_4.vocabIds).toContain(s.itemId);
+      const v = L.get<VocabItem>(s.itemId!)!;
+      expect(toPlain(s.params.sentence!)).toBe(v.word);
+      expect(s.params.answer).toBe(v.kana);
+    }
+    // without pools the phase is lines + words, as before
+    const bare = await buildGate(4, { assisted: false, revenge: false, seed: 6, loader, available: all });
+    const plain = split(bare);
+    expect(plain.refs).toHaveLength(0);
+    expect(plain.lines.length + plain.words.length).toBe(12);
   });
 });

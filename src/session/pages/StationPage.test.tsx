@@ -1,17 +1,23 @@
 /**
  * StationPage.tsx — quotas from STATIONS, progress bars, scrolls, texts, Michikusa count, gate button disabled with its reason until ready, Shinsa link.
  */
+import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { CardKey } from '../../content/types';
-import { STATION_4, V, createFakeLoader } from '../../content/fixtures';
+import type { CardKey, ListeningPool, StoryItem } from '../../content/types';
+import { DIALOGUE, FIXTURE, STATION_1, STATION_4, STORY, V, G, createFakeLoader, type Fixture } from '../../content/fixtures';
+import { installServices, nullAudio, resetServices, type AudioService } from '../../shared/audio';
 import { bus } from '../../shared/events';
+import { moraCount } from '../../shared/jp';
 import { epochDay } from '../../shared/time';
 import type { CardTuple } from '../../shared/store-types';
-import { resetStoreForTests } from '../../store';
+import { TEACH_ID_RE } from '../../shared/ui/TeachOnce';
+import { resetStoreForTests, store } from '../../store';
+import { knownIds } from '../../store/derived';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../../store/testing';
-import StationPage, { groupItems } from './StationPage';
+import { poolMinutes, selectPool } from '../../learn';
+import StationPage, { EAR_PANEL_TEACH_ID, earChip, earMinutes, earReadAlongFor, earTextFor, groupItems } from './StationPage';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const loader = createFakeLoader();
@@ -156,5 +162,155 @@ describe('<StationPage>', () => {
     expect(groups.map((g) => g.kind)).toEqual(['kana', 'vocab', 'chunk', 'kanji', 'component', 'grammar']);
     expect(groups[1]?.ids).toEqual([V.飲む]);
     expect(groups[2]?.ids).toEqual([V.おはよう, V.はい]);
+  });
+});
+
+describe('耳 Ear panel (design 08 §10.1)', () => {
+  const { learnerSpeaker: _noPart, ...DIALOGUE_NO_PART } = DIALOGUE;
+  void _noPart;
+  const PIECE: StoryItem = { ...DIALOGUE_NO_PART, id: 's-04-4', titleJa: 'カウンターで', titleEn: 'At the counter', audioFirst: true, genre: 'exchange' };
+  const lineRefs = (story: StoryItem) => story.lines.map((l, i) => ({ ref: `${story.id}#L${i}`, ids: (l.tokenIds ?? []).filter((x): x is string => x !== null), kana: l.kana, morae: moraCount(l.kana) })).filter((r) => r.ids.length > 0);
+  const POOL: ListeningPool = {
+    schema: 'tsuzuku.pool/1',
+    station: 4,
+    refs: [
+      { ref: `${V.人}#ex0`, ids: [V.人, G.は, G.です], kana: 'あのひとはケンです。', morae: 10 },
+      { ref: `${V.おいしい}#ex0`, ids: [V.水, G.は, V.おいしい, G.です], kana: 'このみずはおいしいです。', morae: 12 },
+      { ref: `${G.です}#ex1`, ids: [G.は, V.水, G.です], kana: 'これはみずです。', morae: 8 },
+      { ref: `${V.飲む}#ex0`, ids: [V.コーヒー, V.飲む], kana: 'まいあさコーヒーをのみます。', morae: 14 },
+      ...lineRefs(STORY),
+      ...lineRefs(DIALOGUE),
+    ],
+  };
+  const LISTENING: Fixture = { ...FIXTURE, items: { ...FIXTURE.items, [PIECE.id]: PIECE }, stations: [STATION_1, { ...STATION_4, storyIds: [...STATION_4.storyIds, PIECE.id] }], pools: { 4: POOL } };
+  const withAudio = (a: Partial<AudioService>): void => installServices({ audio: { ...nullAudio, ...a } });
+  const chips = (): (string | null)[] => Array.from(root.querySelectorAll('.station-ear__chip')).map((c) => c.textContent);
+  const remount = async (n: number, l = loader): Promise<void> => {
+    render(null, root);
+    act(() => render(<StationPage route={{ name: 'station', n }} loader={l} />, root));
+    await settle();
+  };
+  const click = (sel: string): void => {
+    const el = root.querySelector(sel) as HTMLButtonElement | null;
+    if (!el) throw new Error(`no element ${sel}`);
+    act(() => el.click());
+  };
+  afterEach(() => resetServices());
+
+  it('renders three rows whose chips follow the audio slot — synthetic voice (VOICEVOX) / device voice / text only — and never says "recorded"', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: stationCards() });
+    withAudio({ hasJaVoice: signal(true), source: signal('clips') });
+    await mount(4);
+    expect(root.querySelector('.station-ear')?.getAttribute('aria-label')).toBe('Ear: listening at this station');
+    expect(Array.from(root.querySelectorAll('.station-ear__row')).map((r) => r.getAttribute('data-row'))).toEqual(['set', 'readalong', 'radio']);
+    expect(chips()).toEqual(['synthetic voice (VOICEVOX)', 'synthetic voice (VOICEVOX)', 'synthetic voice (VOICEVOX)']);
+    expect(text().toLowerCase()).not.toContain('recorded');
+    expect(Array.from(root.querySelectorAll('.station-ear__row a')).map((a) => a.getAttribute('href'))).toEqual(['#/listen/s-04-1', '#/story/s-04-1/listen', '#/radio']);
+    expect(text()).toContain('聴解 Set');
+    expect(text()).toContain('読み聞かせ Read-along');
+    expect(text()).toContain('茶屋ラジオ Radio from here');
+    for (const el of Array.from(root.querySelectorAll('.station-ear__label'))) expect(el.getAttribute('lang')).toBe('ja');
+    // the device voice when the device speaks
+    withAudio({ hasJaVoice: signal(true), source: signal('synth') });
+    await remount(4);
+    expect(chips()).toEqual(['device voice', 'device voice', 'device voice']);
+    // text only when nothing is audible: no voice at all, or a pack whose master volume is 0
+    withAudio({ hasJaVoice: signal(false) });
+    await remount(4);
+    expect(chips()).toEqual(['text only', 'text only', 'text only']);
+    withAudio({ hasJaVoice: signal(true), source: signal('clips'), canSpeak: signal(false) });
+    await remount(4);
+    expect(chips()[0]).toBe('text only');
+    // no pack and no pools (the default fixture): device voice, and no minutes line is guessed
+    withAudio({ hasJaVoice: signal(true) });
+    await remount(4);
+    expect(chips()[0]).toBe('device voice');
+    expect(root.querySelector('.station-ear__minutes')).toBeNull();
+    expect(earChip(nullAudio)).toBe('text');
+    expect(earChip({ ...nullAudio, hasJaVoice: signal(true) })).toBe('device');
+    expect(earChip({ ...nullAudio, hasJaVoice: signal(true), source: signal('clips') })).toBe('synthetic');
+    // a missing station has no panel
+    await remount(9);
+    expect(root.querySelector('.station-ear')).toBeNull();
+  });
+
+  it('the minutes line equals poolMinutes of the i+0 selection over the fixture pool at the live known set', async () => {
+    const cards = stationCards();
+    for (const id of [V.私, V.犬, V.水]) cards[`${id}#rec`] = live(8);
+    await makeTestStore({ save: { progress: { station: 4 } }, cards });
+    withAudio({ hasJaVoice: signal(true), source: signal('clips') });
+    const L = createFakeLoader(LISTENING);
+    await remount(4, L);
+    const known = knownIds(TODAY);
+    expect(known.has(V.おはよう)).toBe(false);
+    const selected = selectPool(POOL.refs, known, store.cards, TODAY, { mode: 'i+0' });
+    expect(selected.length).toBeGreaterThan(0);
+    expect(selected.length).toBeLessThan(POOL.refs.length);
+    const expected = Math.round(poolMinutes(selected));
+    expect(earMinutes([POOL], known)).toBe(expected);
+    expect(root.querySelector('.station-ear__minutes')?.textContent).toBe(expected >= 1 ? `${expected} min you can follow today` : 'Nothing to follow yet today; the pool grows as your words take root.');
+    expect(earMinutes([], known)).toBeNull();
+  });
+
+  it('audio-first pieces show their genre and "Listen first"; Read opens once heard; the Set opens the unheard piece; the TeachOnce card shows once', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: stationCards() });
+    withAudio({ hasJaVoice: signal(true), source: signal('clips') });
+    const L = createFakeLoader(LISTENING);
+    await remount(4, L);
+    const piece = root.querySelector('.station-story[data-audio-first="true"]')!;
+    expect(piece).not.toBeNull();
+    expect(piece.querySelector('.station-story__genre')?.textContent).toContain('exchange');
+    expect(piece.querySelector('.station-story__first')?.textContent).toContain('Listen first');
+    expect(Array.from(piece.querySelectorAll('a')).map((a) => a.getAttribute('href'))).toEqual(['#/listen/s-04-4']);
+    // a plain text keeps Read first, and the dialogue with a part keeps its Role-play
+    const first = root.querySelector('.station-story')!;
+    expect(first.querySelector('.station-story__first')).toBeNull();
+    expect(first.querySelector('a')?.getAttribute('href')).toBe('#/story/s-04-1');
+    expect(root.querySelector('a[href="#/taiwa/s-04-2"]')).not.toBeNull();
+    expect(root.querySelector('a[href="#/taiwa/s-04-4"]')).toBeNull();
+    // the panel's Set opens the unheard piece first; the Read-along never opens an unheard piece (its transcript comes after the first hearing)
+    expect(root.querySelector('.station-ear__row[data-row="set"] a')?.getAttribute('href')).toBe('#/listen/s-04-4');
+    expect(root.querySelector('.station-ear__row[data-row="readalong"] a')?.getAttribute('href')).toBe('#/story/s-04-1/listen');
+    expect(earTextFor([STORY, DIALOGUE, PIECE], [])?.id).toBe(PIECE.id);
+    expect(earTextFor([STORY, DIALOGUE, PIECE], [PIECE.id])?.id).toBe(STORY.id);
+    expect(earTextFor([STORY, DIALOGUE, PIECE], [PIECE.id, STORY.id, DIALOGUE.id])?.id).toBe(STORY.id);
+    expect(earTextFor([], [])).toBeUndefined();
+    expect(earReadAlongFor([PIECE, STORY, DIALOGUE], [])?.id).toBe(STORY.id);
+    expect(earReadAlongFor([PIECE, STORY, DIALOGUE], [STORY.id])?.id).toBe(DIALOGUE.id);
+    expect(earReadAlongFor([PIECE, STORY, DIALOGUE], [STORY.id, DIALOGUE.id])?.id).toBe(STORY.id);
+    expect(earReadAlongFor([PIECE, STORY, DIALOGUE], [STORY.id, DIALOGUE.id, PIECE.id])?.id).toBe(PIECE.id); // all heard: the first readable in station order
+    expect(earReadAlongFor([PIECE], [])).toBeUndefined();
+    expect(earReadAlongFor([PIECE], [PIECE.id])?.id).toBe(PIECE.id);
+    // heard → Read opens; the Set moves on to the next unheard text; the Read-along keeps to the unheard plain text
+    act(() => {
+      store.patch('progress', (p) => ({ ...p, listened: ['s-04-4'] }));
+    });
+    await settle();
+    expect(Array.from(root.querySelector('.station-story[data-audio-first="true"]')!.querySelectorAll('a')).map((a) => a.getAttribute('href'))).toEqual(['#/listen/s-04-4', '#/story/s-04-4']);
+    expect(root.querySelector('.station-ear__row[data-row="set"] a')?.getAttribute('href')).toBe('#/listen/s-04-1');
+    expect(root.querySelector('.station-ear__row[data-row="readalong"] a')?.getAttribute('href')).toBe('#/story/s-04-1/listen');
+    // the first-contact card: lowercase ASCII id, shown once, dismissal written to progress.teachSeen
+    expect(TEACH_ID_RE.test(EAR_PANEL_TEACH_ID)).toBe(true);
+    expect(root.querySelector(`[data-teach-id="${EAR_PANEL_TEACH_ID}"]`)).not.toBeNull();
+    expect(text()).toContain('hearing comes first');
+    click('.teach-once__dismiss');
+    expect(store.progress.value.teachSeen).toEqual([EAR_PANEL_TEACH_ID]);
+    expect(root.querySelector(`[data-teach-id="${EAR_PANEL_TEACH_ID}"]`)).toBeNull();
+    expect(text().toLowerCase()).not.toContain('recorded');
+  });
+
+  it('a station whose only text is an unheard piece has no Read-along row until the piece is heard', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: stationCards() });
+    withAudio({ hasJaVoice: signal(true), source: signal('clips') });
+    const L = createFakeLoader({ ...LISTENING, stations: [STATION_1, { ...STATION_4, storyIds: [PIECE.id] }] });
+    await remount(4, L);
+    expect(Array.from(root.querySelectorAll('.station-ear__row')).map((r) => r.getAttribute('data-row'))).toEqual(['set', 'radio']);
+    expect(root.querySelector('.station-ear__row[data-row="set"] a')?.getAttribute('href')).toBe('#/listen/s-04-4');
+    act(() => {
+      store.patch('progress', (p) => ({ ...p, listened: ['s-04-4'] }));
+    });
+    await settle();
+    expect(Array.from(root.querySelectorAll('.station-ear__row')).map((r) => r.getAttribute('data-row'))).toEqual(['set', 'readalong', 'radio']);
+    expect(root.querySelector('.station-ear__row[data-row="readalong"] a')?.getAttribute('href')).toBe('#/story/s-04-4/listen');
   });
 });

@@ -40,6 +40,9 @@ export const S = {
   choiceCorrect: 'Correct.',
   choiceMiss: "Again. That's the training.",
   meaningLabel: 'Meaning',
+  /** Clause dictation (design 08 §9): one clause of a line too long to dictate whole. */
+  clauseNote: 'One piece of a longer line. Type just what plays.',
+  theClause: 'The piece you heard',
 
   /* ── minimal pair ────────────────────────────────────────────────────── */
   pairPrompt: 'Which did you hear?',

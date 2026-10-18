@@ -11,7 +11,11 @@
  * except for を/ヲ (`SPOKEN_HOMOPHONES`),
  * which the voice pronounces exactly like お/オ: their romaji is shown up
  * front at no cost, with the audio still playing. Space replays; replays are
- * counted.
+ * counted. The kana plays with `clip: item.id` (design 08 §10.5; the pack
+ * falls back to the device voice when it misses) and the first long-vowel /
+ * っ item from Station 2 opens with the `held-beat` card (`<KanaTeach>`);
+ * dismissing it re-bases the latency clock and plays the kana again (not a
+ * replay), since the prompt sounded under the card.
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
@@ -21,7 +25,7 @@ import { TextAnswer, type TextAnswerResult } from '../TextAnswer';
 import { voiceAudible } from '../voice';
 import { acceptForms, attempt } from '../check';
 import { S as X } from '../strings';
-import { MissingItem, imeRomaji, isKanaItem, missingResult, romajiLabel, useDrillKeys, useLatency } from './KanaFlash';
+import { KanaTeach, MissingItem, imeRomaji, isKanaItem, missingResult, romajiLabel, useDrillKeys, useLatency } from './KanaFlash';
 import { S } from './strings';
 import './kana.css';
 
@@ -65,7 +69,7 @@ function KanaForgeBody(p: ExerciseProps): JSX.Element {
   const accept = acceptForms(item, p.step.params);
 
   const play = (): void => {
-    if (kana) void speak(kana, { kana });
+    if (kana && item) void speak(kana, { kana, clip: item.id });
   };
   useEffect(() => {
     play();
@@ -101,6 +105,14 @@ function KanaForgeBody(p: ExerciseProps): JSX.Element {
 
   return (
     <div class="drill kana-forge" data-exercise="kana-forge" data-script={item.script} ref={root}>
+      <KanaTeach
+        item={item}
+        drill="forge"
+        onDismissed={() => {
+          ms.restart();
+          play();
+        }}
+      />
       <div class="drill__row drill__row--between">
         <p class="drill__prompt">{hasVoice ? S.forgePromptAudio : S.forgePromptRomaji}</p>
         <span class="chip">{item.script === 'katakana' ? S.katakanaItem : S.hiraganaItem}</span>

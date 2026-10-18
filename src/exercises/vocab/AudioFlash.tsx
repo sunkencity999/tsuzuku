@@ -11,6 +11,11 @@
  * `keys` is `text` so the slow rule never grades the typed half (it needs a
  * mature card, which a choices-mode card — exposures < 2 — can never be).
  *
+ * Voice pack (design 08 §8): `spokenText` is unchanged, and `speakWord` keys
+ * it — `item.id` for the bare word, `${item.id}#col<k>` for the k-th
+ * collocation — so the pack serves the T3 ear clip and falls back to the
+ * device voice when it misses.
+ *
  * Without an audible Japanese voice (`voiceAudible(services.audio)`, read at render) the
  * word and its kana are shown up front with a no-voice note instead of the
  * Speaker, and a miss is tagged `word-choice` rather than `listening` — the

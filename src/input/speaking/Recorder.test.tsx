@@ -234,3 +234,15 @@ describe('<Recorder> with media devices', () => {
     expect(root.querySelectorAll('.recorder__check input').length).toBe(3);
   });
 });
+
+describe('<Recorder> model clip (design 08 §8)', () => {
+  it('the default model playback passes the clip key and speaker when the host gives them', async () => {
+    act(() => render(<Recorder modelKana="のむ" modelJa="{飲|の}む" clip="v-n5-0007" speaker="ケン" onSelfGrade={() => undefined} media={null} />, root));
+    const btn = Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent === S.playModel);
+    await act(async () => {
+      btn!.click();
+      await Promise.resolve();
+    });
+    expect(spoken).toEqual([{ text: '飲む', o: { kana: 'のむ', clip: 'v-n5-0007', speaker: 'ケン' } }]);
+  });
+});

@@ -4,10 +4,26 @@
  * kana IME (or, with `params.choices`, picks its meaning — the Gatekeeper's
  * 耳 phase and Shinsa 耳 use that shape).
  *
- *  · Playback: `speak(toPlain(sentence), {kana, rate})`; `params.rate` wins
- *    over the tier preset. ≤ 2 replays; the second caps the rep at Hard
- *    (`replays` on the result, `learn/grading` applies the ceiling). Latency
- *    is measured from the end of the first play.
+ *  · Playback: `speak(toPlain(sentence), {kana, rate, clip})`; `params.rate`
+ *    wins over the tier preset and `params.clip` (design 08 §8: `v-…#ex<k>`,
+ *    `s-NN-k#L<i>`) is the voice-pack key the planner set — the pack falls
+ *    back to the device voice when it misses, so with no pack nothing changes.
+ *    ≤ 2 replays; the second caps the rep at Hard (`replays` on the result,
+ *    `learn/grading` applies the ceiling). Latency is measured from the end of
+ *    the first play.
+ *  · Clause dictation (design 08 §9): when the planner sets `params.clause`
+ *    (`[fromMora, toMora)` over the line's speech morae — punctuation and
+ *    spaces are not morae) the drill plays that sub-range of the clip
+ *    (`SpeakOptions.clause`) and grades against the clause kana
+ *    (`clauseKana`); the replay ceiling is unchanged. The clip path is taken
+ *    only when the pack can actually cut the span (`canCutClause`: the cue
+ *    resolves AND carries mora boundaries that reach the clause end —
+ *    example cues ship without `morae`, story lines with); otherwise the
+ *    device voice reads the clause kana itself (the synth has no sub-range),
+ *    so what plays is always what is graded. A clause never becomes
+ *    `profile.dictatedSentence` (the kakejiku shows whole sentences), and
+ *    `implicitGrades` runs in fragment mode: a pool word that is not in the
+ *    clause gets no grade (it was not heard).
  *  · Score = 1 − normalized mora edit distance on canonical forms
  *    (`normalizeAnswer`: づ/ず, long-vowel spellings and katakana never cost),
  *    graded by `gradeScored` (≥ 0.95 Good, ≥ 0.80 Hard, else Again).
@@ -35,13 +51,14 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { content } from '@/content/loader';
 import { toKana, toPlain } from '@/content/ruby';
 import type { CardKey, ContentItem, ErrorTag, VocabItem } from '@/content/types';
+import type { ClipCue } from '@/shared/audio';
 import { SCORE_BANDS } from '@/learn';
 import { services, speak } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import type { ExerciseMeta, ExerciseProps } from '@/shared/exercise-types';
 import { parseCardKey } from '@/shared/ids';
 import { finalizeIme } from '@/shared/kana-ime';
-import { moraSplit, nearMissKind, normalizeAnswer, normalizeEn, normalizeJa } from '@/shared/jp';
+import { moraSplit, nearMissKind, normalizeAnswer, normalizeEn, normalizeJa, speechMorae } from '@/shared/jp';
 import type { AttemptResult, StepParams } from '@/shared/session-types';
 import type { Rating } from '@/shared/store-types';
 import { useExerciseKeys } from '@/shared/ui/ExerciseFrame';
@@ -49,7 +66,7 @@ import { KanaInput } from '@/shared/ui/KanaInput';
 import { Ruby } from '@/shared/ui/Ruby';
 import { store } from '@/store';
 import { ChoiceGrid } from '../ChoiceGrid';
-import { voiceAudible } from '../voice';
+import { clipCue, voiceAudible } from '../voice';
 import { SLIP_PARTICLES, gradeChoice, gradeScored, moraScore, voicingSlip } from '../check';
 import { S, TAG_LABEL, fill } from './strings';
 import './SentenceListen.css';
@@ -213,7 +230,10 @@ function surfaceIn(kana: string, sentence: string): string | null {
  * Side grades for `pool` (listen cards, design 04 §5): a content word found
  * in the sentence → Good when the answer contains it, Again when it does not;
  * a word that cannot be located (item not loaded, not in the sentence) → Good
- * only on a clean dictation (≥ 0.95), otherwise no grade.
+ * only on a clean dictation (≥ 0.95) of the WHOLE line, otherwise no grade.
+ * `whole` is `false` for a clause step (design 08 §9): `expected` is then a
+ * fragment, so an unlocated word may sit in the part the learner never heard
+ * and earns nothing.
  */
 export function implicitGrades(
   pool: readonly CardKey[],
@@ -221,6 +241,7 @@ export function implicitGrades(
   given: string,
   score: number,
   lookup: (id: string) => ContentItem | undefined,
+  whole = true,
 ): { cardKey: CardKey; rating: Rating }[] {
   const e = normalizeAnswer(expected);
   const g = normalizeAnswer(given);
@@ -235,7 +256,7 @@ export function implicitGrades(
     const item = lookup(itemId);
     const surface = isVocab(item) ? surfaceIn(item.kana, e) : null;
     if (surface) out.push({ cardKey: key, rating: g.includes(surface) ? 3 : 1 });
-    else if (score >= SCORE_BANDS.good) out.push({ cardKey: key, rating: 3 });
+    else if (whole && score >= SCORE_BANDS.good) out.push({ cardKey: key, rating: 3 });
   }
   return out;
 }
@@ -243,6 +264,35 @@ export function implicitGrades(
 /** Kana reading of the sentence param (ruby → readings; kana stays kana). */
 export function sentenceKana(sentence: string): string {
   return toKana(sentence);
+}
+
+/**
+ * The kana of one clause `[fromMora, toMora)` of a line (design 08 §9), or
+ * `null` when there is no clause param or the span is empty / out of range
+ * (the drill then dictates the whole line, as before). Indexes are speech
+ * morae — `speechMorae` from `shared/jp.ts` strips the same punctuation class
+ * the validator's `lineMorae` and the pipeline's `normalizeJa` drop, so on
+ * validated kana (V10) the planner's `StepParams.clause` and the cues agree.
+ */
+export function clauseKana(kana: string, clause: readonly [number, number] | undefined): string | null {
+  if (!clause) return null;
+  const morae = speechMorae(kana);
+  const [a, b] = clause;
+  if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b > morae.length || b <= a) return null;
+  return morae.slice(a, b).join('');
+}
+
+/**
+ * Whether the pack can play clause `[from, to)` of `clip` right now (design
+ * 08 §9): the cue resolves (pack present, allowed and holding the key) AND
+ * it carries mora boundaries at least up to `to`. A cue without `morae`
+ * (example cues are indexed without them; only story lines carry `m`) would
+ * play the WHOLE line against a clause-sized answer, so it does not count.
+ */
+export function canCutClause(clip: string | undefined, clause: readonly [number, number], rate: number, cue: (key: string, o: { rate: number }) => ClipCue | undefined = clipCue): boolean {
+  if (!clip) return false;
+  const c = cue(clip, { rate });
+  return c !== undefined && (c.morae?.length ?? 0) >= clause[1];
 }
 
 /** Index of the correct choice: `params.answer` by exact, then fuzzy-English match; `-1` when unknown. */
@@ -277,6 +327,10 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
   const choiceMode = (params.choices?.length ?? 0) >= 2;
   const rate = params.rate ?? services.audio.rateForTier(p.speedTier);
   const hasVoice = voiceAudible(services.audio);
+  const clip = params.clip;
+  // Clause dictation (design 08 §9): the graded kana is the clause's; `null` = the whole line.
+  const clause = choiceMode ? null : clauseKana(kana, params.clause);
+  const target = clause ?? kana;
 
   const [playing, setPlaying] = useState(false);
   const [plays, setPlays] = useState(0);
@@ -296,7 +350,17 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
     const id = step.id;
     setPlaying(true);
     try {
-      await speak(plain, { kana: kana !== plain ? kana : undefined, rate });
+      if (clause !== null && params.clause && !canCutClause(clip, params.clause, rate)) {
+        // No clip the pack can cut a sub-range from: the device voice reads the clause kana itself, so what plays is what is graded.
+        await speak(clause, { kana: clause, rate });
+      } else {
+        await speak(plain, {
+          kana: kana !== plain ? kana : undefined,
+          rate,
+          ...(clip ? { clip } : {}),
+          ...(clause !== null && params.clause ? { clause: params.clause } : {}),
+        });
+      }
     } finally {
       if (stepRef.current === id) {
         setPlaying(false);
@@ -348,14 +412,14 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
       setNudge(S.nothingTyped);
       return;
     }
-    const score = moraScore(normalizeAnswer(given), normalizeAnswer(kana));
-    const diff = moraDiff(given, kana);
+    const score = moraScore(normalizeAnswer(given), normalizeAnswer(target));
+    const diff = moraDiff(given, target);
     const tags = diffTags(diff);
     const r = gradeScored(score, { ms: elapsed(), replays: s.replays, hintUsed: s.hint, missTags: tags, answer: given });
     r.errorTags = tags;
-    const implicit = implicitGrades(params.pool ?? [], kana, given, score, (id) => content.get(id));
+    const implicit = implicitGrades(params.pool ?? [], target, given, score, (id) => content.get(id), clause === null);
     if (implicit.length > 0) r.implicit = implicit;
-    if (r.correct && !s.hint && s.replays < MAX_REPLAYS && rate >= DICTATED_MIN_RATE) {
+    if (r.correct && !s.hint && s.replays < MAX_REPLAYS && rate >= DICTATED_MIN_RATE && clause === null) {
       // The Waveform kakejiku's text: the most recent perfect dictation, plain surface (mirrors the Listening Arena).
       store.patch('profile', (pr) => (pr.dictatedSentence === plain ? pr : { ...pr, dictatedSentence: plain }));
     }
@@ -386,7 +450,7 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
   const replaysLeft = MAX_REPLAYS - replays;
   const bandLine = done ? (done.result.correct ? S.bandGood : done.result.nearMiss ? S.bandHard : S.bandAgain) : '';
   const kind = done ? (done.result.correct ? 'correct' : done.result.nearMiss ? 'near' : 'wrong') : undefined;
-  const hintText = params.promptEn ? `${S.hintMeaning}: ${params.promptEn}` : `${S.hintStart} ${moraSplit(kana).slice(0, 2).join('')}…`;
+  const hintText = params.promptEn && clause === null ? `${S.hintMeaning}: ${params.promptEn}` : `${S.hintStart} ${moraSplit(target).slice(0, 2).join('')}…`;
 
   if (!sentence) {
     return (
@@ -399,8 +463,9 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
   }
 
   return (
-    <div class="listen" data-feel={p.feel} data-mode={choiceMode ? 'choose' : 'type'} data-done={done ? 'true' : undefined}>
+    <div class="listen" data-feel={p.feel} data-mode={choiceMode ? 'choose' : 'type'} data-done={done ? 'true' : undefined} data-clause={clause !== null ? 'true' : undefined}>
       <p class="listen__prompt">{choiceMode ? S.listenChoosePrompt : S.listenPrompt}</p>
+      {clause !== null ? <p class="listen__note listen__clause-note">{S.clauseNote}</p> : null}
 
       <div class="listen__player status-window">
         <button
@@ -427,7 +492,7 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
           <p class="listen__novoice" role="status">
             {S.noVoice}
             <span class="listen__shown" lang="ja">
-              <Ruby ja={sentence} mode={p.furigana} />
+              {clause !== null ? clause : <Ruby ja={sentence} mode={p.furigana} />}
             </span>
           </p>
         ) : null}
@@ -466,7 +531,7 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
               </button>
               {hint ? (
                 <p class="listen__hint" role="status">
-                  <span lang={params.promptEn ? undefined : 'ja'}>{hintText}</span>
+                  <span lang={params.promptEn && clause === null ? undefined : 'ja'}>{hintText}</span>
                   <small>{S.hintCeiling}</small>
                 </p>
               ) : null}
@@ -493,6 +558,12 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
                   </span>
                 ))}
               </span>
+            </p>
+          ) : null}
+          {clause !== null ? (
+            <p class="listen__sentence listen__clause">
+              <span class="listen__label">{S.theClause}</span>
+              <span lang="ja">{clause}</span>
             </p>
           ) : null}
           <p class="listen__sentence">

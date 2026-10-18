@@ -12,13 +12,21 @@
  *    (`pairTag`: vowel-length / small-kana / voicing, else listening).
  *  · Unlimited replays (counted, forwarded to `onReplay`); after answering,
  *    both words can be played for comparison.
+ *  · Voice pack (design 08 §8, §10.4): ONE source for both words — both
+ *    through pack clips (the item's own word by its id, a real partner by
+ *    that item's id, a synthesized partner by `${id}#pair`) or both through
+ *    the device voice — otherwise timbre leaks the answer. A pair the drill
+ *    cannot key (planner surfaces that are not the item's word) or whose
+ *    clip the pack lacks plays entirely through the device voice (no `clip`
+ *    key: the pack never text-matches a bare word). With no pack nothing
+ *    changes.
  * Facet `null`; keys `choices`; `needsTts`.
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { content } from '@/content/loader';
 import type { ContentItem, ErrorTag, VocabItem } from '@/content/types';
-import { perceptionJudge } from '@/learn';
+import { minimalPairPartner, perceptionJudge } from '@/learn';
 import { services, speak } from '@/shared/audio';
 import type { ExerciseMeta, ExerciseProps } from '@/shared/exercise-types';
 import { chance, type Rng, rngFor } from '@/shared/hash';
@@ -27,7 +35,7 @@ import type { AttemptResult, StepParams } from '@/shared/session-types';
 import { useExerciseKeys } from '@/shared/ui/ExerciseFrame';
 import { store } from '@/store';
 import { ChoiceGrid } from '../ChoiceGrid';
-import { voiceAudible } from '../voice';
+import { canPlayClip, voiceAudible } from '../voice';
 import { gradeChoice, voicingSlip } from '../check';
 import { PAIR_WHY, S, fill } from './strings';
 import './MinimalPair.css';
@@ -65,6 +73,31 @@ export interface Pair {
   /** Index of the spoken word. */
   target: number;
   tag: ErrorTag;
+  /**
+   * Clip keys parallel to `choices` (design 08 §8): the item's id for its own
+   * word, a pool item's id for a real partner, `${item.id}#pair` for the
+   * synthesized partner; `null` when the surface cannot be keyed.
+   */
+  keys: [string | null, string | null];
+}
+
+/**
+ * The pack clip key of one surface of a pair (design 08 §8): the item's own
+ * word → `item.id`; a loaded pool word with that reading → its id; the
+ * partner `synthesizeMinimalPair` would build → `${item.id}#pair` (the T3
+ * ear set renders exactly that partner); anything else → `null`.
+ */
+export function pairClipKey(item: Pick<VocabItem, 'id' | 'kana'>, kana: string, pool: readonly Pick<VocabItem, 'id' | 'kana'>[]): string | null {
+  if (equivalentJa(kana, item.kana)) return item.id;
+  const real = pool.find((p) => p.id !== item.id && equivalentJa(p.kana, kana));
+  if (real) return real.id;
+  const [, synthesized] = minimalPairPartner(item, []);
+  return equivalentJa(kana, synthesized) ? `${item.id}#pair` : null;
+}
+
+/** Whether BOTH surfaces of a pair can play through the pack (design 08 §10.4: one source, or none). `can` is injectable for tests. */
+export function pairUsesClips(pair: Pick<Pair, 'keys'>, can: (key: string) => boolean = canPlayClip): boolean {
+  return pair.keys.every((k) => k !== null && can(k));
 }
 
 /**
@@ -75,16 +108,17 @@ export interface Pair {
 export function pairFor(item: ContentItem | null, params: StepParams, lookup: (id: string) => ContentItem | undefined, rng: Rng): Pair | null {
   let a: string;
   let b: string;
+  const pool = isVocab(item) ? (params.distractorIds ?? []).map(lookup).filter(isVocab) : [];
   if (params.choices && params.choices.length >= 2 && params.choices[0] && params.choices[1]) {
     a = params.choices[0];
     b = params.choices[1];
   } else if (isVocab(item)) {
-    const pool = (params.distractorIds ?? []).map(lookup).filter(isVocab);
     [a, b] = perceptionJudge(item, pool).minimalPair;
   } else return null;
   if (equivalentJa(a, b)) return null;
   const swap = chance(rng, 0.5);
   const choices: [string, string] = swap ? [b, a] : [a, b];
+  const keys: [string | null, string | null] = isVocab(item) ? [pairClipKey(item, choices[0], pool), pairClipKey(item, choices[1], pool)] : [null, null];
   let target: number;
   if (params.answer) {
     const idx = choices.findIndex((c) => equivalentJa(c, params.answer as string));
@@ -94,7 +128,7 @@ export function pairFor(item: ContentItem | null, params: StepParams, lookup: (i
     const own = choices.findIndex((c) => equivalentJa(c, item.kana));
     target = chance(rng, 0.5) ? own : 1 - own;
   } else target = chance(rng, 0.5) ? 0 : 1;
-  return { choices, target, tag: pairTag(a, b) };
+  return { choices, target, tag: pairTag(a, b), keys };
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -105,6 +139,8 @@ export function MinimalPair(p: ExerciseProps): JSX.Element {
   const { step, item } = p;
   const pair = useMemo(() => pairFor(item, step.params, (id) => content.get(id), rngFor(store.seed(), store.today(), step.id, 'minimal-pair')), [item, step.id, step.params]);
   const hasVoice = voiceAudible(services.audio);
+  // One source for both words, decided once per step (design 08 §10.4).
+  const useClips = useMemo(() => (pair ? pairUsesClips(pair) : false), [pair]);
 
   const [playing, setPlaying] = useState(false);
   const [plays, setPlays] = useState(0);
@@ -116,11 +152,15 @@ export function MinimalPair(p: ExerciseProps): JSX.Element {
   live.current = { playing, replays, picked, result };
   const stepRef = useRef(step.id);
 
-  const say = async (kana: string): Promise<void> => {
+  /** Speaks choice `i` through the step's one source: its pack clip when both are playable, else the device voice. */
+  const say = async (i: number): Promise<void> => {
+    if (!pair) return;
+    const kana = pair.choices[i] as string;
+    const clip = pair.keys[i];
     const id = step.id;
     setPlaying(true);
     try {
-      await speak(kana, { kana });
+      await speak(kana, useClips && clip ? { kana, clip } : { kana });
     } finally {
       if (stepRef.current === id) setPlaying(false);
     }
@@ -128,7 +168,7 @@ export function MinimalPair(p: ExerciseProps): JSX.Element {
 
   const playTarget = async (): Promise<void> => {
     if (!pair) return;
-    await say(pair.choices[pair.target]);
+    await say(pair.target);
     setPlays((n) => n + 1);
     if (startedAt.current === null) startedAt.current = store.now();
   };
@@ -196,7 +236,7 @@ export function MinimalPair(p: ExerciseProps): JSX.Element {
   const why = PAIR_WHY[pair.tag] ?? S.pairWhyOther;
 
   return (
-    <div class="pair" data-feel={p.feel} data-done={result ? 'true' : undefined}>
+    <div class="pair" data-feel={p.feel} data-done={result ? 'true' : undefined} data-source={useClips ? 'clips' : 'synth'}>
       <p class="pair__prompt">{S.pairPrompt}</p>
 
       <div class="pair__player status-window">
@@ -230,8 +270,8 @@ export function MinimalPair(p: ExerciseProps): JSX.Element {
           <p class="pair__line">{result.correct ? S.pairCorrect : S.pairMiss}</p>
           <p class="pair__why">{why}</p>
           <div class="pair__compare" role="group" aria-label={S.compareLabel}>
-            {pair.choices.map((k) => (
-              <button key={k} type="button" class="btn btn--ghost btn--sm" lang="ja" disabled={playing} aria-label={fill(S.hearOption, { kana: k })} onClick={() => void say(k)}>
+            {pair.choices.map((k, i) => (
+              <button key={k} type="button" class="btn btn--ghost btn--sm" lang="ja" disabled={playing} aria-label={fill(S.hearOption, { kana: k })} onClick={() => void say(i)}>
                 ▶ {k}
               </button>
             ))}

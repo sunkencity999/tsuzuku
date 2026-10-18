@@ -3,13 +3,14 @@ import { render, type ComponentChildren, type JSX } from 'preact';
 import { act } from 'preact/test-utils';
 import { FIXTURE, V } from '@/content/fixtures';
 import type { ContentItem } from '@/content/types';
-import { installServices, nullAudio, resetServices, type AudioService, type SpeakOptions } from '@/shared/audio';
+import { installServices, nullAudio, resetServices, type AudioService, type ClipCue, type SpeakOptions } from '@/shared/audio';
 import { bus } from '@/shared/events';
+import { speechMorae } from '@/shared/jp';
 import type { AttemptResult, Step } from '@/shared/session-types';
 import { ExerciseFrame } from '@/shared/ui/ExerciseFrame';
 import { store } from '@/store';
 import { captureEvents, makeTestStore } from '@/store/testing';
-import { DICTATED_MIN_RATE, MAX_REPLAYS, SentenceListen, choiceAnswerIndex, diffTags, implicitGrades, meta, moraDiff, slipTag } from './SentenceListen';
+import { DICTATED_MIN_RATE, MAX_REPLAYS, SentenceListen, canCutClause, choiceAnswerIndex, clauseKana, diffTags, implicitGrades, meta, moraDiff, slipTag } from './SentenceListen';
 
 const SENTENCE = '{犬|いぬ}は{水|みず}を{飲|の}みます。'; // いぬはみずをのみます (10 morae)
 
@@ -155,6 +156,43 @@ describe('dictation helpers', () => {
     // an unloaded item: Good only on a clean dictation
     expect(implicitGrades(['v-n5-9999#listen'], expected, 'いぬは', 0.3, lookup)).toEqual([]);
     expect(implicitGrades(['v-n5-9999#listen'], expected, expected, 1, lookup)).toEqual([{ cardKey: 'v-n5-9999#listen', rating: 3 }]);
+    // fragment mode (a clause step, design 08 §9): a word the clause does not hold was never heard → no grade, clean or not
+    expect(implicitGrades(pool, 'いぬは', 'いぬは', 1, lookup, false)).toEqual([{ cardKey: `${V.犬}#listen`, rating: 3 }]);
+    expect(implicitGrades(pool, 'いぬは', 'いのは', 0.66, lookup, false)).toEqual([{ cardKey: `${V.犬}#listen`, rating: 1 }]);
+    expect(implicitGrades(['v-n5-9999#listen'], 'いぬは', 'いぬは', 1, lookup, false)).toEqual([]);
+  });
+
+  it('canCutClause: the cue must resolve and carry mora boundaries up to the clause end; a bare example cue or a short one does not cut', () => {
+    const base: ClipCue = { key: 'k', file: 'audio/sprites/s04/x-abcdef12.webm', start: 0, end: 2, voice: 'VOICEVOX:ずんだもん', rate: 1 };
+    const cues: Record<string, ClipCue> = {
+      full: { ...base, morae: [120, 260, 400, 560, 700, 830, 980, 1110, 1260, 1400], clauses: [3] },
+      bare: { ...base },
+      short: { ...base, morae: [120, 260] },
+    };
+    const get = (k: string): ClipCue | undefined => cues[k];
+    expect(canCutClause('full', [0, 3], 1, get)).toBe(true);
+    expect(canCutClause('full', [3, 10], 1, get)).toBe(true);
+    expect(canCutClause('full', [3, 11], 1, get)).toBe(false);
+    expect(canCutClause('bare', [0, 3], 1, get)).toBe(false);
+    expect(canCutClause('short', [0, 3], 1, get)).toBe(false);
+    expect(canCutClause('short', [0, 2], 1, get)).toBe(true);
+    expect(canCutClause('missing', [0, 3], 1, get)).toBe(false);
+    expect(canCutClause(undefined, [0, 3], 1, get)).toBe(false);
+    // the default reads the live slot: nullAudio has no pack
+    expect(canCutClause('full', [0, 3], 1)).toBe(false);
+  });
+
+  it('speechMorae (shared/jp, the one body) drops punctuation and spaces; clauseKana cuts [from, to) over them, null when absent or out of range', () => {
+    expect(speechMorae('いぬは、みずを のみます。')).toEqual(['い', 'ぬ', 'は', 'み', 'ず', 'を', 'の', 'み', 'ま', 'す']);
+    expect(speechMorae('きょう、「はい」！')).toEqual(['きょ', 'う', 'は', 'い']);
+    expect(clauseKana('いぬは、みずをのみます。', [0, 3])).toBe('いぬは');
+    expect(clauseKana('いぬは、みずをのみます。', [3, 10])).toBe('みずをのみます');
+    expect(clauseKana('いぬは、みずをのみます。', undefined)).toBeNull();
+    expect(clauseKana('いぬは', [0, 0])).toBeNull();
+    expect(clauseKana('いぬは', [2, 1])).toBeNull();
+    expect(clauseKana('いぬは', [0, 4])).toBeNull();
+    expect(clauseKana('いぬは', [-1, 2])).toBeNull();
+    expect(clauseKana('いぬは', [0.5, 2])).toBeNull();
   });
 
   it('choiceAnswerIndex: exact, then fuzzy English, else -1', () => {
@@ -346,6 +384,124 @@ describe('<SentenceListen> dictation', () => {
     await mount(step({ params: { sentence: SENTENCE } }));
     expect(calls[0]?.o?.rate).toBe(1);
     expect(root.querySelector('.listen__rate')?.textContent).toBe('Speed 1×');
+  });
+});
+
+describe('<SentenceListen> voice pack (design 08 §8–§9)', () => {
+  const CLIP = 'v-n5-0003#ex0';
+  const cue: ClipCue = { key: CLIP, file: 'audio/sprites/s04/examples-01-abcdef12.webm', start: 3, end: 5.4, voice: 'VOICEVOX:ずんだもん', rate: 1, morae: [120, 260, 400, 560, 700, 830, 980, 1110, 1260, 1400], clauses: [3] };
+  function withPack(keys: string[] = [CLIP]): void {
+    installServices({ audio: { ...fakeAudio(), source: signal('clips'), clipFor: (key: string) => (keys.includes(key) ? { ...cue, key } : undefined) } });
+  }
+
+  it('passes params.clip through on the first play and on every replay; without it the options are unchanged', async () => {
+    await mount(step({ params: { sentence: SENTENCE, rate: 1, clip: CLIP } }));
+    expect(calls[0]).toEqual({ text: '犬は水を飲みます。', o: { kana: 'いぬはみずをのみます。', rate: 1, clip: CLIP } });
+    await clickAsync(playBtn());
+    expect(calls[1]?.o).toEqual({ kana: 'いぬはみずをのみます。', rate: 1, clip: CLIP });
+    expect(calls.every((c) => !('clause' in (c.o as object)))).toBe(true);
+    expect(root.querySelector('.listen')?.getAttribute('data-clause')).toBeNull();
+    // the key rides along whether or not the pack can play it (the pack decides, the drill only names it)
+    withPack();
+    calls = [];
+    await mount(step({ id: 'sl-c0', params: { sentence: SENTENCE, rate: 1, clip: CLIP } }));
+    expect(calls[0]?.o).toEqual({ kana: 'いぬはみずをのみます。', rate: 1, clip: CLIP });
+  });
+
+  it('a clause step plays the sub-range of the clip and grades against the clause kana; the replay ceiling is unchanged', async () => {
+    withPack();
+    const { onResult, onReplay, input } = await mount(step({ params: { sentence: SENTENCE, rate: 1, clip: CLIP, clause: [0, 3] } }));
+    expect(root.querySelector('.listen')?.getAttribute('data-clause')).toBe('true');
+    expect(root.querySelector('.listen__clause-note')?.textContent).toContain('longer line');
+    expect(calls[0]).toEqual({ text: '犬は水を飲みます。', o: { kana: 'いぬはみずをのみます。', rate: 1, clip: CLIP, clause: [0, 3] } });
+    await clickAsync(playBtn());
+    expect(root.querySelector('.listen__replays')?.textContent).toBe('1 replays left');
+    await clickAsync(playBtn());
+    expect(root.querySelector('.listen__ceiling')?.textContent).toContain('Hard');
+    expect(playBtn().disabled).toBe(true);
+    await clickAsync(playBtn());
+    expect(calls).toHaveLength(3);
+    expect(onReplay).toHaveBeenCalledTimes(2);
+    expect(calls.every((c) => c.o?.clip === CLIP && JSON.stringify(c.o?.clause) === '[0,3]')).toBe(true);
+    // graded against いぬは, not the whole line
+    type(input as HTMLInputElement, 'inuha');
+    enter(input as HTMLInputElement);
+    expect(onResult).toHaveBeenCalledTimes(1);
+    expect(onResult.mock.calls[0]?.[0]).toMatchObject({ correct: true, score: 1, replays: 2, errorTags: [] });
+    expect(root.querySelector('.listen__clause')?.textContent).toContain('いぬは');
+    expect(root.querySelector('.listen__sentence rt')?.textContent).toBe('いぬ');
+    // a clause is never the kakejiku sentence
+    expect(store.profile.value.dictatedSentence).toBeUndefined();
+
+    // the whole line typed against a clause is a miss (extra morae), with the clause-based hint
+    const b = await mount(step({ id: 'sl-c2', params: { sentence: SENTENCE, rate: 1, clip: CLIP, clause: [3, 10], promptEn: 'The dog drinks water.' } }));
+    await clickAsync(Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((x) => x.textContent === 'Hint') ?? null);
+    expect(root.querySelector('.listen__hint')?.textContent).toContain('みず');
+    expect(root.querySelector('.listen__hint')?.textContent).not.toContain('The dog');
+    type(b.input as HTMLInputElement, 'inuhamizuwonomimasu');
+    enter(b.input as HTMLInputElement);
+    expect(b.onResult.mock.calls[0]?.[0]?.correct).toBe(false);
+    const c = await mount(step({ id: 'sl-c3', params: { sentence: SENTENCE, rate: 1, clip: CLIP, clause: [3, 10] } }));
+    type(c.input as HTMLInputElement, 'mizuwonomimasu');
+    enter(c.input as HTMLInputElement);
+    expect(c.onResult.mock.calls[0]?.[0]).toMatchObject({ correct: true, score: 1 });
+  });
+
+  it('a clause step without a playable clip reads the clause kana through the device voice, so what plays is what is graded', async () => {
+    const { onResult, input } = await mount(step({ params: { sentence: SENTENCE, rate: 0.9, clip: CLIP, clause: [0, 3] } }));
+    expect(calls[0]).toEqual({ text: 'いぬは', o: { kana: 'いぬは', rate: 0.9 } });
+    await clickAsync(playBtn());
+    expect(calls[1]).toEqual({ text: 'いぬは', o: { kana: 'いぬは', rate: 0.9 } });
+    type(input as HTMLInputElement, 'inuha');
+    enter(input as HTMLInputElement);
+    expect(onResult.mock.calls[0]?.[0]).toMatchObject({ correct: true, score: 1 });
+    // a clause out of range falls back to the whole line, clip key kept
+    calls = [];
+    await mount(step({ id: 'sl-c5', params: { sentence: SENTENCE, rate: 1, clip: CLIP, clause: [0, 99] } }));
+    expect(calls[0]?.o).toEqual({ kana: 'いぬはみずをのみます。', rate: 1, clip: CLIP });
+    expect(root.querySelector('.listen')?.getAttribute('data-clause')).toBeNull();
+  });
+
+  it('a clause step whose cue has no mora boundaries (an example cue) reads the clause through the device voice — the pack would play the whole line', async () => {
+    const bare = (morae?: number[]): void => {
+      installServices({ audio: { ...fakeAudio(), source: signal('clips'), clipFor: (key: string) => (key === CLIP ? { ...cue, key, morae, clauses: undefined } : undefined) } });
+    };
+    bare(undefined);
+    const { onResult, input } = await mount(step({ params: { sentence: SENTENCE, rate: 1, clip: CLIP, clause: [0, 3] } }));
+    expect(root.querySelector('.listen')?.getAttribute('data-clause')).toBe('true');
+    expect(calls[0]).toEqual({ text: 'いぬは', o: { kana: 'いぬは', rate: 1 } });
+    await clickAsync(playBtn());
+    expect(calls[1]).toEqual({ text: 'いぬは', o: { kana: 'いぬは', rate: 1 } });
+    type(input as HTMLInputElement, 'inuha');
+    enter(input as HTMLInputElement);
+    expect(onResult.mock.calls[0]?.[0]).toMatchObject({ correct: true, score: 1 });
+    // boundaries that stop short of the clause end count as none
+    bare([120, 260]);
+    calls = [];
+    await mount(step({ id: 'sl-c7', params: { sentence: SENTENCE, rate: 1, clip: CLIP, clause: [0, 3] } }));
+    expect(calls[0]).toEqual({ text: 'いぬは', o: { kana: 'いぬは', rate: 1 } });
+    // a whole-line step still passes the same key through: the pack plays the whole cue, which is what is graded
+    calls = [];
+    await mount(step({ id: 'sl-c8', params: { sentence: SENTENCE, rate: 1, clip: CLIP } }));
+    expect(calls[0]?.o).toEqual({ kana: 'いぬはみずをのみます。', rate: 1, clip: CLIP });
+  });
+
+  it('a clause step grades pool words in fragment mode: nothing for a word the clause does not hold, even on a clean dictation', async () => {
+    withPack();
+    const pool = [`${V.水}#listen`, `${V.犬}#listen`] as `${string}#listen`[];
+    const a = await mount(step({ params: { sentence: SENTENCE, rate: 1, clip: CLIP, clause: [0, 3], pool } }));
+    type(a.input as HTMLInputElement, 'inuha');
+    enter(a.input as HTMLInputElement);
+    expect(a.onResult.mock.calls[0]?.[0]).toMatchObject({ correct: true, score: 1 });
+    // content is not loaded in tests, so neither word can be located in いぬは; the whole-line rule would have graded both Good
+    expect(a.onResult.mock.calls[0]?.[0]?.implicit).toBeUndefined();
+  });
+
+  it('without a voice the shown text is the clause for a clause step', async () => {
+    installServices({ audio: nullAudio });
+    await mount(step({ params: { sentence: SENTENCE, rate: 1, clip: CLIP, clause: [0, 3] } }));
+    expect(root.querySelector('.listen__novoice')?.textContent).toContain('No Japanese voice');
+    expect(root.querySelector('.listen__shown')?.textContent).toBe('いぬは');
   });
 });
 

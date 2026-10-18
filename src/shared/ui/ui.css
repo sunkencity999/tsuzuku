@@ -562,6 +562,58 @@
   }
 }
 
+/* ── TeachOnce ────────────────────────────────────────────────────────── */
+/* First-contact card (design 08 §11). The .status-window frame comes from
+   components.css; this only adds the stack, tints the frame indigo (a note,
+   not XP gold) and un-pixels the title, which is a sentence, often Japanese,
+   not a window label — in every feel: arcade.css pixels .status-window > h3
+   at (0,3,1), so the title opts out again under the arcade gate at (0,4,0).
+   Surfaces scope their own spacing (.arena .teach-once, .station-ear
+   .teach-once); the dismiss button is a .btn--sm (44 px hit, no rule here). */
+.teach-once {
+  display: grid;
+  gap: var(--sp-2);
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+}
+.teach-once.status-window {
+  border-color: var(--ai);
+}
+.teach-once .teach-once__title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  line-height: var(--lh-latin);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--fg);
+}
+.teach-once .teach-once__title[lang='ja'] {
+  font-family: var(--font-ja);
+  line-height: var(--lh-ja);
+}
+:is(:root[data-feel='arcade'], body.feel-arcade) .teach-once > .teach-once__title {
+  font-family: var(--font-ui);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--fg);
+}
+:is(:root[data-feel='arcade'], body.feel-arcade) .teach-once > .teach-once__title[lang='ja'] {
+  font-family: var(--font-ja);
+}
+.teach-once__body {
+  margin: 0;
+  color: var(--fg);
+}
+.teach-once__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
 /* ── motion ───────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .feedback,

@@ -43,6 +43,14 @@ export const S = {
   showRomaji: 'Show romaji',
   romajiShown: 'Romaji shown: the best this rep can earn is Hard.',
 
+  /* ── first-contact cards (TeachOnce, design 08 §11) ──────────────────── */
+  teachMoraeTitle: 'Japanese is made of beats.',
+  teachMoraeBody: 'Each beat is called a mora, and each kana you hear is one beat: short, even, like taps on a drum. A small ya, yu or yo rides inside the beat before it. Count the beats, then tap the kana.',
+  teachHeldTitle: 'A held sound is a beat too.',
+  teachHeldBody: 'A long vowel holds for one extra beat. A small tsu is one silent beat before the next sound. One beat more or less is a different word, so count the held ones.',
+  oneBeat: '1 beat',
+  nBeats: '{n} beats',
+
   /* ── Gojūon Fighter ──────────────────────────────────────────────────── */
   gojuonTitle: 'Gojūon Fighter',
   gojuonIntro: '{n} kana glide in from the right. Type each one before it lands.',
@@ -72,6 +80,30 @@ export const S = {
   seconds: '{s} s',
   gojuonReduced: 'Reduced motion: the bar shrinks instead of the kana gliding.',
 } as const;
+
+/** One example row of a first-contact card: kana, its romaji, the English gloss and its beat count. */
+export interface TeachExample {
+  kana: string;
+  romaji: string;
+  en: string;
+  beats: number;
+}
+
+/** Examples under the Station 1 card: one kana = one beat, a glide rides inside its beat. */
+export const MORAE_EXAMPLES: readonly TeachExample[] = [
+  { kana: 'た', romaji: 'ta', en: 'one kana', beats: 1 },
+  { kana: 'きゃ', romaji: 'kya', en: 'kana + small ya', beats: 1 },
+  { kana: 'ねこ', romaji: 'neko', en: 'cat', beats: 2 },
+  { kana: 'さくら', romaji: 'sakura', en: 'cherry blossom', beats: 3 },
+];
+
+/** Examples under the Station 2 card: a held vowel or a small っ adds a beat and changes the word. */
+export const HELD_EXAMPLES: readonly TeachExample[] = [
+  { kana: 'おばさん', romaji: 'obasan', en: 'aunt', beats: 4 },
+  { kana: 'おばあさん', romaji: 'obaasan', en: 'grandmother', beats: 5 },
+  { kana: 'きて', romaji: 'kite', en: 'come', beats: 2 },
+  { kana: 'きって', romaji: 'kitte', en: 'stamp', beats: 3 },
+];
 
 /** Kana row → the row's Japanese name (opponent label). Keyed by `KanaItem.row`. */
 export const ROW_JA: Record<string, string> = {

@@ -1,0 +1,1518 @@
+{
+  "schema": "tsuzuku.content/1",
+  "type": "story",
+  "level": "n5",
+  "writer": "listening-s06",
+  "generatedAt": "2026-10-17T00:00:00Z",
+  "items": [
+    {
+      "id": "s-06-4",
+      "stationId": "st-06",
+      "titleJa": "{魚|さかな}の{山本|やまもと}です",
+      "titleEn": "Yamamoto, the fish seller",
+      "kind": "story",
+      "register": "polite",
+      "genre": "self-intro",
+      "audioFirst": true,
+      "narrator": "山本さん",
+      "names": [
+        "山本",
+        "藤沢",
+        "江の島"
+      ],
+      "lines": [
+        {
+          "ja": "ケンさん、ハナさん、こんにちは。",
+          "kana": "ケンさん、ハナさん、こんにちは。",
+          "en": "Ken, Hana, hello.",
+          "tokens": [
+            "ケンさん",
+            "、",
+            "ハナさん",
+            "、",
+            "こんにちは",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            null,
+            null,
+            null,
+            "v-n5-0006",
+            null
+          ]
+        },
+        {
+          "ja": "{山本|やまもと}です。よろしくお{願|ねが}いします。",
+          "kana": "やまもとです。よろしくおねがいします。",
+          "en": "I'm Yamamoto. I look forward to working with you.",
+          "tokens": [
+            "山本",
+            "です",
+            "。",
+            "よろしくお願いします",
+            "。"
+          ],
+          "emotion": "warm",
+          "tokenIds": [
+            null,
+            "v-n5-0132",
+            null,
+            "v-n5-0018",
+            null
+          ]
+        },
+        {
+          "ja": "{藤沢|ふじさわ}の{人|ひと}です。{家|いえ}は{海|うみ}の{前|まえ}です。",
+          "kana": "ふじさわのひとです。いえはうみのまえです。",
+          "en": "I'm from Fujisawa. My house is right by the sea.",
+          "tokens": [
+            "藤沢",
+            "の",
+            "人",
+            "です",
+            "。",
+            "家",
+            "は",
+            "海",
+            "の",
+            "前",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0549"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            "v-n5-0066",
+            "v-n5-0132",
+            null,
+            "v-n5-0145",
+            "v-n5-0118",
+            "v-n5-0549",
+            "v-n5-0126",
+            "v-n5-0152",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{家族|かぞく}は、{八十歳|はちじゅっさい}の{母|はは}と{私|わたし}です。",
+          "kana": "かぞくは、はちじゅっさいのははとわたしです。",
+          "en": "My family is my eighty-year-old mother and me.",
+          "tokens": [
+            "家族",
+            "は",
+            "、",
+            "八十歳",
+            "の",
+            "母",
+            "と",
+            "私",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0077",
+            "v-n5-0118",
+            null,
+            "v-n5-0116",
+            "v-n5-0126",
+            "v-n5-0082",
+            "v-n5-0124",
+            "v-n5-0041",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{毎日|まいにち}、ここで{白|しろ}い{魚|さかな}を{売|う}りますよ。",
+          "kana": "まいにち、ここでしろいさかなをうりますよ。",
+          "en": "Every day I sell little white fish here.",
+          "tokens": [
+            "毎日",
+            "、",
+            "ここ",
+            "で",
+            "白い",
+            "魚",
+            "を",
+            "売ります",
+            "よ",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0412"
+          ],
+          "tokenIds": [
+            "v-n5-0140",
+            null,
+            "v-n5-0051",
+            "v-n5-0122",
+            "v-n5-0167",
+            "v-n5-0412",
+            "v-n5-0120",
+            "g-n5-017",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "{毎朝|まいあさ}、{五時|ごじ}に、ここから{海|うみ}へ{行|い}きます。",
+          "kana": "まいあさ、ごじに、ここからうみへいきます。",
+          "en": "Every morning at five, I go out to sea from here.",
+          "tokens": [
+            "毎朝",
+            "、",
+            "五時",
+            "に",
+            "、",
+            "ここ",
+            "から",
+            "海",
+            "へ",
+            "行きます",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0549"
+          ],
+          "tokenIds": [
+            "v-n5-0228",
+            null,
+            "v-n5-0154",
+            "v-n5-0121",
+            null,
+            "v-n5-0051",
+            "v-n5-0130",
+            "v-n5-0549",
+            "v-n5-0123",
+            "v-n5-0274",
+            null
+          ]
+        },
+        {
+          "ja": "{朝|あさ}は、{江|え}の{島|しま}の{前|まえ}で、{魚|さかな}を{取|と}ります。",
+          "kana": "あさは、えのしまのまえで、さかなをとります。",
+          "en": "In the morning I catch fish off Enoshima.",
+          "tokens": [
+            "朝",
+            "は",
+            "、",
+            "江の島",
+            "の",
+            "前",
+            "で",
+            "、",
+            "魚",
+            "を",
+            "取ります",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0412"
+          ],
+          "tokenIds": [
+            "v-n5-0141",
+            "v-n5-0118",
+            null,
+            null,
+            "v-n5-0126",
+            "v-n5-0152",
+            "v-n5-0122",
+            null,
+            "v-n5-0412",
+            "v-n5-0120",
+            "g-n5-017",
+            null
+          ]
+        },
+        {
+          "ja": "{七時|しちじ}に、ここへ{来|き}ます。{三時|さんじ}までですよ。",
+          "kana": "しちじに、ここへきます。さんじまでですよ。",
+          "en": "At seven I come back here. I'm here until three.",
+          "tokens": [
+            "七時",
+            "に",
+            "、",
+            "ここ",
+            "へ",
+            "来ます",
+            "。",
+            "三時",
+            "まで",
+            "です",
+            "よ",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0154",
+            "v-n5-0121",
+            null,
+            "v-n5-0051",
+            "v-n5-0123",
+            "v-n5-0275",
+            null,
+            "v-n5-0154",
+            "v-n5-0131",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "{三時|さんじ}から、{母|はは}と{家|いえ}にいます。",
+          "kana": "さんじから、ははといえにいます。",
+          "en": "From three, I'm at home with my mother.",
+          "tokens": [
+            "三時",
+            "から",
+            "、",
+            "母",
+            "と",
+            "家",
+            "に",
+            "います",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0154",
+            "v-n5-0130",
+            null,
+            "v-n5-0082",
+            "v-n5-0124",
+            "v-n5-0145",
+            "v-n5-0121",
+            "v-n5-0273",
+            null
+          ]
+        },
+        {
+          "ja": "{夜|よる}は、{家|いえ}で{本|ほん}を{読|よ}みます。{海|うみ}の{本|ほん}です。",
+          "kana": "よるは、いえでほんをよみます。うみのほんです。",
+          "en": "At night I read books at home. Books about the sea.",
+          "tokens": [
+            "夜",
+            "は",
+            "、",
+            "家",
+            "で",
+            "本",
+            "を",
+            "読みます",
+            "。",
+            "海",
+            "の",
+            "本",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0549"
+          ],
+          "tokenIds": [
+            "v-n5-0143",
+            "v-n5-0118",
+            null,
+            "v-n5-0145",
+            "v-n5-0122",
+            "v-n5-0099",
+            "v-n5-0120",
+            "v-n5-0281",
+            null,
+            "v-n5-0549",
+            "v-n5-0126",
+            "v-n5-0099",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{冬|ふゆ}は、{海|うみ}へ{行|い}きません。{三月|さんがつ}からです。",
+          "kana": "ふゆは、うみへいきません。さんがつからです。",
+          "en": "In winter I don't go out to sea. I start again in March.",
+          "tokens": [
+            "冬",
+            "は",
+            "、",
+            "海",
+            "へ",
+            "行きません",
+            "。",
+            "三月",
+            "から",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0549"
+          ],
+          "tokenIds": [
+            "v-n5-0227",
+            "v-n5-0118",
+            null,
+            "v-n5-0549",
+            "v-n5-0123",
+            "v-n5-0274",
+            null,
+            "v-n5-0214",
+            "v-n5-0130",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{今日|きょう}は、{朝|あさ}から、たくさん{取|と}りましたよ。",
+          "kana": "きょうは、あさから、たくさんとりましたよ。",
+          "en": "Today I caught a lot, right from the morning.",
+          "tokens": [
+            "今日",
+            "は",
+            "、",
+            "朝",
+            "から",
+            "、",
+            "たくさん",
+            "取りました",
+            "よ",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0673"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            "v-n5-0137",
+            "v-n5-0118",
+            null,
+            "v-n5-0141",
+            "v-n5-0130",
+            null,
+            "v-n5-0673",
+            "g-n5-017",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "{今日|きょう}は、{昼|ひる}に{何|なに}も{食|た}べませんでした。",
+          "kana": "きょうは、ひるになにもたべませんでした。",
+          "en": "Today I didn't eat anything at noon.",
+          "tokens": [
+            "今日",
+            "は",
+            "、",
+            "昼",
+            "に",
+            "何",
+            "も",
+            "食べませんでした",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0137",
+            "v-n5-0118",
+            null,
+            "v-n5-0142",
+            "v-n5-0121",
+            "v-n5-0054",
+            "v-n5-0125",
+            "v-n5-0277",
+            null
+          ]
+        },
+        {
+          "ja": "{明日|あした}から、ケンさんも{五時|ごじ}に{海|うみ}へ{行|い}きます。",
+          "kana": "あしたから、ケンさんもごじにうみへいきます。",
+          "en": "From tomorrow, Ken goes out to sea at five too.",
+          "tokens": [
+            "明日",
+            "から",
+            "、",
+            "ケンさん",
+            "も",
+            "五時",
+            "に",
+            "海",
+            "へ",
+            "行きます",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0549"
+          ],
+          "tokenIds": [
+            "v-n5-0138",
+            "v-n5-0130",
+            null,
+            null,
+            "v-n5-0125",
+            "v-n5-0154",
+            "v-n5-0121",
+            "v-n5-0549",
+            "v-n5-0123",
+            "v-n5-0274",
+            null
+          ]
+        },
+        {
+          "ja": "{七月|しちがつ}まで、{二人|ふたり}で{魚|さかな}を{売|う}ります。",
+          "kana": "しちがつまで、ふたりでさかなをうります。",
+          "en": "Until July, the two of us will sell fish.",
+          "tokens": [
+            "七月",
+            "まで",
+            "、",
+            "二人",
+            "で",
+            "魚",
+            "を",
+            "売ります",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0412"
+          ],
+          "tokenIds": [
+            "v-n5-0218",
+            "v-n5-0131",
+            null,
+            "v-n5-0096",
+            "v-n5-0122",
+            "v-n5-0412",
+            "v-n5-0120",
+            "g-n5-017",
+            null
+          ]
+        },
+        {
+          "ja": "ハナさんは？{毎朝|まいあさ}、{何|なに}をしますか。",
+          "kana": "ハナさんは？まいあさ、なにをしますか。",
+          "en": "And you, Hana? What do you do every morning?",
+          "tokens": [
+            "ハナさん",
+            "は",
+            "？",
+            "毎朝",
+            "、",
+            "何",
+            "を",
+            "します",
+            "か",
+            "。"
+          ],
+          "emotion": "warm",
+          "tokenIds": [
+            null,
+            "v-n5-0118",
+            null,
+            "v-n5-0228",
+            null,
+            "v-n5-0054",
+            "v-n5-0120",
+            "v-n5-0271",
+            "v-n5-0127",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0006",
+        "v-n5-0132",
+        "v-n5-0018",
+        "v-n5-0126",
+        "v-n5-0066",
+        "v-n5-0145",
+        "v-n5-0118",
+        "v-n5-0549",
+        "v-n5-0152",
+        "v-n5-0077",
+        "v-n5-0116",
+        "v-n5-0082",
+        "v-n5-0124",
+        "v-n5-0041",
+        "v-n5-0140",
+        "v-n5-0051",
+        "v-n5-0122",
+        "v-n5-0167",
+        "v-n5-0412",
+        "v-n5-0120",
+        "v-n5-0129",
+        "v-n5-0228",
+        "v-n5-0154",
+        "v-n5-0121",
+        "v-n5-0130",
+        "v-n5-0123",
+        "v-n5-0274",
+        "v-n5-0141",
+        "v-n5-0275",
+        "v-n5-0131",
+        "v-n5-0273",
+        "v-n5-0143",
+        "v-n5-0099",
+        "v-n5-0281",
+        "v-n5-0227",
+        "v-n5-0214",
+        "v-n5-0137",
+        "v-n5-0673",
+        "v-n5-0142",
+        "v-n5-0054",
+        "v-n5-0125",
+        "v-n5-0277",
+        "v-n5-0138",
+        "v-n5-0218",
+        "v-n5-0096",
+        "v-n5-0271",
+        "v-n5-0127"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-009",
+        "g-n5-010",
+        "g-n5-011",
+        "g-n5-016",
+        "g-n5-017",
+        "g-n5-018",
+        "g-n5-019",
+        "g-n5-020",
+        "g-n5-021",
+        "g-n5-022"
+      ],
+      "comprehension": [
+        {
+          "q": "What is Yamamoto-san doing?",
+          "choices": [
+            "Introducing herself and her daily work at the fish shack",
+            "Asking Hana the way to Enoshima",
+            "Buying fish from Ken",
+            "Ordering dinner at the inn"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "What time does Yamamoto-san go out to sea every morning?",
+          "choices": [
+            "3:00",
+            "5:00",
+            "7:00",
+            "4:00"
+          ],
+          "answer": 1,
+          "kind": "number",
+          "lineRef": 5
+        },
+        {
+          "q": "What did Yamamoto-san not do today?",
+          "choices": [
+            "Go out to sea",
+            "Sell fish",
+            "Come to the shack",
+            "Eat anything at noon"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 12
+        },
+        {
+          "q": "Who does Yamamoto-san live with?",
+          "choices": [
+            "Her father",
+            "Her younger sister",
+            "Her eighty-year-old mother",
+            "Ken"
+          ],
+          "answer": 2,
+          "kind": "detail",
+          "lineRef": 3
+        },
+        {
+          "q": "What happens from tomorrow?",
+          "choices": [
+            "Ken goes out to sea with her at five",
+            "The shack closes for the winter",
+            "Hana sells fish at the shack",
+            "Her mother comes to the sea"
+          ],
+          "answer": 0,
+          "kind": "detail",
+          "lineRef": 13
+        }
+      ],
+      "recapEn": "In the afternoon at her shack near Enoshima, Yamamoto-san introduces herself to Ken and Hana: a Fujisawa local who lives with her eighty-year-old mother, sells whitebait here every day, goes out to sea at five, comes back at seven and sells until three. Today she caught a lot and skipped lunch. From tomorrow Ken goes out at five too."
+    },
+    {
+      "id": "s-06-5",
+      "stationId": "st-06",
+      "titleJa": "{白|しろ}い{魚|さかな}と{冷|つめ}たいお{茶|ちゃ}",
+      "titleEn": "White fish and cold tea",
+      "kind": "dialogue",
+      "register": "polite",
+      "genre": "exchange",
+      "audioFirst": true,
+      "learnerSpeaker": "ハナ",
+      "names": [
+        "江の島"
+      ],
+      "lines": [
+        {
+          "speaker": "山本さん",
+          "ja": "こんにちは、ハナさん。{今日|きょう}も、ここへ{来|き}ましたね。",
+          "kana": "こんにちは、ハナさん。きょうも、ここへきましたね。",
+          "en": "Hello, Hana. You came here again today.",
+          "tokens": [
+            "こんにちは",
+            "、",
+            "ハナさん",
+            "。",
+            "今日",
+            "も",
+            "、",
+            "ここ",
+            "へ",
+            "来ました",
+            "ね",
+            "。"
+          ],
+          "emotion": "warm",
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0006",
+            null,
+            null,
+            null,
+            "v-n5-0137",
+            "v-n5-0125",
+            null,
+            "v-n5-0051",
+            "v-n5-0123",
+            "v-n5-0275",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "こんにちは。{白|しろ}い{魚|さかな}は、ありますか。",
+          "kana": "こんにちは。しろいさかなは、ありますか。",
+          "en": "Hello. Do you have the little white fish?",
+          "tokens": [
+            "こんにちは",
+            "。",
+            "白い",
+            "魚",
+            "は",
+            "、",
+            "あります",
+            "か",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0412"
+          ],
+          "options": [
+            {
+              "text": "こんにちは。白い魚は、ありますか。",
+              "kind": "best"
+            },
+            {
+              "text": "すみません、白い魚はありますか。",
+              "kind": "ok",
+              "recast": "こんにちは。白い魚は、ありますか。"
+            },
+            {
+              "text": "白い魚、ある？",
+              "kind": "register-wrong",
+              "recast": "白い魚は、ありますか。"
+            },
+            {
+              "text": "白い魚は、ありますですか。",
+              "kind": "grammar-wrong",
+              "recast": "白い魚は、ありますか。"
+            }
+          ],
+          "accept": [
+            "白い魚はありますか。",
+            "こんにちは。白い魚はありますか。"
+          ],
+          "mustInclude": [
+            "白い魚",
+            "あります"
+          ],
+          "tokenIds": [
+            "v-n5-0006",
+            null,
+            "v-n5-0167",
+            "v-n5-0412",
+            "v-n5-0118",
+            null,
+            "v-n5-0272",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "山本さん",
+          "ja": "はい、ありますよ。{今朝|けさ}の{白|しろ}い{魚|さかな}ですよ。",
+          "kana": "はい、ありますよ。けさのしろいさかなですよ。",
+          "en": "Yes, I do. This morning's white fish.",
+          "tokens": [
+            "はい",
+            "、",
+            "あります",
+            "よ",
+            "。",
+            "今朝",
+            "の",
+            "白い",
+            "魚",
+            "です",
+            "よ",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0412"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0272",
+            "v-n5-0129",
+            null,
+            "v-n5-0236",
+            "v-n5-0126",
+            "v-n5-0167",
+            "v-n5-0412",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "そうですか。それは、{一|ひと}つ、いくらですか。",
+          "kana": "そうですか。それは、ひとつ、いくらですか。",
+          "en": "I see. How much is one of those?",
+          "tokens": [
+            "そうですか",
+            "。",
+            "それ",
+            "は",
+            "、",
+            "一つ",
+            "、",
+            "いくら",
+            "です",
+            "か",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "そうですか。それは、一つ、いくらですか。",
+              "kind": "best"
+            },
+            {
+              "text": "一つ、いくらですか。",
+              "kind": "ok",
+              "recast": "そうですか。それは、一つ、いくらですか。"
+            },
+            {
+              "text": "それ、一つ、いくら？",
+              "kind": "register-wrong",
+              "recast": "それは、一つ、いくらですか。"
+            },
+            {
+              "text": "それは、一つ、いくらでしたか。",
+              "kind": "grammar-wrong",
+              "recast": "それは、一つ、いくらですか。"
+            }
+          ],
+          "accept": [
+            "一つ、いくらですか。",
+            "それは一つ、いくらですか。"
+          ],
+          "mustInclude": [
+            "一つ",
+            "いくら"
+          ],
+          "tokenIds": [
+            "v-n5-0030",
+            null,
+            "v-n5-0046",
+            "v-n5-0118",
+            null,
+            "v-n5-0111",
+            null,
+            "v-n5-0061",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "山本さん",
+          "ja": "{今日|きょう}は、{一|ひと}つ{三百円|さんびゃくえん}ですよ。",
+          "kana": "きょうは、ひとつさんびゃくえんですよ。",
+          "en": "Today it's three hundred yen each.",
+          "tokens": [
+            "今日",
+            "は",
+            "、",
+            "一つ",
+            "三百円",
+            "です",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0137",
+            "v-n5-0118",
+            null,
+            "v-n5-0111",
+            "v-n5-0115",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{三百円|さんびゃくえん}ですか。{二|ふた}つ、お{願|ねが}いします。",
+          "kana": "さんびゃくえんですか。ふたつ、おねがいします。",
+          "en": "Three hundred yen? Two, please.",
+          "tokens": [
+            "三百円",
+            "です",
+            "か",
+            "。",
+            "二つ",
+            "、",
+            "お願いします",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "三百円ですか。二つ、お願いします。",
+              "kind": "best"
+            },
+            {
+              "text": "二つ、お願いします。",
+              "kind": "ok",
+              "recast": "三百円ですか。二つ、お願いします。"
+            },
+            {
+              "text": "三百円？二つ、お願い。",
+              "kind": "register-wrong",
+              "recast": "三百円ですか。二つ、お願いします。"
+            },
+            {
+              "text": "三百円ですか。二人、お願いします。",
+              "kind": "grammar-wrong",
+              "recast": "三百円ですか。二つ、お願いします。"
+            }
+          ],
+          "accept": [
+            "二つ、お願いします。",
+            "三百円ですね。二つ、お願いします。"
+          ],
+          "mustInclude": [
+            "二つ",
+            "お願いします"
+          ],
+          "tokenIds": [
+            "v-n5-0115",
+            "v-n5-0132",
+            "v-n5-0127",
+            null,
+            "v-n5-0111",
+            null,
+            "v-n5-0019",
+            null
+          ]
+        },
+        {
+          "speaker": "山本さん",
+          "ja": "はい、{二|ふた}つですね。{六百円|ろっぴゃくえん}です。",
+          "kana": "はい、ふたつですね。ろっぴゃくえんです。",
+          "en": "Right, two. That's six hundred yen.",
+          "tokens": [
+            "はい",
+            "、",
+            "二つ",
+            "です",
+            "ね",
+            "。",
+            "六百円",
+            "です",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0111",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0115",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "すみません、お{茶|ちゃ}も、ありますか。",
+          "kana": "すみません、おちゃも、ありますか。",
+          "en": "Excuse me, do you have tea as well?",
+          "tokens": [
+            "すみません",
+            "、",
+            "お茶",
+            "も",
+            "、",
+            "あります",
+            "か",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0408"
+          ],
+          "options": [
+            {
+              "text": "すみません、お茶も、ありますか。",
+              "kind": "best"
+            },
+            {
+              "text": "お茶もありますか。",
+              "kind": "ok",
+              "recast": "すみません、お茶も、ありますか。"
+            },
+            {
+              "text": "お茶も、ある？",
+              "kind": "register-wrong",
+              "recast": "お茶も、ありますか。"
+            },
+            {
+              "text": "すみません、お茶を、ありますか。",
+              "kind": "grammar-wrong",
+              "recast": "すみません、お茶も、ありますか。"
+            }
+          ],
+          "accept": [
+            "お茶もありますか。",
+            "すみません、お茶もありますか。"
+          ],
+          "mustInclude": [
+            "お茶",
+            "あります"
+          ],
+          "tokenIds": [
+            "v-n5-0013",
+            null,
+            "v-n5-0408",
+            "v-n5-0125",
+            null,
+            "v-n5-0272",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "山本さん",
+          "ja": "はい、ありますよ。{一本|いっぽん}、{百円|ひゃくえん}ですよ。",
+          "kana": "はい、ありますよ。いっぽん、ひゃくえんですよ。",
+          "en": "Yes, I do. A hundred yen a bottle.",
+          "tokens": [
+            "はい",
+            "、",
+            "あります",
+            "よ",
+            "。",
+            "一本",
+            "、",
+            "百円",
+            "です",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0272",
+            "v-n5-0129",
+            null,
+            "v-n5-0114",
+            null,
+            "v-n5-0115",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{冷|つめ}たいのを、{二本|にほん}、お{願|ねが}いします。",
+          "kana": "つめたいのを、にほん、おねがいします。",
+          "en": "Two cold ones, please.",
+          "tokens": [
+            "冷たい",
+            "の",
+            "を",
+            "、",
+            "二本",
+            "、",
+            "お願いします",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0361"
+          ],
+          "options": [
+            {
+              "text": "冷たいのを、二本、お願いします。",
+              "kind": "best"
+            },
+            {
+              "text": "冷たいの、二本お願いします。",
+              "kind": "ok",
+              "recast": "冷たいのを、二本、お願いします。"
+            },
+            {
+              "text": "冷たいの、二本ね。",
+              "kind": "register-wrong",
+              "recast": "冷たいのを、二本、お願いします。"
+            },
+            {
+              "text": "冷たいを、二本、お願いします。",
+              "kind": "grammar-wrong",
+              "recast": "冷たいのを、二本、お願いします。"
+            }
+          ],
+          "accept": [
+            "冷たいのを二本お願いします。",
+            "冷たいお茶を二本、お願いします。"
+          ],
+          "mustInclude": [
+            "冷たい",
+            "二本"
+          ],
+          "tokenIds": [
+            "v-n5-0361",
+            "v-n5-0126",
+            "v-n5-0120",
+            null,
+            "v-n5-0114",
+            null,
+            "v-n5-0019",
+            null
+          ]
+        },
+        {
+          "speaker": "山本さん",
+          "ja": "はい。{二|ふた}つと{二本|にほん}で、{八百円|はっぴゃくえん}ですよ。",
+          "kana": "はい。ふたつとにほんで、はっぴゃくえんですよ。",
+          "en": "Right. Two packs and two bottles, eight hundred yen.",
+          "tokens": [
+            "はい",
+            "。",
+            "二つ",
+            "と",
+            "二本",
+            "で",
+            "、",
+            "八百円",
+            "です",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0111",
+            "v-n5-0124",
+            "v-n5-0114",
+            "v-n5-0122",
+            null,
+            "v-n5-0115",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "はい。この{魚|さかな}は、どこで{取|と}りましたか。",
+          "kana": "はい。このさかなは、どこでとりましたか。",
+          "en": "Here you are. Where did you catch these fish?",
+          "tokens": [
+            "はい",
+            "。",
+            "この",
+            "魚",
+            "は",
+            "、",
+            "どこ",
+            "で",
+            "取りました",
+            "か",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0412"
+          ],
+          "options": [
+            {
+              "text": "はい。この魚は、どこで取りましたか。",
+              "kind": "best"
+            },
+            {
+              "text": "この魚は、どこのですか。",
+              "kind": "ok",
+              "recast": "この魚は、どこで取りましたか。"
+            },
+            {
+              "text": "この魚、どこで取った？",
+              "kind": "register-wrong",
+              "recast": "この魚は、どこで取りましたか。"
+            },
+            {
+              "text": "この魚は、どこに取りましたか。",
+              "kind": "grammar-wrong",
+              "recast": "この魚は、どこで取りましたか。"
+            }
+          ],
+          "accept": [
+            "この魚はどこで取りましたか。",
+            "どこで取りましたか。"
+          ],
+          "mustInclude": [
+            "どこで",
+            "取りました"
+          ],
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0048",
+            "v-n5-0412",
+            "v-n5-0118",
+            null,
+            "v-n5-0056",
+            "v-n5-0122",
+            "g-n5-017",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "山本さん",
+          "ja": "{江|え}の{島|しま}の{前|まえ}です。ケンさんと{取|と}りましたよ。",
+          "kana": "えのしまのまえです。ケンさんととりましたよ。",
+          "en": "Off Enoshima. I caught them with Ken.",
+          "tokens": [
+            "江の島",
+            "の",
+            "前",
+            "です",
+            "。",
+            "ケンさん",
+            "と",
+            "取りました",
+            "よ",
+            "。"
+          ],
+          "emotion": "glad",
+          "aizuchiSlot": true,
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            "v-n5-0152",
+            "v-n5-0132",
+            null,
+            null,
+            "v-n5-0124",
+            "g-n5-017",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "そうですか。お{茶|ちゃ}は、ケンのです。",
+          "kana": "そうですか。おちゃは、ケンのです。",
+          "en": "I see. The tea is for Ken.",
+          "tokens": [
+            "そうですか",
+            "。",
+            "お茶",
+            "は",
+            "、",
+            "ケン",
+            "の",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0408"
+          ],
+          "emotion": "warm",
+          "options": [
+            {
+              "text": "そうですか。お茶は、ケンのです。",
+              "kind": "best"
+            },
+            {
+              "text": "お茶はケンのです。",
+              "kind": "ok",
+              "recast": "そうですか。お茶は、ケンのです。"
+            },
+            {
+              "text": "お茶、ケンの。",
+              "kind": "register-wrong",
+              "recast": "お茶は、ケンのです。"
+            },
+            {
+              "text": "そうですか。お茶は、ケンです。",
+              "kind": "grammar-wrong",
+              "recast": "そうですか。お茶は、ケンのです。"
+            }
+          ],
+          "accept": [
+            "お茶はケンのです。",
+            "そうですか。お茶はケンのです。"
+          ],
+          "mustInclude": [
+            "お茶",
+            "ケンの"
+          ],
+          "tokenIds": [
+            "v-n5-0030",
+            null,
+            "v-n5-0408",
+            "v-n5-0118",
+            null,
+            null,
+            "v-n5-0126",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "speaker": "山本さん",
+          "ja": "はい。ケンさんは、{明日|あした}も{五時|ごじ}に{来|き}ますよ。",
+          "kana": "はい。ケンさんは、あしたもごじにきますよ。",
+          "en": "Right. Ken comes at five again tomorrow.",
+          "tokens": [
+            "はい",
+            "。",
+            "ケンさん",
+            "は",
+            "、",
+            "明日",
+            "も",
+            "五時",
+            "に",
+            "来ます",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            null,
+            "v-n5-0118",
+            null,
+            "v-n5-0138",
+            "v-n5-0125",
+            "v-n5-0154",
+            "v-n5-0121",
+            "v-n5-0275",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "はい。ありがとうございます。{失礼|しつれい}します。",
+          "kana": "はい。ありがとうございます。しつれいします。",
+          "en": "Yes. Thank you very much. Goodbye.",
+          "tokens": [
+            "はい",
+            "。",
+            "ありがとうございます",
+            "。",
+            "失礼します",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "はい。ありがとうございます。失礼します。",
+              "kind": "best"
+            },
+            {
+              "text": "ありがとうございます。失礼します。",
+              "kind": "ok",
+              "recast": "はい。ありがとうございます。失礼します。"
+            },
+            {
+              "text": "ありがとう。じゃ、また。",
+              "kind": "register-wrong",
+              "recast": "ありがとうございます。失礼します。"
+            },
+            {
+              "text": "はい。ありがとうございますでした。失礼します。",
+              "kind": "grammar-wrong",
+              "recast": "はい。ありがとうございます。失礼します。"
+            }
+          ],
+          "accept": [
+            "ありがとうございます。失礼します。",
+            "はい。ありがとうございます。さようなら。"
+          ],
+          "mustInclude": [
+            "ありがとうございます"
+          ],
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0010",
+            null,
+            "v-n5-0028",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0006",
+        "v-n5-0137",
+        "v-n5-0125",
+        "v-n5-0051",
+        "v-n5-0123",
+        "v-n5-0275",
+        "v-n5-0128",
+        "v-n5-0167",
+        "v-n5-0412",
+        "v-n5-0118",
+        "v-n5-0272",
+        "v-n5-0127",
+        "v-n5-0001",
+        "v-n5-0129",
+        "v-n5-0236",
+        "v-n5-0126",
+        "v-n5-0132",
+        "v-n5-0030",
+        "v-n5-0046",
+        "v-n5-0111",
+        "v-n5-0061",
+        "v-n5-0115",
+        "v-n5-0019",
+        "v-n5-0013",
+        "v-n5-0408",
+        "v-n5-0114",
+        "v-n5-0361",
+        "v-n5-0120",
+        "v-n5-0124",
+        "v-n5-0122",
+        "v-n5-0048",
+        "v-n5-0056",
+        "v-n5-0152",
+        "v-n5-0138",
+        "v-n5-0154",
+        "v-n5-0121",
+        "v-n5-0010",
+        "v-n5-0028"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-005",
+        "g-n5-006",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-009",
+        "g-n5-010",
+        "g-n5-014",
+        "g-n5-016",
+        "g-n5-017",
+        "g-n5-018",
+        "g-n5-019",
+        "g-n5-020",
+        "g-n5-021",
+        "g-n5-022"
+      ],
+      "comprehension": [
+        {
+          "q": "What is this conversation about?",
+          "choices": [
+            "Hana buying fish and tea at the shack",
+            "Hana asking the way to Enoshima",
+            "Yamamoto-san introducing herself",
+            "Ken cooking dinner at the inn"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "How much is one pack of the fish today?",
+          "choices": [
+            "¥100",
+            "¥300",
+            "¥600",
+            "¥800"
+          ],
+          "answer": 1,
+          "kind": "number",
+          "lineRef": 4
+        },
+        {
+          "q": "What else does Hana buy besides the fish?",
+          "choices": [
+            "A handkerchief",
+            "Two notebooks",
+            "Two bottles of cold tea",
+            "An umbrella"
+          ],
+          "answer": 2,
+          "kind": "detail",
+          "lineRef": 9
+        },
+        {
+          "q": "Where were the fish caught?",
+          "choices": [
+            "In the river",
+            "At Yokohama",
+            "In the inn's kitchen",
+            "Off Enoshima"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 12
+        },
+        {
+          "q": "Who is the tea for?",
+          "choices": [
+            "Yamamoto-san",
+            "Ken",
+            "Hana's mother",
+            "Tanaka-san"
+          ],
+          "answer": 1,
+          "kind": "detail",
+          "lineRef": 13
+        }
+      ],
+      "recapEn": "At noon on Ken's first day, Hana comes to the shack by the sea and buys two packs of whitebait at three hundred yen each and two bottles of cold tea at a hundred yen each, eight hundred yen in all. Yamamoto-san caught the fish off Enoshima with Ken; the tea is for Ken, who comes at five again tomorrow."
+    }
+  ]
+}

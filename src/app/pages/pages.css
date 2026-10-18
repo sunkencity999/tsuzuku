@@ -241,6 +241,15 @@
   font-family: var(--font-mincho);
   font-size: var(--fs-4);
 }
+/* 茶屋ラジオ tile (design 08 §10.2): quiet, under the session buttons */
+.dojo__radio {
+  border-left: 4px solid var(--kin);
+}
+.dojo__radio-min {
+  margin: 0;
+  font-size: var(--fs-3);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ── Onboarding ─────────────────────────────────────────────────────── */
 .onb {
@@ -372,6 +381,57 @@
 .onb__stat-value {
   font-size: var(--fs-4);
 }
+/* Meet ハナ (design 08 §10.5): five vowels lit in time, then こんにちは with its gloss */
+.onb__gloss {
+  font-size: var(--fs-3);
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+.onb__meet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+}
+.onb__vowels {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.onb__vowel {
+  font-family: var(--font-ja);
+  font-size: var(--fs-7);
+  line-height: 1;
+  color: var(--fg-muted);
+  transition:
+    color var(--dur-1) var(--ease),
+    transform var(--dur-1) var(--ease);
+}
+.onb__vowel[data-lit="true"] {
+  color: var(--shu);
+  transform: translateY(-2px);
+}
+.onb__greeting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-1);
+  text-align: center;
+}
+.onb__greeting-ja {
+  font-family: var(--font-ja);
+  font-size: var(--fs-6);
+  line-height: 1.1;
+}
+.onb__greeting-en {
+  font-size: var(--fs-3);
+  color: var(--fg-muted);
+}
 .onb__guide {
   margin: 0;
   padding-left: 1.2em;
@@ -498,6 +558,82 @@
 .set__danger > h2 {
   color: var(--shu);
 }
+/* 音声パック voice pack card (design 08 §13): fits 390 px with no horizontal scroll */
+.set__pack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.set__pack-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-3);
+}
+.set__pack-title [lang="ja"] {
+  color: var(--shu);
+}
+.set__pack-explain {
+  margin: 0;
+}
+.set__pack-h4 {
+  margin: var(--sp-2) 0 0;
+  font-family: var(--font-pixel);
+  font-size: var(--fs-1);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.set__pack-belts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.set__pack-belt {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--sp-1) var(--sp-2);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+.set__pack-belt:last-child {
+  border-bottom: none;
+}
+.set__pack-belt-name {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: baseline;
+}
+.set__pack-belt-size {
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+  text-align: right;
+}
+.set__pack-belt .progress {
+  grid-column: 1 / -1;
+  height: 8px;
+}
+.set__pack-belt-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+}
+@media (min-width: 560px) {
+  .set__pack-belt {
+    grid-template-columns: 1fr auto auto;
+  }
+  .set__pack-belt-actions {
+    grid-column: auto;
+  }
+}
 
 /* ── Backup ─────────────────────────────────────────────────────────── */
 .bak__table {
@@ -619,10 +755,12 @@
 
 /* ── reduced motion ─────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .about__rule-n {
+  .about__rule-n,
+  .onb__vowel[data-lit="true"] {
     transform: none;
   }
 }
-.reduced-motion .about__rule-n {
+.reduced-motion .about__rule-n,
+.reduced-motion .onb__vowel[data-lit="true"] {
   transform: none;
 }

@@ -1,0 +1,1498 @@
+{
+  "schema": "tsuzuku.content/1",
+  "type": "story",
+  "level": "n5",
+  "writer": "listening-s08",
+  "generatedAt": "2026-10-17T00:00:00Z",
+  "items": [
+    {
+      "id": "s-08-4",
+      "stationId": "st-08",
+      "titleJa": "{海|うみ}からの{電話|でんわ}",
+      "titleEn": "A call from the beach",
+      "kind": "story",
+      "register": "polite",
+      "genre": "phone",
+      "audioFirst": true,
+      "narrator": "ケン",
+      "names": [
+        "大磯"
+      ],
+      "lines": [
+        {
+          "ja": "もしもし、ケンです。こんばんは。",
+          "kana": "もしもし、ケンです。こんばんは。",
+          "en": "Hello, this is Ken. Good evening.",
+          "tokens": [
+            "もしもし",
+            "、",
+            "ケン",
+            "です",
+            "。",
+            "こんばんは",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            null,
+            null,
+            null,
+            "v-n5-0132",
+            null,
+            "v-n5-0007",
+            null
+          ]
+        },
+        {
+          "ja": "はい。{今晩|こんばん}、そちらに{二人|ふたり}で{行|い}きます。",
+          "kana": "はい。こんばん、そちらにふたりでいきます。",
+          "en": "Yes. Two of us are coming to you tonight.",
+          "tokens": [
+            "はい",
+            "。",
+            "今晩",
+            "、",
+            "そちら",
+            "に",
+            "二人",
+            "で",
+            "行きます",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0234",
+            null,
+            "v-n5-0190",
+            "v-n5-0121",
+            "v-n5-0096",
+            "v-n5-0122",
+            "v-n5-0274",
+            null
+          ]
+        },
+        {
+          "ja": "{今|いま}、{大磯|おおいそ}の{海|うみ}にいます。ハナもいます。",
+          "kana": "いま、おおいそのうみにいます。ハナもいます。",
+          "en": "We're at the sea at Ōiso now. Hana is here too.",
+          "tokens": [
+            "今",
+            "、",
+            "大磯",
+            "の",
+            "海",
+            "に",
+            "います",
+            "。",
+            "ハナ",
+            "も",
+            "います",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0549"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0136",
+            null,
+            null,
+            "v-n5-0126",
+            "v-n5-0549",
+            "v-n5-0121",
+            "v-n5-0273",
+            null,
+            null,
+            "v-n5-0125",
+            "v-n5-0273",
+            null
+          ]
+        },
+        {
+          "ja": "{六時|ろくじ}ごろ{着|つ}きます。{海|うみ}から{歩|ある}きます。",
+          "kana": "ろくじごろつきます。うみからあるきます。",
+          "en": "We'll arrive around six. We're walking from the beach.",
+          "tokens": [
+            "六時",
+            "ごろ",
+            "着きます",
+            "。",
+            "海",
+            "から",
+            "歩きます",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0549"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0154",
+            "g-n5-015",
+            "v-n5-0305",
+            null,
+            "v-n5-0549",
+            "v-n5-0130",
+            "v-n5-0301",
+            null
+          ]
+        },
+        {
+          "ja": "{十分|じゅっぷん}ぐらいですね。{近|ちか}いですね。",
+          "kana": "じゅっぷんぐらいですね。ちかいですね。",
+          "en": "About ten minutes, right? That's close.",
+          "tokens": [
+            "十分",
+            "ぐらい",
+            "です",
+            "ね",
+            "。",
+            "近い",
+            "です",
+            "ね",
+            "。"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            "v-n5-0155",
+            null,
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0367",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "{晩|ばん}ご{飯|はん}は{七時|しちじ}ですね。はい、わかりました。",
+          "kana": "ばんごはんはしちじですね。はい、わかりました。",
+          "en": "Dinner is at seven, right? Yes, understood.",
+          "tokens": [
+            "晩ご飯",
+            "は",
+            "七時",
+            "です",
+            "ね",
+            "。",
+            "はい",
+            "、",
+            "わかりました",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0441"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            "v-n5-0441",
+            "v-n5-0118",
+            "v-n5-0154",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0001",
+            null,
+            "v-n5-0285",
+            null
+          ]
+        },
+        {
+          "ja": "お{風呂|ふろ}は{何時|なんじ}から{何時|なんじ}までですか。",
+          "kana": "おふろはなんじからなんじまでですか。",
+          "en": "From what time to what time is the bath open?",
+          "tokens": [
+            "お風呂",
+            "は",
+            "何時",
+            "から",
+            "何時",
+            "まで",
+            "です",
+            "か",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0233",
+            "v-n5-0118",
+            "v-n5-0175",
+            "v-n5-0130",
+            "v-n5-0175",
+            "v-n5-0131",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "{六時|ろくじ}から{十時|じゅうじ}までですね。わかりました。",
+          "kana": "ろくじからじゅうじまでですね。わかりました。",
+          "en": "From six to ten, right? Got it.",
+          "tokens": [
+            "六時",
+            "から",
+            "十時",
+            "まで",
+            "です",
+            "ね",
+            "。",
+            "わかりました",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0154",
+            "v-n5-0130",
+            "v-n5-0154",
+            "v-n5-0131",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0285",
+            null
+          ]
+        },
+        {
+          "ja": "{朝|あさ}は{六時|ろくじ}{半|はん}にお{願|ねが}いします。",
+          "kana": "あさはろくじはんにおねがいします。",
+          "en": "In the morning, half past six, please.",
+          "tokens": [
+            "朝",
+            "は",
+            "六時",
+            "半",
+            "に",
+            "お願いします",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0141",
+            "v-n5-0118",
+            "v-n5-0154",
+            "v-n5-0156",
+            "v-n5-0121",
+            "v-n5-0019",
+            null
+          ]
+        },
+        {
+          "ja": "はい、{部屋|へや}は{一|ひと}つです。{二人|ふたり}で{一|ひと}つです。",
+          "kana": "はい、へやはひとつです。ふたりでひとつです。",
+          "en": "Yes, one room. One for the two of us.",
+          "tokens": [
+            "はい",
+            "、",
+            "部屋",
+            "は",
+            "一つ",
+            "です",
+            "。",
+            "二人",
+            "で",
+            "一つ",
+            "です",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0147",
+            "v-n5-0118",
+            "v-n5-0111",
+            "v-n5-0132",
+            null,
+            "v-n5-0096",
+            "v-n5-0122",
+            "v-n5-0111",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{荷物|にもつ}ですか。{多|おお}くないです。{二|ふた}つだけです。",
+          "kana": "にもつですか。おおくないです。ふたつだけです。",
+          "en": "Luggage? Not much. Just two bags.",
+          "tokens": [
+            "荷物",
+            "です",
+            "か",
+            "。",
+            "多くない",
+            "です",
+            "。",
+            "二つ",
+            "だけ",
+            "です",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0239",
+            "v-n5-0132",
+            "v-n5-0127",
+            null,
+            "v-n5-0371",
+            "v-n5-0132",
+            null,
+            "v-n5-0111",
+            null,
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、{暑|あつ}いです。{人|ひと}は{少|すく}ないですよ。",
+          "kana": "ええ、あついです。ひとはすくないですよ。",
+          "en": "Yes, it's hot. There aren't many people, though.",
+          "tokens": [
+            "ええ",
+            "、",
+            "暑い",
+            "です",
+            "。",
+            "人",
+            "は",
+            "少ない",
+            "です",
+            "よ",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0358",
+            "v-n5-0132",
+            null,
+            "v-n5-0066",
+            "v-n5-0118",
+            "v-n5-0372",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、{静|しず}かです。いい{海|うみ}ですよ。",
+          "kana": "ええ、しずかです。いいうみですよ。",
+          "en": "Yes, it's quiet. It's a lovely beach.",
+          "tokens": [
+            "ええ",
+            "、",
+            "静か",
+            "です",
+            "。",
+            "いい",
+            "海",
+            "です",
+            "よ",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0549"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0386",
+            "v-n5-0132",
+            null,
+            "v-n5-0356",
+            "v-n5-0549",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "タオルは{要|い}りません。ありがとうございます。",
+          "kana": "タオルはいりません。ありがとうございます。",
+          "en": "We don't need towels. Thank you.",
+          "tokens": [
+            "タオル",
+            "は",
+            "要りません",
+            "。",
+            "ありがとうございます",
+            "。"
+          ],
+          "plusOne": [
+            "v-n4-0460"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n4-0460",
+            "v-n5-0118",
+            "v-n5-0335",
+            null,
+            "v-n5-0010",
+            null
+          ]
+        },
+        {
+          "ja": "はい。では、{六時|ろくじ}に{行|い}きます。",
+          "kana": "はい。では、ろくじにいきます。",
+          "en": "Yes. Well then, we'll be there at six.",
+          "tokens": [
+            "はい",
+            "。",
+            "では",
+            "、",
+            "六時",
+            "に",
+            "行きます",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            null,
+            null,
+            "v-n5-0154",
+            "v-n5-0121",
+            "v-n5-0274",
+            null
+          ]
+        },
+        {
+          "ja": "よろしくお{願|ねが}いします。{失礼|しつれい}します。",
+          "kana": "よろしくおねがいします。しつれいします。",
+          "en": "Thank you in advance. Goodbye.",
+          "tokens": [
+            "よろしくお願いします",
+            "。",
+            "失礼します",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0018",
+            null,
+            "v-n5-0028",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n4-0460",
+        "v-n5-0001",
+        "v-n5-0002",
+        "v-n5-0003",
+        "v-n5-0007",
+        "v-n5-0010",
+        "v-n5-0018",
+        "v-n5-0019",
+        "v-n5-0028",
+        "v-n5-0066",
+        "v-n5-0096",
+        "v-n5-0111",
+        "v-n5-0118",
+        "v-n5-0121",
+        "v-n5-0122",
+        "v-n5-0125",
+        "v-n5-0126",
+        "v-n5-0127",
+        "v-n5-0128",
+        "v-n5-0129",
+        "v-n5-0130",
+        "v-n5-0131",
+        "v-n5-0132",
+        "v-n5-0136",
+        "v-n5-0141",
+        "v-n5-0147",
+        "v-n5-0154",
+        "v-n5-0155",
+        "v-n5-0156",
+        "v-n5-0175",
+        "v-n5-0190",
+        "v-n5-0233",
+        "v-n5-0234",
+        "v-n5-0239",
+        "v-n5-0272",
+        "v-n5-0273",
+        "v-n5-0274",
+        "v-n5-0285",
+        "v-n5-0301",
+        "v-n5-0305",
+        "v-n5-0335",
+        "v-n5-0356",
+        "v-n5-0358",
+        "v-n5-0367",
+        "v-n5-0371",
+        "v-n5-0372",
+        "v-n5-0386",
+        "v-n5-0441",
+        "v-n5-0549"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-010",
+        "g-n5-011",
+        "g-n5-015",
+        "g-n5-017",
+        "g-n5-020",
+        "g-n5-021",
+        "g-n5-024",
+        "g-n5-025",
+        "g-n5-026",
+        "g-n5-031",
+        "g-n5-032",
+        "g-n5-034",
+        "g-n5-035",
+        "g-n5-036",
+        "g-n5-038"
+      ],
+      "comprehension": [
+        {
+          "q": "What is Ken doing in this call?",
+          "choices": [
+            "Telling tonight's inn where they are and when they will arrive",
+            "Ordering dinner at a beach restaurant",
+            "Asking Hana where the cat is",
+            "Buying tickets for a boat"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "What time is dinner at the inn?",
+          "choices": [
+            "6:00",
+            "7:00",
+            "10:00",
+            "1:00"
+          ],
+          "answer": 1,
+          "kind": "number",
+          "lineRef": 5
+        },
+        {
+          "q": "Who is with Ken at the beach?",
+          "choices": [
+            "Tanaka-san",
+            "Katō-san",
+            "Hana",
+            "Nobody"
+          ],
+          "answer": 2,
+          "kind": "detail",
+          "lineRef": 2
+        },
+        {
+          "q": "Until what time is the bath open?",
+          "choices": [
+            "6:00",
+            "6:30",
+            "7:00",
+            "10:00"
+          ],
+          "answer": 3,
+          "kind": "number",
+          "lineRef": 7
+        },
+        {
+          "q": "What does Ken say about the beach?",
+          "choices": [
+            "It is crowded and noisy",
+            "It is cold",
+            "It is hot, but there are few people",
+            "It is raining"
+          ],
+          "answer": 2,
+          "kind": "detail",
+          "lineRef": 11
+        }
+      ],
+      "recapEn": "Ken phones tonight's inn at Ōiso from the beach: he and Hana are two, one room, arriving around six after a ten-minute walk from the sea. Dinner is at seven, the bath runs from six to ten, the morning meal at half past six, and they carry only two bags. The beach is hot but quiet."
+    },
+    {
+      "id": "s-08-5",
+      "stationId": "st-08",
+      "titleJa": "{加藤|かとう}さんの{玄関|げんかん}で",
+      "titleEn": "At Katō-san's door",
+      "kind": "dialogue",
+      "register": "polite",
+      "genre": "exchange",
+      "audioFirst": true,
+      "learnerSpeaker": "ハナ",
+      "names": [
+        "加藤さん"
+      ],
+      "lines": [
+        {
+          "speaker": "ハナ",
+          "ja": "こんばんは。ここは{加藤|かとう}さんのうちですか。",
+          "kana": "こんばんは。ここはかとうさんのうちですか。",
+          "en": "Good evening. Is this your place, Katō-san?",
+          "tokens": [
+            "こんばんは",
+            "。",
+            "ここ",
+            "は",
+            "加藤さん",
+            "の",
+            "うち",
+            "です",
+            "か",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "こんばんは。ここは加藤さんのうちですか。",
+              "kind": "best"
+            },
+            {
+              "text": "こんばんは。加藤さんのうちですか。",
+              "kind": "ok",
+              "recast": "こんばんは。ここは加藤さんのうちですか。"
+            },
+            {
+              "text": "こんばんは。ここ、加藤さんのうち？",
+              "kind": "register-wrong",
+              "recast": "こんばんは。ここは加藤さんのうちですか。"
+            },
+            {
+              "text": "こんばんは。ここは加藤さんうちですか。",
+              "kind": "grammar-wrong",
+              "recast": "こんばんは。ここは加藤さんのうちですか。"
+            }
+          ],
+          "mustInclude": [
+            "加藤さん",
+            "うち"
+          ],
+          "accept": [
+            "こんばんは。加藤さんのうちですか。",
+            "こんばんは。ここは加藤さんの家ですか。"
+          ],
+          "tokenIds": [
+            "v-n5-0007",
+            null,
+            "v-n5-0051",
+            "v-n5-0118",
+            null,
+            "v-n5-0126",
+            "v-n5-0146",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "加藤さん",
+          "ja": "ええ、そうですよ。{今晩|こんばん}は{二人|ふたり}だけです。",
+          "kana": "ええ、そうですよ。こんばんはふたりだけです。",
+          "en": "Yes, that's right. Tonight it's just the two of you.",
+          "tokens": [
+            "ええ",
+            "、",
+            "そう",
+            "です",
+            "よ",
+            "。",
+            "今晩",
+            "は",
+            "二人",
+            "だけ",
+            "です",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            null,
+            "v-n5-0132",
+            "v-n5-0129",
+            null,
+            "v-n5-0234",
+            "v-n5-0118",
+            "v-n5-0096",
+            null,
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "お{風呂|ふろ}はありますか。{何時|なんじ}からですか。",
+          "kana": "おふろはありますか。なんじからですか。",
+          "en": "Is there a bath? From what time?",
+          "tokens": [
+            "お風呂",
+            "は",
+            "あります",
+            "か",
+            "。",
+            "何時",
+            "から",
+            "です",
+            "か",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "お風呂は何時からですか。",
+              "kind": "ok",
+              "recast": "お風呂はありますか。何時からですか。"
+            },
+            {
+              "text": "お風呂はありますか。何時からですか。",
+              "kind": "best"
+            },
+            {
+              "text": "お風呂、ある？何時から？",
+              "kind": "register-wrong",
+              "recast": "お風呂はありますか。何時からですか。"
+            },
+            {
+              "text": "お風呂はいますか。何時からですか。",
+              "kind": "grammar-wrong",
+              "recast": "お風呂はありますか。何時からですか。"
+            }
+          ],
+          "mustInclude": [
+            "お風呂",
+            "何時"
+          ],
+          "accept": [
+            "お風呂は何時からですか。",
+            "お風呂はどこですか。何時からですか。"
+          ],
+          "tokenIds": [
+            "v-n5-0233",
+            "v-n5-0118",
+            "v-n5-0272",
+            "v-n5-0127",
+            null,
+            "v-n5-0175",
+            "v-n5-0130",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "加藤さん",
+          "ja": "{外|そと}にありますよ。{六時|ろくじ}から{十時|じゅうじ}までです。",
+          "kana": "そとにありますよ。ろくじからじゅうじまでです。",
+          "en": "It's outside. From six to ten.",
+          "tokens": [
+            "外",
+            "に",
+            "あります",
+            "よ",
+            "。",
+            "六時",
+            "から",
+            "十時",
+            "まで",
+            "です",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0151",
+            "v-n5-0121",
+            "v-n5-0272",
+            "v-n5-0129",
+            null,
+            "v-n5-0154",
+            "v-n5-0130",
+            "v-n5-0154",
+            "v-n5-0131",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "タオルはありますか。{部屋|へや}にはありません。",
+          "kana": "タオルはありますか。へやにはありません。",
+          "en": "Are there towels? There aren't any in the room.",
+          "tokens": [
+            "タオル",
+            "は",
+            "あります",
+            "か",
+            "。",
+            "部屋",
+            "には",
+            "ありません",
+            "。"
+          ],
+          "plusOne": [
+            "v-n4-0460"
+          ],
+          "options": [
+            {
+              "text": "タオルはありますか。部屋にありません。",
+              "kind": "ok",
+              "recast": "タオルはありますか。部屋にはありません。"
+            },
+            {
+              "text": "タオル、ある？部屋にないよ。",
+              "kind": "register-wrong",
+              "recast": "タオルはありますか。部屋にはありません。"
+            },
+            {
+              "text": "タオルはありますか。部屋にはありません。",
+              "kind": "best"
+            },
+            {
+              "text": "タオルはいますか。部屋にはいません。",
+              "kind": "grammar-wrong",
+              "recast": "タオルはありますか。部屋にはありません。"
+            }
+          ],
+          "mustInclude": [
+            "タオル"
+          ],
+          "accept": [
+            "タオルはありますか。",
+            "すみません、タオルはありますか。"
+          ],
+          "tokenIds": [
+            "v-n4-0460",
+            "v-n5-0118",
+            "v-n5-0272",
+            "v-n5-0127",
+            null,
+            "v-n5-0147",
+            null,
+            "v-n5-0272",
+            null
+          ]
+        },
+        {
+          "speaker": "加藤さん",
+          "ja": "すみません。タオルはここです。{何枚|なんまい}ですか。",
+          "kana": "すみません。タオルはここです。なんまいですか。",
+          "en": "Sorry about that. The towels are here. How many?",
+          "tokens": [
+            "すみません",
+            "。",
+            "タオル",
+            "は",
+            "ここ",
+            "です",
+            "。",
+            "何枚",
+            "です",
+            "か",
+            "。"
+          ],
+          "plusOne": [
+            "v-n4-0460"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0013",
+            null,
+            "v-n4-0460",
+            "v-n5-0118",
+            "v-n5-0051",
+            "v-n5-0132",
+            null,
+            null,
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{三枚|さんまい}、お{願|ねが}いします。",
+          "kana": "さんまい、おねがいします。",
+          "en": "Three, please.",
+          "tokens": [
+            "三枚",
+            "、",
+            "お願いします",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "三枚です。",
+              "kind": "ok",
+              "recast": "三枚、お願いします。"
+            },
+            {
+              "text": "三枚ちょうだい。",
+              "kind": "register-wrong",
+              "recast": "三枚、お願いします。"
+            },
+            {
+              "text": "三つ、お願いします。",
+              "kind": "grammar-wrong",
+              "recast": "三枚、お願いします。"
+            },
+            {
+              "text": "三枚、お願いします。",
+              "kind": "best"
+            }
+          ],
+          "mustInclude": [
+            "三枚"
+          ],
+          "accept": [
+            "三枚です。",
+            "三枚お願いします。"
+          ],
+          "tokenIds": [
+            "v-n5-0113",
+            null,
+            "v-n5-0019",
+            null
+          ]
+        },
+        {
+          "speaker": "加藤さん",
+          "ja": "はい、{三枚|さんまい}ですね。お{茶|ちゃ}もありますよ。",
+          "kana": "はい、さんまいですね。おちゃもありますよ。",
+          "en": "Here, three. There's tea as well.",
+          "tokens": [
+            "はい",
+            "、",
+            "三枚",
+            "です",
+            "ね",
+            "。",
+            "お茶",
+            "も",
+            "あります",
+            "よ",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0408"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0113",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0408",
+            "v-n5-0125",
+            "v-n5-0272",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{冷|つめ}たいのですか。{二本|にほん}、お{願|ねが}いします。",
+          "kana": "つめたいのですか。にほん、おねがいします。",
+          "en": "Cold ones? Two bottles, please.",
+          "tokens": [
+            "冷たい",
+            "の",
+            "です",
+            "か",
+            "。",
+            "二本",
+            "、",
+            "お願いします",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "冷たいのですか。二本、お願いします。",
+              "kind": "best"
+            },
+            {
+              "text": "冷たいお茶ですか。二本、お願いします。",
+              "kind": "ok",
+              "recast": "冷たいのですか。二本、お願いします。"
+            },
+            {
+              "text": "冷たいの？二本ちょうだい。",
+              "kind": "register-wrong",
+              "recast": "冷たいのですか。二本、お願いします。"
+            },
+            {
+              "text": "冷たいのですか。二枚、お願いします。",
+              "kind": "grammar-wrong",
+              "recast": "冷たいのですか。二本、お願いします。"
+            }
+          ],
+          "mustInclude": [
+            "冷たい",
+            "二本"
+          ],
+          "accept": [
+            "冷たいお茶ですか。二本、お願いします。",
+            "二本、お願いします。"
+          ],
+          "tokenIds": [
+            "v-n5-0361",
+            "v-n5-0126",
+            "v-n5-0132",
+            "v-n5-0127",
+            null,
+            "v-n5-0114",
+            null,
+            "v-n5-0019",
+            null
+          ]
+        },
+        {
+          "speaker": "加藤さん",
+          "ja": "ええ、{冷|つめ}たいですよ。{一本|いっぽん}、{百円|ひゃくえん}です。",
+          "kana": "ええ、つめたいですよ。いっぽん、ひゃくえんです。",
+          "en": "Yes, they're cold. One bottle is a hundred yen.",
+          "tokens": [
+            "ええ",
+            "、",
+            "冷たい",
+            "です",
+            "よ",
+            "。",
+            "一本",
+            "、",
+            "百円",
+            "です",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0361",
+            "v-n5-0132",
+            "v-n5-0129",
+            null,
+            "v-n5-0114",
+            null,
+            "v-n5-0115",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{二本|にほん}で{二百円|にひゃくえん}ですね。はい。",
+          "kana": "にほんでにひゃくえんですね。はい。",
+          "en": "Two hundred yen for two, right? Here you are.",
+          "tokens": [
+            "二本",
+            "で",
+            "二百円",
+            "です",
+            "ね",
+            "。",
+            "はい",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "二百円ですね。はい。",
+              "kind": "ok",
+              "recast": "二本で二百円ですね。はい。"
+            },
+            {
+              "text": "二本で二百円ですね。はい。",
+              "kind": "best"
+            },
+            {
+              "text": "二百円ね。はい。",
+              "kind": "register-wrong",
+              "recast": "二本で二百円ですね。はい。"
+            },
+            {
+              "text": "二本に二百円ですね。はい。",
+              "kind": "grammar-wrong",
+              "recast": "二本で二百円ですね。はい。"
+            }
+          ],
+          "mustInclude": [
+            "二百円"
+          ],
+          "accept": [
+            "二百円ですね。はい。",
+            "二本で二百円ですね。"
+          ],
+          "tokenIds": [
+            "v-n5-0114",
+            "v-n5-0122",
+            "v-n5-0115",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0001",
+            null
+          ]
+        },
+        {
+          "speaker": "加藤さん",
+          "ja": "ありがとうございます。ケンさんはどこですか。",
+          "kana": "ありがとうございます。ケンさんはどこですか。",
+          "en": "Thank you. Where is Ken?",
+          "tokens": [
+            "ありがとうございます",
+            "。",
+            "ケンさん",
+            "は",
+            "どこ",
+            "です",
+            "か",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0010",
+            null,
+            null,
+            "v-n5-0118",
+            "v-n5-0056",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{部屋|へや}にいます。アオはどこにいますか。",
+          "kana": "へやにいます。アオはどこにいますか。",
+          "en": "He's in the room. Where is Ao?",
+          "tokens": [
+            "部屋",
+            "に",
+            "います",
+            "。",
+            "アオ",
+            "は",
+            "どこ",
+            "に",
+            "います",
+            "か",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "ケンは部屋にいます。アオはどこですか。",
+              "kind": "ok",
+              "recast": "部屋にいます。アオはどこにいますか。"
+            },
+            {
+              "text": "部屋にいるよ。アオはどこ？",
+              "kind": "register-wrong",
+              "recast": "部屋にいます。アオはどこにいますか。"
+            },
+            {
+              "text": "部屋にいます。アオはどこにいますか。",
+              "kind": "best"
+            },
+            {
+              "text": "部屋にあります。アオはどこにありますか。",
+              "kind": "grammar-wrong",
+              "recast": "部屋にいます。アオはどこにいますか。"
+            }
+          ],
+          "mustInclude": [
+            "部屋",
+            "アオ"
+          ],
+          "accept": [
+            "ケンは部屋にいます。アオはどこにいますか。",
+            "部屋にいます。アオはどこですか。"
+          ],
+          "tokenIds": [
+            "v-n5-0147",
+            "v-n5-0121",
+            "v-n5-0273",
+            null,
+            null,
+            "v-n5-0118",
+            "v-n5-0056",
+            "v-n5-0121",
+            "v-n5-0273",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "加藤さん",
+          "ja": "あの{青|あお}いのですね。{船|ふね}の{下|した}にいますよ。",
+          "kana": "あのあおいのですね。ふねのしたにいますよ。",
+          "en": "That blue one? It's under the boat.",
+          "tokens": [
+            "あの",
+            "青い",
+            "の",
+            "です",
+            "ね",
+            "。",
+            "船",
+            "の",
+            "下",
+            "に",
+            "います",
+            "よ",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0518"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0050",
+            "v-n5-0166",
+            "v-n5-0126",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0518",
+            "v-n5-0126",
+            "v-n5-0149",
+            "v-n5-0121",
+            "v-n5-0273",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "アオですよ。ケンは「{違|ちが}います」と{言|い}いますよ。",
+          "kana": "アオですよ。ケンは「ちがいます」といいますよ。",
+          "en": "It's Ao. Ken says it isn't, though.",
+          "tokens": [
+            "アオ",
+            "です",
+            "よ",
+            "。",
+            "ケン",
+            "は",
+            "「",
+            "違います",
+            "」",
+            "と",
+            "言います",
+            "よ",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "アオですよ。ケンは「違います」と言いますよ。",
+              "kind": "best"
+            },
+            {
+              "text": "アオです。ケンは「違います」と言います。",
+              "kind": "ok",
+              "recast": "アオですよ。ケンは「違います」と言いますよ。"
+            },
+            {
+              "text": "アオだよ。ケンは違うって言うけど。",
+              "kind": "register-wrong",
+              "recast": "アオですよ。ケンは「違います」と言いますよ。"
+            },
+            {
+              "text": "アオですよ。ケンは「違います」が言いますよ。",
+              "kind": "grammar-wrong",
+              "recast": "アオですよ。ケンは「違います」と言いますよ。"
+            }
+          ],
+          "mustInclude": [
+            "アオ",
+            "違います"
+          ],
+          "accept": [
+            "アオですよ。",
+            "アオです。ケンは「違います」と言います。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0132",
+            "v-n5-0129",
+            null,
+            null,
+            "v-n5-0118",
+            null,
+            "v-n5-0338",
+            null,
+            "v-n5-0124",
+            "v-n5-0279",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "加藤さん",
+          "ja": "そうですか。アオですね。{今晩|こんばん}もいますよ。",
+          "kana": "そうですか。アオですね。こんばんもいますよ。",
+          "en": "I see. Ao, then. It'll be there tonight as well.",
+          "tokens": [
+            "そうですか",
+            "。",
+            "アオ",
+            "です",
+            "ね",
+            "。",
+            "今晩",
+            "も",
+            "います",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0030",
+            null,
+            null,
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0234",
+            "v-n5-0125",
+            "v-n5-0273",
+            "v-n5-0129",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n4-0460",
+        "v-n5-0001",
+        "v-n5-0003",
+        "v-n5-0007",
+        "v-n5-0010",
+        "v-n5-0013",
+        "v-n5-0019",
+        "v-n5-0030",
+        "v-n5-0050",
+        "v-n5-0051",
+        "v-n5-0056",
+        "v-n5-0096",
+        "v-n5-0113",
+        "v-n5-0114",
+        "v-n5-0115",
+        "v-n5-0118",
+        "v-n5-0121",
+        "v-n5-0122",
+        "v-n5-0124",
+        "v-n5-0125",
+        "v-n5-0126",
+        "v-n5-0127",
+        "v-n5-0128",
+        "v-n5-0129",
+        "v-n5-0130",
+        "v-n5-0131",
+        "v-n5-0132",
+        "v-n5-0146",
+        "v-n5-0147",
+        "v-n5-0149",
+        "v-n5-0151",
+        "v-n5-0154",
+        "v-n5-0166",
+        "v-n5-0175",
+        "v-n5-0233",
+        "v-n5-0234",
+        "v-n5-0272",
+        "v-n5-0273",
+        "v-n5-0279",
+        "v-n5-0338",
+        "v-n5-0361",
+        "v-n5-0408",
+        "v-n5-0518"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-006",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-009",
+        "g-n5-010",
+        "g-n5-011",
+        "g-n5-014",
+        "g-n5-017",
+        "g-n5-024",
+        "g-n5-031",
+        "g-n5-032",
+        "g-n5-033",
+        "g-n5-034",
+        "g-n5-035",
+        "g-n5-036",
+        "g-n5-038"
+      ],
+      "comprehension": [
+        {
+          "q": "What is this conversation about?",
+          "choices": [
+            "Hana settling in at Katō-san's inn: the bath, towels, tea and the cat",
+            "Hana buying fish from Katō-san's boat",
+            "Hana asking the way to the station",
+            "Hana and Ken arguing about dinner"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "How many towels does Hana ask for?",
+          "choices": [
+            "One",
+            "Two",
+            "Five",
+            "Three"
+          ],
+          "answer": 3,
+          "kind": "number",
+          "lineRef": 6
+        },
+        {
+          "q": "Where is the bath?",
+          "choices": [
+            "In the room",
+            "Outside",
+            "Under the boat",
+            "Next to the kitchen"
+          ],
+          "answer": 1,
+          "kind": "detail",
+          "lineRef": 3
+        },
+        {
+          "q": "How much do the two bottles of tea cost in total?",
+          "choices": [
+            "¥100",
+            "¥300",
+            "¥200",
+            "¥1,000"
+          ],
+          "answer": 2,
+          "kind": "number",
+          "lineRef": 10
+        },
+        {
+          "q": "Where does Katō-san say the blue cat is?",
+          "choices": [
+            "Under the boat",
+            "In the room",
+            "At the entrance",
+            "Outside by the bath"
+          ],
+          "answer": 0,
+          "kind": "detail",
+          "lineRef": 13
+        }
+      ],
+      "recapEn": "At the inn's entrance Hana finds that Katō-san runs the place and that they are the only guests tonight. The bath is outside, open from six to ten. Hana asks for three towels and two bottles of cold tea at a hundred yen each. Ken is in the room; the blue cat is under the boat. Ao, says Hana."
+    }
+  ]
+}

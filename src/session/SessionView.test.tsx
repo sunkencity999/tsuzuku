@@ -2,11 +2,13 @@
  * SessionView.tsx — a full session over the real runner, writer and a test store,
  * with a stub exercise registered in the shared registry.
  */
+import { signal } from '@preact/signals';
 import { render, type JSX } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CardKey } from '../content/types';
 import { V, createFakeLoader } from '../content/fixtures';
+import { installServices, nullAudio, resetServices, type AudioService, type ClipCue, type SpeakOptions } from '../shared/audio';
 import { bus } from '../shared/events';
 import { registerExercise, resetRegistryForTests, type ExerciseProps } from '../shared/exercise-types';
 import { useExerciseKeys } from '../shared/ui/ExerciseFrame';
@@ -17,7 +19,7 @@ import { resetStoreForTests, store } from '../store';
 import { DEFAULT_TEST_NOW, captureEvents, card, makeTestStore } from '../store/testing';
 import { SessionRunner } from './runner';
 import { checkStepId, resetScrollCompletions } from './scroll';
-import { SessionView, comboTierOf, examFurigana, previousSessionErrorRate } from './SessionView';
+import { SessionView, comboTierOf, examFurigana, pairClipKeys, previousSessionErrorRate, type JudgeAsk } from './SessionView';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const loader = createFakeLoader();
@@ -457,5 +459,107 @@ describe('<SessionView> Scroll teach phase (design 03 §2.2)', () => {
     expect(root.querySelector('.session--teach')).toBeNull();
     expect(runner.paused.value).toBe(false);
     expect(root.querySelector('.stub')?.getAttribute('data-step')).toBe(checkStepId('4-2', V.食べる));
+  });
+});
+
+describe('perception Judge: one source for both words (design 08 §10.4)', () => {
+  const PAIR: [string, string] = ['いぬ', 'いね'];
+  const cue = (key: string): ClipCue => ({ key, file: 'audio/sprites/s04/words-01.webm', start: 0, end: 1, voice: 'VOICEVOX:九州そら', rate: 1 });
+  function fakeAudio(o: { ready: boolean; has?: (key: string) => boolean }): { audio: AudioService; spoken: [string, SpeakOptions | undefined][] } {
+    const spoken: [string, SpeakOptions | undefined][] = [];
+    const audio: AudioService = {
+      ...nullAudio,
+      hasJaVoice: signal(true),
+      packReady: signal(o.ready),
+      clipFor: (key) => ((o.has ?? (() => true))(key) ? cue(key) : undefined),
+      speak: (text, opts) => {
+        spoken.push([text, opts]);
+        return Promise.resolve();
+      },
+    };
+    return { audio, spoken };
+  }
+  /** A self-graded drill whose Good asks for a perception Judge over PAIR, hearing side `heard`. */
+  const pairStub = (heard: 0 | 1) =>
+    function PairStub(p: ExerciseProps): JSX.Element {
+      return (
+        <div class="stub stub--pair" data-step={p.step.id}>
+          <button
+            type="button"
+            class="stub-pair"
+            onClick={() => {
+              void (p.requestJudge as (o: JudgeAsk) => Promise<boolean>)({ minimalPair: PAIR, heard }).then(() => p.onResult(ok({ selfRating: 3 })));
+            }}
+          >
+            good
+          </button>
+        </div>
+      );
+    };
+  async function mountPair(heard: 0 | 1, audio: AudioService): Promise<void> {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: cards(ITEMS), now: () => clock });
+    installServices({ audio });
+    registerExercise({ id: 'shadow', facet: null, needsTts: true, needsStt: false, selfGraded: true, timeable: false, keys: 'none' }, pairStub(heard));
+    const runner = new SessionRunner(plan([step({ id: 'p0', cardKey: `${V.犬}#rec`, exercise: 'shadow', params: { answer: 'いぬ' } })]), { loader });
+    act(() => render(<SessionView runner={runner} onExit={vi.fn()} loader={loader} />, root));
+  }
+  const unmount = (): void => {
+    render(null, root);
+    resetRegistryForTests();
+    resetStoreForTests();
+    resetServices();
+  };
+  afterEach(() => resetServices());
+
+  it('pairClipKeys: the item id, a pool partner id or `${id}#pair`, only when the pack is ready and holds both', () => {
+    const inu = loader.get(V.犬)!;
+    const lookup = (id: string) => loader.get(id);
+    const ready = fakeAudio({ ready: true }).audio;
+    expect(pairClipKeys(PAIR, inu, lookup, [], ready)).toEqual([V.犬, `${V.犬}#pair`]);
+    expect(pairClipKeys(['いぬ', 'みず'], inu, lookup, [V.水], ready)).toEqual([V.犬, V.水]);
+    expect(pairClipKeys(['みず', 'いぬ'], inu, lookup, [V.水], ready)).toEqual([V.水, V.犬]);
+    expect(pairClipKeys(['犬', 'いね'], inu, lookup, [], ready)).toEqual([V.犬, `${V.犬}#pair`]);
+    expect(pairClipKeys(PAIR, inu, lookup, [], fakeAudio({ ready: false }).audio)).toBeNull();
+    expect(pairClipKeys(PAIR, inu, lookup, [], fakeAudio({ ready: true, has: (k) => !k.endsWith('#pair') }).audio)).toBeNull();
+    expect(pairClipKeys(PAIR, inu, lookup, [], fakeAudio({ ready: true, has: (k) => k.endsWith('#pair') }).audio)).toBeNull();
+    expect(pairClipKeys(PAIR, inu, lookup, [], nullAudio)).toBeNull();
+    expect(pairClipKeys(PAIR, null, lookup, [], ready)).toBeNull();
+  });
+
+  it('speaks the heard word with its clip key when the pack holds both words — and the replay through the same source', async () => {
+    for (const heard of [0, 1] as const) {
+      const { audio, spoken } = fakeAudio({ ready: true });
+      await mountPair(heard, audio);
+      click('.stub-pair');
+      await flush();
+      const judge = root.querySelector('.judge-card');
+      expect(judge?.getAttribute('data-shape')).toBe('perception');
+      const key = heard === 0 ? V.犬 : `${V.犬}#pair`;
+      expect(spoken).toEqual([[PAIR[heard], { clip: key }]]);
+      click('.judge-card .btn--ghost');
+      expect(spoken).toEqual([
+        [PAIR[heard], { clip: key }],
+        [PAIR[heard], { clip: key }],
+      ]);
+      unmount();
+    }
+  });
+
+  it('speaks neither word with a clip key when the pack is not ready, or holds only one of the two', async () => {
+    const off = fakeAudio({ ready: false });
+    await mountPair(0, off.audio);
+    click('.stub-pair');
+    await flush();
+    expect(off.spoken).toEqual([['いぬ', undefined]]);
+    unmount();
+    const half = fakeAudio({ ready: true, has: (k) => !k.endsWith('#pair') });
+    await mountPair(0, half.audio);
+    click('.stub-pair');
+    await flush();
+    expect(half.spoken).toEqual([['いぬ', undefined]]);
+    click('.judge-card .btn--ghost');
+    expect(half.spoken).toHaveLength(2);
+    expect(half.spoken.every(([, o]) => o === undefined)).toBe(true);
+    unmount();
   });
 });

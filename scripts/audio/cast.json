@@ -1,0 +1,543 @@
+{
+  "schema": "tsuzuku.cast/1",
+  "engine": "VOICEVOX 0.25.2",
+  "notes": "design 08 §6: one entry per speaker / narrator label; ハナ also voices narration, kana tracks and word clips; style ids are resolved from GET /speakers at render time; two speakers of one text never share a character (render-audio.test.ts checks every text and every planned piece); children ユウタ / ユウ / ミキ / アヤ from the child set; the 13 locals pre-announced in docs/LISTENING_BRIEF.md §15 are included (佐藤さん 山口さん 中村さん アヤ 渡辺さん 坂本さん 川村さん 松井さん 大久保さん 石川さん 高木さん 西村さん 岡本さん).",
+  "speakers": [
+    {
+      "name": "ハナ",
+      "gender": "f",
+      "age": 24,
+      "character": "九州そら",
+      "style": "ノーマル",
+      "emotionStyles": {
+        "warm": "あまあま",
+        "annoyed": "ツンツン",
+        "whisper": "ささやき"
+      },
+      "credit": "VOICEVOX:九州そら"
+    },
+    {
+      "name": "ケン",
+      "gender": "m",
+      "age": 31,
+      "character": "玄野武宏",
+      "style": "ノーマル",
+      "emotionStyles": {
+        "glad": "喜び",
+        "sad": "悲しみ",
+        "annoyed": "ツンギレ"
+      },
+      "credit": "VOICEVOX:玄野武宏"
+    },
+    {
+      "name": "田中さん",
+      "gender": "m",
+      "age": 70,
+      "character": "ちび式じい",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:ちび式じい"
+    },
+    {
+      "name": "anchor",
+      "gender": "f",
+      "age": 35,
+      "character": "波音リツ",
+      "style": "クイーン",
+      "credit": "VOICEVOX:波音リツ"
+    },
+    {
+      "name": "lecturer",
+      "gender": "m",
+      "age": 52,
+      "character": "麒ヶ島宗麟",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:麒ヶ島宗麟"
+    },
+    {
+      "name": "reader",
+      "gender": "f",
+      "age": 29,
+      "character": "冥鳴ひまり",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:冥鳴ひまり"
+    },
+    {
+      "name": "ミヤさん",
+      "gender": "f",
+      "age": 50,
+      "character": "春日部つむぎ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:春日部つむぎ"
+    },
+    {
+      "name": "サイトウさん",
+      "gender": "m",
+      "age": 55,
+      "character": "雀松朱司",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:雀松朱司"
+    },
+    {
+      "name": "タカギさん",
+      "gender": "f",
+      "age": 30,
+      "character": "雨晴はう",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:雨晴はう"
+    },
+    {
+      "name": "森さん",
+      "gender": "f",
+      "age": 52,
+      "character": "琴詠ニア",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:琴詠ニア"
+    },
+    {
+      "name": "小川さん",
+      "gender": "f",
+      "age": 20,
+      "character": "東北きりたん",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北きりたん"
+    },
+    {
+      "name": "山本さん",
+      "gender": "f",
+      "age": 45,
+      "character": "四国めたん",
+      "style": "ノーマル",
+      "emotionStyles": {
+        "warm": "あまあま",
+        "annoyed": "ツンツン",
+        "whisper": "ささやき"
+      },
+      "credit": "VOICEVOX:四国めたん"
+    },
+    {
+      "name": "石井さん",
+      "gender": "f",
+      "age": 68,
+      "character": "東北イタコ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北イタコ"
+    },
+    {
+      "name": "ユウタ",
+      "gender": "m",
+      "age": 8,
+      "character": "猫使アル",
+      "style": "ノーマル",
+      "emotionStyles": {
+        "glad": "うきうき",
+        "annoyed": "つよつよ"
+      },
+      "credit": "VOICEVOX:猫使アル"
+    },
+    {
+      "name": "加藤さん",
+      "gender": "f",
+      "age": 40,
+      "character": "東北ずん子",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北ずん子"
+    },
+    {
+      "name": "高橋さん",
+      "gender": "f",
+      "age": 50,
+      "character": "春日部つむぎ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:春日部つむぎ"
+    },
+    {
+      "name": "大野さん",
+      "gender": "m",
+      "age": 55,
+      "character": "剣崎雌雄",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:剣崎雌雄"
+    },
+    {
+      "name": "鈴木さん",
+      "gender": "f",
+      "age": 50,
+      "character": "琴詠ニア",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:琴詠ニア"
+    },
+    {
+      "name": "佐藤さん",
+      "gender": "m",
+      "age": 45,
+      "character": "黒沢冴白",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:黒沢冴白"
+    },
+    {
+      "name": "山口さん",
+      "gender": "f",
+      "age": 55,
+      "character": "東北イタコ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北イタコ"
+    },
+    {
+      "name": "中村さん",
+      "gender": "f",
+      "age": 35,
+      "character": "雨晴はう",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:雨晴はう"
+    },
+    {
+      "name": "アヤ",
+      "gender": "f",
+      "age": 7,
+      "character": "春歌ナナ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:春歌ナナ"
+    },
+    {
+      "name": "渡辺さん",
+      "gender": "f",
+      "age": 45,
+      "character": "東北イタコ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北イタコ"
+    },
+    {
+      "name": "ユウ",
+      "gender": "m",
+      "age": 10,
+      "character": "猫使ビィ",
+      "style": "ノーマル",
+      "emotionStyles": {
+        "glad": "おちつき"
+      },
+      "credit": "VOICEVOX:猫使ビィ"
+    },
+    {
+      "name": "清水さん",
+      "gender": "m",
+      "age": 60,
+      "character": "雀松朱司",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:雀松朱司"
+    },
+    {
+      "name": "林さん",
+      "gender": "m",
+      "age": 50,
+      "character": "黒沢冴白",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:黒沢冴白"
+    },
+    {
+      "name": "松本さん",
+      "gender": "f",
+      "age": 55,
+      "character": "東北ずん子",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北ずん子"
+    },
+    {
+      "name": "青木さん",
+      "gender": "f",
+      "age": 60,
+      "character": "満別花丸",
+      "style": "ノーマル",
+      "emotionStyles": {
+        "glad": "元気",
+        "whisper": "ささやき"
+      },
+      "credit": "VOICEVOX:満別花丸"
+    },
+    {
+      "name": "大石さん",
+      "gender": "m",
+      "age": 45,
+      "character": "中部つるぎ",
+      "style": "ノーマル",
+      "emotionStyles": {
+        "annoyed": "怒り",
+        "whisper": "ヒソヒソ"
+      },
+      "credit": "VOICEVOX:中部つるぎ"
+    },
+    {
+      "name": "田村さん",
+      "gender": "f",
+      "age": 60,
+      "character": "琴詠ニア",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:琴詠ニア"
+    },
+    {
+      "name": "野村さん",
+      "gender": "m",
+      "age": 40,
+      "character": "白上虎太郎",
+      "style": "ふつう",
+      "emotionStyles": {
+        "glad": "わーい",
+        "sad": "びえーん",
+        "annoyed": "おこ"
+      },
+      "credit": "VOICEVOX:白上虎太郎"
+    },
+    {
+      "name": "小林さん",
+      "gender": "f",
+      "age": 65,
+      "character": "東北イタコ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北イタコ"
+    },
+    {
+      "name": "横山さん",
+      "gender": "f",
+      "age": 65,
+      "character": "琴詠ニア",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:琴詠ニア"
+    },
+    {
+      "name": "ミキ",
+      "gender": "f",
+      "age": 12,
+      "character": "春歌ナナ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:春歌ナナ"
+    },
+    {
+      "name": "井上さん",
+      "gender": "f",
+      "age": 75,
+      "character": "東北イタコ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北イタコ"
+    },
+    {
+      "name": "坂本さん",
+      "gender": "m",
+      "age": 65,
+      "character": "麒ヶ島宗麟",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:麒ヶ島宗麟"
+    },
+    {
+      "name": "平野さん",
+      "gender": "m",
+      "age": 50,
+      "character": "黒沢冴白",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:黒沢冴白"
+    },
+    {
+      "name": "山田さん",
+      "gender": "m",
+      "age": 55,
+      "character": "剣崎雌雄",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:剣崎雌雄"
+    },
+    {
+      "name": "吉田さん",
+      "gender": "m",
+      "age": 70,
+      "character": "麒ヶ島宗麟",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:麒ヶ島宗麟"
+    },
+    {
+      "name": "前田さん",
+      "gender": "m",
+      "age": 65,
+      "character": "雀松朱司",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:雀松朱司"
+    },
+    {
+      "name": "清田さん",
+      "gender": "f",
+      "age": 45,
+      "character": "四国めたん",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:四国めたん"
+    },
+    {
+      "name": "川村さん",
+      "gender": "f",
+      "age": 42,
+      "character": "東北ずん子",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北ずん子"
+    },
+    {
+      "name": "松井さん",
+      "gender": "m",
+      "age": 62,
+      "character": "麒ヶ島宗麟",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:麒ヶ島宗麟"
+    },
+    {
+      "name": "岩田さん",
+      "gender": "m",
+      "age": 50,
+      "character": "中部つるぎ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:中部つるぎ"
+    },
+    {
+      "name": "村上さん",
+      "gender": "f",
+      "age": 70,
+      "character": "東北イタコ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北イタコ"
+    },
+    {
+      "name": "大久保さん",
+      "gender": "m",
+      "age": 55,
+      "character": "剣崎雌雄",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:剣崎雌雄"
+    },
+    {
+      "name": "近藤さん",
+      "gender": "f",
+      "age": 60,
+      "character": "琴詠ニア",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:琴詠ニア"
+    },
+    {
+      "name": "藤井さん",
+      "gender": "f",
+      "age": 40,
+      "character": "雨晴はう",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:雨晴はう"
+    },
+    {
+      "name": "佐々木さん",
+      "gender": "f",
+      "age": 65,
+      "character": "東北イタコ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北イタコ"
+    },
+    {
+      "name": "小島さん",
+      "gender": "f",
+      "age": 70,
+      "character": "東北イタコ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北イタコ"
+    },
+    {
+      "name": "大西さん",
+      "gender": "m",
+      "age": 60,
+      "character": "雀松朱司",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:雀松朱司"
+    },
+    {
+      "name": "石川さん",
+      "gender": "f",
+      "age": 55,
+      "character": "琴詠ニア",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:琴詠ニア"
+    },
+    {
+      "name": "野口さん",
+      "gender": "m",
+      "age": 55,
+      "character": "剣崎雌雄",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:剣崎雌雄"
+    },
+    {
+      "name": "リョウ",
+      "gender": "m",
+      "age": 28,
+      "character": "白上虎太郎",
+      "style": "ふつう",
+      "emotionStyles": {
+        "glad": "わーい",
+        "sad": "びえーん",
+        "annoyed": "おこ"
+      },
+      "credit": "VOICEVOX:白上虎太郎"
+    },
+    {
+      "name": "堀さん",
+      "gender": "f",
+      "age": 60,
+      "character": "春日部つむぎ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:春日部つむぎ"
+    },
+    {
+      "name": "高木さん",
+      "gender": "m",
+      "age": 35,
+      "character": "中部つるぎ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:中部つるぎ"
+    },
+    {
+      "name": "中島さん",
+      "gender": "f",
+      "age": 60,
+      "character": "東北ずん子",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北ずん子"
+    },
+    {
+      "name": "本田さん",
+      "gender": "f",
+      "age": 62,
+      "character": "琴詠ニア",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:琴詠ニア"
+    },
+    {
+      "name": "西村さん",
+      "gender": "f",
+      "age": 45,
+      "character": "四国めたん",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:四国めたん"
+    },
+    {
+      "name": "福田さん",
+      "gender": "m",
+      "age": 65,
+      "character": "雀松朱司",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:雀松朱司"
+    },
+    {
+      "name": "三浦さん",
+      "gender": "f",
+      "age": 65,
+      "character": "東北イタコ",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:東北イタコ"
+    },
+    {
+      "name": "岡本さん",
+      "gender": "m",
+      "age": 65,
+      "character": "麒ヶ島宗麟",
+      "style": "ノーマル",
+      "credit": "VOICEVOX:麒ヶ島宗麟"
+    }
+  ]
+}

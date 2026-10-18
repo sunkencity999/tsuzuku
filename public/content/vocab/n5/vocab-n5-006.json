@@ -64,9 +64,9 @@
           "en": "Ken often studies at the library."
         },
         {
-          "ja": "{子供|こども}の{時|とき}、よくこの{川|かわ}で{遊|あそ}びました。",
-          "kana": "こどものとき、よくこのかわであそびました。",
-          "en": "When I was a child, I often played in this river."
+          "ja": "{去年|きょねん}はよく{友達|ともだち}と{映画|えいが}を{見|み}ました。",
+          "kana": "きょねんはよくともだちとえいがをみました。",
+          "en": "Last year I often watched movies with my friends."
         }
       ],
       "station": 13
@@ -1623,9 +1623,9 @@
           "en": "Turn off the lights before you go out, okay?"
         },
         {
-          "ja": "{帰|かえ}る{時|とき}、ストーブを{消|け}します。",
-          "kana": "かえるとき、ストーブをけします。",
-          "en": "I turn off the heater when I leave."
+          "ja": "{部屋|へや}が{暑|あつ}いですから、ストーブを{消|け}しました。",
+          "kana": "へやがあついですから、ストーブをけしました。",
+          "en": "The room was hot, so I turned off the heater."
         }
       ],
       "station": 14

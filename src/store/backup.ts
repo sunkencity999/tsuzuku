@@ -17,8 +17,13 @@
  *                      gunzip output, which is inflated no further) is
  *                      refused before it is parsed: a real save is < 4.5 MB.
  *  applyImport(p,mode) `merge` (streak max, XP max, collections union, cards
- *                      newer-wins, ledger union, texts heard / teach cards seen
- *                      union and the listening counters max — design 08 §11;
+ *                      newer-wins, ledger — app rows per day and kind from the
+ *                      side with the larger sum, never added, since today's
+ *                      Radio row grows (design 08 §12); outside and noted
+ *                      rows union —, texts heard / teach cards seen union,
+ *                      the Arena's last pass per text (`arenaAt`) at the
+ *                      later day and the listening counters max — design 08
+ *                      §10.2 / §11;
  *                      identity — name, kana, zone,
  *                      dictated sentence — stays this browser's unless this
  *                      browser holds no learner trace yet, as on a new phone,
@@ -61,6 +66,7 @@ import {
   type Streak,
   type WeakPoints,
 } from '../shared/store-types';
+import { MINUTE_DECIMALS } from './ledger';
 import { MigrationError, migrateLog, migrateMetaChecked, migrateShard, newerCard } from './migrations';
 import { InflateLimitError, LOG_RING, gunzipText, hasCompression, isCompressed, parseShardId, pump, type ShardId } from './persist';
 import { replaceHeader, replaceLog, shardOfKey, store, storeCards } from './store';
@@ -424,6 +430,12 @@ function mergeProgress(a: Progress, b: Progress): Progress {
   // design 08 §10–§11: a text heard or a teach card seen on either device stays heard / seen.
   if (a.listened || b.listened) out.listened = union(a.listened ?? [], b.listened ?? []);
   if (a.teachSeen || b.teachSeen) out.teachSeen = union(a.teachSeen ?? [], b.teachSeen ?? []);
+  // design 08 §10.2: the Arena's last pass per text — the later day of the two devices wins; absent on both stays absent.
+  if (a.arenaAt || b.arenaAt) {
+    const at: Record<string, EpochDay> = { ...(a.arenaAt ?? {}) };
+    for (const [k, v] of Object.entries(b.arenaAt ?? {})) at[k] = Math.max(at[k] ?? 0, v);
+    out.arenaAt = at;
+  }
   if (a.gateAttemptDay || b.gateAttemptDay) {
     const days: Record<number, EpochDay> = { ...(a.gateAttemptDay ?? {}) };
     for (const [k, v] of Object.entries(b.gateAttemptDay ?? {})) days[Number(k)] = Math.max(days[Number(k)] ?? 0, v);
@@ -501,16 +513,57 @@ function mergeWeakPoints(a: WeakPoints, b: WeakPoints): WeakPoints {
   return out;
 }
 
+/** A row the dojo wrote itself — `source: app` and no note (a set, a read, a Radio / Read-along track). */
+const isAppRow = (e: LedgerEntry): boolean => e[3] === 0 && e[4] === undefined;
+const dayKind = (e: LedgerEntry): string => `${e[0]}|${e[2]}`;
+/** Minutes in tenths (`MINUTE_DECIMALS`), so `10 + 6.7` and `16.7` compare equal. */
+const tenths = (minutes: number): number => Math.round(minutes * 10 ** MINUTE_DECIMALS);
+
+/** App minutes per day and kind. */
+function appDaySums(l: Ledger): Map<string, number> {
+  const sums = new Map<string, number>();
+  for (const e of l.entries) {
+    if (!Array.isArray(e) || !isAppRow(e)) continue;
+    const k = dayKind(e);
+    sums.set(k, (sums.get(k) ?? 0) + e[1]);
+  }
+  return sums;
+}
+
+/**
+ * Design 07 §5 / design 08 §12. App rows (`isAppRow`) are compared per day
+ * and kind and the side with the LARGER sum keeps its rows as they are (a tie
+ * keeps this browser's) — never both: since design 08 today's Radio minutes
+ * coalesce INTO a row, so an export of this device taken earlier in the day
+ * holds a smaller copy of a row that has since grown, and a union would count
+ * it twice. The larger-side rule is the one `mergeDaily` and `monthly` use;
+ * it never inflates. Two devices that both heard on one day keep the larger
+ * side only (the identity union already folded byte-identical rows). Outside
+ * rows and noted rows, which never change once written, union by identity.
+ */
 function mergeLedger(a: Ledger, b: Ledger): Ledger {
+  const sumsA = appDaySums(a);
+  const sumsB = appDaySums(b);
   const seen = new Set<string>();
   const entries: LedgerEntry[] = [];
-  for (const e of [...a.entries, ...b.entries]) {
-    if (!Array.isArray(e)) continue; // see mergeKage
-    const key = e.join('|');
-    if (seen.has(key)) continue;
-    seen.add(key);
-    entries.push(e);
-  }
+  const take = (l: Ledger, mine: Map<string, number>, theirs: Map<string, number>, tieWins: boolean): void => {
+    for (const e of l.entries) {
+      if (!Array.isArray(e)) continue; // see mergeKage
+      if (isAppRow(e)) {
+        const k = dayKind(e);
+        const x = tenths(mine.get(k) ?? 0);
+        const y = tenths(theirs.get(k) ?? 0);
+        if (x > y || (x === y && tieWins)) entries.push(e);
+        continue;
+      }
+      const key = e.join('|');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      entries.push(e);
+    }
+  };
+  take(a, sumsA, sumsB, true);
+  take(b, sumsB, sumsA, false);
   entries.sort((x, y) => x[0] - y[0]);
   const monthly: Record<string, number> = { ...a.monthly };
   for (const [k, v] of Object.entries(b.monthly)) monthly[k] = Math.max(monthly[k] ?? 0, v);
@@ -542,8 +595,9 @@ export function hasNoLearnerTrace(m: SaveMeta): boolean {
 }
 
 /**
- * Design 07 §5 merge: streak max, XP max, collections union, ledger union;
- * settings stay this browser's. Identity (name, nameKana, tz, onboardedAt,
+ * Design 07 §5 merge: streak max, XP max, collections union, ledger by
+ * `mergeLedger` (app rows: the larger side per day and kind; outside and
+ * noted rows: union); settings stay this browser's. Identity (name, nameKana, tz, onboardedAt,
  * dictatedSentence) stays this browser's too — unless this browser holds no
  * learner trace (a fresh install restoring a backup), when the backup's is taken.
  */

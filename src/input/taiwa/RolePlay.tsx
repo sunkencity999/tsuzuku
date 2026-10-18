@@ -2,8 +2,10 @@
  * TSUZUKU — 対話 Taiwa role-play (design 04 §8 `role-play`, 05 §7 aizuchi / register).
  *
  * Plays a `dialogue` StoryItem as a linear gold script. The NPC lines are
- * spoken by TTS slot `b` (and shown with <Ruby>); the learner plays
- * `learnerSpeaker` and answers each of their lines in one mode:
+ * spoken with their clip key `<storyId>#L<i>` and `speaker` (the cast voice
+ * on the pack path, design 08 §8; TTS slot `b` on the synth path) and shown
+ * with <Ruby>; the learner plays `learnerSpeaker` (`resolveLearnerSpeaker`,
+ * never an assumed name) and answers each of their lines in one mode:
  *   choose  3–4 options (`StoryLine.options`, else `options.ts` synthesis),
  *           keys 1–4; wrong / ok options show their recast
  *   build   tiles from `tokens` (never the gold order), tap to assemble
@@ -21,9 +23,11 @@
  * `register`); the backchannel set follows the target in force at the slot.
  * Without an explicit target a learner line is shown and scored against the
  * gold line's own register (`Turn.lineRegister`), and an answer in the gold
- * line's register is never a slip (`registerAcceptable`). Debrief: best /
- * aizuchi counts, a register meter and the explicit corrections. Emits
- * `roleplay:done`.
+ * line's register is never a slip (`registerAcceptable`). After the learner
+ * answers a line the gold line replays once in the learnerSpeaker's cast
+ * voice under "Your line, as {speaker} says it" (design 08 §11; slot `a` on
+ * the synth path). Debrief: best / aizuchi counts, a register meter and the
+ * explicit corrections. Emits `roleplay:done`.
  *
  * No audible voice (`voiceAudible`, ARCHITECTURE §3): partner lines are shown
  * as text with a Continue button (Enter) and nothing advances on its own; an
@@ -267,12 +271,17 @@ function Play(p: PlayProps): JSX.Element {
 
   /* ── flow ─────────────────────────────────────────────────────────────── */
 
-  const speakLine = (i: number, voice: 'a' | 'b'): Promise<boolean> => {
+  /**
+   * Speaks line `i` with its clip key and `speaker` (design 08 §8): the pack
+   * resolves the cast voice, the synth path keeps the `a` / `b` slot. The
+   * gold-line replay passes the learner's role explicitly.
+   */
+  const speakLine = (i: number, voice: 'a' | 'b', speaker: string | undefined = lines[i]?.speaker): Promise<boolean> => {
     const l = lines[i];
     if (!l) return Promise.resolve(false);
     const id = ++run.current;
     setSpeaking(true);
-    return speak(toPlain(l.ja), { voice, rate, interrupt: true }).then(() => {
+    return speak(toPlain(l.ja), { voice, rate, interrupt: true, clip: `${story?.id ?? p.storyId}#L${i}`, ...(speaker ? { speaker } : {}) }).then(() => {
       if (run.current !== id) return false;
       setSpeaking(false);
       return true;
@@ -357,6 +366,8 @@ function Play(p: PlayProps): JSX.Element {
     setOutcomes(outcomesRef.current);
     sfx(o.kind === 'wrong' ? 'wrong' : 'correct');
     setPhase('feedback');
+    // The gold line, once, in the learner's role voice (design 08 §11) — no learner role, no replay.
+    if (hasVoice && learner) void speakLine(o.lineIndex, 'a', learner);
   };
 
   const elapsed = (): number => Math.max(0, store.now() - turnStart.current);
@@ -600,6 +611,8 @@ function Play(p: PlayProps): JSX.Element {
 
   const npcIdx = turn?.role === 'npc' ? cursor : lastNpcIndex();
   const npcLine = npcIdx >= 0 ? lines[npcIdx] : undefined;
+  // "Your line, as {speaker} says it" with the role name marked `lang="ja"`.
+  const goldReplayCopy = S.yourLineAs.split('{speaker}') as [string, string];
   // The displayed partner line announces a register shift when its target differs from what came before.
   const shiftTo = npcLine?.registerTarget;
   const registerShift = !!shiftTo && (npcIdx === 0 ? initialRegister !== shiftTo : plan[npcIdx - 1]?.register !== shiftTo);
@@ -792,9 +805,16 @@ function Play(p: PlayProps): JSX.Element {
       ) : null}
 
       {phase === 'feedback' && last && feedbackLine ? (
-        <div class="taiwa__feedback status-window" data-kind={last.kind} role="group" aria-label={S.yourLine}>
+        <div class="taiwa__feedback status-window" data-kind={last.kind} role="group" aria-label={S.yourLine} data-speaking={speaking ? 'true' : undefined}>
           <p class="taiwa__feedback-line">{last.kind === 'best' ? S.best : last.kind === 'ok' ? S.ok : last.kind === 'near' ? S.near : S.wrong}</p>
           {heard ? <p class="taiwa__hint">{fill(S.heard, { text: heard })}</p> : null}
+          {hasVoice ? (
+            <p class="taiwa__hint taiwa__gold" data-field="gold-replay">
+              {goldReplayCopy[0]}
+              <span lang="ja">{learner}</span>
+              {goldReplayCopy[1]}
+            </p>
+          ) : null}
           {last.kind !== 'best' ? (
             <>
               <p class="taiwa__row">
@@ -822,7 +842,7 @@ function Play(p: PlayProps): JSX.Element {
           ) : null}
           <div class="taiwa__controls">
             {hasVoice ? (
-              <button type="button" class="btn btn--ghost" onClick={() => void speakLine(last.lineIndex, 'a')} disabled={speaking}>
+              <button type="button" class="btn btn--ghost" onClick={() => void speakLine(last.lineIndex, 'a', learner)} disabled={speaking} data-action="hear-model">
                 {S.hearModel}
               </button>
             ) : null}

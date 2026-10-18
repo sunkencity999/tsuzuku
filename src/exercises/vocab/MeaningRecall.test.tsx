@@ -160,7 +160,7 @@ describe('<MeaningRecall>', () => {
   it('speaks the word on mount, Space replays through the frame, Enter outside the field submits', () => {
     const p = props();
     const input = mount(p, true);
-    expect(speak).toHaveBeenCalledWith('飲む', { kana: 'のむ' });
+    expect(speak).toHaveBeenCalledWith('飲む', { kana: 'のむ', clip: NOMU.id });
     key(document.body, ' ');
     expect(speak).toHaveBeenCalledTimes(2);
     expect(p.onReplay).toHaveBeenCalledTimes(1);

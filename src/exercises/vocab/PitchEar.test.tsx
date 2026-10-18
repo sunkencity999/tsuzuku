@@ -1,3 +1,4 @@
+import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 
@@ -10,13 +11,13 @@ vi.mock('@/content/loader', async (importOriginal) => {
 
 import { FIXTURE, V } from '@/content/fixtures';
 import type { VocabItem } from '@/content/types';
-import { installServices, nullAudio, resetServices } from '@/shared/audio';
+import { installServices, nullAudio, resetServices, type ClipCue } from '@/shared/audio';
 import type { AttemptResult, ExerciseProps } from '@/shared/exercise-types';
 import type { Step } from '@/shared/session-types';
 import { ExerciseFrame } from '@/shared/ui/ExerciseFrame';
 import { makeTestStore } from '@/store/testing';
 import { PITCH_TYPES, pitchType } from '../PitchLine';
-import { PitchEar, meta, minimalPairOf, pitchChoiceTypes, pitchPairPool, pitchTypeOfLabel } from './PitchEar';
+import { PitchEar, gaClipKey, gaNoteFor, gaTakePlayable, meta, minimalPairOf, pitchChoiceTypes, pitchClipsVerified, pitchPairPool, pitchTypeOfLabel } from './PitchEar';
 
 let root: HTMLDivElement;
 let clock = 1_000_000;
@@ -134,7 +135,8 @@ describe('<PitchEar>', () => {
     expect(glyphs()[1]?.getAttribute('data-state')).toBe('correct');
     expect(q('.pitch-contrast .pitch-line')?.getAttribute('data-type')).toBe('atamadaka');
     expect(q('.pitch-choices')?.getAttribute('data-locked')).toBe('true');
-    expect(root.textContent).toContain('text-to-speech approximation');
+    expect(root.textContent).toContain('device voice');
+    expect(root.textContent).not.toContain('dictionary pitch pattern');
     expect(q('.vocab__collocation')).not.toBeNull();
   });
 
@@ -214,6 +216,156 @@ describe('<PitchEar>', () => {
     const n = props(null, { step: step(NOMU) });
     mount(n);
     expect(q('.missing-item')).not.toBeNull();
+  });
+});
+
+describe('voice pack (design 08 §8): one source per step, verified clips only', () => {
+  const ame0: VocabItem = { ...MIZU, id: 'v-n5-0102', word: '飴', kana: 'あめ', meanings: ['candy'], pitch: 0, pitchConfidence: 'high' };
+  const ame1: VocabItem = { ...MIZU, id: 'v-n5-0101', word: '雨', kana: 'あめ', meanings: ['rain'], pitch: 1, pitchConfidence: 'high', confusables: [ame0.id] };
+  const cue = (key: string, pitchVerified = true): ClipCue => ({ key, file: 'audio/sprites/s07/words-01-abcdef12.webm', start: 0, end: 0.6, voice: 'VOICEVOX:ずんだもん', rate: 1, pitchVerified });
+
+  function withPack(cues: Record<string, ClipCue>): void {
+    installServices({ audio: { ...nullAudio, speak, hasJaVoice: signal(true), source: signal('clips'), clipFor: (key: string) => cues[key] } });
+  }
+  const speakOptions = (): (unknown | undefined)[] => speak.mock.calls.map((c) => c[1]);
+  const hearButtons = (): HTMLButtonElement[] => Array.from(root.querySelectorAll<HTMLButtonElement>('.pitch-contrast__hear'));
+
+  beforeEach(() => {
+    H.items.set(ame0.id, ame0);
+  });
+
+  it('with a verified cue for 雨 and none for 飴 both play through the device voice (no clip key anywhere, no #ga)', () => {
+    withPack({ [ame1.id]: cue(ame1.id), [gaClipKey(ame1)]: cue(gaClipKey(ame1)) });
+    const p = props(ame1, { step: step(ame1) });
+    mount(p);
+    expect(q('.pitch-ear')?.getAttribute('data-source')).toBe('synth');
+    expect(speak).toHaveBeenCalledWith('雨', { kana: 'あめ' });
+    act(() => glyphs()[1]?.click());
+    expect(result(p)).toMatchObject({ correct: true, answer: '頭高' });
+    expect(q('[data-pair]')?.getAttribute('data-pair')).toBe(ame0.id);
+    // the contrast is heard through the same source
+    act(() => hearButtons()[1]?.click());
+    expect(speak).toHaveBeenLastCalledWith('飴', { kana: 'あめ' });
+    act(() => hearButtons()[0]?.click());
+    expect(speak).toHaveBeenLastCalledWith('雨', { kana: 'あめ' });
+    expect(speakOptions().every((o) => o !== undefined && !('clip' in (o as object)))).toBe(true);
+    expect(speak).not.toHaveBeenCalledWith('雨が', expect.anything());
+    expect(q('.pitch-contrast__ga')).toBeNull();
+    expect(root.textContent).toContain('device voice');
+  });
+
+  it('with both verified both play clips, the reveal plays #ga, and the copy says the clip follows the dictionary pattern', () => {
+    withPack({ [ame1.id]: cue(ame1.id), [ame0.id]: cue(ame0.id), [gaClipKey(ame1)]: cue(gaClipKey(ame1)) });
+    const p = props(ame1, { step: step(ame1) });
+    mount(p, true);
+    expect(q('.pitch-ear')?.getAttribute('data-source')).toBe('clips');
+    expect(speak).toHaveBeenCalledWith('雨', { kana: 'あめ', clip: ame1.id });
+    key(' ');
+    expect(speak).toHaveBeenCalledTimes(2);
+    expect(p.onReplay).toHaveBeenCalledTimes(1);
+    key('2');
+    expect(result(p)).toMatchObject({ correct: true, replays: 1, answer: '頭高' });
+    expect(speak).toHaveBeenLastCalledWith('雨が', { kana: 'あめが', clip: gaClipKey(ame1) });
+    expect(q('.pitch-contrast__ga')?.textContent).toContain('が (ga)');
+    act(() => hearButtons()[1]?.click());
+    expect(speak).toHaveBeenLastCalledWith('飴', { kana: 'あめ', clip: ame0.id });
+    expect(speakOptions().every((o) => typeof (o as { clip?: string }).clip === 'string')).toBe(true);
+    expect(root.textContent).toContain('dictionary pitch pattern');
+    expect(root.textContent).toContain('VOICEVOX');
+    expect(root.textContent).not.toContain('device voice');
+  });
+
+  it('a present but unverified contrast clip sends both halves to the device voice; without #ga the reveal plays nothing extra', () => {
+    withPack({ [ame1.id]: cue(ame1.id), [ame0.id]: cue(ame0.id, false) });
+    const p = props(ame1, { step: step(ame1) });
+    mount(p);
+    expect(speak).toHaveBeenCalledWith('雨', { kana: 'あめ' });
+    act(() => glyphs()[0]?.click());
+    expect(result(p)).toMatchObject({ correct: false, errorTags: ['pitch'] });
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(q('.pitch-contrast__ga')).toBeNull();
+
+    // both verified, no #ga take in the pack: clips for the words, no extra play on reveal
+    withPack({ [ame1.id]: cue(ame1.id), [ame0.id]: cue(ame0.id) });
+    speak.mockClear();
+    const p2 = props(ame1, { step: step(ame1) });
+    mount(p2);
+    act(() => glyphs()[1]?.click());
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(speak).toHaveBeenCalledWith('雨', { kana: 'あめ', clip: ame1.id });
+    expect(q('.pitch-contrast__ga')).toBeNull();
+  });
+
+  it('a #ga take the verifier rejected (pitchVerified false) is never played on reveal; an unflagged one still is', () => {
+    withPack({ [ame1.id]: cue(ame1.id), [ame0.id]: cue(ame0.id), [gaClipKey(ame1)]: cue(gaClipKey(ame1), false) });
+    expect(gaTakePlayable(ame1)).toBe(false);
+    const p = props(ame1, { step: step(ame1) });
+    mount(p);
+    expect(q('.pitch-ear')?.getAttribute('data-source')).toBe('clips');
+    act(() => glyphs()[1]?.click());
+    expect(result(p)).toMatchObject({ correct: true });
+    expect(speak).toHaveBeenCalledTimes(1);
+    expect(speak).not.toHaveBeenCalledWith('雨が', expect.anything());
+    expect(q('.pitch-contrast__ga')).toBeNull();
+    // present and not flagged either way: the plan's "when present"
+    withPack({ [ame1.id]: cue(ame1.id), [ame0.id]: cue(ame0.id), [gaClipKey(ame1)]: { ...cue(gaClipKey(ame1)), pitchVerified: undefined } });
+    expect(gaTakePlayable(ame1)).toBe(true);
+    speak.mockClear();
+    const p2 = props(ame1, { step: step(ame1) });
+    mount(p2);
+    act(() => glyphs()[1]?.click());
+    expect(speak).toHaveBeenLastCalledWith('雨が', { kana: 'あめが', clip: gaClipKey(ame1) });
+    expect(q('.pitch-contrast__ga')).not.toBeNull();
+  });
+
+  it('the が note is written for the revealed pattern: head-high 雨 dropped inside the word, flat 飴 stays high on が', () => {
+    withPack({ [ame1.id]: cue(ame1.id), [ame0.id]: cue(ame0.id), [gaClipKey(ame1)]: cue(gaClipKey(ame1)), [gaClipKey(ame0)]: cue(gaClipKey(ame0)) });
+    const p = props(ame1, { step: step(ame1) });
+    mount(p);
+    act(() => glyphs()[1]?.click());
+    expect(q('.pitch-contrast__ga')?.textContent).toContain('inside the word');
+    expect(q('.pitch-contrast__ga')?.textContent).toContain('が (ga)');
+    // 飴 as the item (平板): the planner's distractorIds name 雨 as the contrast; its #ga take says the word stays high
+    H.items.set(ame1.id, ame1);
+    speak.mockClear();
+    const base = step(ame0).params;
+    const p2 = props(ame0, { step: step(ame0, { params: { ...base, distractorIds: [ame1.id] } }) });
+    mount(p2);
+    expect(q('.pitch-ear')?.getAttribute('data-source')).toBe('clips');
+    act(() => glyphs()[0]?.click());
+    expect(result(p2)).toMatchObject({ correct: true, answer: '平板' });
+    expect(speak).toHaveBeenLastCalledWith('飴が', { kana: 'あめが', clip: gaClipKey(ame0) });
+    expect(q('.pitch-contrast__ga')?.textContent).toContain('stays high');
+    expect(gaNoteFor('odaka')).toContain('onto が');
+    expect(gaNoteFor('atamadaka')).toBe(gaNoteFor('nakadaka'));
+    for (const t of ['heiban', 'odaka', 'nakadaka', null] as const) expect(gaNoteFor(t)).toContain('が (ga)');
+  });
+
+  it('a word without a contrast gates on its own cue alone; with nullAudio the drill behaves exactly as before', () => {
+    withPack({ [NOMU.id]: cue(NOMU.id) });
+    const p = props(NOMU);
+    mount(p);
+    expect(speak).toHaveBeenCalledWith('飲む', { kana: 'のむ', clip: NOMU.id });
+    act(() => glyphs()[1]?.click());
+    expect(result(p)).toMatchObject({ correct: true });
+    expect(root.textContent).toContain('dictionary pitch pattern');
+
+    installServices({ audio: { ...nullAudio, speak } });
+    speak.mockClear();
+    const p2 = props(NOMU);
+    mount(p2);
+    expect(speak).toHaveBeenCalledWith('飲む', { kana: 'のむ' });
+    expect(q('.pitch-ear')?.getAttribute('data-source')).toBe('synth');
+  });
+
+  it('pitchClipsVerified: both halves, or none', () => {
+    const v = (ok: string[]) => (key: string) => ok.includes(key);
+    expect(pitchClipsVerified(ame1, ame0, v([ame1.id, ame0.id]))).toBe(true);
+    expect(pitchClipsVerified(ame1, ame0, v([ame1.id]))).toBe(false);
+    expect(pitchClipsVerified(ame1, ame0, v([ame0.id]))).toBe(false);
+    expect(pitchClipsVerified(ame1, null, v([ame1.id]))).toBe(true);
+    expect(pitchClipsVerified(ame1, null, v([]))).toBe(false);
+    expect(gaClipKey(ame1)).toBe('v-n5-0101#ga');
   });
 });
 

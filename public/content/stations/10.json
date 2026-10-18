@@ -89,7 +89,9 @@
   "storyIds": [
     "s-10-1",
     "s-10-2",
-    "s-10-3"
+    "s-10-3",
+    "s-10-4",
+    "s-10-5"
   ],
   "michikusaIds": [
     "m-10-1",
@@ -101,6 +103,7 @@
     "grammar/n5/grammar-n5-003.json",
     "kanji/n5/kanji-n5-001.json",
     "michikusa/michikusa-s10.json",
+    "stories/n5/listening-s10.json",
     "stories/n5/stories-s10.json",
     "vocab/n5/vocab-n5-004.json"
   ],

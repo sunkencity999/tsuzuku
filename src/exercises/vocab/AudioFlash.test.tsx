@@ -164,7 +164,7 @@ describe('<AudioFlash>', () => {
     const p = props();
     mount(p, true);
     expect(speak).toHaveBeenCalledTimes(1);
-    expect(speak).toHaveBeenCalledWith('飲む', { kana: 'のむ' });
+    expect(speak).toHaveBeenCalledWith('飲む', { kana: 'のむ', clip: NOMU.id });
     key(document.body, ' ');
     key(document.body, ' ');
     expect(speak).toHaveBeenCalledTimes(3);
@@ -182,8 +182,8 @@ describe('<AudioFlash>', () => {
     store.patch('progress', (pr) => ({ ...pr, station: 16 }));
     const p = props();
     mount(p);
-    // the collocation is spoken as written: no kana override, which would make TTS say the bare word (のむ)
-    expect(speak).toHaveBeenCalledWith('お茶を飲む', undefined);
+    // the collocation is spoken as written with its #col<k> clip key: no kana override, which would make TTS say the bare word (のむ)
+    expect(speak).toHaveBeenCalledWith('お茶を飲む', { clip: `${NOMU.id}#col0` });
     expect(speak).not.toHaveBeenCalledWith('お茶を飲む', expect.objectContaining({ kana: expect.anything() }));
     act(() => cells()[1]?.click());
     expect(root.textContent).toContain('Heard in');

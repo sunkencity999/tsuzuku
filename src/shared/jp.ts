@@ -175,6 +175,19 @@ export function moraCount(kana: string): number {
   return moraSplit(kana).length;
 }
 
+/** Characters that are written but never spoken: punctuation, brackets, the ellipsis, the wave dash and whitespace. */
+export const RE_NOT_MORA = /[、。！？「」『』〜…・\s　]/gu;
+
+/**
+ * The SPOKEN morae of a kana line: `moraSplit` of the kana with `RE_NOT_MORA`
+ * removed. One body for the clip cues' `m` / `c` indexes (design 08 §7), the
+ * validator's line-length rule, the planner's `StepParams.clause` and the
+ * drills' clause cut — all index speech morae, never written characters.
+ */
+export function speechMorae(kana: string): string[] {
+  return moraSplit(kana.replace(RE_NOT_MORA, ''));
+}
+
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Distance and similarity                                                    */
 /* ────────────────────────────────────────────────────────────────────────── */

@@ -29,9 +29,9 @@
           "en": "Yes, understood."
         },
         {
-          "ja": "はい、{明日|あした}も{来|き}ます。",
-          "kana": "はい、あしたもきます。",
-          "en": "Yes, I will come tomorrow too."
+          "ja": "はい、{私|わたし}は{学生|がくせい}です。",
+          "kana": "はい、わたしはがくせいです。",
+          "en": "Yes, I'm a student."
         }
       ],
       "notes": "Also a backchannel that shows you are listening; it does not always mean agreement.",
@@ -91,9 +91,9 @@
           "en": "Yes, that's fine."
         },
         {
-          "ja": "ええ、{昨日|きのう}{田中|たなか}さんに{会|あ}いました。",
-          "kana": "ええ、きのうたなかさんにあいました。",
-          "en": "Yes, I met Mr. Tanaka yesterday."
+          "ja": "ええ、{私|わたし}も{学生|がくせい}です。",
+          "kana": "ええ、わたしもがくせいです。",
+          "en": "Yes, I'm a student too."
         }
       ],
       "notes": "A softer, more conversational yes than はい; common between adults in polite speech.",
@@ -123,9 +123,9 @@
           "en": "Good morning. It's hot again today, isn't it?"
         },
         {
-          "ja": "{店|みせ}の{人|ひと}が「おはようございます」と{言|い}いました。",
-          "kana": "みせのひとが「おはようございます」といいました。",
-          "en": "The shop clerk said \"good morning.\""
+          "ja": "{先生|せんせい}、おはようございます。",
+          "kana": "せんせい、おはようございます。",
+          "en": "Good morning, teacher."
         }
       ],
       "notes": "Used until about ten or eleven in the morning; at work it is also the first greeting of the day whatever the hour.",
@@ -191,9 +191,9 @@
           "en": "Hello. Nice weather today, isn't it?"
         },
         {
-          "ja": "「こんにちは」は{英語|えいご}で{何|なん}ですか。",
-          "kana": "「こんにちは」はえいごでなんですか。",
-          "en": "What is \"konnichiwa\" in English?"
+          "ja": "{皆|みな}さん、こんにちは。",
+          "kana": "みなさん、こんにちは。",
+          "en": "Hello, everyone."
         }
       ],
       "notes": "Spelled with は (the particle) but pronounced wa. Used from late morning to early evening.",
@@ -224,9 +224,9 @@
           "en": "Good evening. Are you about to have dinner?"
         },
         {
-          "ja": "{夜|よる}は「こんばんは」と{言|い}います。",
-          "kana": "よるは「こんばんは」といいます。",
-          "en": "At night we say \"good evening.\""
+          "ja": "おじさん、こんばんは。",
+          "kana": "おじさん、こんばんは。",
+          "en": "Good evening, uncle."
         }
       ],
       "notes": "Spelled with は but pronounced wa, like こんにちは.",
@@ -257,9 +257,9 @@
           "en": "Goodbye, everyone. See you next week."
         },
         {
-          "ja": "{学生|がくせい}たちは{先生|せんせい}に「さようなら」と{言|い}いました。",
-          "kana": "がくせいたちはせんせいに「さようなら」といいました。",
-          "en": "The students said \"goodbye\" to the teacher."
+          "ja": "{田中|たなか}さん、さようなら。",
+          "kana": "たなかさん、さようなら。",
+          "en": "Goodbye, Mr. Tanaka."
         }
       ],
       "notes": "Slightly formal and final; between friends じゃあ、また or またね is more common. Also written さよなら.",
@@ -288,9 +288,9 @@
           "en": "Good night. Let's talk again tomorrow."
         },
         {
-          "ja": "{子供|こども}は{十時|じゅうじ}に「おやすみなさい」と{言|い}いました。",
-          "kana": "こどもはじゅうじに「おやすみなさい」といいました。",
-          "en": "The child said \"good night\" at ten."
+          "ja": "ハナさん、おやすみなさい。",
+          "kana": "ハナさん、おやすみなさい。",
+          "en": "Good night, Hana."
         }
       ],
       "notes": "Said before going to bed or when parting late at night. Casual: おやすみ.",
@@ -322,9 +322,9 @@
           "en": "Thank you for the present."
         },
         {
-          "ja": "{手紙|てがみ}に「ありがとうございます」と{書|か}きました。",
-          "kana": "てがみに「ありがとうございます」とかきました。",
-          "en": "I wrote \"thank you very much\" in the letter."
+          "ja": "{皆|みな}さん、ありがとうございます。",
+          "kana": "みなさん、ありがとうございます。",
+          "en": "Thank you, everyone."
         }
       ],
       "notes": "For something already done, ありがとうございました is also common.",
@@ -387,9 +387,9 @@
           "en": "You're welcome. Please come again."
         },
         {
-          "ja": "ケンは「どういたしまして」と{言|い}いました。",
-          "kana": "ケンは「どういたしまして」といいました。",
-          "en": "Ken said \"you're welcome.\""
+          "ja": "いいえ、どういたしまして。",
+          "kana": "いいえ、どういたしまして。",
+          "en": "Not at all, you're welcome."
         }
       ],
       "notes": "A little formal in everyday speech; いいえ or とんでもないです are also common replies to thanks.",
@@ -415,9 +415,9 @@
       "pitchConfidence": "high",
       "examples": [
         {
-          "ja": "すみません、{駅|えき}はどこですか。",
-          "kana": "すみません、えきはどこですか。",
-          "en": "Excuse me, where is the station?"
+          "ja": "すみません、{田中|たなか}さんですか。",
+          "kana": "すみません、たなかさんですか。",
+          "en": "Excuse me, are you Mr. Tanaka?"
         },
         {
           "ja": "{遅|おそ}くなって、すみません。",
@@ -454,9 +454,9 @@
           "en": "Sorry. I'm busy today."
         },
         {
-          "ja": "{弟|おとうと}は{母|はは}に「ごめんなさい」と{言|い}いました。",
-          "kana": "おとうとはははに「ごめんなさい」といいました。",
-          "en": "My younger brother said \"sorry\" to our mother."
+          "ja": "ケンさん、ごめんなさい。",
+          "kana": "ケンさん、ごめんなさい。",
+          "en": "I'm sorry, Ken."
         }
       ],
       "notes": "A personal apology, not a way to get attention; casual ごめん. To a superior, 申し訳ありません is safer.",
@@ -524,9 +524,9 @@
           "en": "Thank you for the meal. It was delicious."
         },
         {
-          "ja": "{子供|こども}たちは「ごちそうさまでした」と{言|い}いました。",
-          "kana": "こどもたちは「ごちそうさまでした」といいました。",
-          "en": "The children said \"thank you for the meal.\""
+          "ja": "おばさん、ごちそうさまでした。",
+          "kana": "おばさん、ごちそうさまでした。",
+          "en": "Thank you for the meal, auntie."
         }
       ],
       "notes": "Said after eating, to the cook or when leaving a restaurant. Casual: ごちそうさま.",
@@ -637,9 +637,9 @@
           "en": "One coffee, please."
         },
         {
-          "ja": "{駅|えき}までお{願|ねが}いします。",
-          "kana": "えきまでおねがいします。",
-          "en": "To the station, please."
+          "ja": "{日本語|にほんご}でお{願|ねが}いします。",
+          "kana": "にほんごでおねがいします。",
+          "en": "In Japanese, please."
         }
       ],
       "notes": "Ordering, requesting a service, or accepting an offer. Noun + をお願いします is the simplest way to order.",
@@ -701,9 +701,9 @@
           "en": "Happy birthday."
         },
         {
-          "ja": "{皆|みんな}で「おめでとうございます」と{言|い}いました。",
-          "kana": "みんなで「おめでとうございます」といいました。",
-          "en": "We all said \"congratulations.\""
+          "ja": "ハナさん、おめでとうございます。",
+          "kana": "ハナさん、おめでとうございます。",
+          "en": "Congratulations, Hana."
         }
       ],
       "notes": "Preceded by the occasion: お誕生日, ご結婚, 明けまして (New Year). Casual: おめでとう.",
@@ -729,9 +729,9 @@
       "pitchConfidence": "high",
       "examples": [
         {
-          "ja": "はい、そうです。{私|わたし}の{本|ほん}です。",
-          "kana": "はい、そうです。わたしのほんです。",
-          "en": "Yes, that's right. It's my book."
+          "ja": "はい、そうです。{日本語|にほんご}の{先生|せんせい}です。",
+          "kana": "はい、そうです。にほんごのせんせいです。",
+          "en": "Yes, that's right. I'm the Japanese teacher."
         },
         {
           "ja": "ケンさんは{料理|りょうり}の{先生|せんせい}ですか。ええ、そうです。",
@@ -766,9 +766,9 @@
       "pitchConfidence": "low",
       "examples": [
         {
-          "ja": "そうですね、{少|すこ}し{高|たか}いですね。",
-          "kana": "そうですね、すこしたかいですね。",
-          "en": "Well, yes, it is a bit expensive, isn't it?"
+          "ja": "そうですね、{田中|たなか}さんは{先生|せんせい}ですね。",
+          "kana": "そうですね、たなかさんはせんせいですね。",
+          "en": "That's right, Mr. Tanaka is a teacher, isn't he?"
         },
         {
           "ja": "{何|なに}を{食|た}べますか。そうですね、カレーにします。",
@@ -808,9 +808,9 @@
           "en": "I'm off. I'll be back at six."
         },
         {
-          "ja": "{弟|おとうと}は「いってきます」と{言|い}って、{出|で}かけました。",
-          "kana": "おとうとは「いってきます」といって、でかけました。",
-          "en": "My younger brother said \"I'm off\" and went out."
+          "ja": "おばさん、いってきます。",
+          "kana": "おばさん、いってきます。",
+          "en": "I'm off, auntie."
         }
       ],
       "notes": "Said by the person leaving home or the office; the reply is いってらっしゃい.",
@@ -848,9 +848,9 @@
           "en": "Off you go. It's raining today, you know."
         },
         {
-          "ja": "{母|はは}は{毎朝|まいあさ}「いってらっしゃい」と{言|い}います。",
-          "kana": "はははまいあさ「いってらっしゃい」といいます。",
-          "en": "My mother says \"off you go\" every morning."
+          "ja": "ケンさん、いってらっしゃい。",
+          "kana": "ケンさん、いってらっしゃい。",
+          "en": "Have a good day, Ken."
         }
       ],
       "notes": "Said to the person leaving, in reply to いってきます.",
@@ -885,9 +885,9 @@
           "en": "I'm home. I'm tired today."
         },
         {
-          "ja": "ケンは{元気|げんき}に「ただいま」と{言|い}いました。",
-          "kana": "ケンはげんきに「ただいま」といいました。",
-          "en": "Ken said \"I'm home\" cheerfully."
+          "ja": "おばさん、ただいま。",
+          "kana": "おばさん、ただいま。",
+          "en": "I'm home, auntie."
         }
       ],
       "notes": "Said on returning home or to the office; the reply is おかえりなさい.",
@@ -922,9 +922,9 @@
           "en": "Welcome home. How was your day?"
         },
         {
-          "ja": "おばあさんは「おかえりなさい」と{言|い}いました。",
-          "kana": "おばあさんは「おかえりなさい」といいました。",
-          "en": "My grandmother said \"welcome home.\""
+          "ja": "ケンさん、おかえりなさい。",
+          "kana": "ケンさん、おかえりなさい。",
+          "en": "Welcome home, Ken."
         }
       ],
       "notes": "Reply to ただいま. Casual: おかえり.",
@@ -960,9 +960,9 @@
           "en": "Excuse me, I'm heading home before you."
         },
         {
-          "ja": "ドアを{開|あ}けて、「{失礼|しつれい}します」と{言|い}いました。",
-          "kana": "ドアをあけて、「しつれいします」といいました。",
-          "en": "I opened the door and said \"excuse me.\""
+          "ja": "{先生|せんせい}、{失礼|しつれい}します。",
+          "kana": "せんせい、しつれいします。",
+          "en": "Excuse me, teacher."
         }
       ],
       "notes": "Said when entering or leaving a room, ending a phone call, or leaving work (お先に失礼します). Past form 失礼しました apologizes.",
@@ -993,9 +993,9 @@
           "en": "Welcome! Bread is cheap today."
         },
         {
-          "ja": "コンビニで「いらっしゃいませ」を{聞|き}きました。",
-          "kana": "コンビニで「いらっしゃいませ」をききました。",
-          "en": "I heard \"welcome\" at the convenience store."
+          "ja": "いらっしゃいませ。{何|なん}にしますか。",
+          "kana": "いらっしゃいませ。なんにしますか。",
+          "en": "Welcome! What will you have?"
         }
       ],
       "notes": "Shop and restaurant staff greeting to customers; the customer does not reply.",
@@ -1026,9 +1026,9 @@
           "en": "I see. That sounds tough."
         },
         {
-          "ja": "そうですか。{知|し}りませんでした。",
-          "kana": "そうですか。しりませんでした。",
-          "en": "Is that so? I didn't know."
+          "ja": "そうですか。{皆|みな}さんは{学生|がくせい}ですか。",
+          "kana": "そうですか。みなさんはがくせいですか。",
+          "en": "I see. Are you all students?"
         }
       ],
       "notes": "With falling intonation it means I see and is not a real question; rising, it asks really? Casual: そう or そっか.",
@@ -1059,9 +1059,9 @@
           "en": "Please say one through ten."
         },
         {
-          "ja": "{一月|いちがつ}に{京都|きょうと}へ{行|い}きました。",
-          "kana": "いちがつにきょうとへいきました。",
-          "en": "I went to Kyoto in January."
+          "ja": "{先生|せんせい}は{一人|ひとり}です。",
+          "kana": "せんせいはひとりです。",
+          "en": "There is one teacher."
         }
       ],
       "notes": "Before counters often いっ: 一本 いっぽん, 一回 いっかい, 一個 いっこ. Native form: 一つ ひとつ.",
@@ -1088,9 +1088,9 @@
           "en": "The room is on the second floor."
         },
         {
-          "ja": "{二時|にじ}に{友達|ともだち}と{会|あ}います。",
-          "kana": "にじにともだちとあいます。",
-          "en": "I'll meet a friend at two."
+          "ja": "{外国人|がいこくじん}の{先生|せんせい}が{二人|ふたり}います。",
+          "kana": "がいこくじんのせんせいがふたりいます。",
+          "en": "There are two foreign teachers."
         }
       ],
       "notes": "Native form: 二つ ふたつ; 二人 is ふたり, 二日 is ふつか.",
@@ -1117,9 +1117,9 @@
           "en": "Let's meet at three."
         },
         {
-          "ja": "{姉|あね}は{子供|こども}が{三人|さんにん}います。",
-          "kana": "あねはこどもがさんにんいます。",
-          "en": "My older sister has three children."
+          "ja": "おばさんは{子供|こども}が{三人|さんにん}います。",
+          "kana": "おばさんはこどもがさんにんいます。",
+          "en": "My aunt has three children."
         }
       ],
       "notes": "Some counters voice after it: 三本 さんぼん, 三百 さんびゃく, 三千 さんぜん. Native form: 三つ みっつ.",
@@ -1146,9 +1146,9 @@
           "en": "Four stamps, please."
         },
         {
-          "ja": "この{本|ほん}は{四百円|よんひゃくえん}でした。",
-          "kana": "このほんはよんひゃくえんでした。",
-          "en": "This book was 400 yen."
+          "ja": "{私|わたし}の{家族|かぞく}は{四人|よにん}です。",
+          "kana": "わたしのかぞくはよにんです。",
+          "en": "There are four people in my family."
         }
       ],
       "notes": "Also し (四月 しがつ) and よ (四時 よじ, 四人 よにん). よん is the usual reading when counting.",
@@ -1175,9 +1175,9 @@
           "en": "Please wait five minutes."
         },
         {
-          "ja": "{五月|ごがつ}は{天気|てんき}がいいです。",
-          "kana": "ごがつはてんきがいいです。",
-          "en": "The weather is nice in May."
+          "ja": "{学生|がくせい}は{五人|ごにん}です。",
+          "kana": "がくせいはごにんです。",
+          "en": "There are five students."
         }
       ],
       "notes": "Native form: 五つ いつつ; 五日 is いつか.",
@@ -1204,9 +1204,9 @@
           "en": "I get up at six every morning."
         },
         {
-          "ja": "{六人|ろくにん}で{晩|ばん}ご{飯|はん}を{食|た}べました。",
-          "kana": "ろくにんでばんごはんをたべました。",
-          "en": "Six of us had dinner together."
+          "ja": "{友達|ともだち}が{六人|ろくにん}きます。",
+          "kana": "ともだちがろくにんきます。",
+          "en": "Six friends are coming."
         }
       ],
       "notes": "Before some counters ろっ: 六本 ろっぽん, 六百 ろっぴゃく, 六個 ろっこ. Native form: 六つ むっつ.",
@@ -1233,9 +1233,9 @@
           "en": "I bought seven eggs."
         },
         {
-          "ja": "{学校|がっこう}まで{七分|ななふん}ぐらいです。",
-          "kana": "がっこうまでななふんぐらいです。",
-          "en": "It's about seven minutes to school."
+          "ja": "{先生|せんせい}は{七人|しちにん}います。",
+          "kana": "せんせいはしちにんいます。",
+          "en": "There are seven teachers."
         }
       ],
       "notes": "Also しち (七時 しちじ, 七月 しちがつ). Native form: 七つ ななつ.",
@@ -1262,9 +1262,9 @@
           "en": "I go to school at eight."
         },
         {
-          "ja": "{八月|はちがつ}はとても{暑|あつ}いです。",
-          "kana": "はちがつはとてもあついです。",
-          "en": "August is very hot."
+          "ja": "{男|おとこ}の{人|ひと}が{八人|はちにん}います。",
+          "kana": "おとこのひとがはちにんいます。",
+          "en": "There are eight men."
         }
       ],
       "notes": "Before some counters はっ: 八本 はっぽん, 八百 はっぴゃく, 八歳 はっさい. Native form: 八つ やっつ.",
@@ -1291,9 +1291,9 @@
           "en": "The office is on the ninth floor."
         },
         {
-          "ja": "{切手|きって}を{九枚|きゅうまい}{買|か}いました。",
-          "kana": "きってをきゅうまいかいました。",
-          "en": "I bought nine stamps."
+          "ja": "{女|おんな}の{人|ひと}は{九人|きゅうにん}です。",
+          "kana": "おんなのひとはきゅうにんです。",
+          "en": "There are nine women."
         }
       ],
       "notes": "Also く (九時 くじ, 九月 くがつ). Native form: 九つ ここのつ.",
@@ -1320,9 +1320,9 @@
           "en": "I go to bed at ten every night."
         },
         {
-          "ja": "{十月|じゅうがつ}は{涼|すず}しいです。",
-          "kana": "じゅうがつはすずしいです。",
-          "en": "October is cool."
+          "ja": "ここに{学生|がくせい}が{十人|じゅうにん}います。",
+          "kana": "ここにがくせいがじゅうにんいます。",
+          "en": "There are ten students here."
         }
       ],
       "notes": "Before some counters じゅっ (or じっ): 十本 じゅっぽん, 十分 じゅっぷん, 十歳 じゅっさい. Native form: 十 とお.",
@@ -1350,9 +1350,9 @@
           "en": "I go to the office by train every day."
         },
         {
-          "ja": "これは{私|わたし}の{傘|かさ}ではありません。",
-          "kana": "これはわたしのかさではありません。",
-          "en": "This is not my umbrella."
+          "ja": "{私|わたし}は{日本語|にほんご}の{学生|がくせい}です。",
+          "kana": "わたしはにほんごのがくせいです。",
+          "en": "I'm a student of Japanese."
         }
       ],
       "notes": "Neutral first-person pronoun for everyone in polite speech; usually dropped once the subject is clear. Formal reading: わたくし.",
@@ -1382,9 +1382,9 @@
           "en": "What is your name?"
         },
         {
-          "ja": "あなたも{一緒|いっしょ}に{行|い}きませんか。",
-          "kana": "あなたもいっしょにいきませんか。",
-          "en": "Won't you come along too?"
+          "ja": "あなたも{学生|がくせい}ですか。",
+          "kana": "あなたもがくせいですか。",
+          "en": "Are you a student too?"
         }
       ],
       "notes": "Rarely used with someone whose name you know; prefer the name + さん. Also what some wives call their husbands.",
@@ -1417,9 +1417,9 @@
           "en": "My uncle comes every Sunday."
         },
         {
-          "ja": "{昨日|きのう}、おじさんから{手紙|てがみ}が{来|き}ました。",
-          "kana": "きのう、おじさんからてがみがきました。",
-          "en": "Yesterday a letter came from my uncle."
+          "ja": "あの{人|ひと}は{私|わたし}のおじさんです。",
+          "kana": "あのひとはわたしのおじさんです。",
+          "en": "That person is my uncle."
         }
       ],
       "notes": "Short じ: おじいさん (long い) is grandfather. Also a familiar word for any middle-aged man. Humble form for your own uncle: おじ (叔父, 伯父).",
@@ -1457,9 +1457,9 @@
           "en": "My aunt works at a bakery."
         },
         {
-          "ja": "{夏休|なつやす}みにおばさんの{家|いえ}へ{行|い}きました。",
-          "kana": "なつやすみにおばさんのいえへいきました。",
-          "en": "I went to my aunt's house during summer vacation."
+          "ja": "おばさんは{日本語|にほんご}の{先生|せんせい}です。",
+          "kana": "おばさんはにほんごのせんせいです。",
+          "en": "My aunt is a Japanese teacher."
         }
       ],
       "notes": "Short ば: おばあさん (long あ) is grandmother. Can sound rude when said to a stranger. Humble form for your own aunt: おば (叔母, 伯母).",
@@ -1496,9 +1496,9 @@
           "en": "This is my bag."
         },
         {
-          "ja": "これも{三百円|さんびゃくえん}ですか。",
-          "kana": "これもさんびゃくえんですか。",
-          "en": "Is this one 300 yen too?"
+          "ja": "{先生|せんせい}、これは{何|なん}ですか。",
+          "kana": "せんせい、これはなんですか。",
+          "en": "Teacher, what is this?"
         }
       ],
       "notes": "Something near the speaker. Stands alone; before a noun use この.",
@@ -1527,9 +1527,9 @@
       "pitchConfidence": "high",
       "examples": [
         {
-          "ja": "それは{誰|だれ}の{傘|かさ}ですか。",
-          "kana": "それはだれのかさですか。",
-          "en": "Whose umbrella is that?"
+          "ja": "それは{何|なん}ですか。",
+          "kana": "それはなんですか。",
+          "en": "What is that?"
         },
         {
           "ja": "それを{二|ふた}つください。",
@@ -1567,9 +1567,9 @@
           "en": "That over there is Mt. Fuji."
         },
         {
-          "ja": "あれは{郵便局|ゆうびんきょく}ですか、{銀行|ぎんこう}ですか。",
-          "kana": "あれはゆうびんきょくですか、ぎんこうですか。",
-          "en": "Is that a post office or a bank?"
+          "ja": "あれは{何|なん}ですか。",
+          "kana": "あれはなんですか。",
+          "en": "What is that over there?"
         }
       ],
       "notes": "Something away from both speaker and listener. Said with a rising tone, あれ？ means huh?",
@@ -1602,9 +1602,9 @@
           "en": "This book is interesting."
         },
         {
-          "ja": "この{道|みち}をまっすぐ{行|い}ってください。",
-          "kana": "このみちをまっすぐいってください。",
-          "en": "Please go straight along this road."
+          "ja": "この{人|ひと}は{私|わたし}の{友達|ともだち}です。",
+          "kana": "このひとはわたしのともだちです。",
+          "en": "This person is my friend."
         }
       ],
       "notes": "Pre-noun form: always followed by a noun (この本). On its own use これ.",
@@ -1637,9 +1637,9 @@
           "en": "How much is that watch?"
         },
         {
-          "ja": "その{話|はなし}は{昨日|きのう}{聞|き}きました。",
-          "kana": "そのはなしはきのうききました。",
-          "en": "I heard that story yesterday."
+          "ja": "その{人|ひと}は{田中|たなか}さんです。",
+          "kana": "そのひとはたなかさんです。",
+          "en": "That person is Mr. Tanaka."
         }
       ],
       "notes": "Pre-noun form; near the listener or already mentioned. On its own use それ.",
@@ -1707,9 +1707,9 @@
           "en": "This is my classroom."
         },
         {
-          "ja": "ここで{写真|しゃしん}を{撮|と}ってもいいですか。",
-          "kana": "ここでしゃしんをとってもいいですか。",
-          "en": "May I take photos here?"
+          "ja": "{先生|せんせい}はここにいます。",
+          "kana": "せんせいはここにいます。",
+          "en": "The teacher is here."
         }
       ],
       "notes": "Polite equivalent: こちら.",
@@ -1741,9 +1741,9 @@
           "en": "Please sit there."
         },
         {
-          "ja": "そこは{去年|きょねん}まで{本屋|ほんや}でした。",
-          "kana": "そこはきょねんまでほんやでした。",
-          "en": "That place was a bookstore until last year."
+          "ja": "{田中|たなか}さんはそこにいますか。",
+          "kana": "たなかさんはそこにいますか。",
+          "en": "Is Mr. Tanaka there?"
         }
       ],
       "notes": "Near the listener. Polite equivalent: そちら.",
@@ -1775,9 +1775,9 @@
           "en": "The restroom is over there."
         },
         {
-          "ja": "あそこで{友達|ともだち}を{待|ま}っています。",
-          "kana": "あそこでともだちをまっています。",
-          "en": "I'm waiting for a friend over there."
+          "ja": "{友達|ともだち}はあそこにいます。",
+          "kana": "ともだちはあそこにいます。",
+          "en": "My friend is over there."
         }
       ],
       "notes": "Away from both speaker and listener. Polite equivalent: あちら.",
@@ -1809,9 +1809,9 @@
           "en": "What will you do on Sunday?"
         },
         {
-          "ja": "{昨日|きのう}は{何|なに}も{食|た}べませんでした。",
-          "kana": "きのうはなにもたべませんでした。",
-          "en": "I didn't eat anything yesterday."
+          "ja": "これは{日本語|にほんご}で{何|なん}ですか。",
+          "kana": "これはにほんごでなんですか。",
+          "en": "What is this in Japanese?"
         }
       ],
       "notes": "Read なん before です, の, と and counters (何ですか, 何人), なに before を, が, も.",
@@ -1839,9 +1839,9 @@
           "en": "Who are you going with tomorrow?"
         },
         {
-          "ja": "{部屋|へや}には{誰|だれ}もいませんでした。",
-          "kana": "へやにはだれもいませんでした。",
-          "en": "There was no one in the room."
+          "ja": "ここには{誰|だれ}もいません。",
+          "kana": "ここにはだれもいません。",
+          "en": "There is no one here."
         }
       ],
       "notes": "Polite equivalent: どなた. 誰の = whose, 誰か = someone, 誰も + negative = no one.",
@@ -1867,9 +1867,9 @@
       "pitchConfidence": "high",
       "examples": [
         {
-          "ja": "{郵便局|ゆうびんきょく}はどこですか。",
-          "kana": "ゆうびんきょくはどこですか。",
-          "en": "Where is the post office?"
+          "ja": "{先生|せんせい}はどこですか。",
+          "kana": "せんせいはどこですか。",
+          "en": "Where is the teacher?"
         },
         {
           "ja": "{夏休|なつやす}みはどこへ{行|い}きましたか。",
@@ -1906,9 +1906,9 @@
           "en": "When is your birthday?"
         },
         {
-          "ja": "いつ{日本|にほん}へ{来|き}ましたか。",
-          "kana": "いつにほんへきましたか。",
-          "en": "When did you come to Japan?"
+          "ja": "{田中|たなか}さんはいつきますか。",
+          "kana": "たなかさんはいつきますか。",
+          "en": "When is Mr. Tanaka coming?"
         }
       ],
       "notes": "Takes no particle before です or a verb. いつか = someday, いつも = always.",
@@ -1939,9 +1939,9 @@
           "en": "Which one is Mr. Tanaka's car?"
         },
         {
-          "ja": "どれが{一番|いちばん}{安|やす}いですか。",
-          "kana": "どれがいちばんやすいですか。",
-          "en": "Which one is the cheapest?"
+          "ja": "どれが{私|わたし}のですか。",
+          "kana": "どれがわたしのですか。",
+          "en": "Which one is mine?"
         }
       ],
       "notes": "Choosing among three or more; for two use どちら. Stands alone; before a noun use どの.",
@@ -2002,9 +2002,9 @@
       "pitchConfidence": "high",
       "examples": [
         {
-          "ja": "{新|あたら}しい{仕事|しごと}はどうですか。",
-          "kana": "あたらしいしごとはどうですか。",
-          "en": "How is your new job?"
+          "ja": "{日本語|にほんご}はどうですか。",
+          "kana": "にほんごはどうですか。",
+          "en": "How is your Japanese going?"
         },
         {
           "ja": "{京都|きょうと}までどう{行|い}きますか。",
@@ -2033,9 +2033,9 @@
       "pitchConfidence": "high",
       "examples": [
         {
-          "ja": "この{靴|くつ}はいくらですか。",
-          "kana": "このくつはいくらですか。",
-          "en": "How much are these shoes?"
+          "ja": "これはいくらですか。",
+          "kana": "これはいくらですか。",
+          "en": "How much is this?"
         },
         {
           "ja": "{京都|きょうと}まで{電車|でんしゃ}でいくらかかりますか。",
@@ -2067,9 +2067,9 @@
       "pitchConfidence": "high",
       "examples": [
         {
-          "ja": "{卵|たまご}はいくつありますか。",
-          "kana": "たまごはいくつありますか。",
-          "en": "How many eggs are there?"
+          "ja": "ひらがなはいくつありますか。",
+          "kana": "ひらがなはいくつありますか。",
+          "en": "How many hiragana are there?"
         },
         {
           "ja": "おばあさんはおいくつですか。",
@@ -2107,9 +2107,9 @@
           "en": "Why do you study Japanese?"
         },
         {
-          "ja": "{昨日|きのう}はなぜ{来|き}ませんでしたか。",
-          "kana": "きのうはなぜきませんでしたか。",
-          "en": "Why didn't you come yesterday?"
+          "ja": "{先生|せんせい}はなぜいませんか。",
+          "kana": "せんせいはなぜいませんか。",
+          "en": "Why isn't the teacher here?"
         }
       ],
       "notes": "Slightly more formal or written than どうして; in speech どうして and なんで are more common.",
@@ -2141,9 +2141,9 @@
           "en": "Excuse me, but who might you be?"
         },
         {
-          "ja": "こちらはどなたの{傘|かさ}ですか。",
-          "kana": "こちらはどなたのかさですか。",
-          "en": "Whose umbrella is this?"
+          "ja": "これはどなたのですか。",
+          "kana": "これはどなたのですか。",
+          "en": "Whose is this?"
         }
       ],
       "notes": "Polite equivalent of 誰, used with customers, callers and strangers; どなた様 is more formal still.",
@@ -2174,9 +2174,9 @@
           "en": "What kind of music do you like?"
         },
         {
-          "ja": "{京都|きょうと}はどんな{町|まち}でしたか。",
-          "kana": "きょうとはどんなまちでしたか。",
-          "en": "What kind of town was Kyoto?"
+          "ja": "{田中|たなか}さんはどんな{人|ひと}ですか。",
+          "kana": "たなかさんはどんなひとですか。",
+          "en": "What kind of person is Mr. Tanaka?"
         }
       ],
       "notes": "Pre-noun form: always followed by a noun (どんな人). Series: こんな, そんな, あんな.",
@@ -2207,9 +2207,9 @@
           "en": "There are a lot of people at the station."
         },
         {
-          "ja": "その{人|ひと}の{名前|なまえ}を{知|し}りません。",
-          "kana": "そのひとのなまえをしりません。",
-          "en": "I don't know that person's name."
+          "ja": "あの{人|ひと}は{日本語|にほんご}の{先生|せんせい}です。",
+          "kana": "あのひとはにほんごのせんせいです。",
+          "en": "That person is a Japanese teacher."
         }
       ],
       "notes": "Also the counter 〜人 (にん) and the reading じん in nationalities (日本人). あの人 is a neutral way to say he or she.",
@@ -2238,9 +2238,9 @@
           "en": "Mr. Tanaka is a kind person."
         },
         {
-          "ja": "ハナさんは{昨日|きのう}{何時|なんじ}に{帰|かえ}りましたか。",
-          "kana": "ハナさんはきのうなんじにかえりましたか。",
-          "en": "What time did Hana go home yesterday?"
+          "ja": "ハナさんは{学生|がくせい}ですか。",
+          "kana": "ハナさんはがくせいですか。",
+          "en": "Is Hana a student?"
         }
       ],
       "notes": "Attaches to surnames, first names and some roles (店員さん); never to your own name. More respectful: 様; casual: ちゃん, くん.",
@@ -2268,9 +2268,9 @@
           "en": "Teacher, I have a question."
         },
         {
-          "ja": "{姉|あね}は{去年|きょねん}まで{先生|せんせい}でした。",
-          "kana": "あねはきょねんまでせんせいでした。",
-          "en": "My older sister was a teacher until last year."
+          "ja": "{皆|みな}さんの{先生|せんせい}は{誰|だれ}ですか。",
+          "kana": "みなさんのせんせいはだれですか。",
+          "en": "Who is your teacher, everyone?"
         }
       ],
       "notes": "Also a title and address term for doctors, lawyers and authors (田中先生). Not used of yourself; say 教師 for your own job.",
@@ -2304,9 +2304,9 @@
           "en": "I'm still a student."
         },
         {
-          "ja": "この{店|みせ}は{学生|がくせい}が{多|おお}いです。",
-          "kana": "このみせはがくせいがおおいです。",
-          "en": "This shop has a lot of students."
+          "ja": "あの{学生|がくせい}は{誰|だれ}ですか。",
+          "kana": "あのがくせいはだれですか。",
+          "en": "Who is that student?"
         }
       ],
       "notes": "Mainly university students; school pupils are 生徒. 大学生 = university student, 留学生 = exchange student.",
@@ -2336,9 +2336,9 @@
           "en": "I'll have lunch with a friend."
         },
         {
-          "ja": "{日本|にほん}で{友達|ともだち}がたくさんできました。",
-          "kana": "にほんでともだちがたくさんできました。",
-          "en": "I made a lot of friends in Japan."
+          "ja": "ケンさんは{私|わたし}の{友達|ともだち}です。",
+          "kana": "ケンさんはわたしのともだちです。",
+          "en": "Ken is my friend."
         }
       ],
       "notes": "Singular or plural. Making friends is 友達になる or 友達を作る.",
@@ -2474,9 +2474,9 @@
           "en": "Coffee or tea, which would you like?"
         },
         {
-          "ja": "お{国|くに}はどちらですか。",
-          "kana": "おくにはどちらですか。",
-          "en": "Where are you from?"
+          "ja": "{田中|たなか}さんはどちらですか。",
+          "kana": "たなかさんはどちらですか。",
+          "en": "Which one is Mr. Tanaka?"
         }
       ],
       "notes": "A choice between two (どれ for three or more); also the polite form of どこ (どちらからですか) and, as どちら様, of 誰. Casual: どっち.",
@@ -2614,9 +2614,9 @@
           "en": "Please write your name in hiragana."
         },
         {
-          "ja": "{弟|おとうと}はひらがなを{全部|ぜんぶ}{覚|おぼ}えました。",
-          "kana": "おとうとはひらがなをぜんぶおぼえました。",
-          "en": "My younger brother learned all the hiragana."
+          "ja": "これはひらがなですか、カタカナですか。",
+          "kana": "これはひらがなですか、カタカナですか。",
+          "en": "Is this hiragana or katakana?"
         }
       ],
       "notes": "The cursive kana used for native words and grammar endings. Also written 平仮名.",
@@ -2651,9 +2651,9 @@
           "en": "Katakana is still difficult."
         },
         {
-          "ja": "{私|わたし}の{名前|なまえ}はカタカナで{書|か}きます。",
-          "kana": "わたしのなまえはカタカナでかきます。",
-          "en": "I write my name in katakana."
+          "ja": "{皆|みな}さん、これはカタカナです。",
+          "kana": "みなさん、これはカタカナです。",
+          "en": "Everyone, this is katakana."
         }
       ],
       "notes": "The angular kana used for loanwords, foreign names and emphasis. Also written かたかな or 片仮名.",
@@ -2688,9 +2688,9 @@
           "en": "Please speak in Japanese."
         },
         {
-          "ja": "{日本語|にほんご}の{授業|じゅぎょう}は{毎週|まいしゅう}{火曜日|かようび}です。",
-          "kana": "にほんごのじゅぎょうはまいしゅうかようびです。",
-          "en": "Japanese class is every Tuesday."
+          "ja": "{日本語|にほんご}の{先生|せんせい}はどなたですか。",
+          "kana": "にほんごのせんせいはどなたですか。",
+          "en": "Who is the Japanese teacher?"
         }
       ],
       "notes": "〜語 names a language (英語, 中国語). 日本語で = in Japanese.",
@@ -2722,9 +2722,9 @@
           "en": "My father works at a bank."
         },
         {
-          "ja": "{昨日|きのう}、{父|ちち}に{電話|でんわ}をしました。",
-          "kana": "きのう、ちちにでんわをしました。",
-          "en": "I called my father yesterday."
+          "ja": "{父|ちち}は{今|いま}、ここにいません。",
+          "kana": "ちちはいま、ここにいません。",
+          "en": "My father isn't here right now."
         }
       ],
       "notes": "Humble: your own father when talking to others. Someone else's father, or addressing your own, is お父さん.",
@@ -2756,9 +2756,9 @@
           "en": "My mother is good at cooking."
         },
         {
-          "ja": "{母|はは}は{今|いま}{買|か}い{物|もの}に{行|い}っています。",
-          "kana": "はははいまかいものにいっています。",
-          "en": "My mother is out shopping right now."
+          "ja": "{母|はは}は{今日|きょう}、{学校|がっこう}にきます。",
+          "kana": "はははきょう、がっこうにきます。",
+          "en": "My mother is coming to the school today."
         }
       ],
       "notes": "Humble: your own mother when talking to others. Someone else's mother, or addressing your own, is お母さん.",
@@ -2791,9 +2791,9 @@
           "en": "What does your father do for work?"
         },
         {
-          "ja": "お{父|とう}さんはお{酒|さけ}を{飲|の}みますか。",
-          "kana": "おとうさんはおさけをのみますか。",
-          "en": "Does your father drink alcohol?"
+          "ja": "お{父|とう}さんは{今|いま}、どこにいますか。",
+          "kana": "おとうさんはいま、どこにいますか。",
+          "en": "Where is your father right now?"
         }
       ],
       "notes": "Someone else's father, or how you address your own. Your own father to others: 父.",
@@ -2859,9 +2859,9 @@
           "en": "My older brother is a university student."
         },
         {
-          "ja": "{兄|あに}は{車|くるま}で{会社|かいしゃ}へ{行|い}きます。",
-          "kana": "あにはくるまでかいしゃへいきます。",
-          "en": "My older brother drives to work."
+          "ja": "{兄|あに}は{今|いま}、{学校|がっこう}にいます。",
+          "kana": "あにはいま、がっこうにいます。",
+          "en": "My older brother is at school right now."
         }
       ],
       "notes": "Your own older brother when talking to others; someone else's is お兄さん.",
@@ -2893,9 +2893,9 @@
           "en": "My older sister is three years older than me."
         },
         {
-          "ja": "{姉|あね}に{新|あたら}しいかばんをもらいました。",
-          "kana": "あねにあたらしいかばんをもらいました。",
-          "en": "I got a new bag from my older sister."
+          "ja": "{姉|あね}は{学生|がくせい}ではありません。",
+          "kana": "あねはがくせいではありません。",
+          "en": "My older sister is not a student."
         }
       ],
       "notes": "Your own older sister when talking to others; someone else's is お姉さん.",
@@ -2960,9 +2960,9 @@
           "en": "My younger sister turns eight this year."
         },
         {
-          "ja": "{妹|いもうと}と{一緒|いっしょ}に{映画|えいが}を{見|み}ました。",
-          "kana": "いもうとといっしょにえいがをみました。",
-          "en": "I watched a movie with my younger sister."
+          "ja": "{妹|いもうと}と{二人|ふたり}で{学校|がっこう}へいきます。",
+          "kana": "いもうととふたりでがっこうへいきます。",
+          "en": "I go to school with my younger sister."
         }
       ],
       "notes": "Someone else's younger sister is 妹さん.",
@@ -3025,9 +3025,9 @@
       "pitchConfidence": "high",
       "examples": [
         {
-          "ja": "お{姉|ねえ}さんは{会社員|かいしゃいん}ですか。",
-          "kana": "おねえさんはかいしゃいんですか。",
-          "en": "Is your older sister an office worker?"
+          "ja": "お{姉|ねえ}さんは{学生|がくせい}ですか。",
+          "kana": "おねえさんはがくせいですか。",
+          "en": "Is your older sister a student?"
         },
         {
           "ja": "ハナさんのお{姉|ねえ}さんに{会|あ}いました。",
@@ -3066,9 +3066,9 @@
           "en": "My grandfather takes a walk every day."
         },
         {
-          "ja": "おじいさんの{家|いえ}は{海|うみ}の{近|ちか}くです。",
-          "kana": "おじいさんのいえはうみのちかくです。",
-          "en": "My grandfather's house is near the sea."
+          "ja": "おじいさんは{昨日|きのう}まで、ここにいました。",
+          "kana": "おじいさんはきのうまで、ここにいました。",
+          "en": "My grandfather was here until yesterday."
         }
       ],
       "notes": "Long い. おじさん (short) is uncle or a middle-aged man. Humble form for your own grandfather: 祖父.",
@@ -3105,9 +3105,9 @@
           "en": "I go shopping with my grandmother."
         },
         {
-          "ja": "おばあさんは{毎朝|まいあさ}{五時|ごじ}に{起|お}きます。",
-          "kana": "おばあさんはまいあさごじにおきます。",
-          "en": "My grandmother gets up at five every morning."
+          "ja": "おばあさんは{八十歳|はちじゅっさい}です。",
+          "kana": "おばあさんははちじゅっさいです。",
+          "en": "My grandmother is eighty years old."
         }
       ],
       "notes": "Long あ. おばさん (short) is aunt or a middle-aged woman. Humble form for your own grandmother: 祖母.",
@@ -3176,9 +3176,9 @@
           "en": "A girl is singing a song."
         },
         {
-          "ja": "{妹|いもうと}は{元気|げんき}な{女|おんな}の{子|こ}です。",
-          "kana": "いもうとはげんきなおんなのこです。",
-          "en": "My younger sister is a lively girl."
+          "ja": "あの{女|おんな}の{子|こ}は{私|わたし}の{妹|いもうと}です。",
+          "kana": "あのおんなのこはわたしのいもうとです。",
+          "en": "That girl is my younger sister."
         }
       ],
       "notes": "Also used for a baby girl, and loosely for young women.",
@@ -3284,9 +3284,9 @@
           "en": "School starts at 8:30."
         },
         {
-          "ja": "{昨日|きのう}は{学校|がっこう}を{休|やす}みました。",
-          "kana": "きのうはがっこうをやすみました。",
-          "en": "I stayed home from school yesterday."
+          "ja": "{明日|あした}は{学校|がっこう}がありません。",
+          "kana": "あしたはがっこうがありません。",
+          "en": "There is no school tomorrow."
         }
       ],
       "notes": "Any school from elementary to university. 小学校, 中学校, 高校, 大学.",
@@ -3350,9 +3350,9 @@
       "pitchConfidence": "high",
       "examples": [
         {
-          "ja": "{図書館|としょかん}で{本|ほん}を{借|か}ります。",
-          "kana": "としょかんでほんをかります。",
-          "en": "I borrow books at the library."
+          "ja": "これは{誰|だれ}の{本|ほん}ですか。",
+          "kana": "これはだれのほんですか。",
+          "en": "Whose book is this?"
         },
         {
           "ja": "{毎晩|まいばん}{寝|ね}る{前|まえ}に{本|ほん}を{読|よ}みます。",
@@ -3393,9 +3393,9 @@
           "en": "I write my name in the notebook."
         },
         {
-          "ja": "{新|あたら}しいノートを{三冊|さんさつ}{買|か}いました。",
-          "kana": "あたらしいノートをさんさつかいました。",
-          "en": "I bought three new notebooks."
+          "ja": "ノートは{一冊|いっさつ}、{百円|ひゃくえん}です。",
+          "kana": "ノートはいっさつ、ひゃくえんです。",
+          "en": "Notebooks are 100 yen each."
         }
       ],
       "notes": "False friend: a notebook, not a short message. ノートパソコン is a laptop.",
@@ -3426,9 +3426,9 @@
           "en": "I bought a pencil and an eraser."
         },
         {
-          "ja": "テストは{鉛筆|えんぴつ}で{書|か}いてください。",
-          "kana": "テストはえんぴつでかいてください。",
-          "en": "Please write the test in pencil."
+          "ja": "これは{弟|おとうと}の{鉛筆|えんぴつ}です。",
+          "kana": "これはおとうとのえんぴつです。",
+          "en": "This is my younger brother's pencil."
         }
       ],
       "notes": "Counted with 〜本: 鉛筆二本.",
@@ -3463,9 +3463,9 @@
           "en": "Please lend me a pen."
         },
         {
-          "ja": "{田中|たなか}さんにペンを{借|か}りました。",
-          "kana": "たなかさんにペンをかりました。",
-          "en": "I borrowed a pen from Mr. Tanaka."
+          "ja": "{田中|たなか}さんのペンはどれですか。",
+          "kana": "たなかさんのペンはどれですか。",
+          "en": "Which one is Mr. Tanaka's pen?"
         }
       ],
       "notes": "Specific kinds: ボールペン (ballpoint), シャープペン (mechanical pencil).",
@@ -3497,9 +3497,9 @@
           "en": "Please write in ballpoint pen."
         },
         {
-          "ja": "{黒|くろ}いボールペンはありますか。",
-          "kana": "くろいボールペンはありますか。",
-          "en": "Do you have a black ballpoint pen?"
+          "ja": "{私|わたし}のボールペンはどこですか。",
+          "kana": "わたしのボールペンはどこですか。",
+          "en": "Where is my ballpoint pen?"
         }
       ],
       "notes": "Forms and official documents usually ask for ボールペン, not 鉛筆.",
@@ -3529,9 +3529,9 @@
           "en": "I borrowed two books."
         },
         {
-          "ja": "{毎月|まいつき}{雑誌|ざっし}を{一冊|いっさつ}{買|か}います。",
-          "kana": "まいつきざっしをいっさつかいます。",
-          "en": "I buy one magazine every month."
+          "ja": "{日本語|にほんご}の{本|ほん}が{二冊|にさつ}あります。",
+          "kana": "にほんごのほんがにさつあります。",
+          "en": "I have two Japanese books."
         }
       ],
       "notes": "Books, notebooks, magazines. Sound changes: 一冊 いっさつ, 八冊 はっさつ, 十冊 じゅっさつ.",
@@ -3562,9 +3562,9 @@
           "en": "I have a lot of homework today."
         },
         {
-          "ja": "{宿題|しゅくだい}はもう{終|お}わりましたか。",
-          "kana": "しゅくだいはもうおわりましたか。",
-          "en": "Have you finished your homework yet?"
+          "ja": "{宿題|しゅくだい}はこれだけですか。",
+          "kana": "しゅくだいはこれだけですか。",
+          "en": "Is this all the homework?"
         }
       ],
       "notes": "Doing homework is 宿題をする; handing it in is 宿題を出す.",
@@ -3595,9 +3595,9 @@
           "en": "I take Japanese lessons three times a week."
         },
         {
-          "ja": "{去年|きょねん}、{京都|きょうと}へ{二回|にかい}{行|い}きました。",
-          "kana": "きょねん、きょうとへにかいいきました。",
-          "en": "Last year I went to Kyoto twice."
+          "ja": "{田中|たなか}さんは{毎日|まいにち}、ここに{二回|にかい}きます。",
+          "kana": "たなかさんはまいにち、ここににかいきます。",
+          "en": "Mr. Tanaka comes here twice every day."
         }
       ],
       "notes": "Sound changes: 一回 いっかい, 六回 ろっかい, 十回 じゅっかい. 何回 = how many times; 今回 = this time.",
@@ -3629,9 +3629,9 @@
           "en": "Please open your textbook to page ten."
         },
         {
-          "ja": "{教科書|きょうかしょ}を{家|いえ}に{忘|わす}れました。",
-          "kana": "きょうかしょをいえにわすれました。",
-          "en": "I left my textbook at home."
+          "ja": "{教科書|きょうかしょ}は{二千円|にせんえん}でした。",
+          "kana": "きょうかしょはにせんえんでした。",
+          "en": "The textbook was 2,000 yen."
         }
       ],
       "notes": "教科 (school subject) + 書 (book). A reference book or dictionary is not a 教科書.",
@@ -3696,9 +3696,9 @@
           "en": "The ticket was 1,000 yen."
         },
         {
-          "ja": "この{町|まち}には{千人|せんにん}ぐらい{住|す}んでいます。",
-          "kana": "このまちにはせんにんぐらいすんでいます。",
-          "en": "About a thousand people live in this town."
+          "ja": "この{学校|がっこう}の{学生|がくせい}は{千人|せんにん}ぐらいです。",
+          "kana": "このがっこうのがくせいはせんにんぐらいです。",
+          "en": "This school has about a thousand students."
         }
       ],
       "notes": "Sound changes: 三千 さんぜん, 八千 はっせん. 1,000 is 千, but 10,000 is 一万.",
@@ -3729,9 +3729,9 @@
           "en": "This watch is 20,000 yen."
         },
         {
-          "ja": "この{車|くるま}は{二百万円|にひゃくまんえん}でした。",
-          "kana": "このくるまはにひゃくまんえんでした。",
-          "en": "This car was 2,000,000 yen."
+          "ja": "{教科書|きょうかしょ}は{五冊|ごさつ}で{一万円|いちまんえん}でした。",
+          "kana": "きょうかしょはごさつでいちまんえんでした。",
+          "en": "The textbooks were 10,000 yen for five."
         }
       ],
       "notes": "Japanese groups large numbers by 万: 十万 = 100,000, 百万 = one million. Always 一万, never bare 万.",
@@ -3761,9 +3761,9 @@
           "en": "Two apples, please."
         },
         {
-          "ja": "{質問|しつもん}が{一|ひと}つあります。",
-          "kana": "しつもんがひとつあります。",
-          "en": "I have one question."
+          "ja": "{宿題|しゅくだい}が{三|みっ}つあります。",
+          "kana": "しゅくだいがみっつあります。",
+          "en": "I have three homework assignments."
         }
       ],
       "notes": "Native series, one to ten only: ひとつ ふたつ みっつ よっつ いつつ むっつ ななつ やっつ ここのつ とお. Also used for age up to ten.",
@@ -3826,9 +3826,9 @@
           "en": "I took two photos."
         },
         {
-          "ja": "シャツを{三枚|さんまい}{洗|あら}いました。",
-          "kana": "シャツをさんまいあらいました。",
-          "en": "I washed three shirts."
+          "ja": "{今日|きょう}の{宿題|しゅくだい}は{二枚|にまい}です。",
+          "kana": "きょうのしゅくだいはにまいです。",
+          "en": "Today's homework is two sheets."
         }
       ],
       "notes": "Paper, tickets, photos, plates, shirts. Regular readings throughout: 一枚 いちまい, 三枚 さんまい.",
@@ -3858,9 +3858,9 @@
           "en": "Three pencils, please."
         },
         {
-          "ja": "{毎日|まいにち}{水|みず}を{二本|にほん}{飲|の}みます。",
-          "kana": "まいにちみずをにほんのみます。",
-          "en": "I drink two bottles of water every day."
+          "ja": "ボールペンは{三本|さんぼん}で{百円|ひゃくえん}です。",
+          "kana": "ボールペンはさんぼんでひゃくえんです。",
+          "en": "Ballpoint pens are three for 100 yen."
         }
       ],
       "notes": "Pens, bottles, umbrellas, trains, films. Sound changes: 一本 いっぽん, 三本 さんぼん, 六本 ろっぽん, 八本 はっぽん, 十本 じゅっぽん, 何本 なんぼん.",
@@ -3891,9 +3891,9 @@
           "en": "The coffee is 300 yen."
         },
         {
-          "ja": "{昼|ひる}ご{飯|はん}に{八百円|はっぴゃくえん}{使|つか}いました。",
-          "kana": "ひるごはんにはっぴゃくえんつかいました。",
-          "en": "I spent 800 yen on lunch."
+          "ja": "{今|いま}、{千円|せんえん}だけあります。",
+          "kana": "いま、せんえんだけあります。",
+          "en": "I only have 1,000 yen right now."
         }
       ],
       "notes": "Regular except 四円 よえん. Asking a price: いくらですか, or 何円 なんえん.",
@@ -3959,9 +3959,9 @@
           "en": "I ate five mandarin oranges."
         },
         {
-          "ja": "{卵|たまご}は{一個|いっこ}いくらですか。",
-          "kana": "たまごはいっこいくらですか。",
-          "en": "How much is one egg?"
+          "ja": "これは{一個|いっこ}いくらですか。",
+          "kana": "これはいっこいくらですか。",
+          "en": "How much is one of these?"
         }
       ],
       "notes": "Fruit, eggs, boxes, pieces of anything compact. Sound changes: 一個 いっこ, 六個 ろっこ, 八個 はっこ, 十個 じゅっこ.",
@@ -3984,9 +3984,9 @@
       ],
       "examples": [
         {
-          "ja": "{姉|あね}は{医者|いしゃ}です。",
-          "kana": "あねはいしゃです。",
-          "en": "My older sister is a doctor."
+          "ja": "{姉|あね}は{先生|せんせい}です。",
+          "kana": "あねはせんせいです。",
+          "en": "My older sister is a teacher."
         },
         {
           "ja": "{私|わたし}の{家|いえ}は{駅|えき}から{遠|とお}いです。",
@@ -4020,9 +4020,9 @@
           "en": "I like cats."
         },
         {
-          "ja": "{庭|にわ}に{犬|いぬ}がいます。",
-          "kana": "にわにいぬがいます。",
-          "en": "There is a dog in the yard."
+          "ja": "{教室|きょうしつ}に{先生|せんせい}がいます。",
+          "kana": "きょうしつにせんせいがいます。",
+          "en": "There is a teacher in the classroom."
         }
       ],
       "notes": "Marks the grammatical subject, especially new information and the object of 好き, 上手, 分かる, ある, いる. Between clauses it means but.",
@@ -4050,9 +4050,9 @@
           "en": "I eat bread every morning."
         },
         {
-          "ja": "{昨日|きのう}、{新|あたら}しい{靴|くつ}を{買|か}いました。",
-          "kana": "きのう、あたらしいくつをかいました。",
-          "en": "I bought new shoes yesterday."
+          "ja": "{毎日|まいにち}、{日本語|にほんご}の{宿題|しゅくだい}をします。",
+          "kana": "まいにち、にほんごのしゅくだいをします。",
+          "en": "I do my Japanese homework every day."
         }
       ],
       "notes": "Pronounced お; this kana is used only as a particle. Also marks the place you move through or leave: 公園を歩く, 家を出る.",
@@ -4080,9 +4080,9 @@
           "en": "I write a letter to my friend."
         },
         {
-          "ja": "{日曜日|にちようび}に{海|うみ}へ{行|い}きました。",
-          "kana": "にちようびにうみへいきました。",
-          "en": "I went to the sea on Sunday."
+          "ja": "{明日|あした}、{田中|たなか}さんがここにきます。",
+          "kana": "あした、たなかさんがここにきます。",
+          "en": "Mr. Tanaka is coming here tomorrow."
         }
       ],
       "notes": "Point in time (七時に), destination (駅に), existence (ここにある), indirect object (友達に). Not used after 今日, 明日 or 毎日.",
@@ -4113,9 +4113,9 @@
           "en": "I eat my boxed lunch in the park."
         },
         {
-          "ja": "{会社|かいしゃ}までバスで{行|い}きます。",
-          "kana": "かいしゃまでバスでいきます。",
-          "en": "I take the bus to the office."
+          "ja": "{学校|がっこう}で{友達|ともだち}と{宿題|しゅくだい}をします。",
+          "kana": "がっこうでともだちとしゅくだいをします。",
+          "en": "I do homework with a friend at school."
         }
       ],
       "notes": "Where an action happens (学校で), the means (電車で, 日本語で), or the material. Existence uses に instead.",
@@ -4145,9 +4145,9 @@
           "en": "I'm going to the sea next week."
         },
         {
-          "ja": "{田中|たなか}さんは{昨日|きのう}{京都|きょうと}へ{帰|かえ}りました。",
-          "kana": "たなかさんはきのうきょうとへかえりました。",
-          "en": "Mr. Tanaka went back to Kyoto yesterday."
+          "ja": "ケンさんはどこへいきますか。",
+          "kana": "ケンさんはどこへいきますか。",
+          "en": "Where is Ken going?"
         }
       ],
       "notes": "Written へ but pronounced え. Interchangeable with に for destinations; へ stresses the direction of movement.",
@@ -4177,9 +4177,9 @@
           "en": "I'm going to see a movie with my mother."
         },
         {
-          "ja": "{机|つくえ}の{上|うえ}に{本|ほん}とノートがあります。",
-          "kana": "つくえのうえにほんとノートがあります。",
-          "en": "There is a book and a notebook on the desk."
+          "ja": "ここに{本|ほん}とノートがあります。",
+          "kana": "ここにほんとノートがあります。",
+          "en": "There is a book and a notebook here."
         }
       ],
       "notes": "Joins nouns in a complete list (パンと卵); marks a companion (友達と); quotes speech or thought (〜と言う).",
@@ -4270,9 +4270,9 @@
           "en": "Is tomorrow a day off?"
         },
         {
-          "ja": "{昨日|きのう}、{何|なに}を{食|た}べましたか。",
-          "kana": "きのう、なにをたべましたか。",
-          "en": "What did you eat yesterday?"
+          "ja": "あの{人|ひと}は{誰|だれ}ですか。",
+          "kana": "あのひとはだれですか。",
+          "en": "Who is that person?"
         }
       ],
       "notes": "At the end of a sentence it makes a question, so no question mark is needed in writing. Between nouns it means or: コーヒーか紅茶.",
@@ -4299,9 +4299,9 @@
           "en": "It's cold today, isn't it?"
         },
         {
-          "ja": "ハナさんはもう{帰|かえ}りましたね。",
-          "kana": "ハナさんはもうかえりましたね。",
-          "en": "Hana already went home, didn't she?"
+          "ja": "ハナさんのお{兄|にい}さんですね。",
+          "kana": "ハナさんのおにいさんですね。",
+          "en": "You're Hana's older brother, right?"
         }
       ],
       "notes": "Sentence-final; checks or invites agreement about something both people can see. Compare よ, which tells the listener something new.",
@@ -4331,9 +4331,9 @@
           "en": "The bread at this shop is delicious, you know."
         },
         {
-          "ja": "{田中|たなか}さんはもう{来|き}ていますよ。",
-          "kana": "たなかさんはもうきていますよ。",
-          "en": "Mr. Tanaka is already here, you know."
+          "ja": "ハナさんはあそこにいますよ。",
+          "kana": "ハナさんはあそこにいますよ。",
+          "en": "Hana is over there, you know."
         }
       ],
       "notes": "Sentence-final; asserts something the listener does not know. Too many よ can sound pushy; よね combines both.",
@@ -4364,9 +4364,9 @@
           "en": "Class starts at nine."
         },
         {
-          "ja": "{駅|えき}から{学校|がっこう}まで{歩|ある}きます。",
-          "kana": "えきからがっこうまであるきます。",
-          "en": "I walk from the station to school."
+          "ja": "{私|わたし}は{今日|きょう}から{学生|がくせい}です。",
+          "kana": "わたしはきょうからがくせいです。",
+          "en": "I'm a student starting today."
         }
       ],
       "notes": "Starting point in time or place (九時から, 駅から); after a clause it gives a reason (高いから買いません).",
@@ -4397,9 +4397,9 @@
           "en": "The bank is open until three."
         },
         {
-          "ja": "{昨日|きのう}は{十二時|じゅうにじ}まで{勉強|べんきょう}しました。",
-          "kana": "きのうはじゅうにじまでべんきょうしました。",
-          "en": "Yesterday I studied until twelve."
+          "ja": "{宿題|しゅくだい}は{明日|あした}までです。",
+          "kana": "しゅくだいはあしたまでです。",
+          "en": "The homework is due tomorrow."
         }
       ],
       "notes": "End point in time or place, often paired with から: 九時から五時まで. A deadline is までに.",
@@ -4431,9 +4431,9 @@
           "en": "Today is Monday."
         },
         {
-          "ja": "{田中|たなか}さんはとても{元気|げんき}な{人|ひと}です。",
-          "kana": "たなかさんはとてもげんきなひとです。",
-          "en": "Mr. Tanaka is a very energetic person."
+          "ja": "{田中|たなか}さんは{日本語|にほんご}の{先生|せんせい}です。",
+          "kana": "たなかさんはにほんごのせんせいです。",
+          "en": "Mr. Tanaka is a Japanese teacher."
         }
       ],
       "notes": "Follows nouns, な-adjectives and い-adjectives. Negative: ではありません or じゃありません; past: でした. Plain form: だ.",
@@ -4463,9 +4463,9 @@
           "en": "I read the newspaper every morning."
         },
         {
-          "ja": "{来週|らいしゅう}、{友達|ともだち}と{京都|きょうと}へ{行|い}きます。",
-          "kana": "らいしゅう、ともだちときょうとへいきます。",
-          "en": "Next week I'm going to Kyoto with a friend."
+          "ja": "{明日|あした}も{学校|がっこう}へいきます。",
+          "kana": "あしたもがっこうへいきます。",
+          "en": "I'm going to school tomorrow too."
         }
       ],
       "notes": "Attaches to the verb stem: 食べ+ます, 飲み+ます. Present or future tense. Negative ません, past ました, suggestion ましょう.",
@@ -4495,9 +4495,9 @@
           "en": "I don't drink alcohol."
         },
         {
-          "ja": "{弟|おとうと}はあまり{野菜|やさい}を{食|た}べません。",
-          "kana": "おとうとはあまりやさいをたべません。",
-          "en": "My younger brother doesn't eat many vegetables."
+          "ja": "{弟|おとうと}は{宿題|しゅくだい}をしません。",
+          "kana": "おとうとはしゅくだいをしません。",
+          "en": "My younger brother doesn't do his homework."
         }
       ],
       "notes": "Negative of ます: 飲みます → 飲みません. Past negative: ませんでした. As a question, 〜ませんか is a polite invitation.",
@@ -4528,9 +4528,9 @@
           "en": "Yesterday's test was easy."
         },
         {
-          "ja": "{先週|せんしゅう}の{日曜日|にちようび}は{母|はは}の{誕生日|たんじょうび}でした。",
-          "kana": "せんしゅうのにちようびはははのたんじょうびでした。",
-          "en": "Last Sunday was my mother's birthday."
+          "ja": "あの{人|ひと}は{私|わたし}の{先生|せんせい}でした。",
+          "kana": "あのひとはわたしのせんせいでした。",
+          "en": "That person was my teacher."
         }
       ],
       "notes": "Past of です after nouns and な-adjectives. い-adjectives change instead: 寒かったです, not 寒いでした.",

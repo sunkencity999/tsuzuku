@@ -295,7 +295,22 @@ export function streakState(): FlameState {
 /* Perapera Index (design 05 §11) — `./perapera` owns the formula             */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-export { PERAPERA_LABELS, PERAPERA_LABELS_EN, externalListeningHours, peraperaHistory, peraperaNow, snapshotMonth, startPerapera } from './perapera';
+export {
+  PERAPERA_LABELS,
+  PERAPERA_LABELS_EN,
+  EAR_CAP_STEP_HOURS,
+  EAR_CAP_STEPS,
+  EAR_GOAL_HOURS,
+  REACHABLE_IN_APP_HOURS,
+  DISTINCT_AUTHENTIC_HOURS,
+  authenticListeningHours,
+  appAuthenticHours,
+  externalListeningHours,
+  peraperaHistory,
+  peraperaNow,
+  snapshotMonth,
+  startPerapera,
+} from './perapera';
 export type { PeraperaResult, PeraperaMonth } from './perapera';
 
 /** `peraperaNow` over the live store. */

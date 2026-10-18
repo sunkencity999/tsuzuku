@@ -79,6 +79,8 @@ export const S = {
   modelLine: 'Model line',
   yours: 'Yours',
   hearModel: 'Hear the model line',
+  /** Design 08 §11: the gold line replays in the learner's role voice; `{speaker}` is the learnerSpeaker (never assumed). */
+  yourLineAs: 'Your line, as {speaker} says it',
   continue: 'Continue',
 
   /* ── debrief ─────────────────────────────────────────────────────────── */

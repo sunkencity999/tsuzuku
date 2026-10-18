@@ -82,6 +82,9 @@ describe('xpFor — design 06 §1 table', () => {
     ['speed read correct', 'story:read', { storyId: 's', mode: 'speed', chars: 400, cpm: 300, correct: 1, total: 1, glossTaps: 0, minutes: 2, bridge: false }, 15],
     ['speed read wrong', 'story:read', { storyId: 's', mode: 'speed', chars: 400, cpm: 300, correct: 0, total: 1, glossTaps: 0, minutes: 2, bridge: false }, 0],
     ['listening set 2/3', 'listening:set', { storyId: 's', correct: 2, total: 3, rate: 1, minutes: 5 }, 30],
+    ['listening set, walk mode 5/6 (the Ear Walk pays like a set)', 'listening:set', { storyId: null, refs: ['v-n5-0249#ex0', 's-07-2#L3'], correct: 5, total: 6, rate: 1, minutes: 2.5, mode: 'walk', cold: false }, 45],
+    ['listen:played radio (design 08 §10.2: passive hearing, 0 XP)', 'listen:played', { source: 'radio', refs: ['s-04-1'], seconds: 600, rate: 1, cold: true, authentic: true, gistCorrect: true }, 0],
+    ['listen:played readalong (design 08 §10.3: 0 XP, never an episode)', 'listen:played', { source: 'readalong', refs: ['s-04-1'], seconds: 300, rate: 1, cold: true, authentic: false, gistCorrect: null }, 0],
     ['dictation pass tier 5 perfect', 'line:scored', { kind: 'dictation', score: 1, pass: true, tier: 5 }, 6],
     ['dictation pass tier 1', 'line:scored', { kind: 'dictation', score: 1, pass: true, tier: 1 }, 4],
     ['dictation fail', 'line:scored', { kind: 'dictation', score: 0.5, pass: false, tier: 3 }, 0],
@@ -228,6 +231,18 @@ describe('startXp reducer', () => {
     expect(store.profile.value.xp).toBe(80);
     bus.emit('ledger:entry', { minutes: 30, kind: 1, source: 0 });
     expect(store.profile.value.xp).toBe(80);
+  });
+
+  it('listen:played emits no xp:gained for radio or readalong; a walk-mode listening:set pays 20 + 5·correct', () => {
+    const cap = captureEvents();
+    bus.emit('listen:played', { source: 'radio', refs: ['s-04-1'], seconds: 2700, rate: 1.1, cold: true, authentic: true, gistCorrect: true });
+    bus.emit('listen:played', { source: 'readalong', refs: ['s-04-2'], seconds: 300, rate: 1, cold: true, authentic: true, gistCorrect: true });
+    expect(store.profile.value.xp).toBe(0);
+    expect(cap.events.filter(([n]) => n === 'xp:gained')).toEqual([]);
+    bus.emit('listening:set', { storyId: null, refs: ['v-n5-0249#ex0', 'g-n5-024#ex1', 's-07-2#L3'], correct: 4, total: 6, rate: 1, minutes: 3, mode: 'walk', cold: false });
+    cap.stop();
+    expect(store.profile.value.xp).toBe(40);
+    expect(cap.events.filter(([n]) => n === 'xp:gained')).toEqual([['xp:gained', { amount: 40, reason: 'listening', total: 40 }]]);
   });
 
   it('shadow lines pay 3 each and +10 per set of five', () => {

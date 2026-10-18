@@ -155,3 +155,93 @@ describe('<ListenPage>', () => {
     expect(after.textContent).toContain(S.pageRead);
   });
 });
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Design 08 §10.1: an audio-first piece is heard before it is read           */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const PIECE_ID = 's-04-4';
+const PIECE: StoryItem = { ...DIALOGUE, id: PIECE_ID, titleEn: 'At the counter', genre: 'exchange', audioFirst: true };
+/** The same piece without `learnerSpeaker`: overheard, never played (design 08 §11). */
+const QUIET_ID = 's-04-5';
+const QUIET: StoryItem = { ...PIECE, id: QUIET_ID, titleEn: 'Overheard at the counter' };
+delete QUIET.learnerSpeaker;
+const pieceLoader = createFakeLoader({ ...FIXTURE, items: { ...FIXTURE.items, [PIECE_ID]: PIECE, [QUIET_ID]: QUIET } });
+
+/** Fails the set: every choice wrong, every dictation noise. */
+async function failSet(story: StoryItem): Promise<ListenItem[]> {
+  act(() => buttonByText(S.toQuestions).click());
+  const items = buildListeningSet(story, { rng: rngFor(store.seed(), store.today(), story.id), station: store.progress.value.station });
+  for (const item of items) {
+    await flush();
+    if (item.kind === 'dictation') {
+      const input = root.querySelector('input') as HTMLInputElement;
+      type(input, 'あいうえおかきくけこ');
+      act(() => {
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+      });
+    } else {
+      const choices = item.kind === 'gist' ? item.q.choices : item.choices;
+      const answer = item.kind === 'gist' ? item.q.answer : item.answer;
+      act(() => (root.querySelector(`.arena__choice[aria-keyshortcuts="${((answer + 1) % choices.length) + 1}"]`) as HTMLButtonElement).click());
+    }
+    act(() => (root.querySelector('.arena__feedback .hanko') as HTMLButtonElement).click());
+  }
+  act(() => buttonByText(S.finish).click());
+  return items;
+}
+
+describe('<ListenPage> audio-first pieces (design 08 §10.1)', () => {
+  it('says the piece is heard first, and after a failed set hides Read behind "Read it anyway"', async () => {
+    act(() => render(<ListenPage route={{ name: 'listen', id: PIECE_ID }} loader={pieceLoader} />, root));
+    expect(root.querySelector('.listen-page__note')?.textContent).toContain(S.pageListenFirst);
+    expect(root.querySelector('.arena__genre')?.textContent).toContain('listen first');
+    await failSet(PIECE);
+    const after = root.querySelector('.listen-page__after') as HTMLElement;
+    expect(after).not.toBeNull();
+    expect(after.querySelector('a[data-read="open"]')).toBeNull();
+    expect(after.textContent).not.toContain(S.pageRead);
+    const anyway = after.querySelector('button[data-read="anyway"]') as HTMLButtonElement;
+    expect(anyway?.textContent).toBe(S.pageReadAnyway);
+    act(() => anyway.click());
+    const read = root.querySelector('a[data-read="open"]');
+    expect(read?.getAttribute('href')).toBe(href({ name: 'story', id: PIECE_ID }));
+    expect(root.querySelector('button[data-read="anyway"]')).toBeNull();
+  });
+
+  it('a passed set opens Read directly', async () => {
+    act(() => render(<ListenPage route={{ name: 'listen', id: PIECE_ID }} loader={pieceLoader} />, root));
+    await completeSet(PIECE);
+    const after = root.querySelector('.listen-page__after') as HTMLElement;
+    expect(after.querySelector('a[data-read="open"]')?.getAttribute('href')).toBe(href({ name: 'story', id: PIECE_ID }));
+    expect(after.querySelector('button[data-read="anyway"]')).toBeNull();
+    expect(after.textContent).toContain(S.pageRead);
+  });
+
+  it('an audio-first piece gets the role-play link only when it opts in with learnerSpeaker (design 08 §11)', async () => {
+    expect(PIECE.learnerSpeaker).toBeDefined();
+    act(() => render(<ListenPage route={{ name: 'listen', id: PIECE_ID }} loader={pieceLoader} />, root));
+    await completeSet(PIECE);
+    let after = root.querySelector('.listen-page__after') as HTMLElement;
+    expect(after.textContent).toContain(S.pageRolePlay);
+    expect(links()).toContain(href({ name: 'taiwa', id: PIECE_ID }));
+    render(null, root);
+    act(() => render(<ListenPage route={{ name: 'listen', id: QUIET_ID }} loader={pieceLoader} />, root));
+    await completeSet(QUIET);
+    after = root.querySelector('.listen-page__after') as HTMLElement;
+    expect(after).not.toBeNull();
+    expect(after.textContent).not.toContain(S.pageRolePlay);
+    expect(links()).not.toContain(href({ name: 'taiwa', id: QUIET_ID }));
+    // the rest of the after-set nav is unchanged: a passed set opens Read
+    expect(after.querySelector('a[data-read="open"]')?.getAttribute('href')).toBe(href({ name: 'story', id: QUIET_ID }));
+  });
+
+  it('a text that is not audio-first is unchanged: Read opens even after a failed set, and the note is the ledger line alone', async () => {
+    act(() => render(<ListenPage route={{ name: 'listen', id: FIXTURE_DIALOGUE_ID }} loader={loader} />, root));
+    expect(root.querySelector('.listen-page__note')?.textContent).toBe(S.pageLedger);
+    await failSet(DIALOGUE);
+    const after = root.querySelector('.listen-page__after') as HTMLElement;
+    expect(after.querySelector('a[data-read="open"]')?.getAttribute('href')).toBe(href({ name: 'story', id: FIXTURE_DIALOGUE_ID }));
+    expect(after.querySelector('button[data-read="anyway"]')).toBeNull();
+  });
+});

@@ -1,0 +1,46 @@
+{
+ "name": "asa",
+ "text": "あさ",
+ "kana": "あさ",
+ "styleId": 16,
+ "note": "kana exampleWord",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ア",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "a",
+      "vowel_length": 0.12247180938720703,
+      "pitch": 5.683644771575928
+     },
+     {
+      "text": "サ",
+      "consonant": "s",
+      "consonant_length": 0.14347173273563385,
+      "vowel": "a",
+      "vowel_length": 0.1686752438545227,
+      "pitch": 5.479682922363281
+     }
+    ],
+    "accent": 1,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ア'サ"
+ }
+}

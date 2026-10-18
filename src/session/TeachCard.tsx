@@ -7,6 +7,9 @@
  *  components, the contrast item, and 既知 "I know this one". Shared by
  *  `<ScrollView>` (the standalone Scroll) and `<SessionView>` (a Scroll block
  *  inside a Kumite / Shugyō), so a new item is never checked before it is taught.
+ *  Every speak button passes its clip key (design 08 §8): the headword plays
+ *  `item.id` (words and kana), an example `${item.id}#ex${k}`; the pack voices
+ *  what it has and the device voice covers the rest.
  */
 import type { JSX } from 'preact';
 import { toPlain } from '../content/ruby';
@@ -92,17 +95,31 @@ export interface TeachCardProps {
   contrast?: TeachModel | null;
 }
 
+/** Kinds whose headword has a clip keyed by the item id in the pack (design 08 §8: words and kana; a kanji's lone glyph has no single reading). */
+const HEAD_CLIP_KINDS: ReadonlySet<ItemKind> = new Set<ItemKind>(['vocab', 'chunk', 'kana']);
+
+/** Clip key of the card's headword, or `undefined` when the pack holds none for this kind. */
+export function headClipKey(item: Pick<ContentItem, 'id'>, kind: ItemKind): string | undefined {
+  return HEAD_CLIP_KINDS.has(kind) ? item.id : undefined;
+}
+
+/** Clip key of the card's `k`-th example sentence (design 08 §8: `${itemId}#ex${k}` for vocab and grammar examples). */
+export function exampleClipKey(item: Pick<ContentItem, 'id'>, k: number): string {
+  return `${item.id}#ex${k}`;
+}
+
 export function TeachCard(p: TeachCardProps): JSX.Element {
   const m = p.model;
-  const say = (text: string, kana?: string): void => {
-    void speak(text, kana ? { kana } : undefined);
+  // Every speak button passes its clip key (design 08 §8), so the pack voices the card and the device voice covers a miss.
+  const say = (text: string, kana?: string, clip?: string): void => {
+    void speak(text, kana || clip ? { ...(kana ? { kana } : {}), ...(clip ? { clip } : {}) } : undefined);
   };
   const headKana = m.kana && m.kana !== m.head ? m.kana : undefined;
   const parts = PARTS_LABEL[m.kind];
   return (
     <article class="scroll-card teach-card" data-kind={m.kind} style={{ '--i': p.index } as JSX.CSSProperties} aria-label={fill(S.cardOf, { i: p.index + 1, n: p.total })}>
       <header class="teach-card__head">
-        <button type="button" class="teach-card__word" lang="ja" onClick={() => say(m.kind === 'kana' ? m.head : m.head, m.kana)} title={S.speakButton}>
+        <button type="button" class="teach-card__word" lang="ja" onClick={() => say(m.head, m.kana, headClipKey(p.item, m.kind))} title={S.speakButton}>
           {m.head}
         </button>
         {headKana ? (
@@ -131,7 +148,7 @@ export function TeachCard(p: TeachCardProps): JSX.Element {
               <li key={i} class="teach-card__example">
                 <Ruby ja={ex.ja} mode={p.furigana} />
                 <span class="teach-card__en">{ex.en}</span>
-                <button type="button" class="btn btn--sm btn--ghost" onClick={() => say(toPlain(ex.ja), ex.kana)} aria-label={`${S.speakButton}: ${ex.kana}`}>
+                <button type="button" class="btn btn--sm btn--ghost" onClick={() => say(toPlain(ex.ja), ex.kana, exampleClipKey(p.item, i))} aria-label={`${S.speakButton}: ${ex.kana}`}>
                   {S.speakButton}
                 </button>
               </li>

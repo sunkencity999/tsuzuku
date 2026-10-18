@@ -213,9 +213,9 @@ describe('derived read-model', () => {
     it('a fresh learner: only the synthetic 耳 floor, 場 unavailable before Station 21', async () => {
       const s = await makeTestStore();
       const r = d.peraperaNow(s.meta(), s.cards, s.now());
-      expect(r.axes).toEqual([0, 20, 0, 0, 0]);
+      expect(r.axes).toEqual([0, 10, 0, 0, 0]);
       expect(r.labels).toEqual(['語彙', '耳', '読', '口', '—']);
-      expect(r.composite).toBe(5);
+      expect(r.composite).toBe(3);
       expect(r.flags).toEqual(['(synthetic)', '(estimated)']);
       expect(d.peraperaIndex()).toEqual(r);
     });
@@ -230,12 +230,12 @@ describe('derived read-model', () => {
       expect(r.axes[0]).toBe(16);
     });
 
-    it('耳 is capped at 70 until 20 h of external listening; 場 and recognition flags', async () => {
+    it('耳 is capped at 70 until 15 h of authentic listening; 場 and recognition flags', async () => {
       const s = await makeTestStore({
         save: {
           settings: { speedTier: 5, speaking: 'recognition' },
           progress: { station: 21 },
-          stats: { dictationLines: 100, dictation95at1x: 100, shadowLines: 10, shadowPass: 10, monologueBestWords: 50, rolePlays: 10, rolePlaysAllBest: 5, threeWays: 10, threeWaysCorrect: 10, speedReadBestCpm: 250 },
+          stats: { bestCleanTier: 5, dictationLines: 100, dictation95at1x: 100, shadowLines: 10, shadowPass: 10, monologueBestWords: 50, rolePlays: 10, rolePlaysAllBest: 5, threeWays: 10, threeWaysCorrect: 10, speedReadBestCpm: 250 },
         },
       });
       let r = d.peraperaNow(s.meta(), s.cards, s.now());

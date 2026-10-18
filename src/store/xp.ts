@@ -11,6 +11,12 @@
  * the shadow "set of 5" needs a running count, Rapid Fire pays only the first
  * run of the day, and the ledger caps (60 external minutes, 4 entries = 20 XP
  * per day) are derived from the ledger slice itself so they survive a reload.
+ *
+ * Listening (design 08): a `listening:set` pays `listeningSet + listeningQuestion ·
+ * correct` whether it heard a text or pool sentences (`mode: 'walk'`, the Ear
+ * Walk — a set is a set); `listen:played` (茶屋ラジオ §10.2, Read-along §10.3)
+ * pays nothing on either source — Level = effort, and passive hearing is
+ * input: it is a ledger row (`ledger.ts`), never XP, never a `story:read`.
  */
 import { MISSIONS } from '../shared/catalog';
 import { bus, type Events } from '../shared/events';
@@ -178,9 +184,13 @@ export function xpFor<K extends keyof Events>(name: K, payload: Events[K]): numb
       return (passed ? T.episode : 0) + T.episodeQuestion * Math.max(0, p.correct);
     }
     case 'listening:set': {
+      // Text or walk mode alike (design 08 §10.4: the Ear Walk is `listening-set` in pool mode).
       const p = payload as Events['listening:set'];
       return T.listeningSet + T.listeningQuestion * Math.max(0, p.correct);
     }
+    case 'listen:played':
+      // Design 08 §10.2 (Radio) / §10.3 (Read-along): passive hearing earns no XP on either source.
+      return 0;
     case 'line:scored': {
       const p = payload as Events['line:scored'];
       if (!p.pass) return 0;
@@ -310,6 +320,10 @@ export function startXp(store: Store): () => void {
     bus.on('scroll:completed', (p) => grant(xpFor('scroll:completed', p), 'scroll')),
     bus.on('story:read', (p) => grant(xpFor('story:read', p), p.mode === 'speed' ? 'speed-read' : 'episode')),
     bus.on('listening:set', (p) => grant(xpFor('listening:set', p), 'listening')),
+    // Design 08 §10.2 (茶屋ラジオ) / §10.3 (Read-along): passive hearing is input, not effort — 0 XP on both
+    // sources, on purpose (`xpFor` says the same). The subscription exists so the rule is stated here, where
+    // every XP amount is decided, instead of being implied by a missing handler.
+    bus.on('listen:played', () => undefined),
     bus.on('line:scored', (p) => {
       grant(xpFor('line:scored', p), p.kind);
       if (p.kind === 'shadow' && p.pass) {

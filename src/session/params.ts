@@ -20,7 +20,10 @@
  * infer the head word from the answers; the chain is always 5 links
  * (`formChain`: the point's own forms, then forms of points already met, then
  * any form the verb takes). Minimal Pair speaks either half of the pair
- * (`answer` = the one played). Pitch Ear carries the item's loaded homophones
+ * (`answer` = the one played) and names the loaded partner in `distractorIds`
+ * (design 08 §10.4: both words from one source — the drill keys both clips by
+ * item id only when the partner is a real word; a synthesized partner leaves
+ * the field unset and both halves use the device voice). Pitch Ear carries the item's loaded homophones
  * with a different pitch in `distractorIds` (`pitchHomophones`: `pairId` when
  * it is one, else `confusables`, else a kana-equal lookup over the loaded
  * vocab with `pitchConfidence` 'high') so the drill contrasts はし[1] chopsticks /
@@ -34,7 +37,22 @@
  * (CONTENT_GUIDE §14.2): a token listed in its line's `plusOne` is the designed
  * +1 and counts as covered, and at Stations 1–3 the shared White allowlist
  * (`ctx.allowlist`) does too, so the texts the validator passed are the texts
- * the live gate serves.
+ * the live gate serves. Its filters (design 08 §11): `audioFirst` keeps or
+ * drops the audio-first pieces, `genre` names one, `listening` is the Input
+ * block's `kind === 'dialogue' || audioFirst`, and `speakable` is the speaking
+ * surfaces' `kind === 'dialogue' && (!audioFirst || learnerSpeaker)` — a piece
+ * reaches role-play and Shinsa 口 only when its writer named the learner's part.
+ *
+ * Listening pools (design 08 §4): `withPools(ctx)` loads `listening/pool-NN.json`
+ * for every station ≤ the plan's and keeps them on `ctx.pools` (an optional
+ * field of `PlanContext`, `./context`); a build without pool files leaves it
+ * empty and every consumer falls back to today's behaviour.
+ * `sentence-listen` prefers an i+0 example of the item from the pools, then a
+ * story line whose tokens are all known, then the bare word; `knownSentences`
+ * (the shadow warm-up) tops up with i+0 pool refs instead of `examples[0]`;
+ * `walkRefs` draws the Ear Walk's 6–8 i+0 / i+1 refs. Every sentence step
+ * carries its clip key (`StepParams.clip`, design 08 §8): `${itemId}#ex${k}`
+ * for an example, `${storyId}#L${i}` for a line, `${itemId}` for a bare word.
  *
  * Kanji Read matches the example word by surface AND reading, and blanks the
  * first occurrence whose ruby aligns with the word and reads as the example
@@ -58,12 +76,15 @@ import {
   type GrammarItem,
   type KanaItem,
   type KanjiItem,
+  type ListeningGenre,
+  type ListeningPool,
+  type PoolRef,
   type SentenceExample,
   type StoryItem,
   type StoryLine,
   type VocabItem,
 } from '../content/types';
-import { isChunk } from '../content/loader';
+import { isChunk, type ContentLoader } from '../content/loader';
 import { hasKanji, parseRuby, toPlain } from '../content/ruby';
 import { SPEED_TIER_RATES } from '../shared/audio';
 import { MISSIONS } from '../shared/catalog';
@@ -73,12 +94,98 @@ import { equivalentJa, isHiragana, moraCount } from '../shared/jp';
 import type { StepParams } from '../shared/session-types';
 import type { ItemKind } from '../shared/store-types';
 import { store } from '../store';
-import { applicableForms, clozeTiles, conjugate, gojuonPool, isConjugable, kanaGrid, kanjiLookalikes, meaningChoices, perceptionJudge, prodPrompt, rapidFirePool, scrambleTiles, type QueueCard } from '../learn';
+import { applicableForms, clozeTiles, conjugate, gojuonPool, isConjugable, kanaGrid, kanjiLookalikes, meaningChoices, perceptionJudge, prodPrompt, rapidFirePool, scrambleTiles, selectPool, type QueueCard } from '../learn';
 import { BUNSETSU_STARTERS, COMPOUND_PARTICLES, CUT_PARTICLES, PARTICLES, PARTICLE_ATOMS, PARTICLE_DUEL_FROM, hasParticleHint, movableTiles, particleHints, splitBunsetsu } from './bunsetsu';
 import { S, fill } from './engine-strings';
 
 export { BUNSETSU_STARTERS, COMPOUND_PARTICLES, CUT_PARTICLES, PARTICLES, PARTICLE_ATOMS, PARTICLE_DUEL_FROM, hasParticleHint, movableTiles, particleHints, splitBunsetsu };
 import type { PlanContext } from './context';
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Listening pools on the plan context (design 08 §4)                         */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Loads `listening/pool-NN.json` for every station 1..`station` through the
+ * loader (design 08 §4). A station without a pool (`missing-pool`: Stations
+ * 1–3, a build before `content:assign` wrote pools) or an unreachable file is
+ * skipped, so the result is whatever is on the road, ascending by station.
+ */
+export async function loadPools(loader: ContentLoader, station: number): Promise<ListeningPool[]> {
+  const n = Math.max(0, Math.min(53, Math.floor(station)));
+  const settled = await Promise.all(
+    Array.from({ length: n }, (_, i) =>
+      loader.pool(i + 1).then(
+        (p) => p,
+        () => null,
+      ),
+    ),
+  );
+  return settled.filter((p): p is ListeningPool => p !== null).sort((a, b) => a.station - b.station);
+}
+
+/** Attaches the pools ≤ the context's station (`ctx.pools`); returns the same context. */
+export async function withPools<C extends PlanContext>(ctx: C): Promise<C> {
+  ctx.pools = await loadPools(ctx.loader, ctx.station);
+  return ctx;
+}
+
+/** The refs of the loaded pools, optionally only those of the stations `o.stations` admits (default: every pool ≤ the plan's station). */
+export function poolRefs(ctx: PlanContext, o: { stations?: (n: number) => boolean } = {}): PoolRef[] {
+  const out: PoolRef[] = [];
+  for (const p of ctx.pools ?? []) if (!o.stations || o.stations(p.station)) out.push(...p.refs);
+  return out;
+}
+
+/** Item id and example index of an example ref (`v-n5-0249#ex0`), `null` for a story-line ref (`s-07-2#L3`) or anything else. */
+export function parseExampleRef(ref: string): { itemId: string; k: number } | null {
+  const m = /^([a-z]-[a-z0-9-]+)#ex(\d+)$/.exec(ref);
+  return m ? { itemId: m[1] as string, k: Number(m[2]) } : null;
+}
+
+/** Example refs of the pools (vocab and grammar examples; story lines dropped), i+0 at the learner's live known set. */
+export function knownExampleRefs(ctx: PlanContext, o: { stations?: (n: number) => boolean } = {}): PoolRef[] {
+  return selectPool(
+    poolRefs(ctx, o).filter((r) => parseExampleRef(r.ref) !== null),
+    ctx.known,
+    store.cards,
+    ctx.today,
+    { mode: 'i+0' },
+  );
+}
+
+/** Ear Walk size (design 08 §10.4: "6–8 i+0 / i+1 pool sentences"). */
+export const WALK_REFS_MIN = 6;
+export const WALK_REFS_MAX = 8;
+/** i+1 sentences a walk keeps room for whenever the pools hold any: the implicit `listen` evidence of design 08 §4. */
+export const WALK_I1_MAX = 2;
+
+/**
+ * The Ear Walk's refs (design 08 §10.4): up to 8 pool sentences over the
+ * pools ≤ station — i+0 sentences first, then up to `WALK_I1_MAX` i+1
+ * sentences (the one unknown word is the one FSRS wants rehearsed,
+ * `selectPool`). The i+1 share is reserved, not a top-up, so a walk still
+ * yields implicit `listen` evidence once the learner has more than eight i+0
+ * sentences; short of eight i+0 sentences, more i+1 fill the rest. Drawn
+ * through `ctx.rng`; `[]` when fewer than 6 are available, so a thin pool
+ * never yields a two-sentence walk.
+ */
+export function walkRefs(ctx: PlanContext): string[] {
+  const refs = poolRefs(ctx);
+  if (refs.length === 0) return [];
+  const i1Pool = selectPool(refs, ctx.known, store.cards, ctx.today, { mode: 'i+1' });
+  const i1 = sample(ctx.rng, i1Pool, Math.min(WALK_I1_MAX, i1Pool.length));
+  const i0 = sample(ctx.rng, selectPool(refs, ctx.known, store.cards, ctx.today, { mode: 'i+0' }), WALK_REFS_MAX - i1.length);
+  // i+0 and i+1 are disjoint by definition (zero vs exactly one unknown id); only the drawn i+1 need excluding
+  const taken = new Set(i1.map((r) => r.ref));
+  const more = sample(
+    ctx.rng,
+    i1Pool.filter((r) => !taken.has(r.ref)),
+    WALK_REFS_MAX - i0.length - i1.length,
+  );
+  const out = [...i0, ...i1, ...more].map((r) => r.ref);
+  return out.length >= WALK_REFS_MIN ? out : [];
+}
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Item guards and tables                                                     */
@@ -235,36 +342,98 @@ export function storyCoverage(story: StoryItem, known: ReadonlySet<string>, allo
   return total === 0 ? 1 : hit / total;
 }
 
+/**
+ * A text the speaking surfaces may serve (design 08 §5, §11): a dialogue
+ * that is not an audio-first piece, or a piece whose writer set
+ * `learnerSpeaker` — role-play and Shinsa 口 never hand the learner a part in
+ * a debate or interview that has none for them.
+ */
+export function isSpeakable(s: Pick<StoryItem, 'kind' | 'audioFirst' | 'learnerSpeaker'>): boolean {
+  return s.kind === 'dialogue' && (!s.audioFirst || !!s.learnerSpeaker);
+}
+
+/** A text the listening Input block may serve (design 08 §11): a dialogue or an audio-first piece. */
+export function isListeningText(s: Pick<StoryItem, 'kind' | 'audioFirst'>): boolean {
+  return s.kind === 'dialogue' || s.audioFirst === true;
+}
+
+export interface PickStoriesOptions {
+  kind?: StoryItem['kind'];
+  /** `true` keeps only audio-first pieces, `false` only texts that are not. */
+  audioFirst?: boolean;
+  genre?: ListeningGenre;
+  station?: number;
+  /** Speaking surfaces (design 08 §11): `kind === 'dialogue' && (!audioFirst || learnerSpeaker)`. */
+  speakable?: boolean;
+  /** The listening Input block (design 08 §11): `kind === 'dialogue' || audioFirst`. */
+  listening?: boolean;
+}
+
 /** Stories of the loaded bundles that meet the live coverage target: unread first (`progress.storiesRead`), then best coverage. */
-export function pickStories(ctx: PlanContext, o: { kind?: StoryItem['kind']; station?: number } = {}): StoryItem[] {
+export function pickStories(ctx: PlanContext, o: PickStoriesOptions = {}): StoryItem[] {
   const st = o.station ?? ctx.station;
   const read = new Set(store.progress.value.storiesRead ?? []);
   return ctx.stories
     .filter((s) => (o.kind ? s.kind === o.kind : true))
+    .filter((s) => (o.audioFirst === undefined ? true : (s.audioFirst === true) === o.audioFirst))
+    .filter((s) => (o.genre ? s.genre === o.genre : true))
+    .filter((s) => (o.speakable ? isSpeakable(s) : true))
+    .filter((s) => (o.listening ? isListeningText(s) : true))
     .map((s) => ({ s, c: storyCoverage(s, ctx.known, ctx.allowlist), unread: read.has(s.id) ? 0 : 1 }))
     .filter(({ s, c }) => c >= coverageTargetFor(st, s.bridge === true))
     .sort((a, b) => b.unread - a.unread || b.c - a.c || (a.s.id < b.s.id ? -1 : 1))
     .map(({ s }) => s);
 }
 
-/** Sentences whose resolved tokens are all known (shadow warm-up), as story lines or vocab examples. */
-export function knownSentences(ctx: PlanContext, n: number): { sentence: string; kana: string; en: string; storyId?: string; lineIndex?: number }[] {
-  const out: { sentence: string; kana: string; en: string; storyId?: string; lineIndex?: number }[] = [];
+export interface KnownSentence {
+  sentence: string;
+  kana: string;
+  en: string;
+  storyId?: string;
+  lineIndex?: number;
+  /** Clip key (design 08 §8): `${storyId}#L${i}` or `${itemId}#ex${k}`. */
+  clip?: string;
+}
+
+/**
+ * Sentences whose resolved tokens are all known (shadow warm-up): story lines
+ * first, then — short of `n` — i+0 example sentences from the pools (design 08
+ * §4; vocab and grammar examples with their clip keys); on a build without
+ * pools, the first example of every known word as before.
+ */
+export function knownSentences(ctx: PlanContext, n: number): KnownSentence[] {
+  const out: KnownSentence[] = [];
   for (const story of ctx.stories) {
     story.lines.forEach((line, lineIndex) => {
       const ids = (line.tokenIds ?? []).filter((x): x is string => x !== null);
       if (ids.length === 0 || !ids.every((id) => ctx.known.has(id))) return;
-      out.push({ sentence: line.ja, kana: line.kana, en: line.en, storyId: story.id, lineIndex });
+      out.push({ sentence: line.ja, kana: line.kana, en: line.en, storyId: story.id, lineIndex, clip: `${story.id}#L${lineIndex}` });
     });
   }
   if (out.length < n) {
-    for (const v of ctx.vocabPool) {
-      if (!ctx.known.has(v.id)) continue;
-      const ex = v.examples[0];
-      if (ex) out.push({ sentence: ex.ja, kana: ex.kana, en: ex.en });
+    if ((ctx.pools?.length ?? 0) > 0) {
+      for (const r of knownExampleRefs(ctx)) {
+        const ex = exampleOfRef(ctx, r.ref);
+        if (ex) out.push({ sentence: ex.ja, kana: ex.kana, en: ex.en, clip: r.ref });
+      }
+    } else {
+      for (const v of ctx.vocabPool) {
+        if (!ctx.known.has(v.id)) continue;
+        const ex = v.examples[0];
+        if (ex) out.push({ sentence: ex.ja, kana: ex.kana, en: ex.en, clip: `${v.id}#ex0` });
+      }
     }
   }
   return sample(ctx.rng, out, n);
+}
+
+/** The example sentence an example ref names, through the loaded pools and the loader; `undefined` when the item or index is missing. */
+export function exampleOfRef(ctx: PlanContext, ref: string): SentenceExample | undefined {
+  const parsed = parseExampleRef(ref);
+  if (!parsed) return undefined;
+  const item = ctx.vocabPool.find((v) => v.id === parsed.itemId) ?? ctx.grammarPool.find((g) => g.id === parsed.itemId) ?? ctx.loader.get(parsed.itemId);
+  if (!isVocab(item) && !isGrammar(item)) return undefined;
+  return item.examples[parsed.k];
 }
 
 /**
@@ -334,6 +503,23 @@ export interface ResolveOpts {
   rep?: number;
   storyId?: string;
   lineIndex?: number;
+  /** Pin this example index (sentence-listen / shadow / pattern-cloze): no rotation, no pool preference. */
+  example?: number;
+  /** Pool refs of an Ear Walk (`listening-set` in pool mode, design 08 §10.4). */
+  refs?: string[];
+}
+
+/** Index of the example `exampleAt(examples, rep)` returns (`-1` when there are none). */
+function exampleIndex(examples: readonly SentenceExample[], rep: number): number {
+  return examples.length === 0 ? -1 : ((rep % examples.length) + examples.length) % examples.length;
+}
+
+/** Story lines (≤ station) that use `itemId` and whose resolved tokens the learner all knows. */
+function knownLinesWith(ctx: PlanContext, itemId: string): { story: StoryItem; index: number }[] {
+  return linesWith(ctx, itemId).filter(({ story, index }) => {
+    const ids = (story.lines[index]?.tokenIds ?? []).filter((x): x is string => x !== null);
+    return ids.length > 0 && ids.every((id) => ctx.known.has(id));
+  });
 }
 
 /**
@@ -472,7 +658,8 @@ export function resolveParams(ctx: PlanContext, exercise: DrillId, item: Content
     }
     case 'pattern-cloze': {
       if (!isGrammar(item)) break;
-      const ex = exampleAt(item.examples, rep);
+      const k = o.example ?? exampleIndex(item.examples, rep);
+      const ex = item.examples[k];
       const sentence = ex ? toPlain(ex.ja) : item.pattern;
       const hint = item.clozeHints.find((h) => sentence.includes(h)) ?? item.clozeHints[0] ?? item.pattern;
       const start = sentence.indexOf(hint);
@@ -481,6 +668,8 @@ export function resolveParams(ctx: PlanContext, exercise: DrillId, item: Content
       p.answer = hint;
       p.accept = dedupe([hint]);
       p.promptEn = ex?.en ?? item.meaning;
+      // The example's clip key (design 08 §8), so the drill's playback reaches the pack; the bare pattern has none.
+      if (ex) p.clip = `${item.id}#ex${k}`;
       if ((o.qc?.exposures ?? 0) < 2) p.tiles = clozeTiles(item, ctx.grammarPool, rng, hint);
       break;
     }
@@ -598,22 +787,59 @@ export function resolveParams(ctx: PlanContext, exercise: DrillId, item: Content
     }
     case 'sentence-listen':
     case 'shadow': {
-      const sx = o.storyId !== undefined && o.lineIndex !== undefined ? ctx.loader.get<StoryItem>(o.storyId)?.lines[o.lineIndex] : undefined;
-      const ex = sx ?? (isVocab(item) || isGrammar(item) ? exampleAt(item.examples, rep) : undefined);
-      if (ex) {
+      let storyId = o.storyId;
+      let lineIndex = o.lineIndex;
+      let sx = storyId !== undefined && lineIndex !== undefined ? ctx.loader.get<StoryItem>(storyId)?.lines[lineIndex] : undefined;
+      let ex: SentenceExample | undefined;
+      let clip: string | undefined = sx && storyId !== undefined ? `${storyId}#L${lineIndex}` : undefined;
+      const sentenceItem = isVocab(item) || isGrammar(item) ? item : null;
+      if (!sx && sentenceItem) {
+        if (o.example !== undefined) {
+          ex = sentenceItem.examples[o.example];
+          if (ex) clip = `${sentenceItem.id}#ex${o.example}`;
+        } else if (exercise === 'sentence-listen' && (ctx.pools?.length ?? 0) > 0) {
+          // Design 08 §4: an i+0 example of the item from the pools first (every word known, so the dictation tests
+          // hearing, not vocabulary), then a known story line that uses the item, then the bare word — an example
+          // with an untaught word is skipped once the pools can say so.
+          const own = knownExampleRefs(ctx).filter((r) => parseExampleRef(r.ref)?.itemId === sentenceItem.id);
+          const pick = own[((rep % Math.max(1, own.length)) + own.length) % Math.max(1, own.length)];
+          if (pick) {
+            ex = exampleOfRef(ctx, pick.ref);
+            clip = pick.ref;
+          } else {
+            const lines = knownLinesWith(ctx, sentenceItem.id);
+            const hit = lines[((rep % Math.max(1, lines.length)) + lines.length) % Math.max(1, lines.length)];
+            if (hit) {
+              sx = hit.story.lines[hit.index];
+              storyId = hit.story.id;
+              lineIndex = hit.index;
+              clip = `${storyId}#L${lineIndex}`;
+            }
+          }
+        } else {
+          const k = exampleIndex(sentenceItem.examples, rep);
+          ex = sentenceItem.examples[k];
+          if (ex) clip = `${sentenceItem.id}#ex${k}`;
+        }
+      }
+      const line = sx ?? ex;
+      if (line) {
         // Ruby markup stays: the drill grades dictation against `toKana(sentence)` and speaks `toPlain(sentence)`.
-        p.sentence = ex.ja;
-        p.answer = ex.kana;
-        p.accept = dedupe([toPlain(ex.ja), ex.kana]);
-        p.promptEn = ex.en;
+        p.sentence = line.ja;
+        p.answer = line.kana;
+        p.accept = dedupe([toPlain(line.ja), line.kana]);
+        p.promptEn = line.en;
       } else if (isVocab(item)) {
         p.sentence = hasKanji(item.word) ? `{${item.word}|${item.kana}}` : item.word;
         p.answer = item.kana;
         p.accept = dedupe([item.word, item.kana]);
         p.promptEn = item.meanings[0] ?? '';
+        clip = item.id;
       }
-      if (o.storyId !== undefined) p.storyId = o.storyId;
-      if (o.lineIndex !== undefined) p.lineIndex = o.lineIndex;
+      if (storyId !== undefined) p.storyId = storyId;
+      if (lineIndex !== undefined) p.lineIndex = lineIndex;
+      // The clip key (design 08 §8): `${storyId}#L${i}` for a line, `${itemId}#ex${k}` for an example, `${itemId}` for the bare word.
+      if (clip !== undefined) p.clip = clip;
       p.rate = rateFor(ctx);
       break;
     }
@@ -626,6 +852,10 @@ export function resolveParams(ctx: PlanContext, exercise: DrillId, item: Content
       p.answer = rng() < 0.5 ? pair[0] : pair[1];
       p.choices = shuffle(rng, [pair[0], pair[1]]);
       p.rate = rateFor(ctx);
+      // The partner's item id when it is a real loaded word (design 08 §10.4): the drill plays both halves as clips
+      // only when both are keyed by item id; a synthesized partner (`synthesizeMinimalPair`) has no id and the field stays unset.
+      const partner = ctx.vocabPool.find((v) => v.id !== item.id && equivalentJa(v.kana, pair[1]));
+      if (partner) p.distractorIds = [partner.id];
       break;
     }
     case 'listening-set':
@@ -634,6 +864,8 @@ export function resolveParams(ctx: PlanContext, exercise: DrillId, item: Content
     case 'role-play': {
       if (o.storyId !== undefined) p.storyId = o.storyId;
       else if (isStory(item)) p.storyId = item.id;
+      // Ear Walk (design 08 §10.4): pool refs instead of a text; the Arena emits `listening:set` with `storyId: null`.
+      if (exercise === 'listening-set' && o.refs && o.refs.length > 0) p.refs = o.refs.slice();
       if (exercise === 'speed-read') p.rate = SPEED_READ_CPM[ctx.belt];
       else p.rate = rateFor(ctx);
       if (exercise === 'role-play') {

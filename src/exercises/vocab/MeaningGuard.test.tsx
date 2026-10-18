@@ -7,7 +7,7 @@ import type { AttemptResult, ExerciseProps } from '@/shared/exercise-types';
 import type { Step } from '@/shared/session-types';
 import { ExerciseFrame } from '@/shared/ui/ExerciseFrame';
 import { card, makeTestStore } from '@/store/testing';
-import { MeaningGuard, correctChoice, fogFor, meta, readingHidden, wordRuby } from './MeaningGuard';
+import { MeaningGuard, correctChoice, fogFor, meta, readingHidden, speakWord, wordClipKey, wordRuby } from './MeaningGuard';
 
 let root: HTMLDivElement;
 let clock = 1_000_000;
@@ -130,7 +130,7 @@ describe('<MeaningGuard>', () => {
     const p = props();
     mount(p, true);
     expect(speak).toHaveBeenCalledTimes(1);
-    expect(speak).toHaveBeenCalledWith('水', { kana: 'みず' });
+    expect(speak).toHaveBeenCalledWith('水', { kana: 'みず', clip: MIZU.id });
     key(' ');
     expect(speak).toHaveBeenCalledTimes(2);
     expect(p.onReplay).toHaveBeenCalledTimes(1);
@@ -195,6 +195,31 @@ describe('<MeaningGuard>', () => {
     mount(p);
     act(() => (q('.missing-item .btn') as HTMLButtonElement).click());
     expect(result(p)).toMatchObject({ correct: false, timedOut: true });
+  });
+});
+
+describe('speakWord (design 08 §8 clip keys)', () => {
+  it('passes clip item.id for the bare word (with its kana) and #col<k> for a collocation (spoken as written, no kana)', async () => {
+    await speakWord(NOMU);
+    expect(speak).toHaveBeenLastCalledWith('飲む', { kana: 'のむ', clip: NOMU.id });
+    await speakWord(NOMU, '飲む');
+    expect(speak).toHaveBeenLastCalledWith('飲む', { kana: 'のむ', clip: NOMU.id });
+    await speakWord(NOMU, 'お茶を飲む');
+    expect(speak).toHaveBeenLastCalledWith('お茶を飲む', { clip: `${NOMU.id}#col0` });
+    await speakWord(NOMU, '薬を飲む');
+    expect(speak).toHaveBeenLastCalledWith('薬を飲む', { clip: `${NOMU.id}#col1` });
+    // text that is neither the word nor a listed collocation: no key, the device voice reads it as written
+    await speakWord(NOMU, '水を飲む');
+    expect(speak).toHaveBeenLastCalledWith('水を飲む', undefined);
+    expect(speak).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ kana: 'のむ', clip: expect.stringContaining('#col') }));
+  });
+
+  it('wordClipKey names the key without speaking', () => {
+    expect(wordClipKey(NOMU)).toBe(NOMU.id);
+    expect(wordClipKey(NOMU, '飲む')).toBe(NOMU.id);
+    expect(wordClipKey(NOMU, '薬を飲む')).toBe(`${NOMU.id}#col1`);
+    expect(wordClipKey(NOMU, 'ご飯')).toBeNull();
+    expect(wordClipKey({ id: 'v-n5-0001', word: '犬' }, 'x')).toBeNull();
   });
 });
 

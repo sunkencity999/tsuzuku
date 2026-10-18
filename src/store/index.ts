@@ -55,6 +55,11 @@ export {
   LEDGER_GOAL_HOURS,
   WEEKLY_TARGET_HOURS,
   KIND_INDEX,
+  playedMinutes,
+  sanitizeMinutes,
+  wholeMinutes,
+  appListeningHours,
+  weekAppMinutes,
 } from './ledger';
 export type { LedgerInput, LedgerHours, WeekRow } from './ledger';
 export { flameState, onDayRolled, onTrainingDay, startVacation, endVacation, FREEZE_MAX, REPAIR_NEEDED } from './streak';

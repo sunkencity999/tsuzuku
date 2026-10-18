@@ -1,3 +1,4 @@
+import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import type { ContentLoader } from '@/content/loader';
@@ -16,9 +17,9 @@ vi.mock('@/content/loader', async (importOriginal) => {
   return { ...orig, content };
 });
 
-import { FIXTURE, FIXTURE_STORY_ID, G, V, createFakeLoader } from '@/content/fixtures';
+import { FIXTURE, FIXTURE_DIALOGUE_ID, FIXTURE_STORY_ID, G, V, createFakeLoader } from '@/content/fixtures';
 import type { StoryItem } from '@/content/types';
-import { installServices, nullAudio, resetServices, type AudioService } from '@/shared/audio';
+import { SPEED_TIER_RATES, installServices, nullAudio, resetServices, type AudioService, type AudioSource, type ClipCue, type ClipPlayOptions, type ClipPlayer, type ClipReady } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import type { ExerciseProps } from '@/shared/exercise-types';
 import type { Step } from '@/shared/session-types';
@@ -26,10 +27,37 @@ import { CardFlag } from '@/shared/store-types';
 import { ExerciseFrame } from '@/shared/ui/ExerciseFrame';
 import { store } from '@/store';
 import { captureEvents, card, makeTestStore } from '@/store/testing';
-import { StoryReader, StoryReaderView, captureStateFor, isDictionaryFree, isStoryRead, kaidenEvidence, meta, speakerSlots, storyStation, toAttemptResult, type StoryReadResult } from './StoryReader';
+import {
+  NATURAL_SLOW_RATE,
+  StoryReader,
+  StoryReaderView,
+  activeTokenAt,
+  captureStateFor,
+  formatHeard,
+  gistQuestionIndex,
+  isDictionaryFree,
+  isStoryRead,
+  kaidenEvidence,
+  lineClipKey,
+  listenSource,
+  markListened,
+  meta,
+  naturalSlowServed,
+  rateChipsFor,
+  readAlongRates,
+  speakerSlots,
+  storyStation,
+  toAttemptResult,
+  tokenMoraSpans,
+  type StoryListenProps,
+  type StoryListenResult,
+  type StoryReadProps,
+  type StoryReadResult,
+} from './StoryReader';
 import { S } from './strings';
 
 const STORY = FIXTURE.items[FIXTURE_STORY_ID] as StoryItem;
+const DIALOGUE = FIXTURE.items[FIXTURE_DIALOGUE_ID] as StoryItem;
 const ANSWERS = STORY.comprehension.map((qq) => qq.choices[qq.answer]);
 
 let root: HTMLDivElement;
@@ -64,15 +92,15 @@ async function makeStore(o: Parameters<typeof makeTestStore>[0] = {}): Promise<v
   await makeTestStore({ now: () => clock, save: { progress: { station: 4 } }, ...o });
 }
 
-function mount(over: Partial<Parameters<typeof StoryReaderView>[0]> = {}): ReturnType<typeof vi.fn<(r: StoryReadResult) => void>> {
+function mount(over: Partial<StoryReadProps> = {}): ReturnType<typeof vi.fn<(r: StoryReadResult) => void>> {
   const onDone = vi.fn<(r: StoryReadResult) => void>();
   act(() => render(<StoryReaderView storyId={FIXTURE_STORY_ID} loader={loader} furigana="always" onDone={onDone} {...over} />, root));
   return onDone;
 }
 
 /** Token span for `token` inside line `li` (the line must be revealed). */
-function tokenEl(li: number, token: string): HTMLElement | undefined {
-  const line = STORY.lines[li] as StoryItem['lines'][number];
+function tokenEl(li: number, token: string, story: StoryItem = STORY): HTMLElement | undefined {
+  const line = story.lines[li] as StoryItem['lines'][number];
   const ti = line.tokens.indexOf(token);
   return q(`li[data-line="${li}"] .ruby__token[data-token="${ti}"]`) ?? undefined;
 }
@@ -89,10 +117,11 @@ function revealAll(): void {
 }
 
 /** Answers every question correctly (choices may be shuffled). */
-function answerAll(wrongAt: number[] = []): void {
-  for (let i = 0; i < STORY.comprehension.length; i++) {
+function answerAll(wrongAt: number[] = [], story: StoryItem = STORY): void {
+  const answers = story.comprehension.map((qq) => qq.choices[qq.answer]);
+  for (let i = 0; i < story.comprehension.length; i++) {
     const buttons = qa('[data-choice]');
-    const want = ANSWERS[i] as string;
+    const want = answers[i] as string;
     const target = wrongAt.includes(i) ? buttons.find((b) => !b.textContent?.includes(want)) : buttons.find((b) => b.textContent?.includes(want));
     click(target);
     click(q('[data-action="advance"]'));
@@ -150,16 +179,78 @@ describe('StoryReader helpers', () => {
     expect(kaidenEvidence(STORY, new Set([V.犬]), cards)).toEqual([`${V.おはよう}#prod`, `${V.パン}#rec`]);
     expect(kaidenEvidence(STORY, new Set(), cards)).toContain(`${V.犬}#rec`);
   });
+
+  it('read-along rates: slow is the natural 0.85 whenever it is below the tier (unstretched), never above the tier; fast is the next tier (Dan above 5)', () => {
+    expect(readAlongRates(1)).toEqual({ slow: 0.75, tier: 0.75, fast: 0.9 });
+    expect(readAlongRates(2)).toEqual({ slow: NATURAL_SLOW_RATE, tier: 0.9, fast: 1 });
+    expect(readAlongRates(3)).toEqual({ slow: NATURAL_SLOW_RATE, tier: 1, fast: 1.1 });
+    expect(readAlongRates(4)).toEqual({ slow: NATURAL_SLOW_RATE, tier: 1.1, fast: 1.25 });
+    expect(readAlongRates(5)).toEqual({ slow: NATURAL_SLOW_RATE, tier: 1.25, fast: 1.5 });
+    // tier 1 has nothing slower than itself: no duplicate slow chip
+    expect(rateChipsFor(readAlongRates(1))).toEqual(['tier', 'fast']);
+    expect(rateChipsFor(readAlongRates(2))).toEqual(['slow', 'tier', 'fast']);
+    expect(lineClipKey('s-04-1', 3)).toBe('s-04-1#L3');
+  });
+
+  it('naturalSlowServed needs the 0.85 take AND an unstretched request; listenSource reads capability before history', () => {
+    const take = (rate: number): ClipCue => ({ key: 'k', file: 'f', start: 0, end: 1, voice: 'v', rate });
+    expect(naturalSlowServed(take(0.85), 0.85)).toBe(true);
+    expect(naturalSlowServed(take(0.85), 0.75)).toBe(false); // stretched from the natural take
+    expect(naturalSlowServed(take(1), 0.85)).toBe(false); // stretched from the 1.0 take
+    expect(naturalSlowServed(undefined, 0.85)).toBe(false);
+    const voice: AudioService = { ...nullAudio, hasJaVoice: signal(true), source: signal<AudioSource>('none') };
+    expect(listenSource(voice, take(1))).toBe('clips');
+    expect(listenSource(voice, undefined)).toBe('synth');
+    expect(listenSource({ ...nullAudio, source: signal<AudioSource>('none') }, undefined)).toBe('none');
+    expect(listenSource(voice, take(1), 'synth')).toBe('synth'); // what was heard wins
+  });
+
+  it('tokenMoraSpans follows the token readings, punctuation owns no morae; activeTokenAt finds the span', () => {
+    // 私はコーヒーを飲みます。 → わたし(3) は(1) コーヒー(4) を(1) のみます(4) 。(0)
+    const spans = tokenMoraSpans(STORY.lines[3] as StoryItem['lines'][number]);
+    expect(spans).toEqual([
+      [0, 3],
+      [3, 4],
+      [4, 8],
+      [8, 9],
+      [9, 13],
+      [13, 13],
+    ]);
+    expect(activeTokenAt(spans, 0)).toBe(0);
+    expect(activeTokenAt(spans, 5)).toBe(2);
+    expect(activeTokenAt(spans, 12)).toBe(4);
+    expect(activeTokenAt(spans, 13)).toBe(-1);
+  });
+
+  it('gistQuestionIndex: the first gist question, else the first question, null without questions', () => {
+    expect(gistQuestionIndex([])).toBeNull();
+    expect(gistQuestionIndex(STORY.comprehension)).toBe(0);
+    const qs = STORY.comprehension.map((qq, i) => (i === 1 ? { ...qq, kind: 'gist' as const } : { ...qq, kind: 'detail' as const }));
+    expect(gistQuestionIndex(qs)).toBe(1);
+  });
+
+  it('markListened appends once and returns the same object when the id is there; formatHeard names the time', () => {
+    const p0 = { listened: undefined as string[] | undefined };
+    const p1 = markListened(p0, 's-04-1');
+    expect(p1.listened).toEqual(['s-04-1']);
+    expect(markListened(p1, 's-04-1')).toBe(p1);
+    expect(markListened(p1, 's-04-2').listened).toEqual(['s-04-1', 's-04-2']);
+    expect(formatHeard(0)).toBe(S.heardNone);
+    expect(formatHeard(45.4)).toBe('45 s heard');
+    expect(formatHeard(125)).toBe('2 min 5 s heard');
+  });
 });
 
 describe('<StoryReaderView>', () => {
   it('renders the fixture story: title, chips, one line first, every line after "Show the rest"', async () => {
     await makeStore();
     mount();
+    expect(q('.reader')?.getAttribute('data-mode')).toBe('read');
     expect(q('.reader__title')?.getAttribute('lang')).toBe('ja');
     expect(q('.reader__title')?.textContent).toContain('水');
     expect(q('.reader__title-en')?.textContent).toBe(STORY.titleEn);
     expect(q('[data-field="coverage"]')).not.toBeNull();
+    expect(q('[data-field="source"]')).toBeNull(); // the status chip belongs to the Read-along
     expect(qa('li[data-line]').length).toBe(1);
     expect(q('[data-field="progress"]')?.textContent).toBe('Line 1 of 12');
     click(q('[data-action="next"]'));
@@ -225,7 +316,7 @@ describe('<StoryReaderView>', () => {
     expect(q('[role="dialog"]')).toBeNull();
   });
 
-  it('finishing emits story:read with cpm > 0, chars, correct/total and calls onDone once', async () => {
+  it('finishing emits story:read with cpm > 0, chars, correct/total and calls onDone once — and never listen:played', async () => {
     await makeStore();
     const cap = captureEvents();
     const onDone = mount();
@@ -245,6 +336,8 @@ describe('<StoryReaderView>', () => {
     expect(p.glossTaps).toBe(0);
     expect(p.minutes).toBe(2);
     expect(p.bridge).toBe(false);
+    expect(cap.events.some(([n]) => n === 'listen:played')).toBe(false);
+    expect(store.progress.value.listened ?? []).toEqual([]);
     expect(onDone).toHaveBeenCalledTimes(1);
     const r = onDone.mock.calls[0]?.[0] as StoryReadResult;
     expect(r.passed).toBe(true);
@@ -439,21 +532,21 @@ describe('<StoryReaderView>', () => {
     expect(onDone.mock.calls[0]?.[0].hints).toBe(1);
   });
 
-  it('Listen speaks the plain line with its kana; Space replays the current line in a frame-less page', async () => {
+  it('Listen speaks the plain line with its kana and the line clip key (design 08 §8)', async () => {
     await makeStore();
     mount();
     click(q('li[data-line="0"] [data-action="listen"]'));
-    expect(spoken).toEqual([['おはよう。', { kana: 'おはよう。' }]]);
+    expect(spoken).toEqual([['おはよう。', { kana: 'おはよう。', clip: 's-04-1#L0' }]]);
   });
 
-  it('dialogue speakers alternate voice slots', async () => {
+  it('dialogue speakers alternate voice slots and pass their speaker label for the cast voice', async () => {
     await makeStore();
     mount({ storyId: 's-04-2' });
     revealAll();
     click(q('li[data-line="0"] [data-action="listen"]'));
     click(q('li[data-line="1"] [data-action="listen"]'));
-    expect(spoken[0]?.[1]).toMatchObject({ voice: 'a' });
-    expect(spoken[1]?.[1]).toMatchObject({ voice: 'b' });
+    expect(spoken[0]?.[1]).toMatchObject({ voice: 'a', speaker: 'ケン', clip: 's-04-2#L0' });
+    expect(spoken[1]?.[1]).toMatchObject({ voice: 'b', speaker: 'ハナ', clip: 's-04-2#L1' });
     expect(q('li[data-line="0"] .reader__speaker')?.textContent).toBe('ケン');
   });
 
@@ -540,6 +633,543 @@ describe('<StoryReaderView>', () => {
       await Promise.resolve();
     });
     expect(q('.reader__title')).not.toBeNull();
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Read-along (design 08 §10.3)                                               */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+interface FakePlay {
+  cue: ClipCue;
+  o: ClipPlayOptions;
+  resolve(seconds: number): void;
+  stop: ReturnType<typeof vi.fn>;
+}
+
+/**
+ * A pack player double: every key has a cue (rate 0.85 at a slow request when
+ * `naturalSlow`), `play()` resolves at once with `seconds` unless `manual`
+ * (then the test resolves each play), `stop()` resolves the play with 0.5 s.
+ */
+function fakeClips(o: { seconds?: number; manual?: boolean; naturalSlow?: boolean; missing?: boolean; over?: Partial<AudioService> } = {}): { audio: AudioService; plays: FakePlay[]; cancel: ReturnType<typeof vi.fn> } {
+  const plays: FakePlay[] = [];
+  const cueFor = (key: string, w?: { rate?: number; speaker?: string }): ClipCue | undefined => ({
+    key,
+    file: 'sprites/s04/x.webm',
+    start: 0,
+    end: 2,
+    voice: 'VOICEVOX:x',
+    rate: o.naturalSlow && (w?.rate ?? 1) <= NATURAL_SLOW_RATE ? NATURAL_SLOW_RATE : 1,
+  });
+  const cue = o.missing ? (): ClipCue | undefined => undefined : cueFor;
+  const clips: ClipPlayer = {
+    ready: signal<ClipReady>('ready'),
+    info: signal(null),
+    loadLevel: () => Promise.resolve(),
+    loadStation: () => Promise.resolve(),
+    prefetchStation() {},
+    cueFor: cue,
+    cueForText: () => undefined,
+    kanaTracks: () => Promise.resolve([]),
+    play(cue, po) {
+      let resolve!: (s: number) => void;
+      const done = new Promise<{ source: 'clips' | 'none'; seconds: number }>((res) => {
+        resolve = (s) => res({ source: 'clips', seconds: s });
+      });
+      const stop = vi.fn(() => resolve(0.5));
+      plays.push({ cue, o: po, resolve, stop });
+      if (!o.manual) {
+        po.onProgress?.(0.4, 2, 0);
+        resolve(o.seconds ?? 2.5);
+      }
+      return { done, stop };
+    },
+    unlock() {},
+    dispose() {},
+    cacheUsage: () => Promise.resolve({ bytes: 0, files: 0 }),
+    download: () => Promise.resolve(),
+    remove: () => Promise.resolve(),
+  };
+  const cancel = vi.fn();
+  const audio: AudioService = {
+    ...nullAudio,
+    hasJaVoice: signal(true),
+    source: signal<AudioSource>('clips'),
+    packReady: signal(true),
+    clipFor: cue,
+    clips,
+    cancel,
+    speak: (t, so) => {
+      spoken.push([t, so]);
+      return Promise.resolve();
+    },
+    ...o.over,
+  };
+  return { audio, plays, cancel };
+}
+
+/** A device-voice double: audible, no pack; every utterance takes two seconds of the store clock. */
+function synthAudio(): AudioService {
+  return {
+    ...nullAudio,
+    hasJaVoice: signal(true),
+    speak: (t, so) => {
+      spoken.push([t, so]);
+      clock += 2000;
+      return Promise.resolve();
+    },
+  };
+}
+
+/** Lets a chain of instantly-resolving plays run to the end (one macrotask drains every microtask). */
+async function settle(): Promise<void> {
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+}
+
+describe('<StoryReaderView mode="listen"> (Read-along, design 08 §10.3)', () => {
+  function mountListen(over: Partial<StoryListenProps> = {}): ReturnType<typeof vi.fn<(r: StoryListenResult) => void>> {
+    const onDone = vi.fn<(r: StoryListenResult) => void>();
+    act(() => render(<StoryReaderView mode="listen" storyId={FIXTURE_STORY_ID} loader={loader} furigana="always" onDone={onDone} {...over} />, root));
+    return onDone;
+  }
+  const phase = (): string | null => q('.reader')?.getAttribute('data-listen-phase') ?? null;
+
+  it('plays line 0 then 1 (then every line) with the clip keys through the pack player, revealing as it goes', async () => {
+    const { audio, plays } = fakeClips({ seconds: 2.5 });
+    installServices({ audio });
+    await makeStore();
+    mountListen();
+    expect(q('.reader')?.getAttribute('data-mode')).toBe('listen');
+    expect(q('[data-field="mode"]')?.textContent).toContain(S.listenTitle);
+    expect(q('[data-field="mode"] [lang="ja"]')?.textContent).toBe(S.listenTitleJa);
+    expect(q('[data-field="source"]')?.textContent).toBe('synthetic voice (VOICEVOX)');
+    expect(phase()).toBe('ready');
+    expect(qa('li[data-line]').length).toBe(1);
+    expect(q('[data-action="next"]')).toBeNull(); // no reading controls in listen mode
+    click(q('[data-action="start"]'));
+    await settle();
+    expect(plays.slice(0, 2).map((p) => p.cue.key)).toEqual(['s-04-1#L0', 's-04-1#L1']);
+    expect(plays.map((p) => p.cue.key)).toEqual(STORY.lines.map((_, i) => `s-04-1#L${i}`));
+    expect(plays[0]?.o.rate).toBe(SPEED_TIER_RATES[store.settings.value.speedTier]);
+    expect(plays[0]?.o.volume).toBe(store.settings.value.sound);
+    expect(qa('li[data-line]').length).toBe(STORY.lines.length);
+    expect(phase()).toBe('ended');
+    expect(q('[data-action="to-questions"]')).not.toBeNull();
+    expect(q('[data-action="finish-listen"]')).not.toBeNull();
+    expect(spoken).toEqual([]); // the pack served every line; speak() was never needed
+  });
+
+  it('on the device voice every speakLine passes clip and speaker (dialogue: cast label + a/b slot)', async () => {
+    installServices({ audio: synthAudio() });
+    await makeStore();
+    mountListen({ storyId: FIXTURE_DIALOGUE_ID });
+    expect(q('[data-field="source"]')?.textContent).toBe('device voice');
+    click(q('[data-action="start"]'));
+    await settle();
+    expect(spoken.length).toBe(DIALOGUE.lines.length);
+    expect(spoken[0]?.[1]).toMatchObject({ clip: 's-04-2#L0', speaker: 'ケン', voice: 'a', interrupt: true });
+    expect(spoken[1]?.[1]).toMatchObject({ clip: 's-04-2#L1', speaker: 'ハナ', voice: 'b' });
+    expect(spoken.every(([, o], i) => (o as { clip: string }).clip === `s-04-2#L${i}`)).toBe(true);
+    expect(phase()).toBe('ended');
+  });
+
+  it('a gloss tap mid-line does not cancel the audio; the player waits at the line boundary while the gloss is open', async () => {
+    const { audio, plays, cancel } = fakeClips({ manual: true });
+    installServices({ audio });
+    await makeStore();
+    mountListen();
+    click(q('[data-action="start"]'));
+    await settle();
+    expect(plays.length).toBe(1);
+    expect(phase()).toBe('playing');
+    expect(q('li[data-line="0"]')?.getAttribute('data-speaking')).toBe('true');
+    const cancels = cancel.mock.calls.length; // the player clears its queue once per line start
+    click(tokenEl(0, 'おはよう'));
+    expect(q('[role="dialog"]')).not.toBeNull();
+    expect(cancel.mock.calls.length).toBe(cancels);
+    expect(plays[0]?.stop).not.toHaveBeenCalled();
+    // the line ends while the gloss is open: nothing advances
+    act(() => plays[0]?.resolve(2));
+    await settle();
+    expect(plays.length).toBe(1);
+    expect(phase()).toBe('held');
+    expect(q('[data-field="held"]')?.textContent).toBe(S.listenHeld);
+    expect(qa('li[data-line]').length).toBe(1);
+    // closing the gloss resumes with the next line
+    click(q('[data-action="close"]'));
+    await settle();
+    expect(plays.length).toBe(2);
+    expect(plays[1]?.cue.key).toBe('s-04-1#L1');
+    expect(phase()).toBe('playing');
+    expect(qa('li[data-line]').length).toBe(2);
+  });
+
+  it('the karaoke sweep marks the active token from onProgress and clears at the line end', async () => {
+    const { audio, plays } = fakeClips({ manual: true });
+    installServices({ audio });
+    await makeStore();
+    mountListen();
+    click(q('[data-action="start"]'));
+    await settle();
+    act(() => plays[0]?.o.onProgress?.(0.3, 2, 0));
+    expect(q('li[data-line="0"] .ruby__token[data-token="0"]')?.getAttribute('data-sweep')).toBe('active');
+    expect(q('li[data-line="0"] .ruby__token[data-token="1"]')?.getAttribute('data-sweep')).toBe('ahead');
+    act(() => plays[0]?.o.onProgress?.(1.2, 4, 0));
+    expect(q('li[data-line="0"] .ruby__token[data-token="0"]')?.getAttribute('data-sweep')).toBe('past');
+    expect(q('li[data-line="0"] .ruby__token[data-token="1"]')?.getAttribute('data-sweep')).toBe('past');
+    act(() => plays[0]?.resolve(2));
+    await settle();
+    expect(qa('li[data-line="0"] .ruby__token[data-sweep]').length).toBe(0);
+  });
+
+  it("chips show 'slow (natural)' only when the pack serves the 0.85 take unstretched, 'slow' otherwise; every chip names its take; tier 1 has no slow chip", async () => {
+    const { audio } = fakeClips({ naturalSlow: true });
+    installServices({ audio });
+    await makeStore();
+    mountListen();
+    const chip = (c: string): HTMLElement | null => q(`[data-rate-chip="${c}"]`);
+    expect(chip('slow')?.textContent).toBe(`${S.rateSlowNatural}0.85×`);
+    expect(chip('slow')?.getAttribute('title')).toBe(S.rateSlowNaturalHint);
+    expect(chip('slow')?.getAttribute('data-rate')).toBe('0.85'); // tier 2: the natural take, requested at its own rate — nothing stretched
+    expect(chip('slow')?.getAttribute('data-cue-rate')).toBe('0.85');
+    expect(chip('tier')?.textContent).toBe(`${S.rateTier}0.9×`);
+    expect(chip('tier')?.getAttribute('data-cue-rate')).toBe('1'); // the 1.0 take, stretched to 0.9: the hint says so
+    expect(chip('tier')?.getAttribute('title')).toBe('Played at 0.9× from the 1× take; the pitch stays where it was.');
+    expect(chip('fast')?.textContent).toBe(`${S.rateFast}1×`);
+    expect(chip('fast')?.getAttribute('title')).toBeNull(); // served at its own rate
+    expect(chip('tier')?.getAttribute('aria-pressed')).toBe('true');
+    render(null, root);
+
+    // the pack has only the 1.0 take: slow is stretched from it, says only "slow", and names the take
+    installServices({ audio: fakeClips().audio });
+    mountListen();
+    expect(chip('slow')?.textContent).toBe(`${S.rateSlow}0.85×`);
+    expect(chip('slow')?.textContent).not.toContain('natural');
+    expect(chip('slow')?.getAttribute('title')).toBe('Played at 0.85× from the 1× take; the pitch stays where it was.');
+    render(null, root);
+
+    // no pack at all (device voice): plain "slow", the voice slows down
+    installServices({ audio: synthAudio() });
+    mountListen();
+    expect(chip('slow')?.textContent).toBe(`${S.rateSlow}0.85×`);
+    expect(chip('slow')?.getAttribute('title')).toBe(S.rateSlowHint);
+    expect(chip('slow')?.getAttribute('data-cue-rate')).toBeNull();
+    render(null, root);
+
+    // the device voice forced in Settings: the pack's take is not served, so the chip never claims it
+    installServices({ audio: fakeClips({ naturalSlow: true }).audio });
+    await makeStore({ save: { progress: { station: 4 }, settings: { audioSource: 'device' } } });
+    mountListen();
+    expect(chip('slow')?.textContent).toBe(`${S.rateSlow}0.85×`);
+    expect(chip('slow')?.getAttribute('title')).toBe(S.rateSlowHint);
+    expect(q('[data-field="source"]')?.textContent).toBe('device voice');
+    render(null, root);
+
+    // tier 1 (0.75): nothing is slower than the tier, so only my tier and fast are offered and [ has nowhere to go
+    installServices({ audio: fakeClips({ naturalSlow: true }).audio });
+    await makeStore({ save: { progress: { station: 4 }, settings: { speedTier: 1 } } });
+    mountListen();
+    expect(chip('slow')).toBeNull();
+    expect(qa('[data-rate-chip]').map((b) => b.getAttribute('data-rate-chip'))).toEqual(['tier', 'fast']);
+    expect(chip('tier')?.textContent).toBe(`${S.rateTier}0.75×`);
+    press('[');
+    expect(chip('tier')?.getAttribute('aria-pressed')).toBe('true');
+    press(']');
+    expect(chip('fast')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('the honesty chip names what the next line would use, not what speak() last did: a ready pack reads synthetic before Start, then follows what was heard', async () => {
+    // a web-like service: the `source` signal starts at 'none' (speak() writes it, and the pack path never calls speak())
+    installServices({ audio: fakeClips({ over: { hasJaVoice: signal(false), canSpeak: signal(true), source: signal<AudioSource>('none') } }).audio });
+    await makeStore();
+    mountListen();
+    expect(q('[data-field="source"]')?.textContent).toBe('synthetic voice (VOICEVOX)');
+    expect(q('[data-field="source"]')?.getAttribute('data-source')).toBe('clips');
+    expect(q('[data-field="text-only"]')).toBeNull();
+    render(null, root);
+
+    // a device voice and no pack, nothing spoken yet
+    installServices({ audio: { ...nullAudio, hasJaVoice: signal(true), source: signal<AudioSource>('none') } });
+    mountListen();
+    expect(q('[data-field="source"]')?.textContent).toBe('device voice');
+    expect(q('[data-field="text-only"]')).toBeNull();
+    render(null, root);
+
+    // no voice, no pack: text only, said up front
+    installServices({ audio: { ...nullAudio, source: signal<AudioSource>('none') } });
+    mountListen();
+    expect(q('[data-field="source"]')?.textContent).toBe('text only');
+    expect(q('[data-field="text-only"]')?.textContent).toBe(S.listenTextOnly);
+    render(null, root);
+
+    // the pack is ready but has no cue for this text: the lines fall to the device voice, and the chip follows what was heard
+    const src = signal<AudioSource>('none');
+    const speakSynth: AudioService['speak'] = (t, so) => {
+      spoken.push([t, so]);
+      src.value = 'synth';
+      clock += 2000;
+      return Promise.resolve();
+    };
+    installServices({ audio: fakeClips({ missing: true, over: { source: src, speak: speakSynth } }).audio });
+    mountListen();
+    expect(q('[data-field="source"]')?.textContent).toBe('device voice');
+    click(q('[data-action="start"]'));
+    await settle();
+    expect(spoken.length).toBe(STORY.lines.length);
+    expect(phase()).toBe('ended');
+    expect(q('[data-field="source"]')?.textContent).toBe('device voice');
+  });
+
+  it('Enter opens the self-check once the text has ended (the button advertises it); earlier it does nothing', async () => {
+    installServices({ audio: fakeClips({ seconds: 1 }).audio });
+    await makeStore();
+    mountListen();
+    press('Enter');
+    expect(phase()).toBe('ready');
+    expect(q('.reader')?.getAttribute('data-state')).toBe('reading');
+    click(q('[data-action="start"]'));
+    await settle();
+    expect(phase()).toBe('ended');
+    expect(q('[data-action="to-questions"]')?.getAttribute('aria-keyshortcuts')).toBe('Enter');
+    press('Enter');
+    expect(q('.reader')?.getAttribute('data-state')).toBe('questions');
+  });
+
+  it('choosing a chip while playing restarts the line at that rate; a learner at tier 3 gets the natural 0.85 slow', async () => {
+    const { audio, plays } = fakeClips({ manual: true });
+    installServices({ audio });
+    await makeStore({ save: { progress: { station: 4 }, settings: { speedTier: 3 } } });
+    mountListen();
+    expect(q('[data-rate-chip="slow"]')?.getAttribute('data-rate')).toBe(String(NATURAL_SLOW_RATE));
+    click(q('[data-action="start"]'));
+    await settle();
+    expect(plays[0]?.o.rate).toBe(1);
+    click(q('[data-rate-chip="fast"]'));
+    await settle();
+    expect(plays[0]?.stop).toHaveBeenCalledTimes(1);
+    expect(plays.length).toBe(2);
+    expect(plays[1]?.cue.key).toBe('s-04-1#L0');
+    expect(plays[1]?.o.rate).toBe(1.1);
+    expect(q('[data-rate-chip="fast"]')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('listen:played is emitted once with source readalong and the summed seconds; story:read is never emitted and storiesRead is untouched', async () => {
+    const { audio } = fakeClips({ seconds: 2.5 });
+    installServices({ audio });
+    await makeStore();
+    const cap = captureEvents();
+    const onDone = mountListen();
+    click(q('[data-action="start"]'));
+    await settle();
+    click(q('[data-action="to-questions"]'));
+    expect(root.textContent).toContain(S.listenQuestionsHint);
+    answerAll();
+    cap.stop();
+    const played = cap.events.filter(([n]) => n === 'listen:played');
+    expect(played).toHaveLength(1);
+    expect(played[0]?.[1]).toEqual({ source: 'readalong', refs: [FIXTURE_STORY_ID], seconds: 30, rate: 0.9, cold: true, authentic: false, gistCorrect: true });
+    expect(cap.events.some(([n]) => n === 'story:read')).toBe(false);
+    expect(store.progress.value.storiesRead ?? []).toEqual([]);
+    expect(store.progress.value.listened).toEqual([FIXTURE_STORY_ID]);
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(onDone.mock.calls[0]?.[0]).toMatchObject({ storyId: FIXTURE_STORY_ID, seconds: 30, rate: 0.9, cold: true, authentic: false, gistCorrect: true, correct: 3, total: 3, answered: true, heard: true, source: 'clips', missing: false });
+    expect('ledgerLogged' in (onDone.mock.calls[0]?.[0] as object)).toBe(false); // the listen row is the reducer's alone; no host fallback signal
+  });
+
+  it('skipping the questions reports gistCorrect null; a text already in progress.listened is not cold', async () => {
+    const { audio } = fakeClips({ seconds: 1 });
+    installServices({ audio });
+    await makeStore({ save: { progress: { station: 4, listened: [FIXTURE_STORY_ID] } } });
+    const cap = captureEvents();
+    const onDone = mountListen();
+    click(q('[data-action="start"]'));
+    await settle();
+    click(q('[data-action="finish-listen"]'));
+    cap.stop();
+    const played = cap.events.filter(([n]) => n === 'listen:played');
+    expect(played).toHaveLength(1);
+    expect(played[0]?.[1]).toMatchObject({ source: 'readalong', seconds: 12, cold: false, gistCorrect: null, authentic: false });
+    expect(onDone.mock.calls[0]?.[0]).toMatchObject({ answered: false, gistCorrect: null, cold: false });
+    expect(store.progress.value.listened).toEqual([FIXTURE_STORY_ID]); // appended once, never twice
+  });
+
+  it('authentic = an authentic-style text at ≥ 1.0× with the gist question right; the slow chip loses it', async () => {
+    // a casual dialogue is authentic-style (isAuthenticText); tier 2's "fast" chip is 1.0×
+    const casual: StoryItem = { ...DIALOGUE, id: 's-10-2', register: 'casual' };
+    const fx = createFakeLoader({ ...FIXTURE, items: { ...FIXTURE.items, 's-10-2': casual } });
+    installServices({ audio: fakeClips({ seconds: 2 }).audio });
+    await makeStore();
+    let cap = captureEvents();
+    mountListen({ storyId: 's-10-2', loader: fx });
+    click(q('[data-rate-chip="fast"]'));
+    click(q('[data-action="start"]'));
+    await settle();
+    click(q('[data-action="to-questions"]'));
+    answerAll([], casual);
+    cap.stop();
+    expect(cap.events.find(([n]) => n === 'listen:played')?.[1]).toMatchObject({ rate: 1, authentic: true, gistCorrect: true });
+    render(null, root);
+
+    await makeStore();
+    cap = captureEvents();
+    mountListen({ storyId: 's-10-2', loader: fx });
+    click(q('[data-rate-chip="slow"]'));
+    click(q('[data-action="start"]'));
+    await settle();
+    click(q('[data-action="to-questions"]'));
+    answerAll([], casual);
+    cap.stop();
+    expect(cap.events.find(([n]) => n === 'listen:played')?.[1]).toMatchObject({ rate: NATURAL_SLOW_RATE, authentic: false, gistCorrect: true });
+    render(null, root);
+
+    // the gist question wrong: understood is part of authentic
+    await makeStore();
+    cap = captureEvents();
+    mountListen({ storyId: 's-10-2', loader: fx });
+    click(q('[data-rate-chip="fast"]'));
+    click(q('[data-action="start"]'));
+    await settle();
+    click(q('[data-action="to-questions"]'));
+    answerAll([0], casual);
+    cap.stop();
+    expect(cap.events.find(([n]) => n === 'listen:played')?.[1]).toMatchObject({ rate: 1, authentic: false, gistCorrect: false });
+  });
+
+  it('with B reducers wired a Read-along grants no XP, no episode read, no read-episode quest tick, no reading badge and no read ledger row', async () => {
+    installServices({ audio: fakeClips({ seconds: 10 }).audio }); // 12 lines → 120 s
+    await makeStore({ reducers: true });
+    const xp = store.profile.value.xp;
+    const badgesBefore = Object.keys(store.collections.value.badges);
+    const onDone = mountListen();
+    click(q('[data-action="start"]'));
+    await settle();
+    click(q('[data-action="finish-listen"]'));
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(store.profile.value.xp).toBe(xp);
+    expect(store.stats.value.episodesRead).toBe(0);
+    expect(store.progress.value.storiesRead ?? []).toEqual([]);
+    expect(store.quests.value.done).not.toContain('read-episode');
+    // whatever B's listening reducer logged is a listen row from the app, never a read
+    for (const row of store.ledger.value.entries) {
+      expect(row[2]).toBe(0);
+      expect(row[3]).toBe(0);
+    }
+    expect(store.progress.value.listened).toEqual([FIXTURE_STORY_ID]);
+    // no reading badge lights: whatever B's listening badges did, the story:read-keyed ones stay dark
+    const badges = store.collections.value.badges;
+    expect(badges.bookworm).toBeUndefined();
+    expect(badges['dictionary-free']).toBeUndefined();
+    expect(badges['speed-reader']).toBeUndefined();
+    expect(Object.keys(badges).filter((b) => !badgesBefore.includes(b)).every((b) => b === 'first-hearing')).toBe(true);
+  });
+
+  it('the device voice counts wall-clock seconds; mode read still emits story:read as today', async () => {
+    installServices({ audio: synthAudio() });
+    await makeStore();
+    const cap = captureEvents();
+    mountListen();
+    click(q('[data-action="start"]'));
+    await settle();
+    click(q('[data-action="finish-listen"]'));
+    cap.stop();
+    expect(cap.events.filter(([n]) => n === 'listen:played')).toHaveLength(1);
+    expect(cap.events.find(([n]) => n === 'listen:played')?.[1]).toMatchObject({ seconds: 24, rate: 0.9 });
+    expect(cap.events.some(([n]) => n === 'story:read')).toBe(false);
+  });
+
+  it('Space pauses and resumes (the stopped line still counts its played seconds), L loops the line, arrows move', async () => {
+    const { audio, plays } = fakeClips({ manual: true });
+    installServices({ audio });
+    await makeStore();
+    mountListen();
+    press(' '); // Space starts
+    await settle();
+    expect(phase()).toBe('playing');
+    expect(plays.length).toBe(1);
+    press('l');
+    expect(q('[data-action="loop"]')?.getAttribute('aria-pressed')).toBe('true');
+    act(() => plays[0]?.resolve(2));
+    await settle();
+    expect(plays.length).toBe(2);
+    expect(plays[1]?.cue.key).toBe('s-04-1#L0'); // looped
+    press('L');
+    expect(q('[data-action="loop"]')?.getAttribute('aria-pressed')).toBe('false');
+    press(' ');
+    await settle();
+    expect(phase()).toBe('paused');
+    expect(plays[1]?.stop).toHaveBeenCalledTimes(1);
+    expect(q('[data-action="resume"]')?.textContent).toBe(S.listenResume);
+    press(' ');
+    await settle();
+    expect(phase()).toBe('playing');
+    expect(plays.length).toBe(3);
+    expect(plays[2]?.cue.key).toBe('s-04-1#L0');
+    press('ArrowRight');
+    await settle();
+    expect(plays[3]?.cue.key).toBe('s-04-1#L1');
+    expect(q('[data-field="progress"]')?.textContent).toBe('Line 2 of 12');
+    press('ArrowLeft');
+    await settle();
+    expect(plays[4]?.cue.key).toBe('s-04-1#L0');
+    // "Play from here" on a revealed line jumps there too
+    click(q('li[data-line="1"] [data-action="listen"]'));
+    await settle();
+    expect(plays[5]?.cue.key).toBe('s-04-1#L1');
+  });
+
+  it('text only: the chip says so, lines advance by tap, and nothing is emitted or marked as heard', async () => {
+    await makeStore(); // the default double: no Japanese voice, no pack
+    const cap = captureEvents();
+    const onDone = mountListen();
+    expect(q('[data-field="source"]')?.textContent).toBe('text only');
+    expect(q('[data-field="text-only"]')?.textContent).toBe(S.listenTextOnly);
+    click(q('[data-action="start"]'));
+    await settle();
+    expect(phase()).toBe('paused');
+    expect(q('[data-action="resume"]')?.textContent).toBe(S.nextLine);
+    for (let i = 1; i < STORY.lines.length; i++) {
+      click(q('[data-action="resume"]'));
+      await settle();
+    }
+    expect(qa('li[data-line]').length).toBe(STORY.lines.length);
+    click(q('[data-action="resume"]'));
+    await settle();
+    expect(phase()).toBe('ended');
+    click(q('[data-action="finish-listen"]'));
+    cap.stop();
+    expect(cap.events.some(([n]) => n === 'listen:played')).toBe(false);
+    expect(cap.events.some(([n]) => n === 'story:read')).toBe(false);
+    expect(store.progress.value.listened ?? []).toEqual([]);
+    expect(onDone.mock.calls[0]?.[0]).toMatchObject({ heard: false, seconds: 0, source: 'none', gistCorrect: null });
+  });
+
+  it('a missing text reports missing through the listen result without emitting', async () => {
+    await makeStore();
+    const cap = captureEvents();
+    const onDone = mountListen({ storyId: 's-09-9' });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(q('[data-state="missing"]')?.getAttribute('data-mode')).toBe('listen');
+    click(q('[data-action="skip"]'));
+    cap.stop();
+    expect(onDone).toHaveBeenCalledWith(expect.objectContaining({ missing: true, heard: false, seconds: 0 }));
+    expect(cap.events.length).toBe(0);
+  });
+
+  it('unmounting mid-line stops the pack player and cancels the voice', async () => {
+    const { audio, plays, cancel } = fakeClips({ manual: true });
+    installServices({ audio });
+    await makeStore();
+    mountListen();
+    click(q('[data-action="start"]'));
+    await settle();
+    act(() => render(null, root));
+    expect(plays[0]?.stop).toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalled();
   });
 });
 

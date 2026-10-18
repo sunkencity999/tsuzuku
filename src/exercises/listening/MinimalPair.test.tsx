@@ -1,14 +1,22 @@
 import { signal } from '@preact/signals';
 import { render, type ComponentChildren, type JSX } from 'preact';
 import { act } from 'preact/test-utils';
+
+// The partner pool comes from the content singleton; serve test items from it.
+const H = vi.hoisted(() => ({ items: new Map<string, unknown>() }));
+vi.mock('@/content/loader', async (importOriginal) => {
+  const orig = await importOriginal<typeof import('@/content/loader')>();
+  return { ...orig, content: { ...orig.content, get: (id: string) => H.items.get(id) } };
+});
+
 import { FIXTURE, V } from '@/content/fixtures';
 import type { ContentItem, VocabItem } from '@/content/types';
-import { installServices, nullAudio, resetServices, type AudioService, type SpeakOptions } from '@/shared/audio';
+import { installServices, nullAudio, resetServices, type AudioService, type ClipCue, type SpeakOptions } from '@/shared/audio';
 import { mulberry32 } from '@/shared/hash';
 import type { AttemptResult, Step } from '@/shared/session-types';
 import { ExerciseFrame } from '@/shared/ui/ExerciseFrame';
 import { makeTestStore } from '@/store/testing';
-import { MinimalPair, meta, pairFor, pairTag } from './MinimalPair';
+import { MinimalPair, meta, pairClipKey, pairFor, pairTag, pairUsesClips } from './MinimalPair';
 
 const inu = FIXTURE.items[V.犬] as VocabItem; // いぬ
 const lookup = (id: string): ContentItem | undefined => FIXTURE.items[id];
@@ -29,6 +37,7 @@ function fakeAudio(): AudioService {
 
 beforeEach(async () => {
   await makeTestStore();
+  H.items.clear();
   calls = [];
   installServices({ audio: fakeAudio() });
   root = document.createElement('div');
@@ -125,6 +134,31 @@ describe('minimal pair helpers', () => {
     expect(pairFor(null, {}, lookup, mulberry32(1))).toBeNull();
     expect(pairFor(inu, { choices: ['いぬ', 'イヌ'] }, lookup, mulberry32(1))).toBeNull();
   });
+
+  it('pairClipKey: the item by its id, a real pool partner by its id, the synthesized partner by #pair, anything else null', () => {
+    const hito = FIXTURE.items[V.人] as VocabItem; // ひと
+    expect(pairClipKey(inu, 'いぬ', [hito])).toBe(V.犬);
+    expect(pairClipKey(inu, 'イヌ', [])).toBe(V.犬);
+    expect(pairClipKey(inu, 'ひと', [hito])).toBe(V.人);
+    expect(pairClipKey(inu, 'いっぬ', [])).toBe(`${V.犬}#pair`); // synthesizeMinimalPair('いぬ')
+    expect(pairClipKey(inu, 'おばあさん', [hito])).toBeNull();
+    // pairFor carries the keys parallel to the display order
+    const synth = pairFor(inu, {}, lookup, mulberry32(2)) as NonNullable<ReturnType<typeof pairFor>>;
+    expect(synth.keys[synth.choices.indexOf('いぬ')]).toBe(V.犬);
+    expect(synth.keys[1 - synth.choices.indexOf('いぬ')]).toBe(`${V.犬}#pair`);
+    const given = pairFor(inu, { choices: ['おばさん', 'おばあさん'], answer: 'おばあさん' }, lookup, mulberry32(4)) as NonNullable<ReturnType<typeof pairFor>>;
+    expect(given.keys).toEqual([null, null]);
+    expect(pairFor(null, { choices: ['おばさん', 'おばあさん'] }, lookup, mulberry32(1))?.keys).toEqual([null, null]);
+  });
+
+  it('pairUsesClips needs both keys present and playable', () => {
+    const can = (ok: string[]) => (k: string) => ok.includes(k);
+    expect(pairUsesClips({ keys: ['a', 'b'] }, can(['a', 'b']))).toBe(true);
+    expect(pairUsesClips({ keys: ['a', 'b'] }, can(['a']))).toBe(false);
+    expect(pairUsesClips({ keys: ['a', null] }, can(['a']))).toBe(false);
+    expect(pairUsesClips({ keys: [null, null] }, () => true)).toBe(false);
+    expect(pairUsesClips({ keys: ['a', 'b'] })).toBe(false); // nullAudio: no clipFor
+  });
 });
 
 describe('<MinimalPair>', () => {
@@ -187,6 +221,103 @@ describe('<MinimalPair>', () => {
     expect(choices().map(choiceText)).toContain('いぬ');
     await clickAsync(choices()[0]);
     expect(onResult).toHaveBeenCalledTimes(1);
+  });
+
+  describe('voice pack: never mixes sources within one step (design 08 §10.4)', () => {
+    const cue = (key: string): ClipCue => ({ key, file: 'audio/sprites/s01/words-01-abcdef12.webm', start: 0, end: 0.7, voice: 'VOICEVOX:ずんだもん', rate: 1 });
+    function withPack(keys: string[]): void {
+      const cues = new Map(keys.map((k) => [k, cue(k)]));
+      installServices({ audio: { ...fakeAudio(), source: signal('clips'), clipFor: (key: string) => cues.get(key) } });
+    }
+    const options = (): (SpeakOptions | undefined)[] => calls.map((c) => c.o);
+    const synthOnly = (): boolean => options().every((o) => o !== undefined && !('clip' in o));
+    const clipsOnly = (): boolean => options().every((o) => typeof o?.clip === 'string');
+
+    it('with clips for the item and its #pair partner both words play as clips, keyed by surface, in every play and compare', async () => {
+      withPack([V.犬, `${V.犬}#pair`]);
+      const { onResult } = await mount(step({ params: {} }), inu, true);
+      expect(root.querySelector('.pair')?.getAttribute('data-source')).toBe('clips');
+      expect(calls).toHaveLength(1);
+      const spoken = calls[0] as { text: string; o?: SpeakOptions };
+      expect(spoken.o?.clip).toBe(spoken.text === 'いぬ' ? V.犬 : `${V.犬}#pair`);
+      press(' ');
+      await act(() => Promise.resolve());
+      await clickAsync(choices()[0]);
+      expect(onResult).toHaveBeenCalledTimes(1);
+      const compare = Array.from(root.querySelectorAll<HTMLButtonElement>('.pair__compare button'));
+      await clickAsync(compare[0]);
+      await clickAsync(compare[1]);
+      expect(calls).toHaveLength(4);
+      expect(clipsOnly()).toBe(true);
+      for (const c of calls) expect(c.o?.clip).toBe(c.text === 'いぬ' ? V.犬 : `${V.犬}#pair`);
+    });
+
+    it('with a clip for only one side (the item, not #pair) both words go through the device voice', async () => {
+      withPack([V.犬]);
+      const { onResult } = await mount(step({ params: {} }), inu);
+      expect(root.querySelector('.pair')?.getAttribute('data-source')).toBe('synth');
+      await clickAsync(root.querySelector('.pair__play') as HTMLButtonElement);
+      await clickAsync(choices()[1]);
+      expect(onResult).toHaveBeenCalledTimes(1);
+      const compare = Array.from(root.querySelectorAll<HTMLButtonElement>('.pair__compare button'));
+      await clickAsync(compare[0]);
+      await clickAsync(compare[1]);
+      expect(calls).toHaveLength(4);
+      expect(synthOnly()).toBe(true);
+      expect(new Set(calls.map((c) => c.text))).toEqual(new Set(['いぬ', 'いっぬ']));
+    });
+
+    it('planner surfaces that are not the item’s word cannot be keyed: device voice for both even when the pack has the item', async () => {
+      withPack([V.犬, `${V.犬}#pair`]);
+      await mount(step());
+      expect(calls[0]?.o).toEqual({ kana: 'おばあさん' });
+      await clickAsync(root.querySelector('.pair__play') as HTMLButtonElement);
+      expect(synthOnly()).toBe(true);
+    });
+
+    it("the planner's own step shape — choices + answer + rate, with distractorIds naming the real partner — plays both words as clips keyed by item id; without the id the partner cannot be keyed", async () => {
+      const hito = FIXTURE.items[V.人] as VocabItem; // ひと
+      H.items.set(V.人, hito);
+      withPack([V.犬, V.人]);
+      // what session/params.ts builds for 'minimal-pair' once it carries the partner id (see the integrator notes)
+      const planned = { choices: [hito.kana, inu.kana], answer: hito.kana, rate: 1, distractorIds: [V.人] };
+      const { onResult } = await mount(step({ params: planned }), inu, true);
+      expect(root.querySelector('.pair')?.getAttribute('data-source')).toBe('clips');
+      expect(calls[0]).toEqual({ text: hito.kana, o: { kana: hito.kana, clip: V.人 } });
+      press(' ');
+      await act(() => Promise.resolve());
+      await clickAsync(choices()[0]);
+      expect(onResult).toHaveBeenCalledTimes(1);
+      const compare = Array.from(root.querySelectorAll<HTMLButtonElement>('.pair__compare button'));
+      await clickAsync(compare[0]);
+      await clickAsync(compare[1]);
+      expect(calls).toHaveLength(4);
+      expect(clipsOnly()).toBe(true);
+      for (const c of calls) expect(c.o?.clip).toBe(c.text === inu.kana ? V.犬 : V.人);
+      // the same step without distractorIds (today's planner): the partner surface cannot be keyed → device voice for both
+      calls = [];
+      await mount(step({ id: 'mp-4', params: { choices: planned.choices, answer: planned.answer, rate: 1 } }), inu);
+      expect(root.querySelector('.pair')?.getAttribute('data-source')).toBe('synth');
+      expect(calls[0]).toEqual({ text: hito.kana, o: { kana: hito.kana } });
+      await clickAsync(root.querySelector('.pair__play') as HTMLButtonElement);
+      expect(synthOnly()).toBe(true);
+    });
+
+    it('a real pool partner is keyed by its own item id', async () => {
+      const hito = FIXTURE.items[V.人] as VocabItem; // ひと: two morae from いぬ
+      H.items.set(V.人, hito);
+      withPack([V.犬, V.人]);
+      await mount(step({ params: { distractorIds: [V.人] } }), inu);
+      expect(choices().map(choiceText).sort()).toEqual(['いぬ', hito.kana].sort());
+      expect(root.querySelector('.pair')?.getAttribute('data-source')).toBe('clips');
+      expect(calls[0]?.o?.clip).toBe(calls[0]?.text === 'いぬ' ? V.犬 : V.人);
+      // the same pool without the partner's clip: device voice for both
+      withPack([V.犬]);
+      calls = [];
+      await mount(step({ id: 'mp-3', params: { distractorIds: [V.人] } }), inu);
+      expect(root.querySelector('.pair')?.getAttribute('data-source')).toBe('synth');
+      expect(calls[0]?.o).toEqual({ kana: calls[0]?.text });
+    });
   });
 
   it('a voice that cannot be heard (canSpeak false) shows the spoken word too', async () => {

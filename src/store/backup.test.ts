@@ -194,6 +194,43 @@ describe('mergeSaves (pure)', () => {
     expect(mergeSaves(bare, inc, 999).progress.listened).toEqual(['s-07-2', 's-08-1']);
     expect(mergeSaves(inc, bare, 999).progress.teachSeen).toEqual(['arena-first']);
   });
+
+  it('progress.arenaAt (design 08 §10.2): per text the later Arena-pass day of the two sides; one side alone is taken as is; absent on both stays absent', () => {
+    const cur = testSave({ save: { progress: { arenaAt: { 's-07-1': TODAY - 5, 's-07-2': TODAY } } } });
+    const inc = testSave({ save: { progress: { arenaAt: { 's-07-2': TODAY - 3, 's-08-1': TODAY - 1 } } } });
+    expect(mergeSaves(cur, inc, 999).progress.arenaAt).toEqual({ 's-07-1': TODAY - 5, 's-07-2': TODAY, 's-08-1': TODAY - 1 });
+    expect(mergeSaves(inc, cur, 999).progress.arenaAt).toEqual({ 's-07-2': TODAY, 's-08-1': TODAY - 1, 's-07-1': TODAY - 5 });
+    const bare = testSave();
+    expect('arenaAt' in bare.progress).toBe(false);
+    expect(mergeSaves(bare, inc, 999).progress.arenaAt).toEqual({ 's-07-2': TODAY - 3, 's-08-1': TODAY - 1 });
+    expect(mergeSaves(inc, bare, 999).progress.arenaAt).toEqual({ 's-07-2': TODAY - 3, 's-08-1': TODAY - 1 });
+    expect('arenaAt' in mergeSaves(bare, testSave(), 999).progress).toBe(false);
+  });
+
+  it('ledger (design 08 §12): app rows are compared per day and kind and the larger side keeps its rows as they are — an earlier export of this device, whose today-row has since grown, adds nothing; outside and noted rows still union by identity', () => {
+    // same device: exported at [6.7], re-imported after the Radio row grew to [15.3] → 15.3, not 22
+    let m = mergeSaves(testSave({ save: { ledger: { entries: [[TODAY, 15.3, 0, 0]] } } }), testSave({ save: { ledger: { entries: [[TODAY, 6.7, 0, 0]] } } }), 999);
+    expect(m.ledger.entries).toEqual([[TODAY, 15.3, 0, 0]]);
+    // the Arena row absorbed a 40 s track after the export: 16.7 here, 16 in the file → this browser's rows, 16.7 in all (not 22.7)
+    m = mergeSaves(testSave({ save: { ledger: { entries: [[TODAY, 10, 0, 0], [TODAY, 6.7, 0, 0]] } } }), testSave({ save: { ledger: { entries: [[TODAY, 10, 0, 0], [TODAY, 6, 0, 0]] } } }), 999);
+    expect(m.ledger.entries).toEqual([[TODAY, 10, 0, 0], [TODAY, 6.7, 0, 0]]);
+    // the file is ahead (restored onto a device that lost today's minutes): the file's rows win, kept as they are
+    m = mergeSaves(testSave({ save: { ledger: { entries: [[TODAY, 6, 0, 0]] } } }), testSave({ save: { ledger: { entries: [[TODAY, 10, 0, 0], [TODAY, 6.7, 0, 0]] } } }), 999);
+    expect(m.ledger.entries).toEqual([[TODAY, 10, 0, 0], [TODAY, 6.7, 0, 0]]);
+    // a tie keeps this browser's rows; a day only one side has is taken; kinds are separate buckets; outside / noted rows union by identity; days stay sorted
+    m = mergeSaves(
+      testSave({ save: { ledger: { entries: [[TODAY - 2, 5, 0, 0], [TODAY, 4, 1, 0], [TODAY, 30, 0, 1], [TODAY, 2, 0, 0, 'note']] } } }),
+      testSave({ save: { ledger: { entries: [[TODAY - 2, 2, 0, 0], [TODAY - 2, 3, 0, 0], [TODAY - 1, 8, 0, 0], [TODAY, 30, 0, 1], [TODAY, 45, 2, 1]] } } }),
+      999,
+    );
+    expect(m.ledger.entries).toEqual([[TODAY - 2, 5, 0, 0], [TODAY - 1, 8, 0, 0], [TODAY, 4, 1, 0], [TODAY, 30, 0, 1], [TODAY, 2, 0, 0, 'note'], [TODAY, 45, 2, 1]]);
+    // two identical sets on one device stay two rows (the old identity union folded them into one)
+    m = mergeSaves(testSave({ save: { ledger: { entries: [[TODAY, 10, 0, 0], [TODAY, 10, 0, 0]] } } }), testSave(), 999);
+    expect(m.ledger.entries).toEqual([[TODAY, 10, 0, 0], [TODAY, 10, 0, 0]]);
+    // the file alone: taken as is
+    m = mergeSaves(testSave(), testSave({ save: { ledger: { entries: [[TODAY - 1, 0.7, 0, 0], [TODAY, 12, 0, 1]] } } }), 999);
+    expect(m.ledger.entries).toEqual([[TODAY - 1, 0.7, 0, 0], [TODAY, 12, 0, 1]]);
+  });
 });
 
 describe('applyImport', () => {

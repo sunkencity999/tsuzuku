@@ -48,7 +48,7 @@ A Kumite therefore runs 10–14 minutes depending on the Scroll block.
 | Warm-up | 1.5 | 3 known sentences shadowed (primes the mouth) |
 | Reviews | 8–12 | due reviews up to the daily cap; wave-ordered |
 | Scrolls | 8–14 | 2–4 lessons with pretests (belt-sized Scrolls, §2.2), enough to meet the day's new-item budget |
-| Input | 5 → 12 | **Tabi Nikki** episode (coverage-gated) **or** Listening Arena set, alternating by the weekly strand ledger; minutes scale by belt: White–Orange 5 · Green 7 · Blue–Purple 9 · Brown+ 12 |
+| Input | 5 → 12 | **Tabi Nikki** episode (coverage-gated) **or** a listening block, alternating by the weekly strand ledger. The listening block rotates **unheard audio-first piece → dialogue → Ear Walk** (a `listening-set` in pool mode over i+0 / i+1 sentences from `listening/pool-NN.json`, design 08 §10.4 / §11), never the same genre twice in a row (derived from `progress.listened`), heard texts ordered by last hearing, and a text the Arena passed within the last 14 days (`progress.arenaAt`, `ARENA_RECENT_DAYS`) closed while another candidate is open; the 茶屋ラジオ Radio is not a session block (never a training day, design 08 §10.2). Minutes scale by belt: White–Orange 5 · Green 7 · Blue–Purple 9 · Brown+ 12 |
 | Output | 3 → 7 | rotates: Role-play · Shadow set · Say It Three Ways · Monologue · Writing Dojo (by belt availability); minutes scale by belt: White–Orange 3 · Green 4 · Blue–Purple 5 · Brown+ 7 |
 | Weak Point set | 0–3 | only if an error tag's EWMA > 20 % with n ≥ 15 (`05 §7`) |
 | Cooldown | 1 | easy reps, tally, ledger prompt, つづく, 次回予告 |

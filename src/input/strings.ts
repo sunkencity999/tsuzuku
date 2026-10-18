@@ -68,6 +68,9 @@ export const S = {
   shadowNetworkNote: 'Recognition may send audio to your browser vendor. The self-assessment path stays on the device and earns the same XP.',
   shadowMeaning: 'Meaning',
   shadowPitchLabel: 'Pitch',
+  /** Design 08 §10.3 / §11: the strip draws the dictionary accent, never a reading of the voice. */
+  shadowPitchDictionary: 'dictionary pattern',
+  shadowPitchDictionaryHint: 'The marks show each word\'s dictionary accent. The synthetic voice follows it too; the timing sweeps as the clip plays.',
   shadowJudgeWaiting: 'The inspector has a question.',
   shadowJudgePass: 'The inspector agrees. Well calibrated.',
   shadowJudgeFail: 'The inspector heard it differently. Again on this one.',

@@ -1,0 +1,1423 @@
+{
+  "schema": "tsuzuku.content/1",
+  "type": "story",
+  "level": "n5",
+  "writer": "listening-s04",
+  "generatedAt": "2026-10-17T00:00:00Z",
+  "items": [
+    {
+      "id": "s-04-4",
+      "stationId": "st-04",
+      "titleJa": "{部屋|へや}の{鍵|かぎ}",
+      "titleEn": "The room key",
+      "kind": "dialogue",
+      "register": "polite",
+      "genre": "exchange",
+      "audioFirst": true,
+      "learnerSpeaker": "ハナ",
+      "names": [
+        "森さん"
+      ],
+      "lines": [
+        {
+          "ja": "{森|もり}さん、すみません。これは{何|なん}ですか。",
+          "kana": "もりさん、すみません。これはなんですか。",
+          "en": "Mori-san, excuse me. What is this?",
+          "tokens": [
+            "森さん",
+            "、",
+            "すみません",
+            "。",
+            "これ",
+            "は",
+            "何",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ハナ",
+          "accept": [
+            "すみません、これは何ですか。",
+            "森さん、これは何ですか。"
+          ],
+          "mustInclude": [
+            "これ",
+            "何"
+          ],
+          "options": [
+            {
+              "text": "森さん、すみません。これは何ですか。",
+              "kind": "best"
+            },
+            {
+              "text": "すみません、森さん。これは何ですか。",
+              "kind": "ok",
+              "recast": "森さん、すみません。これは何ですか。"
+            },
+            {
+              "text": "森さん、これ、何？",
+              "kind": "register-wrong",
+              "recast": "森さん、すみません。これは何ですか。"
+            },
+            {
+              "text": "森さん、すみません。これが何ですか。",
+              "kind": "grammar-wrong",
+              "recast": "森さん、すみません。これは何ですか。"
+            }
+          ],
+          "tokenIds": [
+            null,
+            null,
+            "v-n5-0013",
+            null,
+            "v-n5-0045",
+            "v-n5-0118",
+            "v-n5-0054",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "それは{靴|くつ}のですよ。{皆|みな}さんのです。",
+          "kana": "それはくつのですよ。みなさんのです。",
+          "en": "That is for shoes. It is everyone's.",
+          "tokens": [
+            "それ",
+            "は",
+            "靴",
+            "の",
+            "です",
+            "よ",
+            "。",
+            "皆さん",
+            "の",
+            "です",
+            "。"
+          ],
+          "speaker": "森さん",
+          "plusOne": [
+            "v-n5-0170"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0046",
+            "v-n5-0118",
+            "v-n5-0170",
+            "v-n5-0126",
+            "v-n5-0132",
+            "v-n5-0129",
+            null,
+            "v-n5-0073",
+            "v-n5-0126",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{私|わたし}の{靴|くつ}も、ここですか。",
+          "kana": "わたしのくつも、ここですか。",
+          "en": "My shoes go here too?",
+          "tokens": [
+            "私",
+            "の",
+            "靴",
+            "も",
+            "、",
+            "ここ",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ハナ",
+          "plusOne": [
+            "v-n5-0170"
+          ],
+          "accept": [
+            "私の靴もここですか。",
+            "靴もここですか。"
+          ],
+          "mustInclude": [
+            "靴",
+            "ここ"
+          ],
+          "options": [
+            {
+              "text": "私の靴も、ここですか。",
+              "kind": "best"
+            },
+            {
+              "text": "靴は、ここですか。",
+              "kind": "ok",
+              "recast": "私の靴も、ここですか。"
+            },
+            {
+              "text": "私の靴も、ここ？",
+              "kind": "register-wrong",
+              "recast": "私の靴も、ここですか。"
+            },
+            {
+              "text": "私の靴は、ここもですか。",
+              "kind": "grammar-wrong",
+              "recast": "私の靴も、ここですか。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0041",
+            "v-n5-0126",
+            "v-n5-0170",
+            "v-n5-0125",
+            null,
+            "v-n5-0051",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、ケンさんの{靴|くつ}も、そこですよ。",
+          "kana": "ええ、ケンさんのくつも、そこですよ。",
+          "en": "Yes, and Ken-san's shoes go there too.",
+          "tokens": [
+            "ええ",
+            "、",
+            "ケンさん",
+            "の",
+            "靴",
+            "も",
+            "、",
+            "そこ",
+            "です",
+            "よ",
+            "。"
+          ],
+          "speaker": "森さん",
+          "plusOne": [
+            "v-n5-0170"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            null,
+            "v-n5-0126",
+            "v-n5-0170",
+            "v-n5-0125",
+            null,
+            "v-n5-0052",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "{森|もり}さん、それは{何|なん}ですか。{鍵|かぎ}ですか。",
+          "kana": "もりさん、それはなんですか。かぎですか。",
+          "en": "Mori-san, what is that? Is it a key?",
+          "tokens": [
+            "森さん",
+            "、",
+            "それ",
+            "は",
+            "何",
+            "です",
+            "か",
+            "。",
+            "鍵",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ハナ",
+          "plusOne": [
+            "v-n5-0173"
+          ],
+          "accept": [
+            "それは鍵ですか。",
+            "森さん、それは鍵ですか。"
+          ],
+          "mustInclude": [
+            "それ",
+            "鍵"
+          ],
+          "options": [
+            {
+              "text": "森さん、それは何ですか。鍵ですか。",
+              "kind": "best"
+            },
+            {
+              "text": "それは何ですか。鍵ですか。",
+              "kind": "ok",
+              "recast": "森さん、それは何ですか。鍵ですか。"
+            },
+            {
+              "text": "森さん、それ、何？鍵？",
+              "kind": "register-wrong",
+              "recast": "森さん、それは何ですか。鍵ですか。"
+            },
+            {
+              "text": "森さん、あれは何ですか。鍵ですか。",
+              "kind": "grammar-wrong",
+              "recast": "森さん、それは何ですか。鍵ですか。"
+            }
+          ],
+          "tokenIds": [
+            null,
+            null,
+            "v-n5-0046",
+            "v-n5-0118",
+            "v-n5-0054",
+            "v-n5-0132",
+            "v-n5-0127",
+            null,
+            "v-n5-0173",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、{鍵|かぎ}ですよ。{二|ふた}つです。",
+          "kana": "ええ、かぎですよ。ふたつです。",
+          "en": "Yes, keys. There are two.",
+          "tokens": [
+            "ええ",
+            "、",
+            "鍵",
+            "です",
+            "よ",
+            "。",
+            "二つ",
+            "です",
+            "。"
+          ],
+          "speaker": "森さん",
+          "plusOne": [
+            "v-n5-0173"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0173",
+            "v-n5-0132",
+            "v-n5-0129",
+            null,
+            "v-n5-0111",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{二|ふた}つですか。どちらが{私|わたし}のですか。",
+          "kana": "ふたつですか。どちらがわたしのですか。",
+          "en": "Two? Which one is mine?",
+          "tokens": [
+            "二つ",
+            "です",
+            "か",
+            "。",
+            "どちら",
+            "が",
+            "私",
+            "の",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ハナ",
+          "accept": [
+            "どちらが私の鍵ですか。",
+            "二つですか。私のはどちらですか。"
+          ],
+          "mustInclude": [
+            "どちら",
+            "私"
+          ],
+          "options": [
+            {
+              "text": "二つですか。どちらが私のですか。",
+              "kind": "best"
+            },
+            {
+              "text": "どちらが私の鍵ですか。",
+              "kind": "ok",
+              "recast": "二つですか。どちらが私のですか。"
+            },
+            {
+              "text": "二つ？どっちが私の？",
+              "kind": "register-wrong",
+              "recast": "二つですか。どちらが私のですか。"
+            },
+            {
+              "text": "二つですか。どちらは私のですか。",
+              "kind": "grammar-wrong",
+              "recast": "二つですか。どちらが私のですか。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0111",
+            "v-n5-0132",
+            "v-n5-0127",
+            null,
+            "v-n5-0074",
+            "v-n5-0119",
+            "v-n5-0041",
+            "v-n5-0126",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "それですよ。これは、ケンさんの{鍵|かぎ}です。",
+          "kana": "それですよ。これは、ケンさんのかぎです。",
+          "en": "That one. This one is Ken-san's key.",
+          "tokens": [
+            "それ",
+            "です",
+            "よ",
+            "。",
+            "これ",
+            "は",
+            "、",
+            "ケンさん",
+            "の",
+            "鍵",
+            "です",
+            "。"
+          ],
+          "speaker": "森さん",
+          "plusOne": [
+            "v-n5-0173"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0046",
+            "v-n5-0132",
+            "v-n5-0129",
+            null,
+            "v-n5-0045",
+            "v-n5-0118",
+            null,
+            null,
+            "v-n5-0126",
+            "v-n5-0173",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{森|もり}さん、{私|わたし}の{部屋|へや}はどこですか。",
+          "kana": "もりさん、わたしのへやはどこですか。",
+          "en": "Mori-san, where is my room?",
+          "tokens": [
+            "森さん",
+            "、",
+            "私",
+            "の",
+            "部屋",
+            "は",
+            "どこ",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ハナ",
+          "plusOne": [
+            "v-n5-0147"
+          ],
+          "accept": [
+            "私の部屋はどこですか。",
+            "部屋はどこですか。"
+          ],
+          "mustInclude": [
+            "部屋",
+            "どこ"
+          ],
+          "options": [
+            {
+              "text": "森さん、私の部屋はどこですか。",
+              "kind": "best"
+            },
+            {
+              "text": "私の部屋はどこですか。",
+              "kind": "ok",
+              "recast": "森さん、私の部屋はどこですか。"
+            },
+            {
+              "text": "森さん、私の部屋、どこ？",
+              "kind": "register-wrong",
+              "recast": "森さん、私の部屋はどこですか。"
+            },
+            {
+              "text": "森さん、私は部屋どこですか。",
+              "kind": "grammar-wrong",
+              "recast": "森さん、私の部屋はどこですか。"
+            }
+          ],
+          "tokenIds": [
+            null,
+            null,
+            "v-n5-0041",
+            "v-n5-0126",
+            "v-n5-0147",
+            "v-n5-0118",
+            "v-n5-0056",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "ハナさんの{部屋|へや}は、ここですよ。",
+          "kana": "ハナさんのへやは、ここですよ。",
+          "en": "Your room is right here, Hana-san.",
+          "tokens": [
+            "ハナさん",
+            "の",
+            "部屋",
+            "は",
+            "、",
+            "ここ",
+            "です",
+            "よ",
+            "。"
+          ],
+          "speaker": "森さん",
+          "plusOne": [
+            "v-n5-0147"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            "v-n5-0147",
+            "v-n5-0118",
+            null,
+            "v-n5-0051",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "ケンの{部屋|へや}も、ここですか。",
+          "kana": "ケンのへやも、ここですか。",
+          "en": "Is Ken's room here too?",
+          "tokens": [
+            "ケン",
+            "の",
+            "部屋",
+            "も",
+            "、",
+            "ここ",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ハナ",
+          "plusOne": [
+            "v-n5-0147"
+          ],
+          "accept": [
+            "ケンの部屋もここですか。",
+            "ケンのも、ここですか。"
+          ],
+          "mustInclude": [
+            "ケン",
+            "部屋"
+          ],
+          "options": [
+            {
+              "text": "ケンの部屋も、ここですか。",
+              "kind": "best"
+            },
+            {
+              "text": "ケンのも、ここですか。",
+              "kind": "ok",
+              "recast": "ケンの部屋も、ここですか。"
+            },
+            {
+              "text": "ケンの部屋も、ここ？",
+              "kind": "register-wrong",
+              "recast": "ケンの部屋も、ここですか。"
+            },
+            {
+              "text": "ケンの部屋は、ここもですか。",
+              "kind": "grammar-wrong",
+              "recast": "ケンの部屋も、ここですか。"
+            }
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            "v-n5-0147",
+            "v-n5-0125",
+            null,
+            "v-n5-0051",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "いいえ、ケンさんの{部屋|へや}はそこです。",
+          "kana": "いいえ、ケンさんのへやはそこです。",
+          "en": "No, Ken-san's room is that one there.",
+          "tokens": [
+            "いいえ",
+            "、",
+            "ケンさん",
+            "の",
+            "部屋",
+            "は",
+            "そこ",
+            "です",
+            "。"
+          ],
+          "speaker": "森さん",
+          "plusOne": [
+            "v-n5-0147"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0002",
+            null,
+            null,
+            "v-n5-0126",
+            "v-n5-0147",
+            "v-n5-0118",
+            "v-n5-0052",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "そうですか。あの{部屋|へや}は{何|なん}ですか。",
+          "kana": "そうですか。あのへやはなんですか。",
+          "en": "I see. What is that room over there?",
+          "tokens": [
+            "そうですか",
+            "。",
+            "あの",
+            "部屋",
+            "は",
+            "何",
+            "です",
+            "か",
+            "。"
+          ],
+          "speaker": "ハナ",
+          "plusOne": [
+            "v-n5-0147"
+          ],
+          "accept": [
+            "あの部屋は何ですか。",
+            "そうですか。あの部屋は、何ですか。"
+          ],
+          "mustInclude": [
+            "あの",
+            "部屋"
+          ],
+          "options": [
+            {
+              "text": "そうですか。あの部屋は何ですか。",
+              "kind": "best"
+            },
+            {
+              "text": "あの部屋は何ですか。",
+              "kind": "ok",
+              "recast": "そうですか。あの部屋は何ですか。"
+            },
+            {
+              "text": "そっか。あの部屋、何？",
+              "kind": "register-wrong",
+              "recast": "そうですか。あの部屋は何ですか。"
+            },
+            {
+              "text": "そうですか。あれ部屋は何ですか。",
+              "kind": "grammar-wrong",
+              "recast": "そうですか。あの部屋は何ですか。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0030",
+            null,
+            "v-n5-0050",
+            "v-n5-0147",
+            "v-n5-0118",
+            "v-n5-0054",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "あれは{私|わたし}と{母|はは}の{部屋|へや}ですよ。",
+          "kana": "あれはわたしとははのへやですよ。",
+          "en": "That is my mother's and my room.",
+          "tokens": [
+            "あれ",
+            "は",
+            "私",
+            "と",
+            "母",
+            "の",
+            "部屋",
+            "です",
+            "よ",
+            "。"
+          ],
+          "speaker": "森さん",
+          "plusOne": [
+            "v-n5-0147"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0047",
+            "v-n5-0118",
+            "v-n5-0041",
+            "v-n5-0124",
+            "v-n5-0082",
+            "v-n5-0126",
+            "v-n5-0147",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "はい。ありがとうございます、{森|もり}さん。",
+          "kana": "はい。ありがとうございます、もりさん。",
+          "en": "Right. Thank you very much, Mori-san.",
+          "tokens": [
+            "はい",
+            "。",
+            "ありがとうございます",
+            "、",
+            "森さん",
+            "。"
+          ],
+          "speaker": "ハナ",
+          "emotion": "warm",
+          "accept": [
+            "ありがとうございます、森さん。",
+            "はい、ありがとうございます。"
+          ],
+          "mustInclude": [
+            "ありがとうございます"
+          ],
+          "options": [
+            {
+              "text": "はい。ありがとうございます、森さん。",
+              "kind": "best"
+            },
+            {
+              "text": "はい、ありがとうございます。",
+              "kind": "ok",
+              "recast": "はい。ありがとうございます、森さん。"
+            },
+            {
+              "text": "うん。ありがとう、森さん。",
+              "kind": "register-wrong",
+              "recast": "はい。ありがとうございます、森さん。"
+            },
+            {
+              "text": "はい。ありがとうございますです、森さん。",
+              "kind": "grammar-wrong",
+              "recast": "はい。ありがとうございます、森さん。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0010",
+            null,
+            null,
+            null
+          ]
+        },
+        {
+          "ja": "どういたしまして。{私|わたし}は、あそこですよ。",
+          "kana": "どういたしまして。わたしは、あそこですよ。",
+          "en": "You're welcome. I will be over there.",
+          "tokens": [
+            "どういたしまして",
+            "。",
+            "私",
+            "は",
+            "、",
+            "あそこ",
+            "です",
+            "よ",
+            "。"
+          ],
+          "speaker": "森さん",
+          "emotion": "warm",
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0012",
+            null,
+            "v-n5-0041",
+            "v-n5-0118",
+            null,
+            "v-n5-0053",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0001",
+        "v-n5-0002",
+        "v-n5-0003",
+        "v-n5-0010",
+        "v-n5-0012",
+        "v-n5-0013",
+        "v-n5-0030",
+        "v-n5-0041",
+        "v-n5-0045",
+        "v-n5-0046",
+        "v-n5-0047",
+        "v-n5-0050",
+        "v-n5-0051",
+        "v-n5-0052",
+        "v-n5-0053",
+        "v-n5-0054",
+        "v-n5-0056",
+        "v-n5-0073",
+        "v-n5-0074",
+        "v-n5-0082",
+        "v-n5-0111",
+        "v-n5-0118",
+        "v-n5-0119",
+        "v-n5-0124",
+        "v-n5-0125",
+        "v-n5-0126",
+        "v-n5-0127",
+        "v-n5-0129",
+        "v-n5-0132",
+        "v-n5-0147",
+        "v-n5-0170",
+        "v-n5-0173"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-005",
+        "g-n5-006",
+        "g-n5-007",
+        "g-n5-008"
+      ],
+      "comprehension": [
+        {
+          "q": "What is happening in this conversation?",
+          "choices": [
+            "Mori-san is showing Hana where things are at the inn",
+            "Hana is paying for a key",
+            "Hana and Mori-san are eating dinner",
+            "Ken is looking for his shoes"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "What is the first thing Hana asks about?",
+          "choices": [
+            "A key",
+            "A notebook",
+            "A place for shoes",
+            "A room"
+          ],
+          "answer": 2,
+          "kind": "detail",
+          "lineRef": 1
+        },
+        {
+          "q": "How many keys are there?",
+          "choices": [
+            "One",
+            "Two",
+            "Three",
+            "Four"
+          ],
+          "answer": 1,
+          "kind": "number",
+          "lineRef": 5
+        },
+        {
+          "q": "Whose room is the one over there?",
+          "choices": [
+            "Ken's",
+            "Hana's",
+            "Mori-san and her mother's",
+            "Another guest's"
+          ],
+          "answer": 2,
+          "kind": "detail",
+          "lineRef": 13
+        },
+        {
+          "q": "Where does Mori-san say she will be?",
+          "choices": [
+            "In the bath",
+            "In Ken's room",
+            "In Hana's room",
+            "Over there"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 15
+        }
+      ],
+      "recapEn": "Mori-san shows Hana around the hill-top inn: the box by the entrance is for shoes, Hana's and Ken's. There are two keys, and Mori-san points out which is Hana's. Hana's room is here, Ken's is the one beside it, and the room over there belongs to Mori-san and her mother. Mori-san herself will be over there if needed."
+    },
+    {
+      "id": "s-04-5",
+      "stationId": "st-04",
+      "titleJa": "{私|わたし}はケンです",
+      "titleEn": "I am Ken",
+      "kind": "story",
+      "register": "polite",
+      "genre": "self-intro",
+      "audioFirst": true,
+      "narrator": "ケン",
+      "names": [
+        "森さん",
+        "横浜",
+        "権太坂",
+        "戸塚"
+      ],
+      "lines": [
+        {
+          "ja": "こんばんは、{森|もり}さん。{私|わたし}はケンです。",
+          "kana": "こんばんは、もりさん。わたしはケンです。",
+          "en": "Good evening, Mori-san. I am Ken.",
+          "tokens": [
+            "こんばんは",
+            "、",
+            "森さん",
+            "。",
+            "私",
+            "は",
+            "ケン",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0007",
+            null,
+            null,
+            null,
+            "v-n5-0041",
+            "v-n5-0118",
+            null,
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "ハナのいとこです。{兄|あに}じゃありません。",
+          "kana": "ハナのいとこです。あにじゃありません。",
+          "en": "I am Hana's cousin. Not her older brother.",
+          "tokens": [
+            "ハナ",
+            "の",
+            "いとこ",
+            "です",
+            "。",
+            "兄",
+            "じゃありません",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            null,
+            "v-n5-0132",
+            null,
+            "v-n5-0085",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{私|わたし}は{三十一歳|さんじゅういっさい}です。",
+          "kana": "わたしはさんじゅういっさいです。",
+          "en": "I am thirty-one years old.",
+          "tokens": [
+            "私",
+            "は",
+            "三十一歳",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0041",
+            "v-n5-0118",
+            "v-n5-0116",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "ハナは{二十四歳|にじゅうよんさい}ですよ。",
+          "kana": "ハナはにじゅうよんさいですよ。",
+          "en": "Hana is twenty-four.",
+          "tokens": [
+            "ハナ",
+            "は",
+            "二十四歳",
+            "です",
+            "よ",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0118",
+            "v-n5-0116",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "{横浜|よこはま}の{人|ひと}です。ハナも{横浜|よこはま}です。",
+          "kana": "よこはまのひとです。ハナもよこはまです。",
+          "en": "I am from Yokohama. Hana is from Yokohama too.",
+          "tokens": [
+            "横浜",
+            "の",
+            "人",
+            "です",
+            "。",
+            "ハナ",
+            "も",
+            "横浜",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            "v-n5-0066",
+            "v-n5-0132",
+            null,
+            null,
+            "v-n5-0125",
+            null,
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "ハナのお{母|かあ}さんは、{私|わたし}のおばさんです。",
+          "kana": "ハナのおかあさんは、わたしのおばさんです。",
+          "en": "Hana's mother is my aunt.",
+          "tokens": [
+            "ハナ",
+            "の",
+            "お母さん",
+            "は",
+            "、",
+            "私",
+            "の",
+            "おばさん",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            "v-n5-0084",
+            "v-n5-0118",
+            null,
+            "v-n5-0041",
+            "v-n5-0126",
+            "v-n5-0044",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{毎日|まいにち}、{毎日|まいにち}、{料理|りょうり}です。",
+          "kana": "まいにち、まいにち、りょうりです。",
+          "en": "Every single day, I cook.",
+          "tokens": [
+            "毎日",
+            "、",
+            "毎日",
+            "、",
+            "料理",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0438"
+          ],
+          "tokenIds": [
+            "v-n5-0140",
+            null,
+            "v-n5-0140",
+            null,
+            "v-n5-0438",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "それが、{私|わたし}の{仕事|しごと}です。",
+          "kana": "それが、わたしのしごとです。",
+          "en": "That is my job.",
+          "tokens": [
+            "それ",
+            "が",
+            "、",
+            "私",
+            "の",
+            "仕事",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0542"
+          ],
+          "tokenIds": [
+            "v-n5-0046",
+            "v-n5-0119",
+            null,
+            "v-n5-0041",
+            "v-n5-0126",
+            "v-n5-0542",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{森|もり}さんも、{毎日|まいにち}、{料理|りょうり}ですね。",
+          "kana": "もりさんも、まいにち、りょうりですね。",
+          "en": "You cook every day too, don't you, Mori-san?",
+          "tokens": [
+            "森さん",
+            "も",
+            "、",
+            "毎日",
+            "、",
+            "料理",
+            "です",
+            "ね",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0438"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0125",
+            null,
+            "v-n5-0140",
+            null,
+            "v-n5-0438",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "{森|もり}さん、これ、{好|す}きですよ。",
+          "kana": "もりさん、これ、すきですよ。",
+          "en": "Mori-san, I like this.",
+          "tokens": [
+            "森さん",
+            "、",
+            "これ",
+            "、",
+            "好き",
+            "です",
+            "よ",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0392"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            null,
+            null,
+            "v-n5-0045",
+            null,
+            "v-n5-0392",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "{今日|きょう}の{権太坂|ごんたざか}は、{好|す}きじゃありません。",
+          "kana": "きょうのごんたざかは、すきじゃありません。",
+          "en": "I did not like Gontazaka today.",
+          "tokens": [
+            "今日",
+            "の",
+            "権太坂",
+            "は",
+            "、",
+            "好き",
+            "じゃありません",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0392"
+          ],
+          "emotion": "annoyed",
+          "tokenIds": [
+            "v-n5-0137",
+            "v-n5-0126",
+            null,
+            "v-n5-0118",
+            null,
+            "v-n5-0392",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{今|いま}は、ハナと{二人|ふたり}の{家族|かぞく}です。",
+          "kana": "いまは、ハナとふたりのかぞくです。",
+          "en": "Right now, Hana and I are a family of two.",
+          "tokens": [
+            "今",
+            "は",
+            "、",
+            "ハナ",
+            "と",
+            "二人",
+            "の",
+            "家族",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0136",
+            "v-n5-0118",
+            null,
+            null,
+            "v-n5-0124",
+            "v-n5-0096",
+            "v-n5-0126",
+            "v-n5-0077",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{明日|あした}は、{戸塚|とつか}です。{明日|あした}も{二人|ふたり}です。",
+          "kana": "あしたは、とつかです。あしたもふたりです。",
+          "en": "Tomorrow, Totsuka. Tomorrow too, just the two of us.",
+          "tokens": [
+            "明日",
+            "は",
+            "、",
+            "戸塚",
+            "です",
+            "。",
+            "明日",
+            "も",
+            "二人",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0138",
+            "v-n5-0118",
+            null,
+            null,
+            "v-n5-0132",
+            null,
+            "v-n5-0138",
+            "v-n5-0125",
+            "v-n5-0096",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{今日|きょう}は、ありがとうございます。",
+          "kana": "きょうは、ありがとうございます。",
+          "en": "Thank you for today.",
+          "tokens": [
+            "今日",
+            "は",
+            "、",
+            "ありがとうございます",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0137",
+            "v-n5-0118",
+            null,
+            "v-n5-0010",
+            null
+          ]
+        },
+        {
+          "ja": "{森|もり}さん、よろしくお{願|ねが}いします。",
+          "kana": "もりさん、よろしくおねがいします。",
+          "en": "Mori-san, I look forward to our stay.",
+          "tokens": [
+            "森さん",
+            "、",
+            "よろしくお願いします",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            null,
+            "v-n5-0018",
+            null
+          ]
+        },
+        {
+          "ja": "{森|もり}さんは？{森|もり}さんは、ここの{人|ひと}ですか。",
+          "kana": "もりさんは？もりさんは、ここのひとですか。",
+          "en": "And you, Mori-san? Are you from here?",
+          "tokens": [
+            "森さん",
+            "は",
+            "？",
+            "森さん",
+            "は",
+            "、",
+            "ここ",
+            "の",
+            "人",
+            "です",
+            "か",
+            "。"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            null,
+            "v-n5-0118",
+            null,
+            null,
+            "v-n5-0118",
+            null,
+            "v-n5-0051",
+            "v-n5-0126",
+            "v-n5-0066",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0007",
+        "v-n5-0010",
+        "v-n5-0018",
+        "v-n5-0041",
+        "v-n5-0044",
+        "v-n5-0045",
+        "v-n5-0046",
+        "v-n5-0051",
+        "v-n5-0066",
+        "v-n5-0077",
+        "v-n5-0084",
+        "v-n5-0085",
+        "v-n5-0096",
+        "v-n5-0116",
+        "v-n5-0118",
+        "v-n5-0119",
+        "v-n5-0124",
+        "v-n5-0125",
+        "v-n5-0126",
+        "v-n5-0127",
+        "v-n5-0128",
+        "v-n5-0129",
+        "v-n5-0132",
+        "v-n5-0136",
+        "v-n5-0137",
+        "v-n5-0138",
+        "v-n5-0140",
+        "v-n5-0392",
+        "v-n5-0438",
+        "v-n5-0542"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-002",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-005",
+        "g-n5-007",
+        "g-n5-008"
+      ],
+      "comprehension": [
+        {
+          "q": "What is Ken doing in this piece?",
+          "choices": [
+            "Introducing himself to Mori-san over dinner",
+            "Ordering food at a cafe",
+            "Asking the way to Totsuka",
+            "Writing a postcard home"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "How old is Ken?",
+          "choices": [
+            "24 years old",
+            "31 years old",
+            "21 years old",
+            "34 years old"
+          ],
+          "answer": 1,
+          "kind": "number",
+          "lineRef": 2
+        },
+        {
+          "q": "What does Ken say he does every day?",
+          "choices": [
+            "Teaches Japanese",
+            "Walks to school",
+            "Cooks",
+            "Writes in a notebook"
+          ],
+          "answer": 2,
+          "kind": "detail",
+          "lineRef": 6
+        },
+        {
+          "q": "What does Ken say he does not like?",
+          "choices": [
+            "Yokohama",
+            "Mori-san's cooking",
+            "Hana's notebook",
+            "Gontazaka today"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 10
+        },
+        {
+          "q": "How is Ken related to Hana?",
+          "choices": [
+            "Her older brother",
+            "Her cousin",
+            "Her teacher",
+            "Her friend from school"
+          ],
+          "answer": 1,
+          "kind": "detail",
+          "lineRef": 1
+        }
+      ],
+      "recapEn": "Over dinner Ken introduces himself to Mori-san: Hana's cousin, not her brother, thirty-one, from Yokohama like Hana, whose mother is his aunt. He cooks every single day, that is his job, and he likes what Mori-san has cooked, though not today's Gontazaka. Tomorrow the two of them walk on to Totsuka. And Mori-san, is she from here?"
+    }
+  ]
+}

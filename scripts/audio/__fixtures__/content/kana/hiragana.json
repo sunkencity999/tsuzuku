@@ -1,0 +1,74 @@
+{
+ "schema": "tsuzuku.content/1",
+ "type": "kana",
+ "writer": "hiragana",
+ "generatedAt": "2026-10-17T00:00:00Z",
+ "items": [
+  {
+   "id": "k-h-a",
+   "kana": "あ",
+   "romaji": "a",
+   "script": "hiragana",
+   "type": "basic",
+   "row": "a",
+   "mnemonic": "あ: a stretching figure: the cross on top is the head and arms, the big loop below is the belly. It lets out a long, satisfied 'Ahh!'",
+   "exampleWord": {
+    "word": "あさ",
+    "kana": "あさ",
+    "en": "morning"
+   },
+   "lookalikes": [
+    "k-h-o"
+   ],
+   "station": 1
+  },
+  {
+   "id": "k-h-i",
+   "kana": "い",
+   "romaji": "i",
+   "script": "hiragana",
+   "type": "basic",
+   "row": "a",
+   "mnemonic": "い: two short strokes side by side, like two EEls swimming up a stream — the left one longer, both saying 'ee'.",
+   "exampleWord": {
+    "word": "いえ",
+    "kana": "いえ",
+    "en": "house"
+   },
+   "lookalikes": [
+    "k-h-ri"
+   ],
+   "station": 1
+  },
+  {
+   "id": "k-h-ka",
+   "kana": "か",
+   "romaji": "ka",
+   "script": "hiragana",
+   "type": "basic",
+   "row": "k",
+   "mnemonic": "か: a KAtana slicing down on the left while a chip of steel flies off to the right — the sharp 'ka!' of the strike.",
+   "exampleWord": {
+    "word": "かさ",
+    "kana": "かさ",
+    "en": "umbrella"
+   },
+   "station": 1
+  },
+  {
+   "id": "k-h-ga",
+   "kana": "が",
+   "romaji": "ga",
+   "script": "hiragana",
+   "type": "dakuten",
+   "row": "g",
+   "mnemonic": "が: か with two dots (the dakuten) at the top right. The dots turn the sharp 'ka' into a deep 'ga', like a GAvel banging twice.",
+   "exampleWord": {
+    "word": "がっこう",
+    "kana": "がっこう",
+    "en": "school"
+   },
+   "station": 1
+  }
+ ]
+}

@@ -11,6 +11,13 @@
  * drill is honest: the prompt names the romaji (display spelling, plus the
  * IME spelling when they differ) with a no-voice note, the Listen button is
  * not shown and Space does nothing, so the first prod cards stay answerable.
+ *
+ * Voice pack (design 08 §10.5): the mora plays with `clip: item.id`; the
+ * pack resolves it to the kana clip and falls back to the device voice when
+ * it misses. At Station 1 the first Kana Ear opens with the `morae-beats`
+ * card (`<KanaTeach>`, design 08 §11): Japanese is made of beats. Dismissing
+ * a card re-bases the latency clock and plays the mora again (not a replay):
+ * the sound is the prompt, and it played under the card.
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -26,7 +33,7 @@ import { ChoiceGrid } from '../ChoiceGrid';
 import { voiceAudible } from '../voice';
 import { checkJa, gradeChoice } from '../check';
 import { S as X } from '../strings';
-import { MissingItem, isKanaItem, missingResult, romajiLabel, useDrillKeys, useLatency } from './KanaFlash';
+import { KanaTeach, MissingItem, isKanaItem, missingResult, romajiLabel, useDrillKeys, useLatency } from './KanaFlash';
 import { S, fill } from './strings';
 import './kana.css';
 
@@ -70,7 +77,7 @@ function KanaEarBody(p: ExerciseProps): JSX.Element {
   }, [choices, kana]);
 
   const play = (): void => {
-    if (kana) void speak(kana, { kana });
+    if (kana && item) void speak(kana, { kana, clip: item.id });
   };
   useEffect(() => {
     play();
@@ -105,6 +112,14 @@ function KanaEarBody(p: ExerciseProps): JSX.Element {
 
   return (
     <div class="drill kana-ear" data-exercise="kana-ear" data-voice={hasVoice ? 'true' : 'false'} ref={root}>
+      <KanaTeach
+        item={item}
+        drill="ear"
+        onDismissed={() => {
+          ms.restart();
+          play();
+        }}
+      />
       {hasVoice ? (
         <>
           <p class="drill__prompt">{X.tapKanaHeard}</p>

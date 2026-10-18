@@ -2,8 +2,10 @@
  * shinsa.ts — belt exam composition, speed tiers, pass rule, Sensei's Notes (design 04 §12).
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { BELT_IDS, type Belt, type CardKey } from '../content/types';
-import { FIXTURE_DIALOGUE_ID, FIXTURE_STORY_ID, G, STATION_1, STATION_4, V, createFakeLoader } from '../content/fixtures';
+import { BELT_IDS, type Belt, type CardKey, type GrammarItem, type ListeningPool, type StoryItem, type VocabItem } from '../content/types';
+import { DIALOGUE, FIXTURE, FIXTURE_DIALOGUE_ID, FIXTURE_STORY_ID, G, STATION_1, STATION_4, STORY, V, createFakeLoader, type Fixture } from '../content/fixtures';
+import { toPlain } from '../content/ruby';
+import { knownIds } from '../store/derived';
 import { SHINSA_SECTIONS } from '../shared/catalog';
 import { bus } from '../shared/events';
 import type { SessionPlan, StepResult } from '../shared/session-types';
@@ -293,5 +295,73 @@ describe('retake after a card-less fail (design 04 §12)', () => {
     const cardless = new Set(plan.steps.filter((s) => s.cardKey === null).map((s) => s.id));
     finishShinsa('yellow', scoreShinsa(plan, answers(plan, (id) => cardless.has(id))));
     expect(store.progress.value.shinsaNotes).toBeUndefined();
+  });
+});
+
+describe('耳 and 口 over the listening contracts (design 08 §4, §11)', () => {
+  const POOL: ListeningPool = {
+    schema: 'tsuzuku.pool/1',
+    station: 4,
+    refs: [
+      { ref: `${V.人}#ex0`, ids: [V.人, G.は, G.です], kana: 'あのひとはケンです。', morae: 10 },
+      { ref: `${V.おいしい}#ex0`, ids: [V.水, G.は, V.おいしい, G.です], kana: 'このみずはおいしいです。', morae: 12 },
+      { ref: `${G.です}#ex1`, ids: [G.は, V.水, G.です], kana: 'これはみずです。', morae: 8 },
+      { ref: `${V.飲む}#ex0`, ids: [V.コーヒー, V.飲む], kana: 'まいあさコーヒーをのみます。', morae: 14 },
+      { ref: `${FIXTURE_STORY_ID}#L1`, ids: [V.私, G.は, G.です], kana: 'わたしはハナです。', morae: 9 },
+    ],
+  };
+  const { learnerSpeaker: _noPart, ...DIALOGUE_NO_PART } = DIALOGUE;
+  void _noPart;
+  const PIECE: StoryItem = { ...DIALOGUE_NO_PART, id: 's-04-4', titleEn: 'At the counter', audioFirst: true, genre: 'exchange' };
+  /** The fixture with `dialogue` in place of the Station-4 dialogue. */
+  const withDialogue = (dialogue: StoryItem): Fixture => ({ ...FIXTURE, items: { ...FIXTURE.items, [dialogue.id]: dialogue }, stations: [STATION_1, { ...STATION_4, storyIds: [STORY.id, dialogue.id] }] });
+
+  it('the ear section takes known lines, then the belt stations’ pool examples, then bare words — never a line with an unknown id', async () => {
+    const cards = brownCards();
+    for (const id of [V.パン, V.コーヒー, V.飲む, V.おはよう]) {
+      delete cards[`${id}#rec`];
+      delete cards[`${id}#prod`];
+      delete cards[`${id}#listen`];
+    }
+    await makeTestStore({ save: { progress: { station: 9, stationsCleared: [4, 5, 6, 7, 8, 9] } }, cards });
+    const L = createFakeLoader({ ...FIXTURE, pools: { 4: POOL } });
+    const known = knownIds(TODAY);
+    const plan = await buildShinsa('yellow', 1, { loader: L, available: all });
+    const ear = plan.steps.filter((s) => sectionOfStep(s.id) === 'ear');
+    expect(ear).toHaveLength(10);
+    const lines = ear.filter((s) => s.params.storyId !== undefined);
+    const refs = ear.filter((s) => s.params.storyId === undefined && /#ex\d+$/.test(s.params.clip ?? ''));
+    const words = ear.filter((s) => s.params.storyId === undefined && s.params.clip !== undefined && !s.params.clip.includes('#'));
+    // 6 known lines + 3 known pool examples + 1 bare word (a known one) make the ten
+    expect(lines).toHaveLength(6);
+    expect(refs.map((s) => s.params.clip).sort()).toEqual([`${G.です}#ex1`, `${V.おいしい}#ex0`, `${V.人}#ex0`].sort());
+    expect(words).toHaveLength(1);
+    expect(known.has(words[0]!.itemId!)).toBe(true);
+    expect(words[0]!.params.clip).toBe(words[0]!.itemId);
+    for (const s of lines) {
+      const line = L.get<StoryItem>(s.params.storyId!)!.lines[s.params.lineIndex!]!;
+      for (const id of line.tokenIds ?? []) if (id !== null) expect(known.has(id), `${s.id}: ${toPlain(line.ja)} uses ${id}`).toBe(true);
+      expect(s.params.clip).toBe(`${s.params.storyId}#L${s.params.lineIndex}`);
+    }
+    for (const s of refs) {
+      const [itemId, ex] = s.params.clip!.split('#ex') as [string, string];
+      expect(s.params.sentence).toBe(L.get<VocabItem | GrammarItem>(itemId)!.examples[Number(ex)]!.ja);
+    }
+    expect(ear.every((s) => s.params.rate === 0.9 && s.timerMs === 20_000 && !s.timed)).toBe(true);
+    expect(ear.some((s) => s.params.clip === `${V.飲む}#ex0`)).toBe(false);
+  });
+
+  it('the 口 section excludes an audio-first dialogue without learnerSpeaker and takes one with it', async () => {
+    await makeTestStore({ save: { progress: { station: 9, stationsCleared: [4, 5, 6, 7, 8, 9] } }, cards: brownCards() });
+    const without = await buildShinsa('yellow', 1, { loader: createFakeLoader(withDialogue(PIECE)), available: all });
+    const mouth = without.steps.filter((s) => sectionOfStep(s.id) === 'mouth');
+    expect(mouth.some((s) => s.exercise === 'role-play')).toBe(false);
+    expect(mouth.filter((s) => s.exercise === 'shadow')).toHaveLength(5);
+    const withPart = await buildShinsa('yellow', 1, { loader: createFakeLoader(withDialogue({ ...PIECE, learnerSpeaker: 'ハナ' })), available: all });
+    const rp = withPart.steps.find((s) => s.exercise === 'role-play');
+    expect(rp?.params.storyId).toBe(PIECE.id);
+    // the plain dialogue is unchanged
+    const plain = await buildShinsa('yellow', 1, { loader, available: all });
+    expect(plain.steps.find((s) => s.exercise === 'role-play')?.params.storyId).toBe(FIXTURE_DIALOGUE_ID);
   });
 });

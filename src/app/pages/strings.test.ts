@@ -1,3 +1,4 @@
+import { S as RECORDS } from '@/records/strings';
 import { S } from './strings';
 
 describe('shell page copy (design 01 §3)', () => {
@@ -12,5 +13,41 @@ describe('shell page copy (design 01 §3)', () => {
       expect(v).not.toMatch(/slot 0/i);
       expect(v).not.toMatch(/content pack/i);
     }
+  });
+
+  it('listening honesty (design 08 §10.1 / §12): the three source words, the honest share, and never "recorded voice"', () => {
+    expect(S.sourcePack).toBe('synthetic voice (VOICEVOX)');
+    expect(S.sourceDevice).toBe('device voice');
+    expect(S.sourceNone).toBe('text only');
+    expect(S.honestShare).toMatch(/24 hours/);
+    expect(S.honestShare).toMatch(/13 hours/);
+    expect(S.honestShare).toMatch(/70–90 hours/);
+    expect(S.honestShare).toMatch(/1,500-hour goal/);
+    // Design 08 §12: the weekly target is covered through Orange from Station 9, not through the whole belt.
+    expect(S.honestShare).toMatch(/through Orange \(from Station 9\)/);
+    // The Ledger (records tier, which cannot import app strings) carries the same words.
+    expect(RECORDS.honestShare).toBe(S.honestShare);
+    // The pace step's honesty clause is the honest share, not the old device-TTS sentence.
+    expect(S.onbTtsNotice).toBe(S.honestShare);
+    expect(S.onbTtsNotice).not.toMatch(/device’s text-to-speech/);
+    expect(S.setPackNone).toBe('This build has no voice pack; your device voice speaks.');
+    expect(S.aboutVoicesNone).toBe('No voice pack in this build; your device voice speaks.');
+    expect(S.setPackExplain).toMatch(/^Pre-rendered synthetic voices \(VOICEVOX\)\./);
+    const values = Object.values(S as Record<string, unknown>).filter((v): v is string => typeof v === 'string');
+    for (const v of values) {
+      expect(v).not.toMatch(/recorded voice/i);
+      expect(v).not.toMatch(/every voice in the app is text-to-speech/i);
+      expect(v).not.toMatch(/real listening is the hours you log/i);
+    }
+    // Every Japanese label on these pages has an English gloss key beside it.
+    expect(S.onbMeetName).toBe('ハナ');
+    expect(S.onbMeetNameEn).toBe('Hana');
+    expect(S.onbMeetGreetingEn).toBe('hello');
+    expect(S.setPackTitleJa).toBe('音声パック');
+    expect(S.setPackTitle).toBe('Voice pack');
+    expect(S.dojoRadioTitleJa).toBe('茶屋ラジオ');
+    expect(S.dojoRadioTitle).toBe('Teahouse Radio');
+    expect(S.aboutVoicesTitleJa).toBe('声');
+    expect(S.aboutVoicesTitle).toBe('Voices');
   });
 });

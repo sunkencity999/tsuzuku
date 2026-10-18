@@ -1,0 +1,93 @@
+{
+ "name": "line-ken",
+ "text": "今日は雨です。",
+ "kana": "きょうはあめです。",
+ "styleId": 11,
+ "note": "story line, ケン voice (玄野武宏 #11)",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "キョ",
+      "consonant": "ky",
+      "consonant_length": 0.07881742715835571,
+      "vowel": "o",
+      "vowel_length": 0.07820413261651993,
+      "pitch": 5.173110008239746
+     },
+     {
+      "text": "オ",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "o",
+      "vowel_length": 0.07836543768644333,
+      "pitch": 5.111415386199951
+     },
+     {
+      "text": "ワ",
+      "consonant": "w",
+      "consonant_length": 0.05269303917884827,
+      "vowel": "a",
+      "vowel_length": 0.06807004660367966,
+      "pitch": 4.756571292877197
+     }
+    ],
+    "accent": 1,
+    "pause_mora": null,
+    "is_interrogative": false
+   },
+   {
+    "moras": [
+     {
+      "text": "ア",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "a",
+      "vowel_length": 0.07970172166824341,
+      "pitch": 4.700768947601318
+     },
+     {
+      "text": "メ",
+      "consonant": "m",
+      "consonant_length": 0.05225042253732681,
+      "vowel": "e",
+      "vowel_length": 0.060112982988357544,
+      "pitch": 4.828085422515869
+     },
+     {
+      "text": "デ",
+      "consonant": "d",
+      "consonant_length": 0.030025102198123932,
+      "vowel": "e",
+      "vowel_length": 0.07043373584747314,
+      "pitch": 4.648342609405518
+     },
+     {
+      "text": "ス",
+      "consonant": "s",
+      "consonant_length": 0.0919528678059578,
+      "vowel": "U",
+      "vowel_length": 0.06398032605648041,
+      "pitch": 0
+     }
+    ],
+    "accent": 1,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "キョ'オワ/ア'メデ_ス"
+ }
+}

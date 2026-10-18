@@ -2,7 +2,11 @@
  * TSUZUKU — 影打ち Shadow Strike (design 04 §6, 05 §4, 05 §6).
  *
  * A sentence (a story line, an item's example or a set phrase) with its
- * pitch contour; TTS plays the PLAIN surface; the learner says it back.
+ * pitch contour; the voice plays the PLAIN surface with the line's clip key
+ * (`params.clip`, else `<storyId>#L<i>`, design 08 §8) and `speaker`; the
+ * learner says it back. The pitch strip is labelled "dictionary pattern": it
+ * draws the dictionary accent of each word, never a reading of the voice,
+ * and `onProgress` (clip path only) sweeps its timing mora by mora.
  *  · Text hides after the first play once every content word of the line
  *    is item-belt Green ("these words are yours"); "Show the text" is a hint,
  *    also offered as the frame's `?` / Hint button while the text is hidden
@@ -25,7 +29,7 @@ import { content, type ContentLoader } from '@/content/loader';
 import { hasKanji, segmentsToTokens, toKana, toPlain } from '@/content/ruby';
 import type { CardKey, ContentItem, ErrorTag, GrammarItem, StoryItem, VocabItem } from '@/content/types';
 import { beltAtLeast, judgeRate, perceptionJudge, shouldJudge } from '@/learn';
-import { services, speak, type SttResult, type SttService } from '@/shared/audio';
+import { packWillSpeak, services, speak, type SttResult, type SttService } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import type { AttemptResult, ExerciseMeta, ExerciseProps } from '@/shared/exercise-types';
 import { moraCount, moraSplit, nearMissKind, normalizeJa } from '@/shared/jp';
@@ -66,6 +70,10 @@ export interface ShadowLine {
   tokenIds?: (string | null)[];
   /** The line IS this word (set phrase / isolated vocab). */
   word?: VocabItem;
+  /** Clip key (design 08 §8): `params.clip`, else `<storyId>#L<i>` for a story line. */
+  clip?: string;
+  /** Speaker label of a story line (the cast voice on the clip path). */
+  speaker?: string;
 }
 
 export function isVocabItem(i: ContentItem | null | undefined): i is VocabItem {
@@ -88,23 +96,34 @@ function wordRuby(w: VocabItem): string {
  * themselves, else the vocab item as an isolated word. `null` with nothing.
  */
 export function resolveShadowLine(params: StepParams, item: ContentItem | null, get: (id: string) => ContentItem | undefined): ShadowLine | null {
+  const clip = params.clip ? { clip: params.clip } : {};
   if (params.storyId !== undefined && params.lineIndex !== undefined) {
     const story = get(params.storyId);
     const line = isStoryItem(story) ? story.lines[params.lineIndex] : undefined;
-    if (line) return { ja: line.ja, kana: line.kana, en: line.en, tokens: line.tokens, tokenIds: line.tokenIds };
+    if (line) {
+      return {
+        ja: line.ja,
+        kana: line.kana,
+        en: line.en,
+        tokens: line.tokens,
+        tokenIds: line.tokenIds,
+        clip: params.clip ?? `${params.storyId}#L${params.lineIndex}`,
+        ...(line.speaker ? { speaker: line.speaker } : {}),
+      };
+    }
   }
   const sentence = params.sentence;
   if (sentence) {
     const plain = toPlain(sentence);
     if (isVocabItem(item) || isGrammarItem(item)) {
       const ex = item.examples.find((e) => toPlain(e.ja) === plain);
-      if (ex) return { ja: ex.ja, kana: ex.kana, en: ex.en, ...(isVocabItem(item) ? { tokenIds: [item.id] } : {}) };
+      if (ex) return { ja: ex.ja, kana: ex.kana, en: ex.en, ...(isVocabItem(item) ? { tokenIds: [item.id] } : {}), ...clip };
     }
-    if (isVocabItem(item) && plain === item.word) return { ja: wordRuby(item), kana: item.kana, en: params.promptEn ?? item.meanings[0], word: item, tokenIds: [item.id] };
+    if (isVocabItem(item) && plain === item.word) return { ja: wordRuby(item), kana: item.kana, en: params.promptEn ?? item.meanings[0], word: item, tokenIds: [item.id], ...clip };
     const kana = params.answer ?? (sentence === plain ? toKana(sentence) : toKana(sentence));
-    return { ja: sentence, kana: kana || plain, en: params.promptEn, ...(isVocabItem(item) ? { tokenIds: [item.id] } : {}) };
+    return { ja: sentence, kana: kana || plain, en: params.promptEn, ...(isVocabItem(item) ? { tokenIds: [item.id] } : {}), ...clip };
   }
-  if (isVocabItem(item)) return { ja: wordRuby(item), kana: item.kana, en: item.meanings[0], word: item, tokenIds: [item.id] };
+  if (isVocabItem(item)) return { ja: wordRuby(item), kana: item.kana, en: item.meanings[0], word: item, tokenIds: [item.id], ...clip };
   return null;
 }
 
@@ -128,6 +147,11 @@ export type PitchMark = 'high' | 'low' | null;
 export interface PitchCell {
   mora: string;
   mark: PitchMark;
+}
+
+/** A strip cell that is punctuation (、。…): drawn, but owning no mora of the cue (design 08 §9 folds the pause into the preceding boundary). */
+export function isPunctMora(mora: string): boolean {
+  return normalizeJa(mora).length === 0;
 }
 
 /** Standard contour from the nucleus: 0 = low then high; 1 = high then low; n = low, high through n, then low. */
@@ -252,18 +276,49 @@ function ShadowBody(p: ExerciseProps & ShadowExtraProps): JSX.Element {
   const live = useRef({ phase, plays, replays, revealed, done, selfPath });
   live.current = { phase, plays, replays, revealed, done, selfPath };
   const alive = useRef(true);
+  const strip = useRef<HTMLOListElement | null>(null);
 
   const plain = line ? toPlain(line.ja) : '';
   const kanaText = line ? line.kana : '';
+
+  /**
+   * Karaoke timing on the strip (clip path only, design 08 §9): morae before
+   * `mora` settle, `mora` lights. The cue's mora count owns no punctuation, so
+   * punctuation cells do not advance the count and read as past once the
+   * voice is beyond them — the active cell never drifts after a mid-line 、.
+   */
+  const sweepStrip = (mora: number): void => {
+    let k = 0;
+    strip.current?.querySelectorAll<HTMLElement>('.pitch-strip__mora').forEach((el) => {
+      if (el.dataset.punct === 'true') {
+        el.setAttribute('data-timing', k <= mora ? 'past' : 'ahead');
+        return;
+      }
+      el.setAttribute('data-timing', k < mora ? 'past' : k === mora ? 'active' : 'ahead');
+      k++;
+    });
+  };
+  const clearStrip = (): void => {
+    strip.current?.querySelectorAll<HTMLElement>('.pitch-strip__mora[data-timing]').forEach((el) => el.removeAttribute('data-timing'));
+  };
 
   const play = async (): Promise<void> => {
     if (!line) return;
     setPhase('playing');
     try {
       const isolated = !!line.word || (plain.length <= 8 && !/[。！？、]/.test(plain));
-      await speak(plain, { kana: isolated && kanaText !== plain ? kanaText : undefined, rate });
+      await speak(plain, {
+        kana: isolated && kanaText !== plain ? kanaText : undefined,
+        rate,
+        ...(line.clip ? { clip: line.clip } : {}),
+        ...(line.speaker ? { speaker: line.speaker } : {}),
+        onProgress: (_t, mora) => {
+          if (alive.current) sweepStrip(mora);
+        },
+      });
     } finally {
       if (!alive.current) return;
+      clearStrip();
       setPlays((n) => n + 1);
       if (startedAt.current === null) startedAt.current = store.now();
       setPhase((ph) => (ph === 'playing' ? 'ready' : ph));
@@ -420,13 +475,19 @@ function ShadowBody(p: ExerciseProps & ShadowExtraProps): JSX.Element {
         </p>
       )}
       {!hidden && cells ? (
-        <ol class="pitch-strip" aria-label={S.shadowPitchLabel} lang="ja">
-          {cells.map((c, i) => (
-            <li key={i} class="pitch-strip__mora" data-pitch={c.mark ?? 'none'}>
-              {c.mora}
-            </li>
-          ))}
-        </ol>
+        <div data-field="pitch-strip">
+          <p class="speak__meta" data-field="strip-caption" title={S.shadowPitchDictionaryHint}>
+            <span class="speak__label">{S.shadowPitchLabel}</span>
+            <span data-field="strip-label">{S.shadowPitchDictionary}</span>
+          </p>
+          <ol ref={strip} class="pitch-strip" aria-label={`${S.shadowPitchLabel}: ${S.shadowPitchDictionary}`} lang="ja">
+            {cells.map((c, i) => (
+              <li key={i} class="pitch-strip__mora" data-pitch={c.mark ?? 'none'} data-punct={isPunctMora(c.mora) ? 'true' : undefined}>
+                {c.mora}
+              </li>
+            ))}
+          </ol>
+        </div>
       ) : null}
       {meaning ? (
         <p class="speak__en">
@@ -436,7 +497,7 @@ function ShadowBody(p: ExerciseProps & ShadowExtraProps): JSX.Element {
       ) : null}
       {!hasVoice ? (
         <p class="speak__note" role="status">
-          {services.audio.hasJaVoice.value ? S.shadowMuted : S.shadowNoVoice}
+          {packWillSpeak(services.audio, settings.audioSource !== 'device') || services.audio.hasJaVoice.value ? S.shadowMuted : S.shadowNoVoice}
         </p>
       ) : null}
 
@@ -461,7 +522,7 @@ function ShadowBody(p: ExerciseProps & ShadowExtraProps): JSX.Element {
       {!selfPath && !done ? <p class="speak__note speak__note--small">{S.shadowNetworkNote}</p> : null}
 
       {selfPath && !done && plays > 0 ? (
-        <Recorder modelKana={line.kana} modelJa={line.ja} pitch={line.word?.pitch} onSelfGrade={onSelfGrade} onPlayModel={() => play()} disabled={judging} />
+        <Recorder modelKana={line.kana} modelJa={line.ja} pitch={line.word?.pitch} clip={line.clip} speaker={line.speaker} onSelfGrade={onSelfGrade} onPlayModel={() => play()} disabled={judging} />
       ) : null}
 
       {done ? (

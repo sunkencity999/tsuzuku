@@ -12,8 +12,10 @@
  *                                                   younger cards are untimed
  *    3 耳 Ear     12 station sentences at belt speed, untimed, 2 replays —
  *                 only story lines whose resolved tokens the learner all
- *                 knows; short of 12, the station's own words (bare word →
- *                 kana) fill in, never an example with untaught words
+ *                 knows; short of 12, the station's own pool examples whose
+ *                 every word is known (design 08 §4, `listening/pool-NN.json`,
+ *                 with their clip keys), then the station's own words (bare
+ *                 word → kana) fill in, never an example with untaught words
  *    4 型 Final Form 3 prompts over station grammar, rubric Judge
  *  Timeouts count as a miss in the score and Hard in FSRS (`boss` grading);
  *  Guard counts as a miss, Again in FSRS, no combo penalty (writer). No lives.
@@ -42,7 +44,7 @@ import { hasKanji, toPlain } from '../content/ruby';
 import { bus, type Events } from '../shared/events';
 import { weighted, type Rng } from '../shared/hash';
 import { cardKey as makeKey, isCardKey, parseCardKey } from '../shared/ids';
-import type { SessionPlan, Step, StepResult } from '../shared/session-types';
+import type { SessionPlan, Step, StepParams, StepResult } from '../shared/session-types';
 import { dayStartMs } from '../shared/time';
 import { CardFlag, hasFlag, type EpochDay, type Store } from '../shared/store-types';
 import { store } from '../store';
@@ -50,7 +52,8 @@ import { bundleItemIds, kindFor } from '../store/derived';
 import { BELT_ORDER, isMature, itemBelt, type QueueCard } from '../learn';
 import { SELF_GRADED, templateFor } from './blocks';
 import { S, fill } from './engine-strings';
-import { finalizePlan, isGrammar, isVocab, loadPlanContext, makeStep, pickDrill, queueCardOf, resolveParams, stepForCard, type PlanContext } from './builder';
+import { exampleOfRef, finalizePlan, isGrammar, isVocab, knownExampleRefs, loadPlanContext, makeStep, parseExampleRef, pickDrill, queueCardOf, resolveParams, stepForCard, withPools, type PlanContext } from './builder';
+import { dedupe } from './params';
 import { grudgeKeys } from './pickers';
 
 export { grudgeKeys };
@@ -204,22 +207,28 @@ export interface GateOptions {
   available?: (id: DrillId) => boolean;
 }
 
-interface StationSentence {
+export interface StationSentence {
   storyId?: string;
   lineIndex?: number;
+  /** The id the step is keyed on: the sentence's first vocab word, or the word itself. */
   vocabId: string | null;
   sentence: string;
   /** The station word itself as the prompt (bare word → kana), used when too few story lines are fully known. */
   word?: boolean;
+  /** An own-station pool example (design 08 §4): the item, its example index and the clip key (`v-…#ex<k>` / `g-…#ex<k>`). */
+  ref?: { itemId: string; k: number; clip: string };
 }
 
 /**
  * Station sentences for the Ear phase: the station's story lines whose
  * resolved tokens the learner all knows (mirrors `knownSentences`; a line that
  * carries a word from a later station is not a test of this station), then,
- * short of 12, the station's own words as bare prompts — known ones first.
- * Vocab examples are not used: at Stations 1–3 they carry kanji words and
- * names assigned to later stations.
+ * short of 12, the station's own pool examples whose every word is known
+ * (design 08 §4: `listening/pool-NN.json` holds the sentences that link
+ * inside the allowlist ≤ this station; `selectPool` i+0 keeps those the
+ * learner knows today), then the station's own words as bare prompts — known
+ * ones first. An example outside the pool is never used: it may carry a word
+ * assigned to a later station.
  */
 export function stationSentences(ctx: PlanContext, bundle: StationBundle): StationSentence[] {
   const out: StationSentence[] = [];
@@ -234,6 +243,16 @@ export function stationSentences(ctx: PlanContext, bundle: StationBundle): Stati
     });
   }
   if (out.length < PHASE_SIZES.ear) {
+    for (const r of knownExampleRefs(ctx, { stations: (n) => n === bundle.number })) {
+      if (out.length >= PHASE_SIZES.ear) break;
+      const parsed = parseExampleRef(r.ref);
+      const ex = exampleOfRef(ctx, r.ref);
+      if (!parsed || !ex) continue;
+      const vocabId = parsed.itemId.startsWith('v-') ? parsed.itemId : (r.ids.find((x) => x.startsWith('v-')) ?? null);
+      out.push({ vocabId, sentence: toPlain(ex.ja), ref: { itemId: parsed.itemId, k: parsed.k, clip: r.ref } });
+    }
+  }
+  if (out.length < PHASE_SIZES.ear) {
     const words = bundle.vocabIds.map((id) => ctx.loader.get(id)).filter(isVocab);
     for (const v of [...words.filter((v) => ctx.known.has(v.id)), ...words.filter((v) => !ctx.known.has(v.id))]) {
       if (out.length >= PHASE_SIZES.ear) break;
@@ -244,7 +263,8 @@ export function stationSentences(ctx: PlanContext, bundle: StationBundle): Stati
 }
 
 export async function buildGate(n: number, o: GateOptions): Promise<SessionPlan> {
-  const ctx = await loadPlanContext({ station: n, loader: o.loader, available: o.available, seed: o.seed, mode: o.assisted ? 'gate-assisted' : o.revenge ? 'gate-revenge' : 'gate' });
+  // The station's listening pool rides on the context (design 08 §4): the Ear phase draws its examples from it.
+  const ctx = await withPools(await loadPlanContext({ station: n, loader: o.loader, available: o.available, seed: o.seed, mode: o.assisted ? 'gate-assisted' : o.revenge ? 'gate-revenge' : 'gate' }));
   const bundle = ctx.bundle;
   const template = templateFor('gate', { belt: ctx.belt, station: n, backlog: false, dueCount: 0, weakTags: [], strandDeficit: null });
   const blocks: ReturnType<typeof templateFor> extends (infer T)[] ? (T & { stepIds: string[]; steps: Step[] })[] : never = [];
@@ -303,13 +323,15 @@ export async function buildGate(n: number, o: GateOptions): Promise<SessionPlan>
     ).map((q) => sentences[Number(q.itemId)]!);
     picked.forEach((sx, i) => {
       const vocab = sx.vocabId ? ctx.loader.get(sx.vocabId) ?? null : null;
-      const params = resolveParams(ctx, listen, vocab, { storyId: sx.storyId, lineIndex: sx.lineIndex, rep: i });
+      let params: StepParams;
       if (sx.word && isVocab(vocab)) {
-        // The word itself, not its example sentence (whose other words may be untaught).
-        params.sentence = hasKanji(vocab.word) ? `{${vocab.word}|${vocab.kana}}` : vocab.word;
-        params.answer = vocab.kana;
-        params.accept = Array.from(new Set([vocab.word, vocab.kana]));
-        params.promptEn = vocab.meanings[0] ?? '';
+        // The word itself, not its example sentence (whose other words may be untaught); the clip key is the word's own.
+        params = { sentence: hasKanji(vocab.word) ? `{${vocab.word}|${vocab.kana}}` : vocab.word, answer: vocab.kana, accept: dedupe([vocab.word, vocab.kana]), promptEn: vocab.meanings[0] ?? '', clip: vocab.id, rate: BELT_RATE[ctx.belt] };
+      } else if (sx.ref) {
+        // An own-station pool example (design 08 §4), pinned to its index so the clip key names the sentence played.
+        params = resolveParams(ctx, listen, ctx.loader.get(sx.ref.itemId) ?? null, { example: sx.ref.k, rep: i });
+      } else {
+        params = resolveParams(ctx, listen, vocab, { storyId: sx.storyId, lineIndex: sx.lineIndex, rep: i });
       }
       params.rate = BELT_RATE[ctx.belt];
       params.phase = 3;

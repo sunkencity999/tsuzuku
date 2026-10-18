@@ -19,7 +19,7 @@
  *    (`effectiveNewPerDay`), and `introducedToday` counts from the review log
  *    so the cramming cap survives the +3 / +10 graduations.
  */
-import type { Belt, ComponentDef, DrillId, ErrorTag, GrammarItem, KanaItem, KanjiItem, StationBundle, StoryItem, VocabItem } from '../content/types';
+import type { Belt, ComponentDef, DrillId, ErrorTag, GrammarItem, KanaItem, KanjiItem, ListeningPool, StationBundle, StoryItem, VocabItem } from '../content/types';
 import { content as appContent, type ContentLoader } from '../content/loader';
 import { isRegistered } from '../shared/exercise-types';
 import { hashSeed, rngFor, type Rng } from '../shared/hash';
@@ -59,6 +59,12 @@ export interface PlanContext {
   known: Set<string>;
   /** Item ids story coverage counts as covered besides `known`: the shared White allowlist at Stations 1–3, else empty. */
   allowlist: ReadonlySet<string>;
+  /**
+   * Listening pools of stations ≤ `station`, ascending by station (design 08
+   * §4), set by `params.withPools()`; absent or empty before it ran and on a
+   * build without pool files, when every consumer keeps its pre-pool behaviour.
+   */
+  pools?: readonly ListeningPool[];
   rng: Rng;
   available: (id: DrillId) => boolean;
   /** Governor outcome for today. */

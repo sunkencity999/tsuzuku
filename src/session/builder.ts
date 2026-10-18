@@ -32,6 +32,18 @@
  * allowlist for Stations 1–3. `finalizePlan` prices a Scroll block with the
  * +3 / +10 steps its intro checks owe and the teach cards (`plannedMs`).
  *
+ * Listening (design 08 §4, §10.4, §11): `buildPlan` attaches the listening
+ * pools ≤ station to the context (`withPools`); the listening Input block
+ * (`listeningInputSteps`) rotates an unheard audio-first piece → a dialogue →
+ * an Ear Walk (`listening-set` over 6–8 i+0 / i+1 pool refs) by listening
+ * day, never the same genre twice in a row, never the most recently heard
+ * text while another candidate exists (`byLastHearing`) and never a text the
+ * Arena passed within the last 14 days (`progress.arenaAt`, `ARENA_RECENT_DAYS`
+ * from `@/learn` — the Radio's window, exported here as `REHEAR_DAYS`),
+ * falling through a slot that has nothing to serve; the speaking surfaces (`outputBlockSteps`
+ * role-play, the reading block's dialogue fallback) take only `speakable`
+ * dialogues — a piece needs `learnerSpeaker` to be spoken.
+ *
  * `StepParams.sentence` carries ruby markup for every sentence drill that
  * renders through `<Ruby>` (pattern-cloze, particle-duel, kanji-read,
  * lookalike-duel, transform, judgment-call, scramble, sentence-listen, shadow);
@@ -49,19 +61,19 @@
  * (`buildGate`, `buildShinsa`, `buildKage`, `buildGauntlet`); `buildPlan`
  * rejects them with a `RangeError` naming the right function.
  */
-import type { CardKey, DrillId, ErrorTag, StoryItem } from '../content/types';
+import type { CardKey, DrillId, ErrorTag, ListeningGenre, StoryItem } from '../content/types';
 import { toPlain } from '../content/ruby';
 import { hashSeed } from '../shared/hash';
 import { cardKey as makeKey, parseCardKey } from '../shared/ids';
 import type { BlockKind, SessionMode, SessionPlan, SessionSnapshot, Step, StepParams, StepTag } from '../shared/session-types';
 import type { CardTuple, EpochDay, ItemKind } from '../shared/store-types';
 import { store } from '../store';
-import { cardRetrievability, exerciseFor, interleave, kindOfCards, orderWave, queueCardFor, recheckCards, weakPointSet, type QueueCard, type Scroll } from '../learn';
+import { ARENA_RECENT_DAYS, cardRetrievability, exerciseFor, interleave, kindOfCards, orderWave, queueCardFor, recheckCards, weakPointSet, type QueueCard, type Scroll } from '../learn';
 import { MICHIKUSA_AFTER_REP, MICHIKUSA_DRILL, MODE_MINUTES, SELF_GRADED, estimateStepMs, fitToTime, plannedMs, strandDeficitFor, templateFor, type OutputKind, type PlannedBlock, type TemplateCtx } from './blocks';
 import { loadPlanContext, type PlanContext, type PlanOptions } from './context';
 import { S } from './engine-strings';
 import { duelsReady, nemesisItems, nemesisSteps } from './nemesis';
-import { PARTICLE_DUEL_FROM, dedupe, hasParticleHint, isDrillId, isGrammar, knownSentences, movableTiles, pickStories, rateFor, resolveParams } from './params';
+import { PARTICLE_DUEL_FROM, dedupe, hasParticleHint, isDrillId, isGrammar, knownSentences, movableTiles, pickStories, rateFor, resolveParams, walkRefs, withPools } from './params';
 import { dueQueue, easiestCards, grudgeKeys, michikusaFor, scrollsForToday, weekStrandMinutes, welcomeSet } from './pickers';
 import { scrollSteps } from './scroll';
 
@@ -76,27 +88,41 @@ export {
   PARTICLE_DUEL_FROM,
   PITCH_PATTERNS,
   SPEED_READ_CPM,
+  WALK_I1_MAX,
+  WALK_REFS_MAX,
+  WALK_REFS_MIN,
   alignedOccurrence,
+  exampleOfRef,
   isComponent,
   isDrillId,
   isGrammar,
   isKana,
   isKanji,
+  isListeningText,
+  isSpeakable,
   isStory,
   isVocab,
   itemKindOf,
+  knownExampleRefs,
   knownSentences,
   linesWith,
+  loadPools,
   movableTiles,
+  parseExampleRef,
   particleHints,
   pickStories,
   pitchHomophones,
   pitchPattern,
+  poolRefs,
   rateFor,
   resolveParams,
   rubySpanReading,
   splitBunsetsu,
   storyCoverage,
+  walkRefs,
+  withPools,
+  type KnownSentence,
+  type PickStoriesOptions,
   type ResolveOpts,
 } from './params';
 
@@ -335,7 +361,8 @@ function scrollBlockSteps(ctx: PlanContext, scrolls: Scroll[]): { steps: Step[];
  */
 export function outputBlockSteps(ctx: PlanContext, kind: OutputKind | undefined, count: number, storyId?: string): Step[] {
   const out: Step[] = [];
-  const dialogues = pickStories(ctx, { kind: 'dialogue' });
+  // Speaking surfaces take a dialogue the learner has a part in (design 08 §11): never an audio-first piece without `learnerSpeaker`.
+  const dialogues = pickStories(ctx, { speakable: true });
   const h = hashSeed(ctx.seed, ctx.today, 'output');
   const fallback = (): Step[] => (kind === 'shadow' ? out : outputBlockSteps(ctx, 'shadow', 3));
   switch (kind) {
@@ -344,7 +371,10 @@ export function outputBlockSteps(ctx: PlanContext, kind: OutputKind | undefined,
       if (ex !== 'shadow') return out;
       for (const s of knownSentences(ctx, count)) {
         const vocabId = s.storyId ? ctx.loader.get<StoryItem>(s.storyId)?.lines[s.lineIndex ?? 0]?.tokenIds?.find((x): x is string => x !== null && x.startsWith('v-')) : undefined;
-        const params = s.storyId !== undefined ? resolveParams(ctx, ex, null, { storyId: s.storyId, lineIndex: s.lineIndex }) : { sentence: s.sentence, answer: s.kana, accept: dedupe([toPlain(s.sentence), s.kana]), promptEn: s.en, rate: rateFor(ctx) };
+        const params: StepParams =
+          s.storyId !== undefined
+            ? resolveParams(ctx, ex, null, { storyId: s.storyId, lineIndex: s.lineIndex })
+            : { sentence: s.sentence, answer: s.kana, accept: dedupe([toPlain(s.sentence), s.kana]), promptEn: s.en, rate: rateFor(ctx), ...(s.clip ? { clip: s.clip } : {}) };
         out.push(makeStep(ctx, { block: 'output', exercise: ex, itemId: vocabId ?? null, cardKey: null, params }));
       }
       return out;
@@ -382,12 +412,167 @@ export function outputBlockSteps(ctx: PlanContext, kind: OutputKind | undefined,
   }
 }
 
-function inputSteps(ctx: PlanContext, kind: PlannedBlock['spec']['inputKind']): { steps: Step[]; storyId?: string } {
-  const want: DrillId = kind === 'listening' ? 'listening-set' : 'story-read';
-  const ex = pickDrill(ctx, want);
+/** The listening Input block's rotation (design 08 §11): an unheard audio-first piece, a dialogue, an Ear Walk. */
+export const LISTENING_SLOTS = ['piece', 'dialogue', 'walk'] as const;
+export type ListeningSlot = (typeof LISTENING_SLOTS)[number];
+
+/**
+ * The slot a listening day opens with. The Shugyō listens on odd days
+ * (`blocks.ts`: `rotation % 2 === 1`), so `floor(day / 2)` advances by one
+ * from one listening day to the next and the three slots come round in turn;
+ * a slot with nothing to serve falls through to the next (`listeningInputSteps`).
+ */
+export function listeningSlot(day: EpochDay): ListeningSlot {
+  return LISTENING_SLOTS[Math.floor(Math.abs(day) / 2) % LISTENING_SLOTS.length] as ListeningSlot;
+}
+
+function textOf(ctx: PlanContext, id: string): StoryItem | undefined {
+  const own = ctx.stories.find((s) => s.id === id);
+  if (own) return own;
+  const it = ctx.loader.get(id);
+  return it && 'lines' in it && 'stationId' in it ? (it as StoryItem) : undefined;
+}
+
+/**
+ * Genre of the text heard last on either surface (`progress.listened`, design
+ * 08 §11 "never the same genre twice in a row, derived from progress.listened").
+ * Ids in `listened` that are not texts (the Radio's kana tracks, `morae-beats`)
+ * are skipped, so a kana track between two pieces does not lift the rule;
+ * `undefined` when no text was heard or the last text has no genre (a plain
+ * dialogue), when the next piece is unconstrained.
+ */
+export function lastHeardGenre(ctx: PlanContext): ListeningGenre | undefined {
+  const listened = store.progress.value.listened ?? [];
+  for (let i = listened.length - 1; i >= 0; i--) {
+    const t = textOf(ctx, listened[i] as string);
+    if (t) return t.genre;
+  }
+  return undefined;
+}
+
+/**
+ * Texts in the order the Input block prefers them: never heard first (plain
+ * dialogues before audio-first pieces, then `xs`'s own order — coverage), then
+ * the heard ones by last hearing, oldest first — `progress.listened` is a
+ * least-recently-heard order: a first hearing appends once (Arena pass,
+ * Read-along), and the Radio MOVES a re-heard id to the back, so a text the
+ * Radio played yesterday sits behind one not heard since its Arena set.
+ * `nextToHear` serves from this order.
+ */
+export function byLastHearing(xs: readonly StoryItem[], listened: readonly string[]): StoryItem[] {
+  return xs
+    .map((s, i) => ({ s, i, rank: listened.indexOf(s.id), piece: s.audioFirst ? 1 : 0 }))
+    .sort((a, b) => {
+      const ah = a.rank < 0 ? 0 : 1;
+      const bh = b.rank < 0 ? 0 : 1;
+      if (ah !== bh) return ah - bh;
+      return ah === 0 ? a.piece - b.piece || a.i - b.i : a.rank - b.rank || a.i - b.i;
+    })
+    .map((x) => x.s);
+}
+
+/**
+ * Design 08 §11 "a piece is not re-served within 14 days": a text whose last
+ * PASSED Arena set (`progress.arenaAt[id]`, stamped by the Arena on every
+ * pass) is younger than this many days is closed to `nextToHear` while any
+ * other candidate is open. The one constant is `ARENA_RECENT_DAYS` in `@/learn`
+ * (`pool.ts`): the Radio reads the same window the other way round (recently
+ * passed → first among its re-hearings). `REHEAR_DAYS` is this module's name
+ * for it, kept for its importers and tests.
+ */
+export const REHEAR_DAYS = ARENA_RECENT_DAYS;
+
+/**
+ * The text a slot serves from `xs` on `day` (design 08 §11 "never a text
+ * served in the last 14 days"): the first of `byLastHearing` while any
+ * candidate is unheard; once every candidate has been heard, the candidates
+ * the Arena passed within `ARENA_RECENT_DAYS` of `day` (`arenaAt`, the day of the
+ * last passed set, open again from day + 14) are dropped while at least one
+ * stays open, and the listening day picks among the open ones —
+ * `floor(day / 2)` advances by one from one listening day to the next
+ * (`listeningSlot`). An Arena re-pass leaves `listened` as is and re-stamps
+ * `arenaAt[id] = today`; a Radio re-hearing moves the id to the back of
+ * `listened` and stamps nothing — that move alone shifts the walked index by
+ * one text and would land on yesterday's text again, which the stamp closes.
+ * Without stamps (a save the Arena has not passed anything on yet, Read-along
+ * / Radio-only hearings, no `arenaAt` given) or with every candidate closed,
+ * the walk runs over all of them, so N heard texts still come round every N
+ * listening days.
+ */
+export function nextToHear(xs: readonly StoryItem[], listened: readonly string[], day: EpochDay, arenaAt?: Readonly<Record<string, EpochDay>>): StoryItem | undefined {
+  const ordered = byLastHearing(xs, listened);
+  if (ordered.length === 0) return undefined;
+  const heard = new Set(listened);
+  if (!ordered.every((s) => heard.has(s.id))) return ordered[0];
+  const open = arenaAt
+    ? ordered.filter((s) => {
+        const at = arenaAt[s.id];
+        return at === undefined || day - at >= ARENA_RECENT_DAYS;
+      })
+    : ordered;
+  const pool = open.length > 0 ? open : ordered;
+  return pool[Math.floor(Math.abs(day) / 2) % pool.length];
+}
+
+/**
+ * The listening Input block (design 08 §11): from the day's slot, an unheard
+ * audio-first piece whose genre differs from the last text heard, then a
+ * dialogue (plain dialogues first, then any listening text, by last hearing
+ * and — once all are heard — round-robin by listening day over the texts the
+ * Arena has not passed within 14 days, `nextToHear` / `progress.arenaAt`),
+ * then an Ear Walk (`listening-set` in pool mode over 6–8 i+0 / i+1 refs of
+ * the pools ≤ station); an empty slot falls through to the next. When
+ * no dialogue, piece or pool is on the road (a station without a dialogue,
+ * before the pieces land) a covered story is heard as a set, so the block is
+ * never empty while any text is readable.
+ */
+export function listeningInputSteps(ctx: PlanContext): { steps: Step[]; storyId?: string; slot?: ListeningSlot | 'story' } {
+  const ex = pickDrill(ctx, 'listening-set');
+  if (ex !== 'listening-set') return { steps: [] };
+  const listened = store.progress.value.listened ?? [];
+  const arenaAt = store.progress.value.arenaAt;
+  const heard = new Set(listened);
+  const avoid = lastHeardGenre(ctx);
+  const genreOk = (s: StoryItem): boolean => avoid === undefined || s.genre !== avoid;
+  const text = (story: StoryItem, slot: ListeningSlot | 'story'): { steps: Step[]; storyId: string; slot: ListeningSlot | 'story' } => ({
+    steps: [makeStep(ctx, { block: 'input', exercise: ex, itemId: story.id, cardKey: null, params: resolveParams(ctx, ex, story, { storyId: story.id }) })],
+    storyId: story.id,
+    slot,
+  });
+  const start = LISTENING_SLOTS.indexOf(listeningSlot(ctx.today));
+  for (let i = 0; i < LISTENING_SLOTS.length; i++) {
+    const slot = LISTENING_SLOTS[(start + i) % LISTENING_SLOTS.length] as ListeningSlot;
+    if (slot === 'piece') {
+      const piece = pickStories(ctx, { audioFirst: true }).find((s) => !heard.has(s.id) && genreOk(s));
+      if (piece) return text(piece, slot);
+    } else if (slot === 'dialogue') {
+      const d = nextToHear(pickStories(ctx, { listening: true }).filter(genreOk), listened, ctx.today, arenaAt);
+      if (d) return text(d, slot);
+    } else {
+      const refs = walkRefs(ctx);
+      if (refs.length > 0) return { steps: [makeStep(ctx, { block: 'input', exercise: ex, itemId: null, cardKey: null, params: resolveParams(ctx, ex, null, { refs }) })], slot };
+    }
+  }
+  const story = nextToHear(pickStories(ctx, { kind: 'story', audioFirst: false }), listened, ctx.today, arenaAt);
+  return story ? text(story, 'story') : { steps: [] };
+}
+
+/**
+ * The Input block: a listening set (`listeningInputSteps`) or an episode to
+ * read — a covered story that is not an audio-first piece, or a piece already
+ * heard (pieces are heard before they are read, design 08 §3; a heard piece
+ * reads as an ordinary first read, §10.3), else a dialogue the learner has a
+ * part in (`speakable`, design 08 §11).
+ */
+export function inputBlockSteps(ctx: PlanContext, kind: PlannedBlock['spec']['inputKind']): { steps: Step[]; storyId?: string } {
+  if (kind === 'listening') {
+    const r = listeningInputSteps(ctx);
+    return r.storyId !== undefined ? { steps: r.steps, storyId: r.storyId } : { steps: r.steps };
+  }
+  const ex = pickDrill(ctx, 'story-read');
   if (!ex) return { steps: [] };
-  const stories = pickStories(ctx, { kind: ex === 'listening-set' ? 'dialogue' : 'story' });
-  const story = stories[0] ?? (ex === 'listening-set' ? undefined : pickStories(ctx, { kind: 'dialogue' })[0]);
+  const heard = new Set(store.progress.value.listened ?? []);
+  const story = pickStories(ctx, { kind: 'story' }).find((s) => !s.audioFirst || heard.has(s.id)) ?? pickStories(ctx, { speakable: true })[0];
   if (!story) return { steps: [] };
   return { steps: [makeStep(ctx, { block: 'input', exercise: ex, itemId: story.id, cardKey: null, params: resolveParams(ctx, ex, story, { storyId: story.id }) })], storyId: story.id };
 }
@@ -482,7 +667,8 @@ export async function buildPlan(mode: SessionMode, o: PlanOptions = {}): Promise
     const fn = mode === 'gate' ? 'buildGate' : mode === 'shinsa' ? 'buildShinsa' : mode === 'kage' ? 'buildKage' : 'buildGauntlet';
     throw new RangeError(`buildPlan: mode "${mode}" is built by ${fn}() in src/session`);
   }
-  const ctx = await loadPlanContext({ ...o, mode });
+  // The listening pools ≤ station ride on the context (design 08 §4): the Ear Walk, the sparring's listen reps and the shadow warm-up read them.
+  const ctx = await withPools(await loadPlanContext({ ...o, mode }));
   const template = fitToTime(templateFor(mode, templateCtx(ctx, { tag: o.tag })), fitBudgetMinutes(mode), { due: ctx.showDue });
   const used = new Set<CardKey>();
   const blocks: (PlannedBlock & { steps: Step[] })[] = [];
@@ -582,7 +768,7 @@ export async function buildPlan(mode: SessionMode, o: PlanOptions = {}): Promise
         break;
       }
       case 'input': {
-        const r = inputSteps(ctx, spec.inputKind);
+        const r = inputBlockSteps(ctx, spec.inputKind);
         steps = r.steps;
         if (r.storyId) meta.storyId = r.storyId;
         break;

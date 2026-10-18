@@ -15,10 +15,9 @@ import { useState } from 'preact/hooks';
 import { BELT_IDS, type Belt } from '../../content/types';
 import { MISSIONS, type MissionDef } from '../../shared/catalog';
 import { href, type Route } from '../../shared/routes';
-import { LEDGER_KINDS, type LedgerEntry, type LedgerKindName } from '../../shared/store-types';
+import { LEDGER_KINDS, type EpochDay, type LedgerEntry, type LedgerKindName, type SaveMeta } from '../../shared/store-types';
 import { fill } from '../../shared/ui/strings';
-import { store } from '../../store';
-import { KIND_INDEX, LEDGER_GOAL_HOURS, addLedgerEntry, ledgerHoursBy, logMission } from '../../store/ledger';
+import { KIND_INDEX, LEDGER_GOAL_HOURS, addLedgerEntry, ledgerHoursBy, logMission, store, weekAppMinutes } from '../../store';
 import { ledgerSummary } from '../../store/selectors';
 import { BarRow, Ring, StackedBars, fmtNum, fullDate, tickDate } from '../charts';
 import { BELT_EN, LEDGER_KIND, S } from '../strings';
@@ -45,8 +44,33 @@ function hoursText(h: number): string {
   return fill(S.hoursShort, { h: fmtNum(Math.round(h * 10) / 10) });
 }
 
+/**
+ * Minutes heard in the dojo in `today`'s week (design 08 §12 "In the dojo this
+ * week: {h} h heard"): the store's `weekAppMinutes` — `listen` rows with
+ * `source: app` (Arena sets, Ear Walks, Radio, Read-along), Monday to Sunday.
+ * Informational — the weekly ring and its target keep counting outside hours
+ * only (`weekProgress`).
+ */
+export function dojoWeekMinutes(m: SaveMeta, today: EpochDay): number {
+  return weekAppMinutes(m, today);
+}
+
 function kindName(idx: number): LedgerKindName {
   return LEDGER_KINDS[idx] ?? 'listen';
+}
+
+/**
+ * A row's minutes as the learner reads them: whole when whole, one decimal
+ * when fractional — a Radio or Read-along row holds `listen:played` seconds
+ * to a tenth of a minute (design 08 §12), a hand-entered row a whole minute.
+ */
+export function rowMinutes(m: number): string {
+  return fmtNum(Math.round(m * 10) / 10);
+}
+
+/** What the editor opens with: the row rounded to a whole minute, at least 1 — the editor saves whole minutes only. */
+export function editableMinutes(m: number): number {
+  return Number.isFinite(m) ? Math.max(1, Math.round(m)) : 1;
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -129,6 +153,7 @@ function TodayRows(): JSX.Element {
   const rows = entries.map((e, index) => ({ e, index })).filter((r) => r.e[0] === today);
 
   const save = (index: number, minutes: number): void => {
+    // Whole minutes only, at least 1: a fractional row (never from the form, but a tenth-of-a-minute app row could be) is rounded first.
     const m = Math.round(minutes);
     if (!Number.isFinite(m) || m <= 0) {
       setStatus(S.addZero);
@@ -138,7 +163,8 @@ function TodayRows(): JSX.Element {
       const next = l.entries.slice();
       const prev = next[index];
       if (!prev) return l;
-      const row: LedgerEntry = [prev[0], m, prev[2], prev[3]];
+      // The optional note column (the learner's free text) rides along: editing the minutes never drops it.
+      const row: LedgerEntry = prev[4] !== undefined ? [prev[0], m, prev[2], prev[3], prev[4]] : [prev[0], m, prev[2], prev[3]];
       next[index] = row;
       return { ...l, entries: next };
     });
@@ -183,9 +209,9 @@ function TodayRows(): JSX.Element {
                 </form>
               ) : (
                 <>
-                  <span class="ledger__today-text">{fill(S.todayRow, { minutes: e[1], kind: LEDGER_KIND[k].label, source: external ? S.sourceExternal : S.sourceApp })}</span>
+                  <span class="ledger__today-text">{fill(S.todayRow, { minutes: rowMinutes(e[1]), kind: LEDGER_KIND[k].label, source: external ? S.sourceExternal : S.sourceApp })}</span>
                   {external ? (
-                    <button type="button" class="btn btn--sm btn--ghost" onClick={() => setEditing({ index, minutes: e[1] })}>
+                    <button type="button" class="btn btn--sm btn--ghost" onClick={() => setEditing({ index, minutes: editableMinutes(e[1]) })}>
                       {S.editMinutes}
                     </button>
                   ) : null}
@@ -302,13 +328,14 @@ export default function LedgerPage(_p: LedgerPageProps): JSX.Element {
   const kinds = LEDGER_KINDS.map((k) => ({ k, h: sum.hours[k] }));
   const kindMax = Math.max(1, ...kinds.map((x) => x.h));
   const weekHours = Math.round((sum.week.minutes / 60) * 10) / 10;
+  const dojoHours = Math.round((dojoWeekMinutes(meta, store.today()) / 60) * 10) / 10;
   const bookmarks = store.bookmarks.value.slice().reverse().slice(0, 8);
 
   return (
     <article class="ledger">
       <header class="ledger__head">
         <h1 class="ledger__h1">
-          <span lang="ja">{S.ledgerTitleJa}</span> <span class="ledger__h1-en">{S.ledgerTitle}</span> <span class="tag">{S.reported}</span>
+          <span lang="ja">{S.ledgerTitleJa}</span> <span class="ledger__h1-en">{S.ledgerTitle}</span>
         </h1>
         <p class="ledger__muted">{S.ledgerLede}</p>
       </header>
@@ -325,8 +352,19 @@ export default function LedgerPage(_p: LedgerPageProps): JSX.Element {
             </p>
             <p class="ledger__muted">{fill(S.weekTargetNote, { target: fmtNum(sum.week.targetHours), belt: BELT_EN[meta.profile.belt] ?? meta.profile.belt })}</p>
             {sum.week.ratio >= 1 ? <p class="ledger__line">{S.weekMet}</p> : null}
+            <p class="ledger__line ledger__dojo" data-dojo-week>
+              <span>{fill(S.weekDojo, { h: fmtNum(dojoHours) })}</span>
+              <span class="ledger__muted">{S.weekDojoNote}</span>
+            </p>
           </div>
         </div>
+      </section>
+
+      <section class="ledger__block" aria-labelledby="ledger-voices-title" data-honest-share>
+        <h2 id="ledger-voices-title" class="ledger__h2">
+          <span lang="ja">{S.dojoVoicesTitleJa}</span> <span class="ledger__h2-en">{S.dojoVoicesTitle}</span>
+        </h2>
+        <p class="ledger__muted">{S.honestShare}</p>
       </section>
 
       <AddEntry />
@@ -335,16 +373,18 @@ export default function LedgerPage(_p: LedgerPageProps): JSX.Element {
 
       <section class="ledger__block" aria-labelledby="ledger-life-title">
         <h2 id="ledger-life-title" class="ledger__h2">
-          {S.lifetimeTitle} <span class="tag">{S.reported}</span>
+          {S.lifetimeTitle}
         </h2>
         <div class="ledger__tiles">
           <div class="tile">
             <span class="tile__value">{hoursText(sum.hours.total)}</span>
             <span class="tile__label">{S.lifetimeTotal}</span>
           </div>
-          <div class="tile">
+          <div class="tile" data-tile-external>
             <span class="tile__value">{hoursText(ext.total)}</span>
-            <span class="tile__label">{S.sourceExternal}</span>
+            <span class="tile__label">
+              {S.sourceExternal} <span class="tag">{S.reported}</span>
+            </span>
           </div>
           <div class="tile">
             <span class="tile__value">{hoursText(app.total)}</span>

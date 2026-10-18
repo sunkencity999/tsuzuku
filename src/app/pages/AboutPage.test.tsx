@@ -1,12 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { installServices, nullAudio, resetServices, servicesVersion, type AudioPackInfo, type ClipPlayer, type ClipReady } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import { href } from '@/shared/routes';
 import { resetStoreForTests } from '@/store';
 import { makeTestStore } from '@/store/testing';
-import AboutPage, { APP_VERSION, RULES, contentVersionLine } from './AboutPage';
+import AboutPage, { APP_VERSION, RULES, contentVersionLine, voiceCredits } from './AboutPage';
 import { S, fmt } from './strings';
 
 const ROUTE = { name: 'about' } as const;
@@ -20,8 +22,31 @@ afterEach(() => {
   render(null, root);
   root.remove();
   resetStoreForTests();
+  resetServices();
+  vi.useRealTimers();
   bus.reset();
 });
+
+/** A `ClipPlayer` double with only what About reads: `ready` and `info.credits`. */
+function clipsWith(ready: ClipReady, credits: string[]): ClipPlayer {
+  const info: AudioPackInfo | null = ready === 'ready' ? { audioVersion: 'a-0123456789', contentVersion: 'c-0', engine: 'VOICEVOX 0.25.2', belts: {}, totals: { bytes: 0, seconds: 0, files: 0 }, credits } : null;
+  return {
+    ready: signal(ready),
+    info: signal(info),
+    loadLevel: () => Promise.resolve(),
+    loadStation: () => Promise.resolve(),
+    prefetchStation() {},
+    cueFor: () => undefined,
+    cueForText: () => undefined,
+    kanaTracks: () => Promise.resolve([]),
+    play: () => ({ done: Promise.resolve({ source: 'none' as const, seconds: 0 }), stop() {} }),
+    unlock() {},
+    dispose() {},
+    cacheUsage: () => Promise.resolve({ bytes: 0, files: 0 }),
+    download: () => Promise.resolve(),
+    remove: () => Promise.resolve(),
+  };
+}
 
 function mount(): void {
   act(() => render(<AboutPage route={ROUTE} />, root));
@@ -116,5 +141,104 @@ describe('<AboutPage>', () => {
     await makeTestStore();
     mount();
     expect(root.textContent).not.toMatch(/pok[eé]mon|nintendo|duolingo|street fighter|dragon ball|naruto/i);
+  });
+});
+
+describe('<AboutPage> voices (design 08 §6 / §12)', () => {
+  it('lists VOICEVOX:<character> credits from the runtime manifest under the licences, with the voice-terms line', async () => {
+    await makeTestStore();
+    const credits = ['VOICEVOX:九州そら', 'VOICEVOX:玄野武宏'];
+    installServices({ audio: { ...nullAudio, clips: clipsWith('ready', credits) } });
+    mount();
+    expect(voiceCredits()).toEqual(credits);
+    const rows = Array.from(root.querySelectorAll('[data-licenses] [data-credit]'));
+    expect(rows.map((li) => li.getAttribute('data-credit'))).toEqual(credits);
+    expect(rows[0]?.querySelector('[lang="ja"]')?.textContent).toBe('VOICEVOX:九州そら');
+    expect(rows[0]?.textContent).toContain(S.aboutVoiceCreditNote);
+    expect(root.querySelector('[data-no-pack]')).toBeNull();
+    const licences = Array.from(root.querySelectorAll('[data-licenses] li')).map((li) => li.textContent);
+    expect(licences).toContain(S.aboutLicenseVoices);
+    expect(S.aboutLicenseVoices).toMatch(/not CC BY-SA/);
+  });
+
+  it('without a pack (the real service came without a player, or the probe found none) the licences say the device voice speaks', async () => {
+    await makeTestStore();
+    installServices({ audio: { ...nullAudio, setVolume: vi.fn() } });
+    mount();
+    expect(voiceCredits()).toBeNull();
+    expect(root.querySelector('[data-licenses] [data-no-pack]')?.textContent).toBe(S.aboutVoicesNone);
+    expect(root.querySelectorAll('[data-credit]')).toHaveLength(0);
+    expect(root.querySelector('[data-pack-loading]')).toBeNull();
+
+    render(null, root);
+    installServices({ audio: { ...nullAudio, clips: clipsWith('absent', []) } });
+    mount();
+    expect(voiceCredits()).toBeNull();
+    expect(root.querySelector('[data-no-pack]')?.textContent).toBe(S.aboutVoicesNone);
+
+    render(null, root);
+    installServices({ audio: { ...nullAudio, clips: clipsWith('ready', []) } });
+    mount();
+    // A manifest with no credits is treated like no pack: nothing to credit, the sentence stands.
+    expect(root.querySelector('[data-no-pack]')?.textContent).toBe(S.aboutVoicesNone);
+  });
+
+  it('a cold load (audio services not installed yet) says it is looking, then lists the credits the moment the service lands (the slot’s version signal, no interval); a player still probing keeps the looking line until it settles', async () => {
+    await makeTestStore();
+    const intervals = vi.spyOn(globalThis, 'setInterval');
+    servicesVersion.value = 0; // nullAudio: main.tsx has not installed the audio barrel yet
+    mount();
+    expect(root.querySelector('[data-licenses] [data-pack-loading]')?.textContent).toBe(S.setPackLoading);
+    expect(root.querySelector('[data-no-pack]')).toBeNull();
+    expect(root.querySelectorAll('[data-credit]')).toHaveLength(0);
+    const credits = ['VOICEVOX:九州そら'];
+    act(() => {
+      installServices({ audio: { ...nullAudio, clips: clipsWith('ready', credits) } });
+    });
+    expect(Array.from(root.querySelectorAll('[data-credit]')).map((li) => li.getAttribute('data-credit'))).toEqual(credits);
+    expect(root.querySelector('[data-pack-loading]')).toBeNull();
+    expect(root.querySelector('[data-no-pack]')).toBeNull();
+    expect(intervals).not.toHaveBeenCalled();
+    intervals.mockRestore();
+
+    // A probe that is still running when the player lands keeps the looking line until it settles.
+    render(null, root);
+    resetServices();
+    servicesVersion.value = 0;
+    mount();
+    const late = clipsWith('loading', []);
+    act(() => {
+      installServices({ audio: { ...nullAudio, clips: late } });
+    });
+    expect(root.querySelector('[data-pack-loading]')?.textContent).toBe(S.setPackLoading);
+    act(() => {
+      late.ready.value = 'absent';
+    });
+    expect(root.querySelector('[data-no-pack]')?.textContent).toBe(S.aboutVoicesNone);
+
+    // Once anything was installed or reset, an empty slot is settled: a build with no pack.
+    render(null, root);
+    resetServices();
+    expect(servicesVersion.value).toBeGreaterThan(0);
+    mount();
+    expect(root.querySelector('[data-pack-loading]')).toBeNull();
+    expect(root.querySelector('[data-no-pack]')?.textContent).toBe(S.aboutVoicesNone);
+  });
+
+  it('the honest-share paragraph names the 24 hours of texts, the 13 hours of drill clips and the 70–90 hours over the road; the heading is glossed', async () => {
+    await makeTestStore();
+    mount();
+    const p = root.querySelector('[data-honest-share]')?.textContent ?? '';
+    expect(p).toBe(S.honestShare);
+    expect(p).toMatch(/24 hours/);
+    expect(p).toMatch(/13 hours/);
+    expect(p).toMatch(/70–90 hours/);
+    expect(p).toMatch(/synthetic/i);
+    expect(p).toContain('VOICEVOX');
+    expect(p).not.toMatch(/recorded/i);
+    expect(p).not.toContain('!');
+    const h2 = root.querySelector('#about-voices');
+    expect(h2?.textContent).toContain(S.aboutVoicesTitle);
+    expect(h2?.querySelector('[lang="ja"]')?.textContent).toBe('声');
   });
 });

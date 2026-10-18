@@ -140,6 +140,36 @@
   border-color: var(--kin);
 }
 
+/* ── Kana teach card (design 08 §11: beats and held beats, Stations 1–2) ── */
+/* <TeachOnce class="kana-teach"> with an example list between body and button */
+.kana-teach {
+  text-align: left;
+}
+.kana-teach__examples {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kana-teach__example {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--sp-2);
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+}
+.kana-teach__example .drill__ja {
+  font-size: var(--fs-4);
+  color: var(--fg);
+}
+.kana-teach__beats {
+  font-family: var(--font-pixel);
+  color: var(--ai); /* indigo like the card frame — --kin-text is reserved for XP deltas */
+  white-space: nowrap;
+}
+
 /* ── Kana Ear ────────────────────────────────────────────────────────── */
 .kana-ear__speaker {
   display: inline-flex;

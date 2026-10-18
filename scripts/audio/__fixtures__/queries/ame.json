@@ -1,0 +1,46 @@
+{
+ "name": "ame",
+ "text": "雨",
+ "kana": "あめ",
+ "styleId": 16,
+ "note": "word 雨 pitch 1 (atamadaka): engine accent 1 — matches",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ア",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "a",
+      "vowel_length": 0.11672443151473999,
+      "pitch": 5.613308906555176
+     },
+     {
+      "text": "メ",
+      "consonant": "m",
+      "consonant_length": 0.06014672666788101,
+      "vowel": "e",
+      "vowel_length": 0.18835192918777466,
+      "pitch": 5.50056266784668
+     }
+    ],
+    "accent": 1,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ア'メ"
+ }
+}

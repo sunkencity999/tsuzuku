@@ -125,6 +125,16 @@ export interface ClipPlayOptions {
 export interface ClipPlayback {
   done: Promise<{ source: 'clips' | 'none'; seconds: number }>;
   stop(): void;
+  /**
+   * In-place pause / resume of a whole-track playback (design 08 §10.2: a
+   * paused Radio track picks up where it stopped instead of restarting).
+   * Optional so test doubles keep compiling; a surface calls `pause?.()` and
+   * falls back to `stop()` + replay when absent. `position()` is the media
+   * seconds played so far (the same unit as `done.seconds`).
+   */
+  pause?(): void;
+  resume?(): void;
+  position?(): number;
 }
 
 /** One belt's share of the pack as the manifest reports it (design 08 §13). */
@@ -203,14 +213,20 @@ export interface AudioService {
   voices(): VoiceInfo[];
   rateForTier(t: SpeedTier): number;
   /**
-   * Source of the most recent `speak()` (design 08 §8). Optional like
-   * `canSpeak`, so `{ ...nullAudio }` doubles keep compiling; read it through
+   * Source of the most recent `speak()` (design 08 §8); before any `speak()`
+   * it holds the source the next call would use (the idle default), so a chip
+   * can be honest before anything is spoken. Optional like `canSpeak`, so
+   * `{ ...nullAudio }` doubles keep compiling; read it through
    * `audioSourceOf()` below, which falls back to `voiceAudible()`.
    */
   source?: Signal<AudioSource>;
   /** The pack cue a clip key resolves to right now (nearest native rate), or `undefined` when the pack misses (design 08 §8). */
   clipFor?(key: string, o?: { rate?: number; speaker?: string }): ClipCue | undefined;
-  /** The voice pack is loaded and playable; `canSpeak = (hasJaVoice || packReady) && audible` (design 08 §8). Optional. */
+  /**
+   * The voice pack is loaded and playable (design 08 §8). Optional.
+   * `canSpeak = (hasJaVoice || (packReady && settings.audioSource !== 'device')) && audible`:
+   * a learner who chose the device voice is not told a silent pack can speak.
+   */
   packReady?: Signal<boolean>;
   /**
    * The installed pack player (design 08 §8) for the surfaces that need more
@@ -273,6 +289,31 @@ export function audioSourceOf(a: AudioService): AudioSource {
   return voiceAudible(a) ? 'synth' : 'none';
 }
 
+/**
+ * Design 08 §13: the pack will carry the next utterance — it is loaded and
+ * playable AND the learner has not chosen the device voice (`packChosen` =
+ * `settings.audioSource !== 'device'`, passed in because this leaf may not
+ * read the store). The one body behind the install nag (Onboarding, Library),
+ * Settings' voice picker hint, Shadow's muted note and `installAdvice`.
+ */
+export function packWillSpeak(a: AudioService, packChosen: boolean): boolean {
+  return packChosen && (a.packReady?.value === true || audioSourceOf(a) === 'clips');
+}
+
+/**
+ * `navigator.connection.saveData` (Chrome Android's Data Saver); false wherever
+ * the API is absent or throws. Pure (`nav` injectable); the effective data-saver
+ * state is `settings.dataSaver || saveDataRequested()` (design 08 §13) —
+ * `@/audio` exports that as `dataSaverOn()`; `main.tsx` and the shell read this body.
+ */
+export function saveDataRequested(nav: unknown = (globalThis as { navigator?: unknown }).navigator): boolean {
+  try {
+    return (nav as { connection?: { saveData?: boolean } } | undefined)?.connection?.saveData === true;
+  } catch {
+    return false;
+  }
+}
+
 export interface Services {
   audio: AudioService;
   stt: SttService;
@@ -281,15 +322,25 @@ export interface Services {
 /** The live slot. Properties are swapped in place so earlier importers see the change. */
 export const services: Services = { audio: nullAudio, stt: nullStt };
 
+/**
+ * Bumped by every `installServices()` / `resetServices()`. A component that
+ * reads `services.audio.*` during render subscribes to this signal (read
+ * `.value` once in render) so it re-renders when the real audio lands after
+ * first paint — no polling (design 08 §8; Settings / About pack card).
+ */
+export const servicesVersion: Signal<number> = signal(0);
+
 export function installServices(p: Partial<Services>): void {
   if (p.audio) services.audio = p.audio;
   if (p.stt) services.stt = p.stt;
+  servicesVersion.value += 1;
 }
 
 /** Tests: back to silence. */
 export function resetServices(): void {
   services.audio = nullAudio;
   services.stt = nullStt;
+  servicesVersion.value += 1;
 }
 
 /** `services.audio.speak` through the slot. */

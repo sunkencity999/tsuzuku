@@ -1,0 +1,39 @@
+{
+ "schema": "tsuzuku.content/1",
+ "type": "grammar",
+ "level": "n5",
+ "writer": "grammar-n5-001",
+ "generatedAt": "2026-10-17T00:00:00Z",
+ "items": [
+  {
+   "id": "g-n5-001",
+   "pattern": "NはNです",
+   "meaning": "N is N",
+   "formation": [
+    "N1 は N2 です"
+   ],
+   "explanation": "Names or identifies something.",
+   "jlpt": 5,
+   "register": "polite",
+   "examples": [
+    {
+     "ja": "{私|わたし}は{学生|がくせい}です。",
+     "kana": "わたしはがくせいです。",
+     "en": "I am a student."
+    },
+    {
+     "ja": "{今日|きょう}は{雨|あめ}です。",
+     "kana": "きょうはあめです。",
+     "en": "It is raining today."
+    }
+   ],
+   "clozeHints": [
+    "です"
+   ],
+   "mistakes": [],
+   "related": [],
+   "tags": [],
+   "station": 4
+  }
+ ]
+}

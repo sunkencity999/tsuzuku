@@ -1,4 +1,5 @@
 import {
+  RE_NOT_MORA,
   containsHiragana,
   containsJapanese,
   containsKanji,
@@ -20,6 +21,7 @@ import {
   normalizeAnswer,
   normalizeEn,
   normalizeJa,
+  speechMorae,
   stripPunctuation,
   toHiragana,
   toKatakana,
@@ -211,6 +213,41 @@ describe('moraSplit / moraCount', () => {
   ])('moraSplit(%s)', (s, morae) => {
     expect(moraSplit(s)).toEqual(morae);
     expect(moraCount(s)).toBe(morae.length);
+  });
+});
+
+describe('speechMorae / RE_NOT_MORA (the spoken morae of a kana line)', () => {
+  it('RE_NOT_MORA removes what is written but never spoken: punctuation, brackets, the ellipsis, the wave dash and whitespace', () => {
+    expect('、。！？「」『』〜…・ 　\t\n'.replace(RE_NOT_MORA, '')).toBe('');
+    expect('あ、い。う！え？「お」『か』き〜く…け・こ さ　し'.replace(RE_NOT_MORA, '')).toBe('あいうえおかきくけこさし');
+    expect('きょう'.replace(RE_NOT_MORA, '')).toBe('きょう'); // kana, small kana, ー and っ are never touched
+    expect('コーヒー、きって'.replace(RE_NOT_MORA, '')).toBe('コーヒーきって');
+  });
+  it.each([
+    ['いぬは、みずを のみます。', ['い', 'ぬ', 'は', 'み', 'ず', 'を', 'の', 'み', 'ま', 'す']],
+    ['「はい」！　『いいえ』？', ['は', 'い', 'い', 'い', 'え']],
+    ['えーと…そうですね〜', ['え', 'ー', 'と', 'そ', 'う', 'で', 'す', 'ね']],
+    ['コーヒー・パン', ['コ', 'ー', 'ヒ', 'ー', 'パ', 'ン']],
+    ['', []],
+    ['、。', []],
+  ])('speechMorae(%s) drops the pauses', (s, morae) => {
+    expect(speechMorae(s)).toEqual(morae);
+  });
+  it.each([
+    ['きょう、きって。', ['きょ', 'う', 'き', 'っ', 'て']],
+    ['ティー！', ['ティ', 'ー']],
+    ['しんぶん', ['し', 'ん', 'ぶ', 'ん']],
+    ['りょこう　ファ', ['りょ', 'こ', 'う', 'ファ']],
+    ['とうきょう…', ['と', 'う', 'きょ', 'う']],
+  ])('speechMorae(%s): small kana fold into the preceding mora; ー and っ are one mora each', (s, morae) => {
+    expect(speechMorae(s)).toEqual(morae);
+    expect(speechMorae(s).length).toBe(moraCount(s.replace(RE_NOT_MORA, '')));
+  });
+  it('the global regex carries no state between calls (replace resets lastIndex), so repeated calls agree', () => {
+    expect('。あ'.replace(RE_NOT_MORA, '')).toBe('あ');
+    expect('。あ'.replace(RE_NOT_MORA, '')).toBe('あ');
+    expect(speechMorae('あ。')).toEqual(['あ']);
+    expect(speechMorae('あ。')).toEqual(['あ']);
   });
 });
 

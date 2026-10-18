@@ -1,0 +1,1484 @@
+{
+  "schema": "tsuzuku.content/1",
+  "type": "story",
+  "level": "n5",
+  "writer": "listening-s05",
+  "generatedAt": "2026-10-17T00:00:00Z",
+  "items": [
+    {
+      "id": "s-05-4",
+      "stationId": "st-05",
+      "titleJa": "{四時|よじ}{半|はん}の{受付|うけつけ}",
+      "titleEn": "Half past four at the front desk",
+      "kind": "dialogue",
+      "register": "polite",
+      "genre": "exchange",
+      "audioFirst": true,
+      "learnerSpeaker": "ハナ",
+      "lines": [
+        {
+          "speaker": "ハナ",
+          "ja": "おはようございます。あの、{今|いま}、{何時|なんじ}ですか。",
+          "kana": "おはようございます。あの、いま、なんじですか。",
+          "en": "Good morning. Um, what time is it now?",
+          "tokens": [
+            "おはようございます",
+            "。",
+            "あの",
+            "、",
+            "今",
+            "、",
+            "何時",
+            "です",
+            "か",
+            "。"
+          ],
+          "accept": [
+            "おはようございます。今、何時ですか。",
+            "すみません、今、何時ですか。"
+          ],
+          "mustInclude": [
+            "何時"
+          ],
+          "options": [
+            {
+              "text": "おはようございます。あの、今、何時ですか。",
+              "kind": "best"
+            },
+            {
+              "text": "おはようございます。今、何時ですか。",
+              "kind": "ok",
+              "recast": "おはようございます。あの、今、何時ですか。"
+            },
+            {
+              "text": "おはよう。今、何時？",
+              "kind": "register-wrong",
+              "recast": "おはようございます。あの、今、何時ですか。"
+            },
+            {
+              "text": "おはようございます。今は何時がですか。",
+              "kind": "grammar-wrong",
+              "recast": "おはようございます。あの、今、何時ですか。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0004",
+            null,
+            "v-n5-0050",
+            null,
+            "v-n5-0136",
+            null,
+            "v-n5-0175",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "小川さん",
+          "ja": "おはようございます。{今|いま}、{四時|よじ}{半|はん}ですよ。",
+          "kana": "おはようございます。いま、よじはんですよ。",
+          "en": "Good morning. It's half past four.",
+          "tokens": [
+            "おはようございます",
+            "。",
+            "今",
+            "、",
+            "四時",
+            "半",
+            "です",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0004",
+            null,
+            "v-n5-0136",
+            null,
+            "v-n5-0154",
+            "v-n5-0156",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{四時|よじ}{半|はん}ですか。{朝|あさ}は{寒|さむ}いですね。",
+          "kana": "よじはんですか。あさはさむいですね。",
+          "en": "Half past four? Mornings are cold, aren't they.",
+          "tokens": [
+            "四時",
+            "半",
+            "です",
+            "か",
+            "。",
+            "朝",
+            "は",
+            "寒い",
+            "です",
+            "ね",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0359"
+          ],
+          "accept": [
+            "四時半ですか。寒いですね。",
+            "四時半ですね。朝は寒いですね。"
+          ],
+          "mustInclude": [
+            "四時半",
+            "寒い"
+          ],
+          "options": [
+            {
+              "text": "四時半ですか。朝は寒いですね。",
+              "kind": "best"
+            },
+            {
+              "text": "四時半ですね。寒いですね。",
+              "kind": "ok",
+              "recast": "四時半ですか。朝は寒いですね。"
+            },
+            {
+              "text": "四時半か。朝、寒いね。",
+              "kind": "register-wrong",
+              "recast": "四時半ですか。朝は寒いですね。"
+            },
+            {
+              "text": "四時半ですか。朝は寒いだですね。",
+              "kind": "grammar-wrong",
+              "recast": "四時半ですか。朝は寒いですね。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0154",
+            "v-n5-0156",
+            "v-n5-0132",
+            "v-n5-0127",
+            null,
+            "v-n5-0141",
+            "v-n5-0118",
+            "v-n5-0359",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "speaker": "小川さん",
+          "ja": "ええ、{今|いま}は{夜|よる}と{朝|あさ}の{間|あいだ}ですよ。",
+          "kana": "ええ、いまはよるとあさのあいだですよ。",
+          "en": "Yes, right now it's between night and morning.",
+          "tokens": [
+            "ええ",
+            "、",
+            "今",
+            "は",
+            "夜",
+            "と",
+            "朝",
+            "の",
+            "間",
+            "です",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0136",
+            "v-n5-0118",
+            "v-n5-0143",
+            "v-n5-0124",
+            "v-n5-0141",
+            "v-n5-0126",
+            "v-n5-0187",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "あの、すみません。{東|ひがし}はどちらですか。",
+          "kana": "あの、すみません。ひがしはどちらですか。",
+          "en": "Um, excuse me. Which way is east?",
+          "tokens": [
+            "あの",
+            "、",
+            "すみません",
+            "。",
+            "東",
+            "は",
+            "どちら",
+            "です",
+            "か",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0267"
+          ],
+          "accept": [
+            "すみません、東はどちらですか。",
+            "東はどこですか。"
+          ],
+          "mustInclude": [
+            "東"
+          ],
+          "options": [
+            {
+              "text": "あの、すみません。東はどちらですか。",
+              "kind": "best"
+            },
+            {
+              "text": "すみません、東はどこですか。",
+              "kind": "ok",
+              "recast": "あの、すみません。東はどちらですか。"
+            },
+            {
+              "text": "ねえ、東はどっち？",
+              "kind": "register-wrong",
+              "recast": "あの、すみません。東はどちらですか。"
+            },
+            {
+              "text": "すみません。東がどちらですか。",
+              "kind": "grammar-wrong",
+              "recast": "あの、すみません。東はどちらですか。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0050",
+            null,
+            "v-n5-0013",
+            null,
+            "v-n5-0267",
+            "v-n5-0118",
+            "v-n5-0074",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "小川さん",
+          "ja": "あちらです。あの{窓|まど}の{向|む}こうですよ。",
+          "kana": "あちらです。あのまどのむこうですよ。",
+          "en": "That way. Beyond that window over there.",
+          "tokens": [
+            "あちら",
+            "です",
+            "。",
+            "あの",
+            "窓",
+            "の",
+            "向こう",
+            "です",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0191",
+            "v-n5-0132",
+            null,
+            "v-n5-0050",
+            "v-n5-0178",
+            "v-n5-0126",
+            "v-n5-0188",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{朝|あさ}の{色|いろ}は{何時|なんじ}ごろからですか。",
+          "kana": "あさのいろはなんじごろからですか。",
+          "en": "From about what time do the morning colours come?",
+          "tokens": [
+            "朝",
+            "の",
+            "色",
+            "は",
+            "何時",
+            "ごろ",
+            "から",
+            "です",
+            "か",
+            "。"
+          ],
+          "accept": [
+            "朝の色は何時からですか。",
+            "朝は何時ごろからですか。"
+          ],
+          "mustInclude": [
+            "朝",
+            "何時"
+          ],
+          "options": [
+            {
+              "text": "朝の色は何時ごろからですか。",
+              "kind": "best"
+            },
+            {
+              "text": "朝の色は何時からですか。",
+              "kind": "ok",
+              "recast": "朝の色は何時ごろからですか。"
+            },
+            {
+              "text": "朝の色、何時ごろから？",
+              "kind": "register-wrong",
+              "recast": "朝の色は何時ごろからですか。"
+            },
+            {
+              "text": "朝の色は何時ごろにからですか。",
+              "kind": "grammar-wrong",
+              "recast": "朝の色は何時ごろからですか。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0141",
+            "v-n5-0126",
+            "v-n5-0160",
+            "v-n5-0118",
+            "v-n5-0175",
+            "g-n5-015",
+            "v-n5-0130",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "小川さん",
+          "ja": "{五時|ごじ}ごろからです。{外|そと}は{赤|あか}と{白|しろ}ですよ。",
+          "kana": "ごじごろからです。そとはあかとしろですよ。",
+          "en": "From around five. Outside turns red and white.",
+          "tokens": [
+            "五時",
+            "ごろ",
+            "から",
+            "です",
+            "。",
+            "外",
+            "は",
+            "赤",
+            "と",
+            "白",
+            "です",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0154",
+            "g-n5-015",
+            "v-n5-0130",
+            "v-n5-0132",
+            null,
+            "v-n5-0151",
+            "v-n5-0118",
+            "v-n5-0161",
+            "v-n5-0124",
+            "v-n5-0163",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{五時|ごじ}ですね。{外|そと}のドアは{何時|なんじ}からですか。",
+          "kana": "ごじですね。そとのドアはなんじからですか。",
+          "en": "Five, then. What time does the front door open?",
+          "tokens": [
+            "五時",
+            "です",
+            "ね",
+            "。",
+            "外",
+            "の",
+            "ドア",
+            "は",
+            "何時",
+            "から",
+            "です",
+            "か",
+            "。"
+          ],
+          "accept": [
+            "外のドアは何時からですか。",
+            "五時ごろですね。外のドアは何時からですか。"
+          ],
+          "mustInclude": [
+            "ドア",
+            "何時"
+          ],
+          "options": [
+            {
+              "text": "五時ですね。外のドアは何時からですか。",
+              "kind": "best"
+            },
+            {
+              "text": "外のドアは何時からですか。",
+              "kind": "ok",
+              "recast": "五時ですね。外のドアは何時からですか。"
+            },
+            {
+              "text": "五時ね。外のドア、何時から？",
+              "kind": "register-wrong",
+              "recast": "五時ですね。外のドアは何時からですか。"
+            },
+            {
+              "text": "五時ですね。外のドアは何時のからですか。",
+              "kind": "grammar-wrong",
+              "recast": "五時ですね。外のドアは何時からですか。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0154",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0151",
+            "v-n5-0126",
+            "v-n5-0179",
+            "v-n5-0118",
+            "v-n5-0175",
+            "v-n5-0130",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "小川さん",
+          "ja": "{六時|ろくじ}からです。{今|いま}はあの{窓|まど}からですね。",
+          "kana": "ろくじからです。いまはあのまどからですね。",
+          "en": "From six. For now, it's from that window, right?",
+          "tokens": [
+            "六時",
+            "から",
+            "です",
+            "。",
+            "今",
+            "は",
+            "あの",
+            "窓",
+            "から",
+            "です",
+            "ね",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0154",
+            "v-n5-0130",
+            "v-n5-0132",
+            null,
+            "v-n5-0136",
+            "v-n5-0118",
+            "v-n5-0050",
+            "v-n5-0178",
+            "v-n5-0130",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "はい。あの、{朝|あさ}ご{飯|はん}は{何時|なんじ}からですか。",
+          "kana": "はい。あの、あさごはんはなんじからですか。",
+          "en": "Yes. Um, what time does breakfast start?",
+          "tokens": [
+            "はい",
+            "。",
+            "あの",
+            "、",
+            "朝ご飯",
+            "は",
+            "何時",
+            "から",
+            "です",
+            "か",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0439"
+          ],
+          "accept": [
+            "朝ご飯は何時からですか。",
+            "はい。朝ご飯は何時からですか。"
+          ],
+          "mustInclude": [
+            "朝ご飯",
+            "何時"
+          ],
+          "options": [
+            {
+              "text": "はい。あの、朝ご飯は何時からですか。",
+              "kind": "best"
+            },
+            {
+              "text": "朝ご飯は何時からですか。",
+              "kind": "ok",
+              "recast": "はい。あの、朝ご飯は何時からですか。"
+            },
+            {
+              "text": "うん。朝ご飯、何時から？",
+              "kind": "register-wrong",
+              "recast": "はい。あの、朝ご飯は何時からですか。"
+            },
+            {
+              "text": "はい。朝ご飯は何時にからですか。",
+              "kind": "grammar-wrong",
+              "recast": "はい。あの、朝ご飯は何時からですか。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0050",
+            null,
+            "v-n5-0439",
+            "v-n5-0118",
+            "v-n5-0175",
+            "v-n5-0130",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "小川さん",
+          "ja": "{朝|あさ}ご{飯|はん}は{七時|しちじ}から{八時|はちじ}までですよ。",
+          "kana": "あさごはんはしちじからはちじまでですよ。",
+          "en": "Breakfast is from seven until eight.",
+          "tokens": [
+            "朝ご飯",
+            "は",
+            "七時",
+            "から",
+            "八時",
+            "まで",
+            "です",
+            "よ",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0439"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0439",
+            "v-n5-0118",
+            "v-n5-0154",
+            "v-n5-0130",
+            "v-n5-0154",
+            "v-n5-0131",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "すみません、{七時|しちじ}ですか、{一時|いちじ}ですか。",
+          "kana": "すみません、しちじですか、いちじですか。",
+          "en": "Sorry, is that seven or one?",
+          "tokens": [
+            "すみません",
+            "、",
+            "七時",
+            "です",
+            "か",
+            "、",
+            "一時",
+            "です",
+            "か",
+            "。"
+          ],
+          "accept": [
+            "七時ですか、一時ですか。",
+            "すみません、七時ですか。"
+          ],
+          "mustInclude": [
+            "七時"
+          ],
+          "options": [
+            {
+              "text": "すみません、七時ですか、一時ですか。",
+              "kind": "best"
+            },
+            {
+              "text": "七時ですか。一時ですか。",
+              "kind": "ok",
+              "recast": "すみません、七時ですか、一時ですか。"
+            },
+            {
+              "text": "え、七時？一時？",
+              "kind": "register-wrong",
+              "recast": "すみません、七時ですか、一時ですか。"
+            },
+            {
+              "text": "すみません、七時ですか、一時のですか。",
+              "kind": "grammar-wrong",
+              "recast": "すみません、七時ですか、一時ですか。"
+            }
+          ],
+          "tokenIds": [
+            "v-n5-0013",
+            null,
+            "v-n5-0154",
+            "v-n5-0132",
+            "v-n5-0127",
+            null,
+            "v-n5-0154",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "小川さん",
+          "ja": "{朝|あさ}の{七時|しちじ}です。{一時|いちじ}じゃありませんよ。",
+          "kana": "あさのしちじです。いちじじゃありませんよ。",
+          "en": "Seven in the morning. It's not one o'clock.",
+          "tokens": [
+            "朝",
+            "の",
+            "七時",
+            "です",
+            "。",
+            "一時",
+            "じゃありません",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0141",
+            "v-n5-0126",
+            "v-n5-0154",
+            "v-n5-0132",
+            null,
+            "v-n5-0154",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{七時|しちじ}ですね。ありがとうございます。",
+          "kana": "しちじですね。ありがとうございます。",
+          "en": "Seven, right. Thank you very much.",
+          "tokens": [
+            "七時",
+            "です",
+            "ね",
+            "。",
+            "ありがとうございます",
+            "。"
+          ],
+          "accept": [
+            "七時ですね。ありがとうございました。",
+            "ありがとうございます。七時ですね。"
+          ],
+          "mustInclude": [
+            "七時",
+            "ありがとうございます"
+          ],
+          "options": [
+            {
+              "text": "七時ですね。ありがとうございます。",
+              "kind": "best"
+            },
+            {
+              "text": "はい、七時ですね。ありがとうございます。",
+              "kind": "ok",
+              "recast": "七時ですね。ありがとうございます。"
+            },
+            {
+              "text": "七時ね。ありがとう。",
+              "kind": "register-wrong",
+              "recast": "七時ですね。ありがとうございます。"
+            },
+            {
+              "text": "七時ですね。ありがとうございますです。",
+              "kind": "grammar-wrong",
+              "recast": "七時ですね。ありがとうございます。"
+            }
+          ],
+          "emotion": "warm",
+          "tokenIds": [
+            "v-n5-0154",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0010",
+            null
+          ]
+        },
+        {
+          "speaker": "小川さん",
+          "ja": "はい。{五時|ごじ}ごろ、あの{窓|まど}からですよ。",
+          "kana": "はい。ごじごろ、あのまどからですよ。",
+          "en": "Yes. Around five, from that window.",
+          "tokens": [
+            "はい",
+            "。",
+            "五時",
+            "ごろ",
+            "、",
+            "あの",
+            "窓",
+            "から",
+            "です",
+            "よ",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "emotion": "warm",
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0154",
+            "g-n5-015",
+            null,
+            "v-n5-0050",
+            "v-n5-0178",
+            "v-n5-0130",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0001",
+        "v-n5-0003",
+        "v-n5-0004",
+        "v-n5-0010",
+        "v-n5-0013",
+        "v-n5-0050",
+        "v-n5-0074",
+        "v-n5-0118",
+        "v-n5-0124",
+        "v-n5-0126",
+        "v-n5-0127",
+        "v-n5-0128",
+        "v-n5-0129",
+        "v-n5-0130",
+        "v-n5-0131",
+        "v-n5-0132",
+        "v-n5-0136",
+        "v-n5-0141",
+        "v-n5-0143",
+        "v-n5-0151",
+        "v-n5-0154",
+        "v-n5-0156",
+        "v-n5-0160",
+        "v-n5-0161",
+        "v-n5-0163",
+        "v-n5-0175",
+        "v-n5-0178",
+        "v-n5-0179",
+        "v-n5-0187",
+        "v-n5-0188",
+        "v-n5-0191",
+        "v-n5-0267",
+        "v-n5-0359",
+        "v-n5-0439"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-002",
+        "g-n5-003",
+        "g-n5-006",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-009",
+        "g-n5-010",
+        "g-n5-011",
+        "g-n5-013",
+        "g-n5-015",
+        "g-n5-016"
+      ],
+      "comprehension": [
+        {
+          "q": "What is this conversation about?",
+          "choices": [
+            "Hana asking about times before dawn at the front desk",
+            "Hana buying a bus ticket to Fujisawa",
+            "Hana ordering breakfast in her room",
+            "Hana asking where the bath is"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "What time does breakfast start?",
+          "choices": [
+            "1:00",
+            "4:00",
+            "7:00",
+            "6:00"
+          ],
+          "answer": 2,
+          "kind": "number",
+          "lineRef": 11
+        },
+        {
+          "q": "Where does Ogawa-san say east is?",
+          "choices": [
+            "Behind the front door",
+            "Up the stairs",
+            "Across the road",
+            "Beyond the window over there"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 5
+        },
+        {
+          "q": "What time does the front door open?",
+          "choices": [
+            "4:30",
+            "6:00",
+            "5:00",
+            "7:00"
+          ],
+          "answer": 1,
+          "kind": "number",
+          "lineRef": 9
+        },
+        {
+          "q": "According to Ogawa-san, what time of day is it right now?",
+          "choices": [
+            "Between night and morning",
+            "Already morning",
+            "The middle of the night",
+            "Breakfast time"
+          ],
+          "answer": 0,
+          "kind": "detail",
+          "lineRef": 3
+        }
+      ],
+      "recapEn": "At half past four Hana comes down to the dark front desk. The young woman on duty tells her the time, that it is between night and morning, that east is beyond the lobby window and the colours come around five, that the front door opens at six, and that breakfast is from seven to eight: seven, not one."
+    },
+    {
+      "id": "s-05-5",
+      "stationId": "st-05",
+      "titleJa": "{朝|あさ}はわたしの{時間|じかん}です",
+      "titleEn": "Mornings are my time",
+      "kind": "story",
+      "register": "polite",
+      "genre": "self-intro",
+      "audioFirst": true,
+      "narrator": "小川さん",
+      "names": [
+        "小川",
+        "戸塚",
+        "横浜",
+        "藤沢"
+      ],
+      "lines": [
+        {
+          "ja": "ハナさん、ケンさん、おはようございます。",
+          "kana": "ハナさん、ケンさん、おはようございます。",
+          "en": "Hana-san, Ken-san, good morning.",
+          "tokens": [
+            "ハナさん",
+            "、",
+            "ケンさん",
+            "、",
+            "おはようございます",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            null,
+            null,
+            null,
+            "v-n5-0004",
+            null
+          ]
+        },
+        {
+          "ja": "{小川|おがわ}です。ここは{父|ちち}と{母|はは}の{家|いえ}です。",
+          "kana": "おがわです。ここはちちとははのいえです。",
+          "en": "I'm Ogawa. This is my father and mother's house.",
+          "tokens": [
+            "小川",
+            "です",
+            "。",
+            "ここ",
+            "は",
+            "父",
+            "と",
+            "母",
+            "の",
+            "家",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0132",
+            null,
+            "v-n5-0051",
+            "v-n5-0118",
+            "v-n5-0081",
+            "v-n5-0124",
+            "v-n5-0082",
+            "v-n5-0126",
+            "v-n5-0145",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "うちは{戸塚|とつか}です。{戸塚|とつか}も{横浜|よこはま}ですよ。",
+          "kana": "うちはとつかです。とつかもよこはまですよ。",
+          "en": "Home is Totsuka. Totsuka is Yokohama too, you know.",
+          "tokens": [
+            "うち",
+            "は",
+            "戸塚",
+            "です",
+            "。",
+            "戸塚",
+            "も",
+            "横浜",
+            "です",
+            "よ",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0146",
+            "v-n5-0118",
+            null,
+            "v-n5-0132",
+            null,
+            null,
+            "v-n5-0125",
+            null,
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "わたしは{二十歳|はたち}です。{大学|だいがく}の{学生|がくせい}です。",
+          "kana": "わたしははたちです。だいがくのがくせいです。",
+          "en": "I'm twenty. I'm a university student.",
+          "tokens": [
+            "わたし",
+            "は",
+            "二十歳",
+            "です",
+            "。",
+            "大学",
+            "の",
+            "学生",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0428"
+          ],
+          "tokenIds": [
+            "v-n5-0041",
+            "v-n5-0118",
+            "v-n5-0116",
+            "v-n5-0132",
+            null,
+            "v-n5-0428",
+            "v-n5-0126",
+            "v-n5-0069",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{学校|がっこう}は{藤沢|ふじさわ}です。",
+          "kana": "がっこうはふじさわです。",
+          "en": "My school is in Fujisawa.",
+          "tokens": [
+            "学校",
+            "は",
+            "藤沢",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0097",
+            "v-n5-0118",
+            null,
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "ここから{三十分|さんじゅっぷん}ぐらいです。",
+          "kana": "ここからさんじゅっぷんぐらいです。",
+          "en": "It's about thirty minutes from here.",
+          "tokens": [
+            "ここ",
+            "から",
+            "三十分",
+            "ぐらい",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0051",
+            "v-n5-0130",
+            "v-n5-0155",
+            null,
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{月曜日|げつようび}から{金曜日|きんようび}まで、{学校|がっこう}です。",
+          "kana": "げつようびからきんようびまで、がっこうです。",
+          "en": "Monday to Friday, it's school.",
+          "tokens": [
+            "月曜日",
+            "から",
+            "金曜日",
+            "まで",
+            "、",
+            "学校",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0192",
+            "v-n5-0130",
+            "v-n5-0196",
+            "v-n5-0131",
+            null,
+            "v-n5-0097",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{土曜日|どようび}と{日曜日|にちようび}は、ここです。",
+          "kana": "どようびとにちようびは、ここです。",
+          "en": "Saturday and Sunday, I'm here.",
+          "tokens": [
+            "土曜日",
+            "と",
+            "日曜日",
+            "は",
+            "、",
+            "ここ",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0197",
+            "v-n5-0124",
+            "v-n5-0198",
+            "v-n5-0118",
+            null,
+            "v-n5-0051",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{毎日|まいにち}、{朝|あさ}はわたしの{時間|じかん}です。",
+          "kana": "まいにち、あさはわたしのじかんです。",
+          "en": "Every day, the morning is my time.",
+          "tokens": [
+            "毎日",
+            "、",
+            "朝",
+            "は",
+            "わたし",
+            "の",
+            "時間",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0140",
+            null,
+            "v-n5-0141",
+            "v-n5-0118",
+            "v-n5-0041",
+            "v-n5-0126",
+            "v-n5-0157",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{朝|あさ}の{四時|よじ}から{八時|はちじ}{半|はん}までです。",
+          "kana": "あさのよじからはちじはんまでです。",
+          "en": "From four until half past eight in the morning.",
+          "tokens": [
+            "朝",
+            "の",
+            "四時",
+            "から",
+            "八時",
+            "半",
+            "まで",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0141",
+            "v-n5-0126",
+            "v-n5-0154",
+            "v-n5-0130",
+            "v-n5-0154",
+            "v-n5-0156",
+            "v-n5-0131",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{昼|ひる}と{夜|よる}は、{父|ちち}と{母|はは}の{時間|じかん}です。",
+          "kana": "ひるとよるは、ちちとははのじかんです。",
+          "en": "Daytime and night are my father and mother's time.",
+          "tokens": [
+            "昼",
+            "と",
+            "夜",
+            "は",
+            "、",
+            "父",
+            "と",
+            "母",
+            "の",
+            "時間",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0142",
+            "v-n5-0124",
+            "v-n5-0143",
+            "v-n5-0118",
+            null,
+            "v-n5-0081",
+            "v-n5-0124",
+            "v-n5-0082",
+            "v-n5-0126",
+            "v-n5-0157",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{四時|よじ}から{五時|ごじ}まで、{窓|まど}の{外|そと}は{夜|よる}の{色|いろ}です。",
+          "kana": "よじからごじまで、まどのそとはよるのいろです。",
+          "en": "From four to five, outside the window is the colour of night.",
+          "tokens": [
+            "四時",
+            "から",
+            "五時",
+            "まで",
+            "、",
+            "窓",
+            "の",
+            "外",
+            "は",
+            "夜",
+            "の",
+            "色",
+            "です",
+            "。"
+          ],
+          "tokenIds": [
+            "v-n5-0154",
+            "v-n5-0130",
+            "v-n5-0154",
+            "v-n5-0131",
+            null,
+            "v-n5-0178",
+            "v-n5-0126",
+            "v-n5-0151",
+            "v-n5-0118",
+            "v-n5-0143",
+            "v-n5-0126",
+            "v-n5-0160",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{五時|ごじ}ごろから、{空|そら}は{黒|くろ}から{白|しろ}までです。",
+          "kana": "ごじごろから、そらはくろからしろまでです。",
+          "en": "From around five, the sky goes from black to white.",
+          "tokens": [
+            "五時",
+            "ごろ",
+            "から",
+            "、",
+            "空",
+            "は",
+            "黒",
+            "から",
+            "白",
+            "まで",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0565"
+          ],
+          "tokenIds": [
+            "v-n5-0154",
+            "g-n5-015",
+            "v-n5-0130",
+            null,
+            "v-n5-0565",
+            "v-n5-0118",
+            "v-n5-0164",
+            "v-n5-0130",
+            "v-n5-0163",
+            "v-n5-0131",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "その{色|いろ}が{好|す}きです。{朝|あさ}の{五時|ごじ}の{色|いろ}です。",
+          "kana": "そのいろがすきです。あさのごじのいろです。",
+          "en": "I like that colour. The colour of five in the morning.",
+          "tokens": [
+            "その",
+            "色",
+            "が",
+            "好き",
+            "です",
+            "。",
+            "朝",
+            "の",
+            "五時",
+            "の",
+            "色",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0392"
+          ],
+          "emotion": "warm",
+          "tokenIds": [
+            "v-n5-0049",
+            "v-n5-0160",
+            "v-n5-0119",
+            "v-n5-0392",
+            "v-n5-0132",
+            null,
+            "v-n5-0141",
+            "v-n5-0126",
+            "v-n5-0154",
+            "v-n5-0126",
+            "v-n5-0160",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "ケンさんの{朝|あさ}は{七時|しちじ}ごろからですね。",
+          "kana": "ケンさんのあさはしちじごろからですね。",
+          "en": "Ken-san, your morning starts around seven, doesn't it?",
+          "tokens": [
+            "ケンさん",
+            "の",
+            "朝",
+            "は",
+            "七時",
+            "ごろ",
+            "から",
+            "です",
+            "ね",
+            "。"
+          ],
+          "emotion": "warm",
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            "v-n5-0141",
+            "v-n5-0118",
+            "v-n5-0154",
+            "g-n5-015",
+            "v-n5-0130",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "ハナさんは？ハナさんの{朝|あさ}は{何時|なんじ}からですか。",
+          "kana": "ハナさんは？ハナさんのあさはなんじからですか。",
+          "en": "And you, Hana-san? What time does your morning start?",
+          "tokens": [
+            "ハナさん",
+            "は",
+            "？",
+            "ハナさん",
+            "の",
+            "朝",
+            "は",
+            "何時",
+            "から",
+            "です",
+            "か",
+            "。"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0118",
+            null,
+            null,
+            "v-n5-0126",
+            "v-n5-0141",
+            "v-n5-0118",
+            "v-n5-0175",
+            "v-n5-0130",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0004",
+        "v-n5-0041",
+        "v-n5-0049",
+        "v-n5-0051",
+        "v-n5-0069",
+        "v-n5-0081",
+        "v-n5-0082",
+        "v-n5-0097",
+        "v-n5-0116",
+        "v-n5-0118",
+        "v-n5-0119",
+        "v-n5-0124",
+        "v-n5-0125",
+        "v-n5-0126",
+        "v-n5-0127",
+        "v-n5-0128",
+        "v-n5-0129",
+        "v-n5-0130",
+        "v-n5-0131",
+        "v-n5-0132",
+        "v-n5-0140",
+        "v-n5-0141",
+        "v-n5-0142",
+        "v-n5-0143",
+        "v-n5-0145",
+        "v-n5-0146",
+        "v-n5-0151",
+        "v-n5-0154",
+        "v-n5-0155",
+        "v-n5-0156",
+        "v-n5-0157",
+        "v-n5-0160",
+        "v-n5-0163",
+        "v-n5-0164",
+        "v-n5-0175",
+        "v-n5-0178",
+        "v-n5-0192",
+        "v-n5-0196",
+        "v-n5-0197",
+        "v-n5-0198",
+        "v-n5-0392",
+        "v-n5-0428",
+        "v-n5-0565"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-004",
+        "g-n5-006",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-009",
+        "g-n5-010",
+        "g-n5-011",
+        "g-n5-015",
+        "g-n5-016"
+      ],
+      "comprehension": [
+        {
+          "q": "What is Ogawa-san doing in this piece?",
+          "choices": [
+            "Introducing herself to Hana and Ken at breakfast",
+            "Explaining the bus timetable",
+            "Reading today's notice aloud",
+            "Asking Hana about Yokohama"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "How old is Ogawa-san?",
+          "choices": [
+            "19",
+            "20",
+            "21",
+            "30"
+          ],
+          "answer": 1,
+          "kind": "number",
+          "lineRef": 3
+        },
+        {
+          "q": "On which days is Ogawa-san at school?",
+          "choices": [
+            "Saturday and Sunday",
+            "Every day",
+            "Monday to Saturday",
+            "Monday to Friday"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 6
+        },
+        {
+          "q": "From what time to what time is Ogawa-san's morning at the inn?",
+          "choices": [
+            "4:00 to 8:30",
+            "5:00 to 7:00",
+            "6:00 to 8:00",
+            "7:00 to 8:30"
+          ],
+          "answer": 0,
+          "kind": "number",
+          "lineRef": 9
+        },
+        {
+          "q": "What does Ogawa-san say she likes?",
+          "choices": [
+            "The 8:30 bus",
+            "Saturdays at home",
+            "The colour of the sky at five in the morning",
+            "Ken's cooking"
+          ],
+          "answer": 2,
+          "kind": "detail",
+          "lineRef": 13
+        }
+      ],
+      "recapEn": "At breakfast Ogawa-san introduces herself to Hana and Ken: twenty, a university student whose school is in Fujisawa, Monday to Friday; home is Totsuka, which is Yokohama too. Mornings from four to half past eight are her time; her parents take day and night. She loves the sky's colour at five and asks when Hana's morning begins."
+    }
+  ]
+}

@@ -241,3 +241,155 @@ describe('linker — matchToken links inflected forms of allowlisted verbs', () 
     expect(matchToken(early, 'した')).toEqual({ id: null, known: true, punct: false }); // no する yet — and した is the function token, never the reading of 下: the reading is all there is
   });
 });
+
+/* ── design 08 §4: segmentSentence / linkSentence / pools ────────────────── */
+
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { toPlain } from '../src/content/ruby.ts';
+import type { StationBundle, StoryItem } from '../src/content/types.ts';
+import { compareRefs, linkSentence, plusOneIdsOf, readPoolCorpus, segmentSentence, sentenceMorae, speechSecondsFor, stationPools, stringifyPool } from './linker.ts';
+import type { MatchPool } from './linker.ts';
+
+function g(id: string, pattern: string, clozeHints: string[]): GrammarItem {
+  return { id, pattern, meaning: 'x', formation: ['x'], explanation: 'x', jlpt: 5, register: 'neutral', examples: [{ ja: 'x', kana: 'x', en: 'x' }], clozeHints, mistakes: [], related: [], tags: [] };
+}
+
+/** A small corpus-shaped allowlist for the segmenter (real ids where they exist). */
+const SEG: VocabItem[] = [
+  v('v-n5-0099', '本', 'ほん', 'n'),
+  v('v-n5-0104', '〜冊', 'さつ', 'counter'),
+  v('v-n5-0118', 'は', 'は', 'prt'),
+  v('v-n5-0120', 'を', 'を', 'prt'),
+  v('v-n5-0132', 'です', 'です', 'aux'),
+  v('v-n5-0145', '家', 'いえ', 'n'),
+  v('v-n5-0273', 'いる', 'いる', 'v1', ['居る']),
+  v('v-n5-0275', '来る', 'くる', 'v-irr'),
+  v('v-n5-0277', '食べる', 'たべる', 'v1'),
+  v('v-n5-0281', '読む', 'よむ', 'v5'),
+  v('v-n5-0356', 'いい', 'いい', 'adj-i'),
+  v('v-n5-0369', '高い', 'たかい', 'adj-i'),
+  v('v-n5-0400', '返す', 'かえす', 'v5'),
+  v('v-n5-0406', '水', 'みず', 'n'),
+  v('v-n5-0671', 'まだ', 'まだ', 'adv'),
+  v('v-n5-0680', '静か', 'しずか', 'adj-na'),
+];
+const SEG_GRAMMAR: GrammarItem[] = [g('g-n5-017', 'Vます', ['ます', 'ました']), g('g-n4-044', '〜ように', ['ように'])];
+const seg = buildMatchPool(SEG, SEG_GRAMMAR);
+
+describe('linker — segmentSentence / linkSentence (design 08 §4)', () => {
+  it('a compound verb segments into its known parts (読み返す → 読み + 返す, both linked) and is one token once it is a word itself', () => {
+    expect(segmentSentence(seg, '本を読み返す。')).toEqual(['本', 'を', '読み', '返す', '。']);
+    expect(linkSentence(seg, '本を読み返す。')).toMatchObject({ ids: ['v-n5-0099', 'v-n5-0120', 'v-n5-0281', 'v-n5-0400'], unknown: 0 });
+    const compound = buildMatchPool([...SEG, v('v-n3-0001', '読み返す', 'よみかえす', 'v5')], SEG_GRAMMAR);
+    expect(segmentSentence(compound, '本を読み返した。')).toEqual(['本', 'を', '読み返した', '。']);
+    expect(linkSentence(compound, '本を読み返した。').ids).toEqual(['v-n5-0099', 'v-n5-0120', 'v-n3-0001']);
+  });
+
+  it('a numeral + counter is one token linked to the counter; a bare numeral run is known and unlinked; a word that starts with a numeral kanji stays a word', () => {
+    expect(segmentSentence(seg, '本を三冊読みました。')).toEqual(['本', 'を', '三冊', '読みました', '。']);
+    expect(linkSentence(seg, '本を三冊読みました。').ids).toEqual(['v-n5-0099', 'v-n5-0120', 'v-n5-0104', 'v-n5-0281']);
+    expect(linkSentence(seg, '三十です。')).toMatchObject({ tokens: ['三十', 'です', '。'], ids: ['v-n5-0132'], unknown: 0 });
+    const issho = buildMatchPool([...SEG, v('v-n5-0683', '一緒に', 'いっしょに', 'adv')], SEG_GRAMMAR);
+    expect(segmentSentence(issho, '一緒に来ました。')).toEqual(['一緒に', '来ました', '。']);
+    expect(linkSentence(issho, '一緒に来ました。').ids).toEqual(['v-n5-0683', 'v-n5-0275']);
+  });
+
+  it('names from StoryItem.names are known, with their suffix; the cast is always known; without the name the kanji is an unknown run', () => {
+    const r = linkSentence(seg, '森さんはハナさんと来ました。', new Set(['森さん']));
+    expect(r.tokens).toEqual(['森さん', 'は', 'ハナさん', 'と', '来ました', '。']);
+    expect(r.unknown).toBe(0);
+    expect(r.ids).toEqual(['v-n5-0118', 'v-n5-0275']);
+    expect(linkSentence(seg, '森さんは来ました。')).toMatchObject({ tokens: ['森', 'さん', 'は', '来ました', '。'], unknownTokens: ['森'] });
+  });
+
+  it('an unknown run stays one token (りんご, コーヒー); inflections stay on the word and auxiliaries come off after て; the honorific prefix is tolerated', () => {
+    expect(linkSentence(seg, 'りんごを食べました。')).toMatchObject({ tokens: ['りんご', 'を', '食べました', '。'], unknownTokens: ['りんご'], ids: ['v-n5-0120', 'v-n5-0277'] });
+    expect(linkSentence(seg, 'コーヒーはまだです。').unknownTokens).toEqual(['コーヒー']);
+    expect(segmentSentence(seg, '高くないですか。')).toEqual(['高くない', 'です', 'か', '。']);
+    expect(segmentSentence(seg, '食べていました。')).toEqual(['食べて', 'いました', '。']);
+    expect(linkSentence(seg, '食べていました。').ids).toEqual(['v-n5-0277', 'v-n5-0273']);
+    expect(segmentSentence(seg, '静かな家です。')).toEqual(['静か', 'な', '家', 'です', '。']);
+    expect(linkSentence(seg, 'お水をください。')).toMatchObject({ tokens: ['お', '水', 'を', 'ください', '。'], unknownTokens: ['ください'] });
+    // the honorific before a known kana word is tolerated too (おみず in the kana stage, where みず is a word of its own)
+    const kanaStage = buildMatchPool(SEG, SEG_GRAMMAR, [], { kanaStage: true });
+    expect(linkSentence(kanaStage, 'おみずをください。')).toMatchObject({ tokens: ['お', 'みず', 'を', 'ください', '。'], unknownTokens: ['ください'] });
+    // the stories' tokenisation: a hint stays whole when no word is behind it, a function-only hint splits
+    expect(segmentSentence(seg, '読むように食べます。')).toEqual(['読む', 'ように', '食べます', '。']);
+    expect(linkSentence(seg, '読むように食べます。').ids).toContain('g-n4-044');
+  });
+
+  it('a lone stray hiragana is NOT tolerated: an unknown kana word is never carved into function tokens + one character and passed as known (よく, まだ, かばん, かけ), while a lone unknown kanji still splits from its particle', () => {
+    // よ is the particle, く is nothing: the whole word is one unknown run and the sentence is not all-known
+    expect(linkSentence(seg, 'よく食べます。')).toMatchObject({ tokens: ['よく', '食べます', '。'], unknownTokens: ['よく'], unknown: 1 });
+    // まだ is a word in SEG (v-n5-0671); without it the run stays whole instead of ま + だ (copula)
+    const noMada = buildMatchPool(SEG.filter((x) => x.id !== 'v-n5-0671'), SEG_GRAMMAR);
+    expect(linkSentence(seg, '本はまだです。')).toMatchObject({ tokens: ['本', 'は', 'まだ', 'です', '。'], unknown: 0 });
+    expect(linkSentence(noMada, '本はまだです。')).toMatchObject({ tokens: ['本', 'は', 'まだ', 'です', '。'], unknownTokens: ['まだ'] });
+    // か / ば are function tokens, ん is not: かばん is never か + ば + a tolerated ん — the verdict is unknown (the listing carves the particle か off the front, as it does for は + まだ)
+    expect(linkSentence(seg, 'かばんです。')).toMatchObject({ ids: ['v-n5-0132'], unknownTokens: ['ばん'] });
+    // かけました (かける not in SEG): か + け + ました would have passed the stray rule; now かけ is the unknown
+    expect(linkSentence(seg, '水をかけました。').unknownTokens).toEqual(['かけ']);
+    // a lone unknown KANJI is a plausible word and takes no surcharge: 犬 + が, not 犬が
+    expect(linkSentence(seg, '犬がいます。')).toMatchObject({ tokens: ['犬', 'が', 'います', '。'], unknownTokens: ['犬'] });
+  });
+
+  it('sentenceMorae folds small kana and drops punctuation; speechSecondsFor is morae ÷ 7 + 0.5; pool order is stories → grammar → vocab by id then index', () => {
+    expect(sentenceMorae('みずをのみます。')).toBe(7);
+    expect(sentenceMorae('きょうはあついですね。')).toBe(9);
+    expect(sentenceMorae('「コーヒー、ください。」')).toBe(8);
+    expect(speechSecondsFor(7)).toBeCloseTo(1.5, 6);
+    const refs = ['v-n5-0010#ex1', 's-04-2#L3', 'g-n5-001#ex0', 'v-n5-0010#ex0', 's-04-2#L10', 's-04-1#L0', 'g-n5-001#ex2'].map((ref) => ({ ref, ids: [], kana: '', morae: 0 }));
+    expect([...refs].sort(compareRefs).map((r) => r.ref)).toEqual(['s-04-1#L0', 's-04-2#L3', 's-04-2#L10', 'g-n5-001#ex0', 'g-n5-001#ex2', 'v-n5-0010#ex0', 'v-n5-0010#ex1']);
+    const text = stringifyPool({ schema: 'tsuzuku.pool/1', station: 4, refs: refs.slice(0, 2) });
+    expect(text.split('\n').length).toBe(9);
+    expect(JSON.parse(text)).toEqual({ schema: 'tsuzuku.pool/1', station: 4, refs: refs.slice(0, 2) });
+    expect(stringifyPool({ schema: 'tsuzuku.pool/1', station: 1, refs: [] })).toBe('{\n  "schema": "tsuzuku.pool/1",\n  "station": 1,\n  "refs": []\n}\n');
+  });
+
+  it("20 story lines sampled across the shipped corpus (every ⌊N/20⌋-th linked line of the 137 texts, Stations 1–53) reproduce their tokens' all-known verdict with ≥ 90 % per-line agreement; the exact id set agrees on fewer lines because the writers tokenise grammar surfaces differently", () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const root = join(here, '..', 'public', 'content');
+    const bundles: StationBundle[] = [];
+    for (let n = 1; n <= 53; n++) {
+      const p = join(root, 'stations', `${String(n).padStart(2, '0')}.json`);
+      if (existsSync(p)) bundles.push(JSON.parse(readFileSync(p, 'utf8')) as StationBundle);
+    }
+    expect(bundles.length).toBe(53);
+    const corpus = readPoolCorpus(root);
+    const poolFor = stationPools(bundles, corpus);
+    // every linked line of the texts (pieces excluded), in corpus order, with the pool `linkStories` linked its text against
+    const linked: { station: number; line: StoryItem['lines'][number]; names: ReadonlySet<string>; story: StoryItem }[] = [];
+    for (const s of corpus.stories) {
+      if (s.audioFirst) continue;
+      const m = /^st-(\d{2})$/.exec(String(s.stationId));
+      if (!m || !Array.isArray(s.lines)) continue;
+      const names = new Set((s.names ?? []).filter((x): x is string => typeof x === 'string'));
+      for (const line of s.lines) if (Array.isArray(line.tokenIds) && line.tokenIds.length === line.tokens.length) linked.push({ station: Number(m[1]), line, names, story: s });
+    }
+    expect(linked.length).toBeGreaterThan(3000);
+    const step = Math.floor(linked.length / 20);
+    const sample = Array.from({ length: 20 }, (_, i) => linked[i * step]!);
+    expect(new Set(sample.map((x) => x.station)).size).toBeGreaterThanOrEqual(10);
+    const pools = new Map<StoryItem, MatchPool>();
+    let verdictAgree = 0;
+    let idAgree = 0;
+    for (const { station, line, names, story } of sample) {
+      let pool = pools.get(story);
+      if (!pool) {
+        pool = poolFor(station, plusOneIdsOf(story));
+        pools.set(story, pool);
+      }
+      const r = linkSentence(pool, toPlain(line.ja), names);
+      // the writers' verdict: every token linked, or known to the matcher (function token, name, numeral, punctuation)
+      const storyKnown = line.tokens.every((t, j) => line.tokenIds![j] !== null || matchToken(pool!, t, names).known);
+      if (storyKnown === (r.unknown === 0)) verdictAgree++;
+      const want = [...new Set(line.tokenIds!.filter((x): x is string => typeof x === 'string'))].sort().join(' ');
+      if (want === [...r.ids].sort().join(' ')) idAgree++;
+    }
+    expect(verdictAgree).toBeGreaterThanOrEqual(18);
+    expect(idAgree).toBeGreaterThanOrEqual(8);
+  }, 60_000);
+});

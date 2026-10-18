@@ -246,3 +246,59 @@ describe('<DojoPage>', () => {
     expect(dueLine(1234)).toBe('1,234 due');
   });
 });
+
+describe('<DojoPage> 茶屋ラジオ tile (design 08 §10.2)', () => {
+  it('shows feed.radioMinutes under the session buttons, links to #/radio and says it is not a session', async () => {
+    await makeTestStore({ save: ACTIVE });
+    await mount({ feed: () => Promise.resolve(fullFeed({ radioMinutes: 23 })) });
+    const tile = root.querySelector('[data-radio]');
+    expect(tile).not.toBeNull();
+    expect(tile?.querySelector('[data-radio-minutes]')?.textContent).toBe(fmt(S.dojoRadioMinutes, { n: 23 }));
+    expect(tile?.textContent).toContain('23 min of material you can already follow');
+    expect(tile?.querySelector('[data-radio-link]')?.getAttribute('href')).toBe(href({ name: 'radio' }));
+    expect(tile?.textContent).toContain(S.dojoRadioNote);
+    expect(S.dojoRadioNote).toBe('Not a session; it never counts as a training day.');
+    expect(tile?.querySelector('h2 [lang="ja"]')?.textContent).toBe('茶屋ラジオ');
+    expect(tile?.textContent).toContain(S.dojoRadioTitle);
+    // Placed right after the session buttons, before the Three Kata.
+    const sections = Array.from(root.querySelectorAll('section'));
+    const sessionsAt = sections.findIndex((s) => s.getAttribute('aria-labelledby') === 'dojo-sessions');
+    const radioAt = sections.findIndex((s) => s.hasAttribute('data-radio'));
+    const questsAt = sections.findIndex((s) => s.getAttribute('aria-labelledby') === 'dojo-quests');
+    expect(sessionsAt).toBeGreaterThanOrEqual(0);
+    expect(radioAt).toBe(sessionsAt + 1);
+    expect(questsAt).toBeGreaterThan(radioAt);
+  });
+
+  it('without a feed (or a feed without the count) the number is hidden but the link stays; a first run shows no tile', async () => {
+    await makeTestStore({ save: ACTIVE });
+    await mount();
+    expect(root.querySelector('[data-radio]')).not.toBeNull();
+    expect(root.querySelector('[data-radio-minutes]')).toBeNull();
+    expect(root.querySelector('[data-radio-link]')?.getAttribute('href')).toBe('#/radio');
+    expect(root.textContent).toContain(S.dojoRadioNote);
+
+    render(null, root);
+    await mount({ feed: () => Promise.resolve(fullFeed()) });
+    expect(root.querySelector('[data-radio-minutes]')).toBeNull();
+    expect(root.querySelector('[data-radio-link]')).not.toBeNull();
+
+    // E's feed says `null` when it cannot count (no pools loaded yet): same as no count.
+    render(null, root);
+    await mount({ feed: () => Promise.resolve(fullFeed({ radioMinutes: null })) });
+    expect(root.querySelector('[data-radio-minutes]')).toBeNull();
+    expect(root.querySelector('[data-radio-link]')).not.toBeNull();
+
+    render(null, root);
+    await mount({ feed: () => Promise.reject(new Error('engine down')) });
+    expect(root.querySelector('[data-radio-minutes]')).toBeNull();
+    expect(root.querySelector('[data-radio-link]')).not.toBeNull();
+
+    render(null, root);
+    resetStoreForTests();
+    await makeTestStore();
+    await mount({ feed: () => Promise.resolve(fullFeed({ radioMinutes: 5 })) });
+    expect(root.querySelector('[data-first-run]')).not.toBeNull();
+    expect(root.querySelector('[data-radio]')).toBeNull();
+  });
+});

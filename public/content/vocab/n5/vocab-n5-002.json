@@ -26,9 +26,9 @@
           "en": "What time is it now?"
         },
         {
-          "ja": "{田中|たなか}さんは{今|いま}、{京都|きょうと}にいます。",
-          "kana": "たなかさんはいま、きょうとにいます。",
-          "en": "Mr. Tanaka is in Kyoto now."
+          "ja": "{田中|たなか}さんは{今|いま}、{教室|きょうしつ}にいます。",
+          "kana": "たなかさんはいま、きょうしつにいます。",
+          "en": "Mr. Tanaka is in the classroom now."
         }
       ],
       "collocations": [
@@ -62,9 +62,9 @@
           "en": "It's nice weather today, isn't it?"
         },
         {
-          "ja": "{今日|きょう}は{何|なに}も{買|か}いませんでした。",
-          "kana": "きょうはなにもかいませんでした。",
-          "en": "I didn't buy anything today."
+          "ja": "{今日|きょう}は{宿題|しゅくだい}がありません。",
+          "kana": "きょうはしゅくだいがありません。",
+          "en": "There's no homework today."
         }
       ],
       "notes": "Read きょう in everyday speech; こんにち survives only in こんにちは and formal 今日.",
@@ -96,9 +96,9 @@
           "en": "School is off tomorrow."
         },
         {
-          "ja": "{明日|あした}、{友達|ともだち}と{映画|えいが}を{見|み}ます。",
-          "kana": "あした、ともだちとえいがをみます。",
-          "en": "Tomorrow I'm going to see a movie with a friend."
+          "ja": "{明日|あした}の{宿題|しゅくだい}は{日本語|にほんご}です。",
+          "kana": "あしたのしゅくだいはにほんごです。",
+          "en": "Tomorrow's homework is Japanese."
         }
       ],
       "notes": "あす is the formal reading (news, announcements); あした is the everyday one.",
@@ -130,9 +130,9 @@
           "en": "It rained yesterday."
         },
         {
-          "ja": "{昨日|きのう}、{田中|たなか}さんに{会|あ}いましたか。",
-          "kana": "きのう、たなかさんにあいましたか。",
-          "en": "Did you see Mr. Tanaka yesterday?"
+          "ja": "{昨日|きのう}、{先生|せんせい}は{学校|がっこう}にいませんでした。",
+          "kana": "きのう、せんせいはがっこうにいませんでした。",
+          "en": "The teacher wasn't at school yesterday."
         }
       ],
       "confusables": [
@@ -163,9 +163,9 @@
           "en": "I study Japanese every day."
         },
         {
-          "ja": "{兄|あに}は{毎日|まいにち}{遅|おそ}くまで{働|はたら}きます。",
-          "kana": "あにはまいにちおそくまではたらきます。",
-          "en": "My older brother works late every day."
+          "ja": "{弟|おとうと}は{毎日|まいにち}{宿題|しゅくだい}があります。",
+          "kana": "おとうとはまいにちしゅくだいがあります。",
+          "en": "My younger brother has homework every day."
         }
       ],
       "confusables": [
@@ -194,9 +194,9 @@
           "en": "I eat bread in the morning."
         },
         {
-          "ja": "{今日|きょう}の{朝|あさ}はとても{寒|さむ}かったです。",
-          "kana": "きょうのあさはとてもさむかったです。",
-          "en": "This morning was very cold."
+          "ja": "{明日|あした}の{朝|あさ}は{八時|はちじ}から{学校|がっこう}です。",
+          "kana": "あしたのあさははちじからがっこうです。",
+          "en": "Tomorrow morning, school starts at eight."
         }
       ],
       "collocations": [
@@ -231,9 +231,9 @@
           "en": "I eat with a friend at lunchtime."
         },
         {
-          "ja": "{昼|ひる}は{暖|あたた}かいですが、{夜|よる}は{寒|さむ}いです。",
-          "kana": "ひるはあたたかいですが、よるはさむいです。",
-          "en": "It's warm in the daytime, but cold at night."
+          "ja": "{今日|きょう}の{昼|ひる}、{田中|たなか}さんは{家|いえ}にいませんでした。",
+          "kana": "きょうのひる、たなかさんはいえにいませんでした。",
+          "en": "Mr. Tanaka wasn't at home at midday today."
         }
       ],
       "collocations": [
@@ -267,9 +267,9 @@
           "en": "It's quiet at night."
         },
         {
-          "ja": "{昨日|きのう}の{夜|よる}、{友達|ともだち}に{電話|でんわ}しました。",
-          "kana": "きのうのよる、ともだちにでんわしました。",
-          "en": "Last night I called a friend."
+          "ja": "{昨日|きのう}の{夜|よる}、{兄|あに}は{家|いえ}にいませんでした。",
+          "kana": "きのうのよる、あにはいえにいませんでした。",
+          "en": "My older brother wasn't home last night."
         }
       ],
       "collocations": [
@@ -303,9 +303,9 @@
           "en": "Dinner is at seven."
         },
         {
-          "ja": "{昨日|きのう}の{晩|ばん}は{家族|かぞく}とテレビを{見|み}ました。",
-          "kana": "きのうのばんはかぞくとテレビをみました。",
-          "en": "Last night I watched TV with my family."
+          "ja": "{今日|きょう}の{晩|ばん}は{家族|かぞく}と{家|いえ}にいます。",
+          "kana": "きょうのばんはかぞくといえにいます。",
+          "en": "This evening I'll be at home with my family."
         }
       ],
       "notes": "Mostly in compounds (晩ご飯, 今晩, 毎晩); on its own, 夜 is the usual word for night.",
@@ -342,9 +342,9 @@
           "en": "My house is near the station."
         },
         {
-          "ja": "{田中|たなか}さんの{家|いえ}はとても{大|おお}きかったです。",
-          "kana": "たなかさんのいえはとてもおおきかったです。",
-          "en": "Mr. Tanaka's house was very big."
+          "ja": "{日曜日|にちようび}はハナの{家|いえ}にいました。",
+          "kana": "にちようびはハナのいえにいました。",
+          "en": "On Sunday I was at Hana's house."
         }
       ],
       "notes": "いえ is the building; うち (same kanji) is one's own home or household.",
@@ -378,9 +378,9 @@
           "en": "I'm eating at home today."
         },
         {
-          "ja": "{来週|らいしゅう}、うちに{来|き}ませんか。",
-          "kana": "らいしゅう、うちにきませんか。",
-          "en": "Won't you come over to my place next week?"
+          "ja": "{今週|こんしゅう}の{日曜日|にちようび}はうちにいますか。",
+          "kana": "こんしゅうのにちようびはうちにいますか。",
+          "en": "Will you be at home this Sunday?"
         }
       ],
       "notes": "Also means \"we / our\" (うちの会社). Written 家 in some texts but usually kana.",
@@ -416,9 +416,9 @@
           "en": "My room is on the second floor."
         },
         {
-          "ja": "この{部屋|へや}は{少|すこ}し{暗|くら}いですね。",
-          "kana": "このへやはすこしくらいですね。",
-          "en": "This room is a little dark, isn't it?"
+          "ja": "{弟|おとうと}の{部屋|へや}は{私|わたし}の{部屋|へや}の{隣|となり}です。",
+          "kana": "おとうとのへやはわたしのへやのとなりです。",
+          "en": "My younger brother's room is next to mine."
         }
       ],
       "collocations": [
@@ -515,9 +515,9 @@
           "en": "What's inside the box?"
         },
         {
-          "ja": "{財布|さいふ}はかばんの{中|なか}に{入|い}れました。",
-          "kana": "さいふはかばんのなかにいれました。",
-          "en": "I put my wallet in my bag."
+          "ja": "{鍵|かぎ}は{机|つくえ}の{中|なか}にあります。",
+          "kana": "かぎはつくえのなかにあります。",
+          "en": "The key is in the desk."
         }
       ],
       "notes": "Also \"among\": 三人の中で (among the three).",
@@ -547,9 +547,9 @@
           "en": "It's very cold outside."
         },
         {
-          "ja": "{子|こ}どもたちは{外|そと}で{遊|あそ}んでいます。",
-          "kana": "こどもたちはそとであそんでいます。",
-          "en": "The children are playing outside."
+          "ja": "{子|こ}どもたちは{今|いま}、{外|そと}にいます。",
+          "kana": "こどもたちはいま、そとにいます。",
+          "en": "The children are outside right now."
         }
       ],
       "collocations": [
@@ -584,9 +584,9 @@
           "en": "Let's meet in front of the station."
         },
         {
-          "ja": "{二年|にねん}{前|まえ}にこの{仕事|しごと}を{始|はじ}めました。",
-          "kana": "にねんまえにこのしごとをはじめました。",
-          "en": "I started this job two years ago."
+          "ja": "ケンは{今|いま}、{学校|がっこう}の{前|まえ}にいます。",
+          "kana": "ケンはいま、がっこうのまえにいます。",
+          "en": "Ken is in front of the school right now."
         }
       ],
       "notes": "Space and time: 駅の前 (in front of), 三年前 (three years ago), 寝る前に (before sleeping).",
@@ -652,9 +652,9 @@
           "en": "The meeting is from three o'clock."
         },
         {
-          "ja": "{昨日|きのう}は{十時|じゅうじ}に{寝|ね}ました。",
-          "kana": "きのうはじゅうじにねました。",
-          "en": "I went to bed at ten yesterday."
+          "ja": "{今日|きょう}は{午後|ごご}{四時|よじ}まで{学校|がっこう}でした。",
+          "kana": "きょうはごごよじまでがっこうでした。",
+          "en": "Today I had school until four in the afternoon."
         }
       ],
       "notes": "Clock hours: 一時 いちじ, 四時 よじ, 七時 しちじ, 九時 くじ, 何時 なんじ. Duration is 〜時間.",
@@ -684,9 +684,9 @@
           "en": "It's about ten minutes to the station."
         },
         {
-          "ja": "{五分|ごふん}{待|ま}ってください。",
-          "kana": "ごふんまってください。",
-          "en": "Please wait five minutes."
+          "ja": "{今|いま}、{八時|はちじ}{二十分|にじゅっぷん}です。",
+          "kana": "いま、はちじにじゅっぷんです。",
+          "en": "It's eight twenty now."
         }
       ],
       "notes": "ぷん after 1, 3, 4, 6, 8, 10 and 何 (いっぷん, さんぷん, よんぷん, ろっぷん, はっぷん, じゅっぷん, なんぷん); ふん otherwise. 十分 read じゅうぶん means \"enough\".",
@@ -753,9 +753,9 @@
           "en": "I don't have time, so I'll go by taxi."
         },
         {
-          "ja": "{昨日|きのう}は{三時間|さんじかん}{日本語|にほんご}を{勉強|べんきょう}しました。",
-          "kana": "きのうはさんじかんにほんごをべんきょうしました。",
-          "en": "I studied Japanese for three hours yesterday."
+          "ja": "{明日|あした}は{時間|じかん}がありますか。",
+          "kana": "あしたはじかんがありますか。",
+          "en": "Do you have time tomorrow?"
         }
       ],
       "notes": "Time as a resource or duration (二時間 = two hours). Clock time uses 〜時.",
@@ -790,9 +790,9 @@
           "en": "Work starts at nine in the morning."
         },
         {
-          "ja": "{午前|ごぜん}{十時|じゅうじ}に{病院|びょういん}へ{行|い}きました。",
-          "kana": "ごぜんじゅうじにびょういんへいきました。",
-          "en": "I went to the hospital at ten in the morning."
+          "ja": "{午前|ごぜん}は{日本語|にほんご}、{午後|ごご}は{宿題|しゅくだい}です。",
+          "kana": "ごぜんはにほんご、ごごはしゅくだいです。",
+          "en": "In the morning I have Japanese, and in the afternoon I have homework."
         }
       ],
       "collocations": [
@@ -855,9 +855,9 @@
           "en": "What color do you like?"
         },
         {
-          "ja": "{空|そら}の{色|いろ}がきれいでしたね。",
-          "kana": "そらのいろがきれいでしたね。",
-          "en": "The color of the sky was beautiful, wasn't it?"
+          "ja": "この{服|ふく}は{色|いろ}が{三|みっ}つあります。",
+          "kana": "このふくはいろがみっつあります。",
+          "en": "This outfit comes in three colors."
         }
       ],
       "collocations": [
@@ -887,9 +887,9 @@
           "en": "Red or white, which would you like?"
         },
         {
-          "ja": "{妹|いもうと}は{赤|あか}の{傘|かさ}を{買|か}いました。",
-          "kana": "いもうとはあかのかさをかいました。",
-          "en": "My younger sister bought a red umbrella."
+          "ja": "{妹|いもうと}の{財布|さいふ}は{赤|あか}です。",
+          "kana": "いもうとのさいふはあかです。",
+          "en": "My younger sister's wallet is red."
         }
       ],
       "confusables": [
@@ -919,9 +919,9 @@
           "en": "Blue is my favorite."
         },
         {
-          "ja": "{海|うみ}の{青|あお}がとてもきれいでした。",
-          "kana": "うみのあおがとてもきれいでした。",
-          "en": "The blue of the sea was really beautiful."
+          "ja": "{私|わたし}の{靴|くつ}は{青|あお}と{白|しろ}です。",
+          "kana": "わたしのくつはあおとしろです。",
+          "en": "My shoes are blue and white."
         }
       ],
       "notes": "Historically covers green too: a green traffic light is 青信号 and fresh leaves are 青い.",
@@ -952,9 +952,9 @@
           "en": "Do you have a white shirt?"
         },
         {
-          "ja": "{前|まえ}の{車|くるま}は{白|しろ}でした。",
-          "kana": "まえのくるまはしろでした。",
-          "en": "My previous car was white."
+          "ja": "{田中|たなか}さんの{家|いえ}は{白|しろ}です。",
+          "kana": "たなかさんのいえはしろです。",
+          "en": "Mr. Tanaka's house is white."
         }
       ],
       "confusables": [
@@ -984,9 +984,9 @@
           "en": "I'd like black for the shoes."
         },
         {
-          "ja": "{田中|たなか}さんは{黒|くろ}のコートを{着|き}ています。",
-          "kana": "たなかさんはくろのコートをきています。",
-          "en": "Mr. Tanaka is wearing a black coat."
+          "ja": "{先生|せんせい}の{時計|とけい}は{黒|くろ}です。",
+          "kana": "せんせいのとけいはくろです。",
+          "en": "The teacher's watch is black."
         }
       ],
       "confusables": [
@@ -1017,9 +1017,9 @@
           "en": "I have a red bag."
         },
         {
-          "ja": "{秋|あき}は{山|やま}が{赤|あか}くなります。",
-          "kana": "あきはやまがあかくなります。",
-          "en": "In autumn the mountains turn red."
+          "ja": "{赤|あか}い{傘|かさ}は{誰|だれ}のですか。",
+          "kana": "あかいかさはだれのですか。",
+          "en": "Whose is the red umbrella?"
         }
       ],
       "confusables": [
@@ -1051,9 +1051,9 @@
           "en": "The sky is blue today, isn't it?"
         },
         {
-          "ja": "ハナは{青|あお}いシャツを{買|か}いました。",
-          "kana": "ハナはあおいシャツをかいました。",
-          "en": "Hana bought a blue shirt."
+          "ja": "ハナの{部屋|へや}のドアは{青|あお}いです。",
+          "kana": "ハナのへやのドアはあおいです。",
+          "en": "The door of Hana's room is blue."
         }
       ],
       "notes": "Also \"pale\" of a face (顔が青い) and \"unripe, inexperienced\".",
@@ -1085,9 +1085,9 @@
           "en": "The mountaintop is white with snow."
         },
         {
-          "ja": "{白|しろ}い{猫|ねこ}が{庭|にわ}にいました。",
-          "kana": "しろいねこがにわにいました。",
-          "en": "There was a white cat in the garden."
+          "ja": "{白|しろ}い{靴|くつ}は{五千円|ごせんえん}でした。",
+          "kana": "しろいくつはごせんえんでした。",
+          "en": "The white shoes were five thousand yen."
         }
       ],
       "confusables": [
@@ -1118,9 +1118,9 @@
           "en": "There's a black cat outside the window."
         },
         {
-          "ja": "{父|ちち}は{黒|くろ}いかばんを{使|つか}っています。",
-          "kana": "ちちはくろいかばんをつかっています。",
-          "en": "My father uses a black bag."
+          "ja": "{黒|くろ}いペンはありますか。",
+          "kana": "くろいペンはありますか。",
+          "en": "Do you have a black pen?"
         }
       ],
       "confusables": [
@@ -1150,9 +1150,9 @@
           "en": "I want to buy new clothes."
         },
         {
-          "ja": "{昨日|きのう}、{服|ふく}をたくさん{洗|あら}いました。",
-          "kana": "きのう、ふくをたくさんあらいました。",
-          "en": "I washed a lot of clothes yesterday."
+          "ja": "この{服|ふく}はいくらですか。",
+          "kana": "このふくはいくらですか。",
+          "en": "How much is this outfit?"
         }
       ],
       "collocations": [
@@ -1185,9 +1185,9 @@
           "en": "In Japan you take your shoes off inside the house."
         },
         {
-          "ja": "この{靴|くつ}は{少|すこ}し{小|ちい}さいです。",
-          "kana": "このくつはすこしちいさいです。",
-          "en": "These shoes are a little small."
+          "ja": "{私|わたし}の{靴|くつ}はドアの{前|まえ}にあります。",
+          "kana": "わたしのくつはドアのまえにあります。",
+          "en": "My shoes are in front of the door."
         }
       ],
       "collocations": [
@@ -1220,9 +1220,9 @@
           "en": "It's raining, so I'll take an umbrella."
         },
         {
-          "ja": "{電車|でんしゃ}に{傘|かさ}を{忘|わす}れました。",
-          "kana": "でんしゃにかさをわすれました。",
-          "en": "I left my umbrella on the train."
+          "ja": "{傘|かさ}は{机|つくえ}の{下|した}にありますよ。",
+          "kana": "かさはつくえのしたにありますよ。",
+          "en": "The umbrella is under the desk."
         }
       ],
       "collocations": [
@@ -1253,9 +1253,9 @@
           "en": "There's a big clock in the room."
         },
         {
-          "ja": "この{時計|とけい}は{父|ちち}にもらいました。",
-          "kana": "このとけいはちちにもらいました。",
-          "en": "I got this watch from my father."
+          "ja": "{教室|きょうしつ}の{時計|とけい}は{三時|さんじ}{半|はん}です。",
+          "kana": "きょうしつのとけいはさんじはんです。",
+          "en": "The classroom clock says half past three."
         }
       ],
       "collocations": [
@@ -1352,9 +1352,9 @@
           "en": "What time do you get up every morning?"
         },
         {
-          "ja": "{昨日|きのう}は{何時|なんじ}に{帰|かえ}りましたか。",
-          "kana": "きのうはなんじにかえりましたか。",
-          "en": "What time did you get home yesterday?"
+          "ja": "{明日|あした}の{学校|がっこう}は{何時|なんじ}からですか。",
+          "kana": "あしたのがっこうはなんじからですか。",
+          "en": "What time does school start tomorrow?"
         }
       ],
       "notes": "何時間 なんじかん asks \"how many hours\"; 何時 asks the clock time.",
@@ -1419,9 +1419,9 @@
           "en": "Please sit on the chair."
         },
         {
-          "ja": "この{椅子|いす}はとても{古|ふる}いです。",
-          "kana": "このいすはとてもふるいです。",
-          "en": "This chair is very old."
+          "ja": "この{椅子|いす}は{先生|せんせい}のです。",
+          "kana": "このいすはせんせいのです。",
+          "en": "This chair is the teacher's."
         }
       ],
       "altForms": [
@@ -1454,9 +1454,9 @@
           "en": "Please open the window."
         },
         {
-          "ja": "{寒|さむ}いですから、{窓|まど}を{閉|し}めました。",
-          "kana": "さむいですから、まどをしめました。",
-          "en": "It was cold, so I closed the window."
+          "ja": "{私|わたし}の{部屋|へや}には{窓|まど}が{二|ふた}つあります。",
+          "kana": "わたしのへやにはまどがふたつあります。",
+          "en": "My room has two windows."
         }
       ],
       "collocations": [
@@ -1490,9 +1490,9 @@
           "en": "Please close the door."
         },
         {
-          "ja": "ドアが{開|あ}いていますよ。",
-          "kana": "ドアがあいていますよ。",
-          "en": "The door is open, you know."
+          "ja": "ドアの{横|よこ}に{時計|とけい}があります。",
+          "kana": "ドアのよこにとけいがあります。",
+          "en": "There's a clock beside the door."
         }
       ],
       "notes": "Western-style doors. Traditional sliding doors are 戸 or 障子.",
@@ -1523,9 +1523,9 @@
           "en": "The cat is sleeping on the bed."
         },
         {
-          "ja": "{新|あたら}しいベッドはとても{大|おお}きいです。",
-          "kana": "あたらしいベッドはとてもおおきいです。",
-          "en": "The new bed is very big."
+          "ja": "{弟|おとうと}の{部屋|へや}にはベッドがありません。",
+          "kana": "おとうとのへやにはベッドがありません。",
+          "en": "There's no bed in my younger brother's room."
         }
       ],
       "notes": "Note the voiced ド: ベッド, not ベット (common misspelling).",
@@ -1553,9 +1553,9 @@
           "en": "I bought a big table."
         },
         {
-          "ja": "テーブルの{上|うえ}に{花|はな}を{置|お}きましょう。",
-          "kana": "テーブルのうえにはなをおきましょう。",
-          "en": "Let's put some flowers on the table."
+          "ja": "テーブルの{上|うえ}に{鍵|かぎ}と{財布|さいふ}があります。",
+          "kana": "テーブルのうえにかぎとさいふがあります。",
+          "en": "The keys and wallet are on the table."
         }
       ],
       "confusables": [
@@ -1584,9 +1584,9 @@
           "en": "The bank is to the left of the station."
         },
         {
-          "ja": "{左|ひだり}の{手|て}が{少|すこ}し{痛|いた}いです。",
-          "kana": "ひだりのてがすこしいたいです。",
-          "en": "My left hand hurts a little."
+          "ja": "{私|わたし}の{左|ひだり}にケンがいます。",
+          "kana": "わたしのひだりにケンがいます。",
+          "en": "Ken is on my left."
         }
       ],
       "confusables": [
@@ -1615,9 +1615,9 @@
           "en": "Please turn right at the next corner."
         },
         {
-          "ja": "{郵便局|ゆうびんきょく}は{右|みぎ}にありますよ。",
-          "kana": "ゆうびんきょくはみぎにありますよ。",
-          "en": "The post office is on the right."
+          "ja": "{右|みぎ}の{部屋|へや}が{私|わたし}の{部屋|へや}です。",
+          "kana": "みぎのへやがわたしのへやです。",
+          "en": "The room on the right is my room."
         }
       ],
       "collocations": [
@@ -1684,9 +1684,9 @@
           "en": "Is there a convenience store near here?"
         },
         {
-          "ja": "{駅|えき}の{近|ちか}くで{田中|たなか}さんに{会|あ}いました。",
-          "kana": "えきのちかくでたなかさんにあいました。",
-          "en": "I ran into Mr. Tanaka near the station."
+          "ja": "{学校|がっこう}の{近|ちか}くに{田中|たなか}さんの{家|いえ}があります。",
+          "kana": "がっこうのちかくにたなかさんのいえがあります。",
+          "en": "Mr. Tanaka's house is near the school."
         }
       ],
       "confusables": [
@@ -1718,9 +1718,9 @@
           "en": "There's a chair beside the bookshelf."
         },
         {
-          "ja": "{私|わたし}の{横|よこ}に{座|すわ}ってください。",
-          "kana": "わたしのよこにすわってください。",
-          "en": "Please sit beside me."
+          "ja": "{先生|せんせい}の{横|よこ}の{人|ひと}は{誰|だれ}ですか。",
+          "kana": "せんせいのよこのひとはだれですか。",
+          "en": "Who is the person next to the teacher?"
         }
       ],
       "confusables": [
@@ -1751,9 +1751,9 @@
           "en": "There's a shop between the bank and the post office."
         },
         {
-          "ja": "{夏休|なつやす}みの{間|あいだ}、{毎日|まいにち}{泳|およ}ぎました。",
-          "kana": "なつやすみのあいだ、まいにちおよぎました。",
-          "en": "During summer vacation I swam every day."
+          "ja": "{田中|たなか}さんはハナとケンの{間|あいだ}にいます。",
+          "kana": "たなかさんはハナとケンのあいだにいます。",
+          "en": "Mr. Tanaka is between Hana and Ken."
         }
       ],
       "notes": "AとBの間 for space; also a stretch of time (夏休みの間 = during summer vacation).",
@@ -1781,9 +1781,9 @@
           "en": "There's a town on the other side of the river."
         },
         {
-          "ja": "{道|みち}の{向|む}こうで{田中|たなか}さんが{待|ま}っています。",
-          "kana": "みちのむこうでたなかさんがまっています。",
-          "en": "Mr. Tanaka is waiting across the street."
+          "ja": "{私|わたし}の{家|いえ}は{学校|がっこう}の{向|む}こうです。",
+          "kana": "わたしのいえはがっこうのむこうです。",
+          "en": "My house is on the other side of the school."
         }
       ],
       "notes": "Also \"the other party\" in conversation (向こうが悪い).",
@@ -1852,9 +1852,9 @@
           "en": "How's the weather where you are?"
         },
         {
-          "ja": "そちらの{赤|あか}いかばんを{見|み}せてください。",
-          "kana": "そちらのあかいかばんをみせてください。",
-          "en": "Please show me that red bag there."
+          "ja": "{先生|せんせい}の{部屋|へや}はそちらです。",
+          "kana": "せんせいのへやはそちらです。",
+          "en": "The teacher's room is that way."
         }
       ],
       "notes": "On the phone, そちら = your end. Casual: そっち.",
@@ -1888,9 +1888,9 @@
           "en": "The exit is that way."
         },
         {
-          "ja": "あちらに{座|すわ}りましょう。",
-          "kana": "あちらにすわりましょう。",
-          "en": "Let's sit over there."
+          "ja": "あちらの{人|ひと}は{誰|だれ}ですか。",
+          "kana": "あちらのひとはだれですか。",
+          "en": "Who is that person over there?"
         }
       ],
       "notes": "Casual: あっち.",
@@ -1922,9 +1922,9 @@
           "en": "I work from Monday to Friday."
         },
         {
-          "ja": "{来週|らいしゅう}の{月曜日|げつようび}はテストです。",
-          "kana": "らいしゅうのげつようびはテストです。",
-          "en": "There's a test next Monday."
+          "ja": "{今週|こんしゅう}の{月曜日|げつようび}は{学校|がっこう}がありませんでした。",
+          "kana": "こんしゅうのげつようびはがっこうがありませんでした。",
+          "en": "There was no school this Monday."
         }
       ],
       "collocations": [
@@ -1957,9 +1957,9 @@
           "en": "The library is closed on Tuesdays."
         },
         {
-          "ja": "{先週|せんしゅう}の{火曜日|かようび}に{京都|きょうと}へ{行|い}きました。",
-          "kana": "せんしゅうのかようびにきょうとへいきました。",
-          "en": "I went to Kyoto last Tuesday."
+          "ja": "{今日|きょう}は{火曜日|かようび}ですか。",
+          "kana": "きょうはかようびですか。",
+          "en": "Is today Tuesday?"
         }
       ],
       "confusables": [
@@ -2085,9 +2085,9 @@
           "en": "I'm going shopping on Saturday."
         },
         {
-          "ja": "{先週|せんしゅう}の{土曜日|どようび}は{仕事|しごと}でした。",
-          "kana": "せんしゅうのどようびはしごとでした。",
-          "en": "I worked last Saturday."
+          "ja": "{土曜日|どようび}の{朝|あさ}は{十時|じゅうじ}ごろまでベッドにいます。",
+          "kana": "どようびのあさはじゅうじごろまでベッドにいます。",
+          "en": "On Saturday mornings I stay in bed until about ten."
         }
       ],
       "confusables": [
@@ -2117,9 +2117,9 @@
           "en": "On Sundays I take it easy at home."
         },
         {
-          "ja": "{日曜日|にちようび}、{一緒|いっしょ}に{公園|こうえん}へ{行|い}きませんか。",
-          "kana": "にちようび、いっしょにこうえんへいきませんか。",
-          "en": "Won't you go to the park with me on Sunday?"
+          "ja": "{昨日|きのう}は{日曜日|にちようび}でした。",
+          "kana": "きのうはにちようびでした。",
+          "en": "Yesterday was Sunday."
         }
       ],
       "notes": "Weekdays often drop 日 in speech and writing: 日曜, 月曜.",
@@ -2150,9 +2150,9 @@
           "en": "I swim at the pool three times a week."
         },
         {
-          "ja": "{田中|たなか}さんは{週|しゅう}に{一回|いっかい}{京都|きょうと}へ{行|い}きます。",
-          "kana": "たなかさんはしゅうにいっかいきょうとへいきます。",
-          "en": "Mr. Tanaka goes to Kyoto once a week."
+          "ja": "{日本語|にほんご}は{週|しゅう}に{二回|にかい}です。",
+          "kana": "にほんごはしゅうににかいです。",
+          "en": "Japanese class is twice a week."
         }
       ],
       "collocations": [
@@ -2185,9 +2185,9 @@
           "en": "I'm very busy this week."
         },
         {
-          "ja": "{今週|こんしゅう}の{土曜日|どようび}に{海|うみ}へ{行|い}きます。",
-          "kana": "こんしゅうのどようびにうみへいきます。",
-          "en": "I'm going to the beach this Saturday."
+          "ja": "{今週|こんしゅう}は{火曜日|かようび}から{金曜日|きんようび}まで{学校|がっこう}です。",
+          "kana": "こんしゅうはかようびからきんようびまでがっこうです。",
+          "en": "This week, school runs from Tuesday to Friday."
         }
       ],
       "confusables": [
@@ -2218,9 +2218,9 @@
           "en": "I'm going to Kyoto next week."
         },
         {
-          "ja": "{来週|らいしゅう}は{母|はは}の{誕生日|たんじょうび}です。",
-          "kana": "らいしゅうはははのたんじょうびです。",
-          "en": "Next week is my mother's birthday."
+          "ja": "{来週|らいしゅう}、{田中|たなか}さんは{学校|がっこう}に{来|き}ません。",
+          "kana": "らいしゅう、たなかさんはがっこうにきません。",
+          "en": "Mr. Tanaka won't be coming to school next week."
         }
       ],
       "confusables": [
@@ -2250,9 +2250,9 @@
           "en": "I bought new shoes last week."
         },
         {
-          "ja": "{先週|せんしゅう}は{毎日|まいにち}{雨|あめ}でしたね。",
-          "kana": "せんしゅうはまいにちあめでしたね。",
-          "en": "It rained every day last week, didn't it?"
+          "ja": "{先週|せんしゅう}は{毎日|まいにち}{家|いえ}にいました。",
+          "kana": "せんしゅうはまいにちいえにいました。",
+          "en": "I was at home every day last week."
         }
       ],
       "confusables": [
@@ -2284,9 +2284,9 @@
           "en": "A new year has begun."
         },
         {
-          "ja": "{父|ちち}は{年|とし}をとりましたが、{元気|げんき}です。",
-          "kana": "ちちはとしをとりましたが、げんきです。",
-          "en": "My father has gotten older, but he's doing well."
+          "ja": "{去年|きょねん}はどんな{年|とし}でしたか。",
+          "kana": "きょねんはどんなとしでしたか。",
+          "en": "What kind of year was last year?"
         }
       ],
       "notes": "とし as a free noun; the counter after numbers is 〜年 ねん (二年, 二〇二六年).",
@@ -2320,9 +2320,9 @@
           "en": "This summer is hot, isn't it?"
         },
         {
-          "ja": "{今年|ことし}、{京都|きょうと}へ{二回|にかい}{行|い}きました。",
-          "kana": "ことし、きょうとへにかいいきました。",
-          "en": "I went to Kyoto twice this year."
+          "ja": "{今年|ことし}は{毎朝|まいあさ}{日本語|にほんご}の{本|ほん}を{読|よ}みます。",
+          "kana": "ことしはまいあさにほんごのほんをよみます。",
+          "en": "This year I'm reading a Japanese book every morning."
         }
       ],
       "notes": "Irregular reading ことし (not こんねん).",
@@ -2354,9 +2354,9 @@
           "en": "I'm entering university next year."
         },
         {
-          "ja": "{来年|らいねん}も{一緒|いっしょ}に{働|はたら}きましょう。",
-          "kana": "らいねんもいっしょにはたらきましょう。",
-          "en": "Let's work together next year too."
+          "ja": "{来年|らいねん}、ハナはこの{学校|がっこう}に{来|き}ます。",
+          "kana": "らいねん、ハナはこのがっこうにきます。",
+          "en": "Hana is coming to this school next year."
         }
       ],
       "confusables": [
@@ -2386,9 +2386,9 @@
           "en": "Last winter was very cold."
         },
         {
-          "ja": "{去年|きょねん}まで{神奈川|かながわ}に{住|す}んでいました。",
-          "kana": "きょねんまでかながわにすんでいました。",
-          "en": "I lived in Kanagawa until last year."
+          "ja": "{去年|きょねん}は{本|ほん}を{三十冊|さんじゅっさつ}{読|よ}みました。",
+          "kana": "きょねんはほんをさんじゅっさつよみました。",
+          "en": "Last year I read thirty books."
         }
       ],
       "notes": "昨年 さくねん is the formal equivalent.",
@@ -2419,9 +2419,9 @@
           "en": "I don't have much money this month."
         },
         {
-          "ja": "{今月|こんげつ}は{三回|さんかい}{映画|えいが}を{見|み}ました。",
-          "kana": "こんげつはさんかいえいがをみました。",
-          "en": "I've seen three movies this month."
+          "ja": "{今月|こんげつ}、{友達|ともだち}が{二人|ふたり}うちに{来|き}ます。",
+          "kana": "こんげつ、ともだちがふたりうちにきます。",
+          "en": "Two friends are coming to my place this month."
         }
       ],
       "confusables": [
@@ -2484,9 +2484,9 @@
           "en": "I met a friend last month."
         },
         {
-          "ja": "{先月|せんげつ}は{仕事|しごと}がとても{忙|いそが}しかったです。",
-          "kana": "せんげつはしごとがとてもいそがしかったです。",
-          "en": "Work was really busy last month."
+          "ja": "{先月|せんげつ}は{毎朝|まいあさ}{六時|ろくじ}に{学校|がっこう}へ{行|い}きました。",
+          "kana": "せんげつはまいあさろくじにがっこうへいきました。",
+          "en": "Last month I went to school at six every morning."
         }
       ],
       "confusables": [
@@ -2515,9 +2515,9 @@
           "en": "What month is your birthday?"
         },
         {
-          "ja": "{日本|にほん}の{学校|がっこう}は{四月|しがつ}に{始|はじ}まります。",
-          "kana": "にほんのがっこうはしがつにはじまります。",
-          "en": "Schools in Japan start in April."
+          "ja": "{田中|たなか}さんは{十月|じゅうがつ}に{来|き}ます。",
+          "kana": "たなかさんはじゅうがつにきます。",
+          "en": "Mr. Tanaka is coming in October."
         }
       ],
       "notes": "Names the month: 一月 いちがつ … 四月 しがつ, 七月 しちがつ, 九月 くがつ, 何月 なんがつ. Counting months is 〜か月 かげつ.",
@@ -2611,9 +2611,9 @@
           "en": "It often snows in February."
         },
         {
-          "ja": "{母|はは}の{誕生日|たんじょうび}は{二月|にがつ}です。",
-          "kana": "ははのたんじょうびはにがつです。",
-          "en": "My mother's birthday is in February."
+          "ja": "{二月|にがつ}の{日曜日|にちようび}は{家|いえ}でストーブの{前|まえ}にいます。",
+          "kana": "にがつのにちようびはいえでストーブのまえにいます。",
+          "en": "On Sundays in February I stay home in front of the heater."
         }
       ],
       "confusables": [
@@ -2643,9 +2643,9 @@
           "en": "It's still a little cold in March."
         },
         {
-          "ja": "{去年|きょねん}の{三月|さんがつ}に{日本|にほん}へ{来|き}ました。",
-          "kana": "きょねんのさんがつににほんへきました。",
-          "en": "I came to Japan last March."
+          "ja": "{去年|きょねん}の{三月|さんがつ}にこの{学校|がっこう}へ{来|き}ました。",
+          "kana": "きょねんのさんがつにこのがっこうへきました。",
+          "en": "I came to this school last March."
         }
       ],
       "confusables": [
@@ -2675,9 +2675,9 @@
           "en": "Lots of flowers bloom in April."
         },
         {
-          "ja": "{妹|いもうと}は{四月|しがつ}に{大学生|だいがくせい}になります。",
-          "kana": "いもうとはしがつにだいがくせいになります。",
-          "en": "My younger sister will be a university student in April."
+          "ja": "{弟|おとうと}は{四月|しがつ}からこの{学校|がっこう}の{学生|がくせい}です。",
+          "kana": "おとうとはしがつからこのがっこうのがくせいです。",
+          "en": "From April my younger brother is a student at this school."
         }
       ],
       "notes": "Read しがつ, never よんがつ. The school and business year starts in April.",
@@ -2708,9 +2708,9 @@
           "en": "The weather is nice in May."
         },
         {
-          "ja": "{五月|ごがつ}に{友達|ともだち}と{山|やま}に{登|のぼ}りました。",
-          "kana": "ごがつにともだちとやまにのぼりました。",
-          "en": "In May I climbed a mountain with a friend."
+          "ja": "{五月|ごがつ}に{友達|ともだち}が{三人|さんにん}うちに{来|き}ました。",
+          "kana": "ごがつにともだちがさんにんうちにきました。",
+          "en": "In May, three friends came to my place."
         }
       ],
       "confusables": [
@@ -2740,9 +2740,9 @@
           "en": "There's a lot of rain in June."
         },
         {
-          "ja": "{去年|きょねん}の{六月|ろくがつ}はあまり{雨|あめ}が{降|ふ}りませんでした。",
-          "kana": "きょねんのろくがつはあまりあめがふりませんでした。",
-          "en": "Last June it didn't rain much."
+          "ja": "{六月|ろくがつ}の{日曜日|にちようび}は{家族|かぞく}と{家|いえ}にいます。",
+          "kana": "ろくがつのにちようびはかぞくといえにいます。",
+          "en": "On Sundays in June I stay home with my family."
         }
       ],
       "confusables": [
@@ -2772,9 +2772,9 @@
           "en": "Summer vacation starts in July."
         },
         {
-          "ja": "{七月|しちがつ}は{毎日|まいにち}とても{暑|あつ}かったです。",
-          "kana": "しちがつはまいにちとてもあつかったです。",
-          "en": "In July it was very hot every day."
+          "ja": "{七月|しちがつ}の{夕方|ゆうがた}は{家族|かぞく}と{外|そと}で{食|た}べます。",
+          "kana": "しちがつのゆうがたはかぞくとそとでたべます。",
+          "en": "On July evenings I eat outside with my family."
         }
       ],
       "notes": "Read しちがつ; なながつ is sometimes used to avoid confusion with 一月 on the phone.",
@@ -2805,9 +2805,9 @@
           "en": "I'm going to the sea in August."
         },
         {
-          "ja": "{兄|あに}の{誕生日|たんじょうび}は{八月|はちがつ}{十日|とおか}です。",
-          "kana": "あにのたんじょうびははちがつとおかです。",
-          "en": "My older brother's birthday is August tenth."
+          "ja": "{八月|はちがつ}は{学校|がっこう}が{三週間|さんしゅうかん}ありません。",
+          "kana": "はちがつはがっこうがさんしゅうかんありません。",
+          "en": "In August there's no school for three weeks."
         }
       ],
       "confusables": [
@@ -2837,9 +2837,9 @@
           "en": "School starts in September."
         },
         {
-          "ja": "{九月|くがつ}の{海|うみ}はまだ{暖|あたた}かいです。",
-          "kana": "くがつのうみはまだあたたかいです。",
-          "en": "The sea is still warm in September."
+          "ja": "{九月|くがつ}は{毎晩|まいばん}{十時|じゅうじ}ごろまで{宿題|しゅくだい}をします。",
+          "kana": "くがつはまいばんじゅうじごろまでしゅくだいをします。",
+          "en": "In September I do homework until about ten every night."
         }
       ],
       "notes": "Read くがつ, never きゅうがつ.",
@@ -2870,9 +2870,9 @@
           "en": "October is cool and pleasant."
         },
         {
-          "ja": "{十月|じゅうがつ}に{新|あたら}しいカメラを{買|か}いました。",
-          "kana": "じゅうがつにあたらしいカメラをかいました。",
-          "en": "I bought a new camera in October."
+          "ja": "{十月|じゅうがつ}の{日曜日|にちようび}に{友達|ともだち}の{家|いえ}へ{行|い}きます。",
+          "kana": "じゅうがつのにちようびにともだちのいえへいきます。",
+          "en": "On a Sunday in October I'm going to a friend's house."
         }
       ],
       "confusables": [
@@ -2902,9 +2902,9 @@
           "en": "The mountains are beautiful in November."
         },
         {
-          "ja": "{十一月|じゅういちがつ}から{毎晩|まいばん}ストーブをつけます。",
-          "kana": "じゅういちがつからまいばんストーブをつけます。",
-          "en": "From November I turn on the heater every night."
+          "ja": "{十一月|じゅういちがつ}はストーブの{前|まえ}で{本|ほん}を{読|よ}みます。",
+          "kana": "じゅういちがつはストーブのまえでほんをよみます。",
+          "en": "In November I read in front of the heater."
         }
       ],
       "confusables": [
@@ -2935,9 +2935,9 @@
           "en": "December is very busy."
         },
         {
-          "ja": "{十二月|じゅうにがつ}に{友達|ともだち}が{日本|にほん}へ{来|き}ます。",
-          "kana": "じゅうにがつにともだちがにほんへきます。",
-          "en": "A friend is coming to Japan in December."
+          "ja": "{十二月|じゅうにがつ}は{学校|がっこう}が{二十日|はつか}までです。",
+          "kana": "じゅうにがつはがっこうがはつかまでです。",
+          "en": "In December, school runs until the twentieth."
         }
       ],
       "confusables": [
@@ -2968,9 +2968,9 @@
           "en": "The flowers are beautiful in spring."
         },
         {
-          "ja": "{去年|きょねん}の{春|はる}、{京都|きょうと}を{旅行|りょこう}しました。",
-          "kana": "きょねんのはる、きょうとをりょこうしました。",
-          "en": "Last spring I traveled to Kyoto."
+          "ja": "{春|はる}は{三月|さんがつ}から{五月|ごがつ}までです。",
+          "kana": "はるはさんがつからごがつまでです。",
+          "en": "Spring is from March to May."
         }
       ],
       "confusables": [
@@ -3002,9 +3002,9 @@
           "en": "In summer I swim in the sea every day."
         },
         {
-          "ja": "ケンは{夏|なつ}が{一番|いちばん}{好|す}きです。",
-          "kana": "ケンはなつがいちばんすきです。",
-          "en": "Ken likes summer best."
+          "ja": "{今年|ことし}の{夏|なつ}はケンの{家|いえ}へ{行|い}きます。",
+          "kana": "ことしのなつはケンのいえへいきます。",
+          "en": "This summer I'm going to Ken's place."
         }
       ],
       "collocations": [
@@ -3040,9 +3040,9 @@
           "en": "Fruit is delicious in autumn."
         },
         {
-          "ja": "{去年|きょねん}の{秋|あき}、{田中|たなか}さんと{山|やま}へ{行|い}きました。",
-          "kana": "きょねんのあき、たなかさんとやまへいきました。",
-          "en": "Last autumn I went to the mountains with Mr. Tanaka."
+          "ja": "{秋|あき}は{毎晩|まいばん}{家|いえ}で{本|ほん}を{読|よ}みます。",
+          "kana": "あきはまいばんいえでほんをよみます。",
+          "en": "In autumn I read at home every night."
         }
       ],
       "confusables": [
@@ -3074,9 +3074,9 @@
           "en": "In winter I wear a coat every day."
         },
         {
-          "ja": "{今年|ことし}の{冬|ふゆ}はあまり{寒|さむ}くないですね。",
-          "kana": "ことしのふゆはあまりさむくないですね。",
-          "en": "This winter isn't very cold, is it?"
+          "ja": "{去年|きょねん}の{冬|ふゆ}、{姉|あね}はうちにいませんでした。",
+          "kana": "きょねんのふゆ、あねはうちにいませんでした。",
+          "en": "Last winter my older sister wasn't living at home."
         }
       ],
       "collocations": [
@@ -3110,9 +3110,9 @@
           "en": "I get up at six every morning."
         },
         {
-          "ja": "{父|ちち}は{毎朝|まいあさ}{新聞|しんぶん}を{読|よ}みます。",
-          "kana": "ちちはまいあさしんぶんをよみます。",
-          "en": "My father reads the newspaper every morning."
+          "ja": "{父|ちち}は{毎朝|まいあさ}{本|ほん}を{読|よ}みます。",
+          "kana": "ちちはまいあさほんをよみます。",
+          "en": "My father reads a book every morning."
         }
       ],
       "confusables": [
@@ -3172,9 +3172,9 @@
           "en": "I take my shoes off in the entryway."
         },
         {
-          "ja": "{玄関|げんかん}に{大|おお}きい{箱|はこ}がありました。",
-          "kana": "げんかんにおおきいはこがありました。",
-          "en": "There was a big box at the entrance."
+          "ja": "{玄関|げんかん}に{荷物|にもつ}がありました。",
+          "kana": "げんかんににもつがありました。",
+          "en": "There was a package at the front door."
         }
       ],
       "notes": "The sunken area inside the front door where shoes come off; not the door itself.",
@@ -3237,9 +3237,9 @@
           "en": "I go to bed at eleven every night."
         },
         {
-          "ja": "{毎晩|まいばん}、ケンが{晩|ばん}ご{飯|はん}を{作|つく}ります。",
-          "kana": "まいばん、ケンがばんごはんをつくります。",
-          "en": "Ken makes dinner every evening."
+          "ja": "{毎晩|まいばん}、ケンは{家族|かぞく}と{台所|だいどころ}で{食|た}べます。",
+          "kana": "まいばん、ケンはかぞくとだいどころでたべます。",
+          "en": "Every evening Ken eats in the kitchen with his family."
         }
       ],
       "confusables": [
@@ -3270,9 +3270,9 @@
           "en": "I take a bath every night."
         },
         {
-          "ja": "{田中|たなか}さんの{家|いえ}のお{風呂|ふろ}は{広|ひろ}かったです。",
-          "kana": "たなかさんのいえのおふろはひろかったです。",
-          "en": "The bath at Mr. Tanaka's house was spacious."
+          "ja": "お{風呂|ふろ}は{台所|だいどころ}の{隣|となり}にあります。",
+          "kana": "おふろはだいどころのとなりにあります。",
+          "en": "The bath is next to the kitchen."
         }
       ],
       "notes": "Almost always お風呂 in speech. Washing happens outside the tub; the tub is for soaking.",
@@ -3306,9 +3306,9 @@
           "en": "Would you like to have dinner together tonight?"
         },
         {
-          "ja": "{今晩|こんばん}は{早|はや}く{寝|ね}ます。",
-          "kana": "こんばんははやくねます。",
-          "en": "I'm going to bed early tonight."
+          "ja": "{今晩|こんばん}は{十一時|じゅういちじ}ごろまで{宿題|しゅくだい}をします。",
+          "kana": "こんばんはじゅういちじごろまでしゅくだいをします。",
+          "en": "Tonight I'll do homework until around eleven."
         }
       ],
       "notes": "今夜 こんや is a close synonym; こんばんは (good evening) comes from this word.",
@@ -3340,9 +3340,9 @@
           "en": "There are lots of books on the bookshelf."
         },
         {
-          "ja": "この{本棚|ほんだな}は{父|ちち}が{作|つく}りました。",
-          "kana": "このほんだなはちちがつくりました。",
-          "en": "My father made this bookshelf."
+          "ja": "この{本棚|ほんだな}は{姉|あね}のです。",
+          "kana": "このほんだなはあねのです。",
+          "en": "This bookshelf is my older sister's."
         }
       ],
       "notes": "棚 たな voices to だな in the compound.",
@@ -3403,9 +3403,9 @@
           "en": "My father wears glasses."
         },
         {
-          "ja": "{新|あたら}しい{眼鏡|めがね}はちょっと{高|たか}かったです。",
-          "kana": "あたらしいめがねはちょっとたかかったです。",
-          "en": "My new glasses were a bit expensive."
+          "ja": "{私|わたし}の{眼鏡|めがね}はどこですか。",
+          "kana": "わたしのめがねはどこですか。",
+          "en": "Where are my glasses?"
         }
       ],
       "notes": "Very often written メガネ or めがね. Takes かける, not 着る.",
@@ -3472,9 +3472,9 @@
           "en": "This luggage is very heavy."
         },
         {
-          "ja": "{荷物|にもつ}が{多|おお}いですから、タクシーで{帰|かえ}りましょう。",
-          "kana": "にもつがおおいですから、タクシーでかえりましょう。",
-          "en": "We have a lot of luggage, so let's take a taxi home."
+          "ja": "{荷物|にもつ}はテーブルの{下|した}にあります。",
+          "kana": "にもつはテーブルのしたにあります。",
+          "en": "The luggage is under the table."
         }
       ],
       "notes": "Covers luggage, a package in the post, and someone's belongings.",
@@ -3505,9 +3505,9 @@
           "en": "Two big boxes, please."
         },
         {
-          "ja": "この{箱|はこ}は{軽|かる}いですよ。",
-          "kana": "このはこはかるいですよ。",
-          "en": "This box is light."
+          "ja": "{白|しろ}い{箱|はこ}の{中|なか}に{眼鏡|めがね}があります。",
+          "kana": "しろいはこのなかにめがねがあります。",
+          "en": "The glasses are in the white box."
         }
       ],
       "station": 6
@@ -3533,9 +3533,9 @@
           "en": "Please write your name on the paper."
         },
         {
-          "ja": "{白|しろ}い{紙|かみ}を{五枚|ごまい}{使|つか}いました。",
-          "kana": "しろいかみをごまいつかいました。",
-          "en": "I used five sheets of white paper."
+          "ja": "この{紙|かみ}に{日本語|にほんご}を{書|か}きました。",
+          "kana": "このかみににほんごをかきました。",
+          "en": "I wrote Japanese on this paper."
         }
       ],
       "notes": "Pitch tells it apart from 髪 (hair, also かみ [2]) and 神 (god, [1]) only partly; context does the rest.",
@@ -3563,9 +3563,9 @@
           "en": "In the early evening I take a walk in the park with a friend."
         },
         {
-          "ja": "{夕方|ゆうがた}から{雨|あめ}になりました。",
-          "kana": "ゆうがたからあめになりました。",
-          "en": "It started raining in the evening."
+          "ja": "{昨日|きのう}の{夕方|ゆうがた}、{田中|たなか}さんが{来|き}ました。",
+          "kana": "きのうのゆうがた、たなかさんがきました。",
+          "en": "Mr. Tanaka came by yesterday evening."
         }
       ],
       "notes": "Roughly 4–6 p.m., as the sun goes down; 晩 and 夜 come after it.",
@@ -3663,9 +3663,9 @@
           "en": "It's cold, so I'll turn on the heater."
         },
         {
-          "ja": "ストーブを{消|け}してください。",
-          "kana": "ストーブをけしてください。",
-          "en": "Please turn off the heater."
+          "ja": "ストーブは{机|つくえ}の{横|よこ}にあります。",
+          "kana": "ストーブはつくえのよこにあります。",
+          "en": "The heater is beside the desk."
         }
       ],
       "notes": "False friend: a room heater, not a cooking stove (that is コンロ).",
@@ -3694,9 +3694,9 @@
           "en": "I'll write the birthday on the calendar."
         },
         {
-          "ja": "{台所|だいどころ}に{大|おお}きいカレンダーがあります。",
-          "kana": "だいどころにおおきいカレンダーがあります。",
-          "en": "There's a big calendar in the kitchen."
+          "ja": "{台所|だいどころ}のカレンダーは{去年|きょねん}のです。",
+          "kana": "だいどころのカレンダーはきょねんのです。",
+          "en": "The calendar in the kitchen is last year's."
         }
       ],
       "station": 6
@@ -3721,9 +3721,9 @@
           "en": "I'm taking two weeks off starting next week."
         },
         {
-          "ja": "{田中|たなか}さんは{三週間|さんしゅうかん}{京都|きょうと}にいました。",
-          "kana": "たなかさんはさんしゅうかんきょうとにいました。",
-          "en": "Mr. Tanaka was in Kyoto for three weeks."
+          "ja": "{田中|たなか}さんは{三週間|さんしゅうかん}うちにいました。",
+          "kana": "たなかさんはさんしゅうかんうちにいました。",
+          "en": "Mr. Tanaka stayed at our place for three weeks."
         }
       ],
       "notes": "一週間 いっしゅうかん, 何週間 なんしゅうかん. Duration only; \"per week\" is 週に.",
@@ -3788,9 +3788,9 @@
           "en": "I work at a clothing store."
         },
         {
-          "ja": "{姉|あね}は{洋服|ようふく}をたくさん{持|も}っています。",
-          "kana": "あねはようふくをたくさんもっています。",
-          "en": "My older sister has a lot of clothes."
+          "ja": "{姉|あね}は{新|あたら}しい{洋服|ようふく}を{買|か}いました。",
+          "kana": "あねはあたらしいようふくをかいました。",
+          "en": "My older sister bought new clothes."
         }
       ],
       "notes": "Literally Western clothes (as opposed to 和服); in practice just everyday clothes.",
@@ -3923,9 +3923,9 @@
           "en": "It's hot, so I'll wear a hat."
         },
         {
-          "ja": "{田中|たなか}さんはいつも{帽子|ぼうし}をかぶっています。",
-          "kana": "たなかさんはいつもぼうしをかぶっています。",
-          "en": "Mr. Tanaka always wears a hat."
+          "ja": "{田中|たなか}さんの{帽子|ぼうし}は{茶色|ちゃいろ}です。",
+          "kana": "たなかさんのぼうしはちゃいろです。",
+          "en": "Mr. Tanaka's hat is brown."
         }
       ],
       "notes": "Takes かぶる (put on the head), not 着る.",
@@ -3990,9 +3990,9 @@
           "en": "This coat is warm."
         },
         {
-          "ja": "{春|はる}ですから、もうコートはいりません。",
-          "kana": "はるですから、もうコートはいりません。",
-          "en": "It's spring, so I don't need a coat anymore."
+          "ja": "{黒|くろ}いコートを{玄関|げんかん}に{置|お}きました。",
+          "kana": "くろいコートをげんかんにおきました。",
+          "en": "I left my black coat in the entryway."
         }
       ],
       "notes": "Also a sports court (テニスコート); context decides.",
@@ -4121,9 +4121,9 @@
           "en": "I put on a kimono and took pictures."
         },
         {
-          "ja": "{母|はは}の{着物|きもの}はとてもきれいです。",
-          "kana": "ははのきものはとてもきれいです。",
-          "en": "My mother's kimono is very beautiful."
+          "ja": "{母|はは}の{着物|きもの}はとても{古|ふる}いです。",
+          "kana": "ははのきものはとてもふるいです。",
+          "en": "My mother's kimono is very old."
         }
       ],
       "notes": "Literally \"thing to wear\"; now the traditional garment, also called 和服.",
@@ -4184,9 +4184,9 @@
           "en": "This flower is yellow."
         },
         {
-          "ja": "{妹|いもうと}は{黄色|きいろ}が{好|す}きです。",
-          "kana": "いもうとはきいろがすきです。",
-          "en": "My younger sister likes yellow."
+          "ja": "{黄色|きいろ}のシャツを{買|か}いました。",
+          "kana": "きいろのシャツをかいました。",
+          "en": "I bought a yellow shirt."
         }
       ],
       "notes": "Also used like a な-adjective: 黄色のかばん / 黄色いかばん.",
@@ -4284,9 +4284,9 @@
           "en": "I want a green sweater."
         },
         {
-          "ja": "{春|はる}は{山|やま}の{緑|みどり}がきれいですね。",
-          "kana": "はるはやまのみどりがきれいですね。",
-          "en": "In spring the green of the mountains is beautiful."
+          "ja": "この{緑|みどり}の{上着|うわぎ}は{誰|だれ}のですか。",
+          "kana": "このみどりのうわぎはだれのですか。",
+          "en": "Whose is this green jacket?"
         }
       ],
       "notes": "No い-adjective form: say 緑の〜. グリーン is also common. Also \"greenery\" (緑が多い).",
@@ -4385,9 +4385,9 @@
           "en": "There's a university east of the station."
         },
         {
-          "ja": "{東|ひがし}の{空|そら}が{明|あか}るくなりました。",
-          "kana": "ひがしのそらがあかるくなりました。",
-          "en": "The eastern sky grew light."
+          "ja": "{田中|たなか}さんの{家|いえ}は{学校|がっこう}の{東|ひがし}です。",
+          "kana": "たなかさんのいえはがっこうのひがしです。",
+          "en": "Mr. Tanaka's house is east of the school."
         }
       ],
       "collocations": [
@@ -4420,9 +4420,9 @@
           "en": "The western sky is red."
         },
         {
-          "ja": "{西|にし}の{出口|でぐち}で{待|ま}っていますね。",
-          "kana": "にしのでぐちでまっていますね。",
-          "en": "I'll be waiting at the west exit, okay?"
+          "ja": "{私|わたし}の{部屋|へや}は{家|いえ}の{西|にし}にあります。",
+          "kana": "わたしのへやはいえのにしにあります。",
+          "en": "My room is on the west side of the house."
         }
       ],
       "collocations": [
@@ -4490,9 +4490,9 @@
           "en": "Northern towns get a lot of snow."
         },
         {
-          "ja": "{北|きた}から{冷|つめ}たい{風|かぜ}が{吹|ふ}いています。",
-          "kana": "きたからつめたいかぜがふいています。",
-          "en": "A cold wind is blowing from the north."
+          "ja": "ケンの{家|いえ}はここから{北|きた}へ{十分|じゅっぷん}ぐらいです。",
+          "kana": "ケンのいえはここからきたへじゅっぷんぐらいです。",
+          "en": "Ken's house is about ten minutes north of here."
         }
       ],
       "collocations": [

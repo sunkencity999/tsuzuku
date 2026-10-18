@@ -13,14 +13,16 @@
  * them the drill rotates the point's examples by exposure and blanks the
  * first `clozeHints` entry found, so the surface cannot be memorized.
  * Showing the pattern before answering is a hint (Hard ceiling); the frame's
- * `?` / Hint button shows it too.
+ * `?` / Hint button shows it too. The sentence plays with the planner's
+ * `params.clip` (`g-…#ex<k>`, design 08 §8) when it set one; the pack
+ * resolves it and falls back to the device voice when it misses.
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { segmentsToTokens, toKana, toPlain } from '@/content/ruby';
 import type { ContentItem, GrammarItem, SentenceExample } from '@/content/types';
 import { clozeTiles } from '@/learn';
-import { speak } from '@/shared/audio';
+import { speak, type SpeakOptions } from '@/shared/audio';
 import type { AttemptResult, ExerciseMeta, ExerciseProps } from '@/shared/exercise-types';
 import { rngFor } from '@/shared/hash';
 import { diffChars, equivalentJa, normalizeJa } from '@/shared/jp';
@@ -144,15 +146,22 @@ export function PatternCloze(p: ExerciseProps): JSX.Element {
 
   const plain = prompt?.plain ?? null;
   const kana = prompt?.kana ?? null;
+  const clip = p.step.params.clip;
+  /** Kana when the example carries one, the planner's clip key when set; `undefined` when neither (the options are unchanged from before the pack). */
+  const speakOptions = (): SpeakOptions | undefined => {
+    const o: SpeakOptions = { ...(kana ? { kana } : {}), ...(clip ? { clip } : {}) };
+    return Object.keys(o).length > 0 ? o : undefined;
+  };
   useEffect(() => {
-    if (plain) void speak(plain, kana ? { kana } : undefined);
-  }, [plain, kana, p.step.id]);
+    if (plain) void speak(plain, speakOptions());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plain, kana, clip, p.step.id]);
 
   const replay = (): void => {
     if (!prompt || phase !== 'answer') return;
     replays.current += 1;
     p.onReplay();
-    void speak(prompt.plain, prompt.kana ? { kana: prompt.kana } : undefined);
+    void speak(prompt.plain, speakOptions());
   };
 
   const emit = (r: AttemptResult & { check?: CheckResult }): void => {

@@ -931,8 +931,9 @@ describe('validator accuracy (round 2)', () => {
 
 /* ── design 08 §5: listening pieces — V41 / V42 / V43 / V45 / V46, the V05 / V34 amendments, the pool skip ── */
 
-import { castNames, lineMorae, ownStationUnknowns, PIECE_LINE_MAX_MORAE, PIECE_TARGET_SECONDS, POOL_FILE_RE, speechSeconds, textSpeechSeconds } from './validate-content.ts';
-import { buildMatchPool } from './linker.ts';
+import { castNames, lineMorae, PIECE_LINE_MAX_MORAE, PIECE_TARGET_SECONDS, POOL_FILE_RE, speechSeconds, textSpeechSeconds } from './validate-content.ts';
+import { buildMatchPool, buildPools, linkSentence } from './linker.ts';
+import { bundlesFromCorpus } from './assign-stations.ts';
 import type { GrammarItem, StoryLine, VocabItem } from '../src/content/types.ts';
 
 const CAST = join(here, '__fixtures__', 'cast.sample.json');
@@ -1010,7 +1011,7 @@ describe('listening pieces (design 08 §5) — placement, pool skip, pipeline', 
     expect(b.storyIds).toEqual(['s-04-1', 's-04-4']);
     const m = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')) as { files: { path: string; type: string; stations: number[] }[]; totals: Record<string, number> };
     expect(m.files.find((f) => f.path === LISTENING)).toMatchObject({ type: 'story', stations: [4] });
-    expect(m.totals['pool']).toBe(0);
+    expect(m.totals['pool']).toBe(53);
   });
 
   it('V05 amendment: a sequence up to quota.stories + quota.listening is accepted, one beyond it fails', () => {
@@ -1238,22 +1239,27 @@ describe('V45 minutes band (W)', () => {
 });
 
 describe('V46 own-station all-known example (W; F for Stations 4–15 with --strict --listening-release)', () => {
-  it('ownStationUnknowns: numerals, punctuation, function tokens, cast names, inflections and okurigana after a stem are known; a lone hiragana is tolerated', () => {
+  it('the arbiter is linkSentence: numerals, punctuation, function tokens, cast names, inflections, okurigana after a stem and the honorific prefix are known; a lone stray hiragana is NOT tolerated (an unknown kana word stays one run); unknown runs are listed', () => {
     const vocab = JSON.parse(readFileSync(join(GOOD, 'vocab/n5/vocab-n5-001.json'), 'utf8')) as { items: VocabItem[] };
     const grammar = JSON.parse(readFileSync(join(GOOD, 'grammar/n5/grammar-n5-001.json'), 'utf8')) as { items: GrammarItem[] };
     const pool = buildMatchPool(vocab.items, grammar.items);
-    expect(ownStationUnknowns(pool, '私は学生です。')).toEqual([]);
-    expect(ownStationUnknowns(pool, '水を飲んで、パンを食べました。')).toEqual([]);
-    expect(ownStationUnknowns(pool, 'お水をください。')).toEqual([]);
-    expect(ownStationUnknowns(pool, 'パンを三つ食べました。')).toEqual([]);
-    expect(ownStationUnknowns(pool, '大きかったですね。')).toEqual([]);
-    expect(ownStationUnknowns(pool, 'ハナさんは学校へいきます。')).toEqual([]);
-    expect(ownStationUnknowns(pool, 'りんごを食べます。')).toEqual(['りんご']);
-    expect(ownStationUnknowns(pool, '龍の水です。')).toEqual(['龍']);
-    expect(ownStationUnknowns(pool, 'ハナさんはコーヒーを飲みます。')).toEqual(['コーヒー']);
+    const unknowns = (plain: string) => linkSentence(pool, plain).unknownTokens;
+    expect(unknowns('私は学生です。')).toEqual([]);
+    expect(unknowns('水を飲んで、パンを食べました。')).toEqual([]);
+    expect(unknowns('お水をください。')).toEqual([]);
+    // 三 is a known numeral run; the fixture has no 〜つ counter, so つ is an unknown token (in the shipped corpus 三つ links to the counter 〜つ)
+    expect(unknowns('パンを三つ食べました。')).toEqual(['つ']);
+    expect(unknowns('大きかったですね。')).toEqual([]);
+    expect(unknowns('ハナさんは学校へいきます。')).toEqual([]);
+    expect(unknowns('りんごを食べます。')).toEqual(['りんご']);
+    expect(unknowns('龍の水です。')).toEqual(['龍']);
+    expect(unknowns('ハナさんはコーヒーを飲みます。')).toEqual(['コーヒー']);
+    // よ is the particle, く is nothing: よく (not in the fixture) is one unknown run, never よ + a tolerated stray く
+    expect(unknowns('水をよく飲みます。')).toEqual(['よく']);
     // だ is the copula function token, so the unknown run stops before it; the verdict (not all-known) is what V46 reads
-    expect(ownStationUnknowns(pool, '学校へ行って、本を読んだ。')).toEqual(['読ん']);
-    expect(ownStationUnknowns(pool, '本を読みました。')).toEqual(['読み']);
+    expect(unknowns('学校へ行って、本を読んだ。')).toEqual(['読ん']);
+    expect(unknowns('本を読みました。')).toEqual(['読み']);
+    expect(linkSentence(pool, '水を飲んで、パンを食べました。').ids).toEqual(['v-n5-0008', 'v-n5-0007', 'v-n5-0011', 'v-n5-0010']);
   });
 
   it('the good fixture is clean; an item whose every example uses a word outside its allowlist warns, fails at release for Stations 4–15, and one all-known example is enough', () => {
@@ -1288,6 +1294,28 @@ describe('V46 own-station all-known example (W; F for Stations 4–15 with --str
     expect(v(root).warnings.filter((f) => f.rule === 'V46')).toEqual([]);
   });
 
+  it('cross-check: a vocab item passes V46 exactly when buildPools gives it a ref in its own station\'s pool (the two share one linker)', () => {
+    const root = copyFixture();
+    pipeline(root);
+    mutate(root, 'vocab/n5/vocab-n5-001.json', (d) => {
+      item(d, 7)['examples'] = [{ ja: '{龍|りゅう}の{水|みず}です。', kana: 'りゅうのみずです。', en: 'It is dragon water.' }];
+    });
+    const flagged = new Set(v(root).warnings.filter((f) => f.rule === 'V46').map((f) => f.id));
+    expect(flagged).toEqual(new Set(['v-n5-0008']));
+    const bundles = bundlesFromCorpus(root);
+    const { pools } = buildPools(root, bundles);
+    const ownRefs = new Set<string>();
+    for (const p of pools) for (const r of p.refs) if (r.ref.startsWith('v-')) ownRefs.add(r.ref.split('#')[0]!);
+    const vocab = JSON.parse(readFileSync(join(root, 'vocab/n5/vocab-n5-001.json'), 'utf8')) as { items: VocabItem[] };
+    for (const it of vocab.items) {
+      const ownPool = pools.find((p) => p.station === it.station)!;
+      const hasOwn = ownPool.refs.some((r) => r.ref.startsWith(`${it.id}#`));
+      expect(hasOwn, it.id).toBe(!flagged.has(it.id));
+    }
+    // the flagged item's example links nowhere in the corpus (龍 is out of corpus), so it is in no pool at all
+    expect(ownRefs.has('v-n5-0008')).toBe(false);
+  });
+
   it('is silent without station bundles', () => {
     const root = copyFixture();
     mutate(root, 'vocab/n5/vocab-n5-001.json', (d) => {
@@ -1316,7 +1344,7 @@ describe('formatReport caps warnings per rule too', () => {
 /* ── the shipped corpus (docs/listening-plan.json contracts.tests: "the shipped corpus passes with 0 new F") ── */
 
 describe('the shipped corpus (public/content) under the design 08 rules', () => {
-  it('strict mode: no V41–V46 failure; V42 warns once that the cast check is skipped while scripts/audio/cast.json is absent', () => {
+  it('strict mode: no V41–V46 failure; V42 resolves every speaker against scripts/audio/cast.json when it exists (and warns once that the check is skipped when it is absent)', () => {
     const r = validate(join(here, '..', 'public', 'content'), { strict: true });
     expect(r.bundles).toBe(true);
     expect(r.failures.filter((f) => /^V4[1-6]$/.test(f.rule))).toEqual([]);

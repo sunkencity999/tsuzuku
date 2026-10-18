@@ -6,10 +6,16 @@
  *  and no pending Sensei's Notes for the belt (one Notes session first).
  *  Five sections, pass = ≥ 80 % in each present section; no hints, no
  *  furigana (from Orange), 20 s soft timer per item (never a fail).
- *    耳 10 items at belt speed (speed-tier presets only)
+ *    耳 10 items at belt speed (speed-tier presets only): belt story lines
+ *       whose resolved tokens are all known, then — short of 10 — the belt
+ *       stations' own pool examples the learner knows (design 08 §4, with
+ *       their clip keys), then the belt's words as bare prompts
  *    読 2 passages; Brown ≥ 300 cpm, Black ≥ 400 cpm (hard timer from the cpm)
  *    形 30 typed production / cloze / transform items from the belt pool
- *    口 one role-play (Speak or Type) + 5 shadow lines; Black adds a 2-minute monologue
+ *    口 one role-play (Speak or Type) + 5 shadow lines; Black adds a 2-minute
+ *       monologue. The role-play takes a dialogue the learner has a part in
+ *       (`isSpeakable`, design 08 §11): an audio-first piece only with
+ *       `learnerSpeaker`
  *    書 3–6 sentences to a prompt (from Green)
  *  Not passed → `progress.shinsaNotes` (items + dominant tags); a retake needs
  *  one Notes session (`buildNotesPlan` → the runner calls
@@ -20,19 +26,20 @@
  *  `progress.shinsaPassed`, `profile.belt`; `shinsa:result` is emitted either
  *  way (B emits `belt:promoted`).
  */
-import { BELT_IDS, ERROR_TAGS, STATIONS, type Belt, type CardKey, type DrillId, type ErrorTag, type StationBundle, type StoryItem } from '../content/types';
+import { BELT_IDS, ERROR_TAGS, STATIONS, type Belt, type CardKey, type DrillId, type ErrorTag, type StationBundle, type StoryItem, type StoryLine } from '../content/types';
 import type { ContentLoader } from '../content/loader';
-import { toPlain } from '../content/ruby';
+import { hasKanji, toPlain } from '../content/ruby';
 import { SHINSA_SECTIONS, type ShinsaSection } from '../shared/catalog';
 import { bus } from '../shared/events';
 import { cardKey as makeKey } from '../shared/ids';
-import type { SessionPlan, Step, StepResult } from '../shared/session-types';
+import type { SessionPlan, Step, StepParams, StepResult } from '../shared/session-types';
 import { CardFlag, hasFlag, type SpeedTier } from '../shared/store-types';
 import { store } from '../store';
 import { beltEligibility, beltStations, bundleItemIds, kindFor } from '../store/derived';
 import { type QueueCard } from '../learn';
 import { S, SHINSA_LABEL, BELT_NAME, fill } from './engine-strings';
-import { finalizePlan, isGrammar, loadPlanContext, makeStep, pickDrill, pickStories, queueCardOf, resolveParams, stepForCard, type PlanContext } from './builder';
+import { finalizePlan, isGrammar, isSpeakable, isVocab, knownExampleRefs, loadPlanContext, makeStep, parseExampleRef, pickDrill, pickStories, queueCardOf, resolveParams, stepForCard, withPools, type PlanContext } from './builder';
+import { dedupe } from './params';
 import { sampleLowR } from './gatekeeper';
 
 export const SHINSA_PASS = 0.8;
@@ -191,9 +198,51 @@ function formDrill(ctx: PlanContext, qc: QueueCard): DrillId {
   }
 }
 
+/** One candidate of the 耳 section: a known story line, a belt pool example (with its clip key), or a bare word. */
+type EarCandidate = { story: StoryItem; lineIndex: number; vocabId: string | null } | { ref: { itemId: string; k: number; clip: string }; vocabId: string | null } | { word: string; vocabId: string };
+
+/** Every resolved token of the line is known (the Gatekeeper's rule; design 04 §11). */
+function lineKnown(line: StoryLine, known: ReadonlySet<string>): boolean {
+  const ids = (line.tokenIds ?? []).filter((x): x is string => x !== null);
+  return ids.length > 0 && ids.every((id) => known.has(id));
+}
+
+/**
+ * 耳 candidates (design 04 §12, 08 §4): the belt stories' lines whose tokens
+ * the learner all knows; short of 10, the belt stations' own pool examples
+ * the learner knows (i+0); short still, the belt's words as bare prompts,
+ * known ones first — never a line or an example with an untaught word.
+ */
+export function earCandidates(ctx: PlanContext, stories: readonly StoryItem[], beltIds: readonly string[], range: [number, number]): EarCandidate[] {
+  const out: EarCandidate[] = [];
+  for (const st of stories) {
+    st.lines.forEach((line, lineIndex) => {
+      if (!lineKnown(line, ctx.known)) return;
+      out.push({ story: st, lineIndex, vocabId: line.tokenIds?.find((x): x is string => x !== null && x.startsWith('v-')) ?? null });
+    });
+  }
+  if (out.length < SECTION_SIZES.ear) {
+    for (const r of knownExampleRefs(ctx, { stations: (n) => n >= range[0] && n <= range[1] })) {
+      if (out.length >= SECTION_SIZES.ear) break;
+      const parsed = parseExampleRef(r.ref);
+      if (!parsed) continue;
+      out.push({ ref: { itemId: parsed.itemId, k: parsed.k, clip: r.ref }, vocabId: parsed.itemId.startsWith('v-') ? parsed.itemId : (r.ids.find((x) => x.startsWith('v-')) ?? null) });
+    }
+  }
+  if (out.length < SECTION_SIZES.ear) {
+    const words = beltIds.map((id) => ctx.loader.get(id)).filter(isVocab);
+    for (const v of [...words.filter((v) => ctx.known.has(v.id)), ...words.filter((v) => !ctx.known.has(v.id))]) {
+      if (out.length >= SECTION_SIZES.ear) break;
+      out.push({ word: v.id, vocabId: v.id });
+    }
+  }
+  return out;
+}
+
 export async function buildShinsa(belt: Belt, seed: number, o: ShinsaOptions = {}): Promise<SessionPlan> {
   const [from, to] = beltStations(belt);
-  const ctx = await loadPlanContext({ station: to, loader: o.loader, available: o.available, seed, mode: 'shinsa' });
+  // The belt stations' listening pools ride on the context (design 08 §4): the 耳 section draws its examples from them.
+  const ctx = await withPools(await loadPlanContext({ station: to, loader: o.loader, available: o.available, seed, mode: 'shinsa' }));
   const bundles: StationBundle[] = [];
   for (let n = from; n <= to; n++) {
     try {
@@ -229,16 +278,26 @@ export async function buildShinsa(belt: Belt, seed: number, o: ShinsaOptions = {
   const ear: Step[] = [];
   const listen = pickDrill(ctx, 'sentence-listen');
   if (listen === 'sentence-listen') {
-    const lines = stories.flatMap((st) => st.lines.map((line, lineIndex) => ({ story: st, lineIndex, vocabId: line.tokenIds?.find((x): x is string => x !== null && x.startsWith('v-')) ?? null })));
+    const candidates = earCandidates(ctx, stories, beltIds, [from, to]);
     const picked = sampleLowR(
       rng,
-      lines.map((_, i) => ({ cardKey: 'x#rec' as CardKey, itemId: String(i), kind: 'vocab' as const, facet: 'rec' as const, r: 0.5, mature: false, exposures: 0 })),
+      candidates.map((_, i) => ({ cardKey: 'x#rec' as CardKey, itemId: String(i), kind: 'vocab' as const, facet: 'rec' as const, r: 0.5, mature: false, exposures: 0 })),
       SECTION_SIZES.ear,
-    ).map((q) => lines[Number(q.itemId)]!);
+    ).map((q) => candidates[Number(q.itemId)]!);
     picked.forEach((l, i) => {
       const vocab = l.vocabId ? ctx.loader.get(l.vocabId) ?? null : null;
       const key = l.vocabId ? makeKey(l.vocabId, 'listen') : null;
-      const params = resolveParams(ctx, listen, vocab, { storyId: l.story.id, lineIndex: l.lineIndex, rep: i });
+      let params: StepParams;
+      if ('word' in l) {
+        // The word itself (bare word → kana), with its own clip key; its example may carry an untaught word.
+        params = isVocab(vocab)
+          ? { sentence: hasKanji(vocab.word) ? `{${vocab.word}|${vocab.kana}}` : vocab.word, answer: vocab.kana, accept: dedupe([vocab.word, vocab.kana]), promptEn: vocab.meanings[0] ?? '', clip: vocab.id }
+          : resolveParams(ctx, listen, vocab, { rep: i });
+      } else if ('ref' in l) {
+        params = resolveParams(ctx, listen, ctx.loader.get(l.ref.itemId) ?? null, { example: l.ref.k, rep: i });
+      } else {
+        params = resolveParams(ctx, listen, vocab, { storyId: l.story.id, lineIndex: l.lineIndex, rep: i });
+      }
       params.rate = rate;
       ear.push(makeStep(ctx, { block: 'phase', exercise: listen, itemId: l.vocabId, cardKey: key && store.cards.get(key) ? key : null, params, timerMs: soft, exposures: 5, id: stepId(belt, 'ear', i) }));
     });
@@ -280,7 +339,8 @@ export async function buildShinsa(belt: Belt, seed: number, o: ShinsaOptions = {
   // 口 Speaking
   const mouth: Step[] = [];
   const rp = pickDrill(ctx, 'role-play');
-  const dialogues = stories.filter((s) => s.kind === 'dialogue').sort((a, b) => (b.id < a.id ? -1 : 1));
+  // A dialogue the learner has a part in (design 08 §11): an audio-first piece only when its writer set `learnerSpeaker`.
+  const dialogues = stories.filter(isSpeakable).sort((a, b) => (b.id < a.id ? -1 : 1));
   if (rp === 'role-play' && dialogues[0]) {
     const d = dialogues[0];
     const params = resolveParams(ctx, rp, d, { storyId: d.id });

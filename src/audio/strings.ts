@@ -4,9 +4,13 @@
  *
  * Everything a learner may read about voices, sound and speech recognition
  * lives here: the one-time install guide per OS (design 07 §7), the
- * network notice for recognition and vendor voices (design 06 §7 #10), and
- * the typed recognizer states the speaking exercises surface.
+ * network notice for recognition and vendor voices (design 06 §7 #10), the
+ * typed recognizer states the speaking exercises surface, and the honesty
+ * vocabulary of the voice pack (design 08 §1 / §10.1): a status chip says
+ * `synthetic voice (VOICEVOX)`, `device voice` or `text only` — the word
+ * "recorded" never appears on a chip, header or label.
  */
+import type { AudioSource } from '../shared/audio';
 
 export const S = {
   // Voice availability
@@ -35,6 +39,17 @@ export const S = {
   installLinux:
     'Add a Japanese voice: install a speech-dispatcher voice for Japanese (for example espeak-ng with the ja voice) and restart the browser.',
   installGeneric: 'Add a Japanese text-to-speech voice in your system settings, then reload this page.',
+  /** The clip-aware branch of the install guide (design 08 §8): the pack speaks, so the device voice is optional. */
+  installPackPlaying: 'Synthetic voices (VOICEVOX) are playing; a device voice is optional.',
+
+  // Voice pack source chips (design 08 §10.1): lower case, used beside a label
+  sourceClips: 'synthetic voice (VOICEVOX)',
+  sourceSynth: 'device voice',
+  sourceNone: 'text only',
+  /** Spoken in the honesty copy once; never on a chip. */
+  packExplain: 'Pre-rendered synthetic voices (VOICEVOX), clear and consistent on purpose. Your device voice speaks whenever a clip is missing.',
+  packAbsent: 'This build has no voice pack; your device voice speaks.',
+  packLoading: 'Checking for the voice pack.',
 
   // Speech recognition
   sttUnavailable: 'Speech recognition is not available in this browser. The self-assessment path earns the same XP.',
@@ -55,6 +70,13 @@ export const S = {
   zenMuted: 'Zen keeps the dojo quiet. Voices still speak.',
   volume: 'Volume',
 } as const;
+
+/** The chip label for an `AudioSource` (`audioSourceOf(services.audio)`), design 08 §10.1. */
+export const SOURCE_LABEL: Record<AudioSource, string> = {
+  clips: S.sourceClips,
+  synth: S.sourceSynth,
+  none: S.sourceNone,
+};
 
 /** `S.sttXxx` keyed by recognizer state (`SttState`). */
 export const STT_STATE_LABEL = {

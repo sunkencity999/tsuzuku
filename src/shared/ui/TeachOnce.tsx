@@ -24,6 +24,7 @@ import type { ComponentChildren, JSX } from 'preact';
 import { containsJapanese } from '../jp';
 import type { Progress } from '../store-types';
 import { S } from './strings';
+import './ui.css';
 
 /** A seen set as the store holds it (`Progress.teachSeen`) or as a page may pre-build it. */
 export type TeachSeen = ReadonlySet<string> | readonly string[] | undefined;

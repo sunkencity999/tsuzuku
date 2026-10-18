@@ -1,0 +1,199 @@
+{
+ "schema": "tsuzuku.content/1",
+ "type": "vocab",
+ "level": "n5",
+ "writer": "vocab-n5-001",
+ "generatedAt": "2026-10-17T00:00:00Z",
+ "items": [
+  {
+   "id": "v-n5-0001",
+   "word": "はい",
+   "kana": "はい",
+   "meanings": [
+    "yes"
+   ],
+   "pos": "int",
+   "jlpt": 5,
+   "tags": [
+    "communication"
+   ],
+   "pitch": 1,
+   "pitchConfidence": "high",
+   "examples": [
+    {
+     "ja": "はい、{分|わ}かりました。",
+     "kana": "はい、わかりました。",
+     "en": "Yes, understood."
+    }
+   ],
+   "station": 4
+  },
+  {
+   "id": "v-n5-0002",
+   "word": "雨",
+   "kana": "あめ",
+   "meanings": [
+    "rain"
+   ],
+   "pos": "n",
+   "jlpt": 5,
+   "tags": [
+    "weather"
+   ],
+   "pitch": 1,
+   "pitchConfidence": "high",
+   "examples": [
+    {
+     "ja": "{今日|きょう}は{雨|あめ}です。",
+     "kana": "きょうはあめです。",
+     "en": "It is raining today."
+    }
+   ],
+   "station": 4
+  },
+  {
+   "id": "v-n5-0003",
+   "word": "飴",
+   "kana": "あめ",
+   "meanings": [
+    "candy"
+   ],
+   "pos": "n",
+   "jlpt": 5,
+   "tags": [
+    "food"
+   ],
+   "pitch": 0,
+   "pitchConfidence": "high",
+   "examples": [
+    {
+     "ja": "{飴|あめ}を{食|た}べる。",
+     "kana": "あめをたべる。",
+     "en": "I eat candy."
+    }
+   ],
+   "station": 4
+  },
+  {
+   "id": "v-n5-0004",
+   "word": "日曜日",
+   "kana": "にちようび",
+   "meanings": [
+    "Sunday"
+   ],
+   "pos": "n",
+   "jlpt": 5,
+   "tags": [
+    "time"
+   ],
+   "pitch": 3,
+   "pitchConfidence": "high",
+   "examples": [
+    {
+     "ja": "{日曜日|にちようび}は{雨|あめ}です。",
+     "kana": "にちようびはあめです。",
+     "en": "Sunday is rainy."
+    }
+   ],
+   "station": 4
+  },
+  {
+   "id": "v-n5-0005",
+   "word": "何でも",
+   "kana": "なんでも",
+   "meanings": [
+    "anything"
+   ],
+   "pos": "adv",
+   "jlpt": 5,
+   "tags": [
+    "communication"
+   ],
+   "pitch": 1,
+   "pitchConfidence": "low",
+   "examples": [
+    {
+     "ja": "{何|なん}でも{食|た}べる。",
+     "kana": "なんでもたべる。",
+     "en": "I eat anything."
+    }
+   ],
+   "station": 4
+  },
+  {
+   "id": "v-n5-0006",
+   "word": "学生",
+   "kana": "がくせい",
+   "meanings": [
+    "student"
+   ],
+   "pos": "n",
+   "jlpt": 5,
+   "tags": [
+    "people"
+   ],
+   "pitch": 0,
+   "pitchConfidence": "low",
+   "examples": [
+    {
+     "ja": "{私|わたし}は{学生|がくせい}です。",
+     "kana": "わたしはがくせいです。",
+     "en": "I am a student."
+    }
+   ],
+   "station": 4,
+   "definitionJa": {
+    "ja": "{学校|がっこう}で{勉強|べんきょう}する{人|ひと}",
+    "kana": "がっこうでべんきょうするひと"
+   },
+   "collocations": [
+    "大学の学生"
+   ]
+  },
+  {
+   "id": "v-n5-0007",
+   "word": "日",
+   "kana": "ひ",
+   "meanings": [
+    "day",
+    "sun"
+   ],
+   "pos": "n",
+   "jlpt": 5,
+   "tags": [
+    "time"
+   ],
+   "examples": [
+    {
+     "ja": "いい{日|ひ}です。",
+     "kana": "いいひです。",
+     "en": "It is a good day."
+    }
+   ],
+   "station": 4
+  },
+  {
+   "id": "v-n5-0008",
+   "word": "二分",
+   "kana": "にふん",
+   "meanings": [
+    "two minutes"
+   ],
+   "pos": "n",
+   "jlpt": 5,
+   "tags": [
+    "time"
+   ],
+   "pitch": 1,
+   "pitchConfidence": "low",
+   "examples": [
+    {
+     "ja": "{二分|にふん}で{着|つ}きます。",
+     "kana": "にふんでつきます。",
+     "en": "We arrive in two minutes."
+    }
+   ],
+   "station": 4
+  }
+ ]
+}

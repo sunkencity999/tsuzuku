@@ -1,14 +1,15 @@
+import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { createFakeLoader, G, V } from '../../content/fixtures';
 import type { CardKey } from '../../content/types';
-import { installServices, nullAudio, resetServices } from '../../shared/audio';
+import { installServices, nullAudio, resetServices, type AudioSource } from '../../shared/audio';
 import { CardFlag, hasFlag, type CardTuple } from '../../shared/store-types';
 import { epochDay } from '../../shared/time';
 import { store } from '../../store';
 import { resetStoreForTests } from '../../store/store';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../../store/testing';
-import LibraryPage from './LibraryPage';
+import LibraryPage, { voiceMissing } from './LibraryPage';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const ROUTE = { name: 'library' } as const;
@@ -190,6 +191,59 @@ describe('<LibraryPage> items', () => {
     await mount({ cards: {} });
     expect(q<HTMLElement>('.empty').textContent).toContain('No items yet');
     expect(rows()).toHaveLength(0);
+  });
+});
+
+describe('<LibraryPage> voice status (design 08 §8)', () => {
+  const openListen = (): HTMLElement => {
+    act(() => q<HTMLButtonElement>('.library__station[data-station="1"] .library__station-head').click());
+    act(() => q<HTMLButtonElement>('.library__item[data-id="v-n5-0001"]').click());
+    act(() => q<HTMLButtonElement>('[role="dialog"] [data-action="listen"]').click());
+    return q<HTMLElement>('[role="dialog"] .library-detail__status');
+  };
+
+  it('shows no "no voice" notice when the pack speaks (source clips) even with no device voice', async () => {
+    const speakSpy = vi.fn(() => Promise.resolve());
+    installServices({ audio: { ...nullAudio, speak: speakSpy, hasJaVoice: signal(false), source: signal<AudioSource>('clips') } });
+    await mount();
+    expect(openListen().textContent).toBe('');
+    expect(speakSpy).toHaveBeenCalledWith('私', { kana: 'わたし' });
+  });
+
+  it('a ready pack the learner has not chosen is the device voice (no notice while one exists); a ready pack under "device" with no device voice shows the notice; the same pack chosen but muted (idle source none) does not — the remedy is the volume, not an OS voice', async () => {
+    installServices({ audio: { ...nullAudio, hasJaVoice: signal(true), packReady: signal(true), source: signal<AudioSource>('synth') } });
+    await mount();
+    expect(openListen().textContent).toBe('');
+
+    render(null, root);
+    resetStoreForTests();
+    installServices({ audio: { ...nullAudio, hasJaVoice: signal(false), canSpeak: signal(false), packReady: signal(true), source: signal<AudioSource>('none') } });
+    await mount();
+    store.patch('settings', (s) => ({ ...s, audioSource: 'device' }));
+    expect(openListen().textContent).toContain('No Japanese voice');
+
+    render(null, root);
+    resetStoreForTests();
+    installServices({ audio: { ...nullAudio, hasJaVoice: signal(false), canSpeak: signal(false), packReady: signal(true), source: signal<AudioSource>('none') } });
+    await mount();
+    expect(store.settings.value.audioSource).toBe('pack');
+    expect(openListen().textContent).toBe('');
+  });
+
+  it('voiceMissing reads voiceAudible + source, never hasJaVoice alone; packReady only together with the setting', () => {
+    expect(voiceMissing(nullAudio)).toBe(true);
+    expect(voiceMissing({ ...nullAudio, hasJaVoice: signal(true) })).toBe(false);
+    expect(voiceMissing({ ...nullAudio, source: signal<AudioSource>('clips') })).toBe(false);
+    // A ready pack the learner chose is a voice even while `source` idles at 'none' (volume 0); under 'device' it is not (design 08 §8 / §13).
+    expect(voiceMissing({ ...nullAudio, packReady: signal(true) }, true)).toBe(false);
+    expect(voiceMissing({ ...nullAudio, packReady: signal(true) }, false)).toBe(true);
+    const mutedPack = { ...nullAudio, hasJaVoice: signal(false), canSpeak: signal(false), packReady: signal(true), source: signal<AudioSource>('none') };
+    expect(voiceMissing(mutedPack, true)).toBe(false);
+    expect(voiceMissing(mutedPack, false)).toBe(true);
+    expect(voiceMissing({ ...nullAudio, hasJaVoice: signal(true), packReady: signal(true), source: signal<AudioSource>('synth') }, false)).toBe(false);
+    // A muted device voice is still a voice: no install nag.
+    expect(voiceMissing({ ...nullAudio, hasJaVoice: signal(true), canSpeak: signal(false) })).toBe(false);
+    expect(voiceMissing({ ...nullAudio, hasJaVoice: signal(false), canSpeak: signal(false), source: signal<AudioSource>('synth') })).toBe(true);
   });
 });
 

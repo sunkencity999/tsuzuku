@@ -1,6 +1,6 @@
 import { DRILL_IDS, RUNNER_IDS } from '@/content/types';
 import { isRegistered, listExercises, registerExercise, resetRegistryForTests, resolveExercise, type ExerciseMeta } from '@/shared/exercise-types';
-import { F_DRILLS, F_DRILL_IDS, ListenPage, StoryPage, TaiwaPage, missingDrills, registerAll } from './index';
+import { F_DRILLS, F_DRILL_IDS, ListenPage, RadioPage, StoryPage, TaiwaPage, missingDrills, registerAll } from './index';
 
 beforeEach(() => {
   resetRegistryForTests();
@@ -77,9 +77,11 @@ describe('input barrel', () => {
     expect(missingDrills()).toEqual(F_DRILL_IDS.filter((id) => id !== 'monologue'));
   });
 
-  it('re-exports the three standalone pages', () => {
+  it('re-exports the four standalone pages (Story, Listen, Taiwa, Radio)', () => {
     expect(typeof StoryPage).toBe('function');
     expect(typeof ListenPage).toBe('function');
     expect(typeof TaiwaPage).toBe('function');
+    // design 08 §10.2: `PAGE_SOURCES.radio` reads `RadioPage` from this barrel
+    expect(typeof RadioPage).toBe('function');
   });
 });

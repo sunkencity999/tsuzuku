@@ -184,7 +184,7 @@ describe('<KanaFlash> typed path', () => {
     const p = props();
     const input = mount(p) as HTMLInputElement;
     expect(speak).toHaveBeenCalledTimes(1);
-    expect(speak).toHaveBeenCalledWith('か', { kana: 'か' });
+    expect(speak).toHaveBeenCalledWith('か', { kana: 'か', clip: 'k-h-ka' });
     type(input, 'ka');
     expect(speak).toHaveBeenCalledTimes(1);
   });

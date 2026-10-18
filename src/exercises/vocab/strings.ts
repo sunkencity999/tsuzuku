@@ -52,6 +52,14 @@ export const S = {
   /* ── Pitch Ear ───────────────────────────────────────────────────────── */
   pitchChoicesLabel: 'Pitch contours',
   pitchContrast: 'Same sound, different pitch',
-  pitchDatasetNote: 'The pattern comes from the pitch dataset; the voice is a text-to-speech approximation.',
+  /** Device-voice path (design 08 §8): the synth only approximates the dataset's pattern. */
+  pitchDatasetNote: 'The pattern comes from the pitch dataset; the device voice only approximates it.',
+  /** Pack path: the clip was verified against the dictionary pitch (design 08 §7). */
+  pitchClipNote: 'Synthetic voice (VOICEVOX): the clip follows the dictionary pitch pattern.',
+  pitchGaNoteFlat: 'Now with が (ga) after it: a flat word stays high on が — nothing drops anywhere.',
+  pitchGaNoteTail: 'Now with が (ga) after it: a tail-high word drops right onto が — only the particle shows it.',
+  pitchGaNoteInside: 'Now with が (ga) after it: the drop already happened inside the word, so が stays low.',
+  pitchCompareLabel: 'Hear both',
+  hearWord: 'Hear {word}',
   pitchHeard: 'You chose',
 } as const;

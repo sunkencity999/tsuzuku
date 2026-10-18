@@ -17,6 +17,12 @@
  * `{judge}`. Additive fields the host needs: `answer` for a rubric Judge (no
  * answer → resolves `true`, nothing to verify) and `heard` for a perception
  * Judge (absent → seeded here, and the heard word is spoken through `speak()`).
+ * A perception Judge plays its pair through ONE source (design 08 §10.4):
+ * `pairClipKeys` resolves both words to clip keys — the item's own id, a pool
+ * partner's id, `${id}#pair` for a synthesized partner — and only when the
+ * pack is ready and holds both does the heard word carry a key; otherwise
+ * neither does and both halves go through the device voice, so timbre never
+ * leaks the answer.
  *
  * Scroll blocks (design 03 §2.2: pretest → teach → check): when the runner
  * reaches the first intro check of a Scroll it has not taught yet, the view
@@ -53,9 +59,10 @@ import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { content as appContent, type ContentLoader } from '../content/loader';
 import { BELT_IDS, type ContentItem } from '../content/types';
-import { speak } from '../shared/audio';
+import { services, speak, type AudioService } from '../shared/audio';
 import { resolveExercise, type AttemptResult, type JudgeRequest } from '../shared/exercise-types';
 import { rngFor } from '../shared/hash';
+import { equivalentJa } from '../shared/jp';
 import type { JikaiYokoku, SessionPlan, SessionResult } from '../shared/session-types';
 import type { LogEntry } from '../shared/store-types';
 import { ExerciseFrame } from '../shared/ui/ExerciseFrame';
@@ -71,6 +78,7 @@ import { S as ENGINE } from './engine-strings';
 import { EndCard } from './EndCard';
 import { Hud } from './Hud';
 import { MichikusaStep } from './MichikusaStep';
+import { isVocab } from './params';
 import type { SessionRunner } from './runner';
 import { isIntroCheck, teachModel, type TeachModel } from './scroll';
 import { TeachCard } from './TeachCard';
@@ -110,6 +118,26 @@ interface PendingJudge {
 }
 
 export const SESSION_GAP_MS = 10 * 60_000;
+
+/**
+ * Clip keys for a perception Judge's pair (design 08 §8, §10.4): the item's
+ * own word is `item.id`, a partner from `distractorIds` its own id, a
+ * synthesized partner `${item.id}#pair`. Returns the two keys only when the
+ * pack is ready AND holds both clips; otherwise `null`, and the host speaks
+ * both words without a key so neither half is a pack voice against a device
+ * voice — one source for both words, or the timbre gives the answer away.
+ */
+export function pairClipKeys(pair: readonly [string, string], item: ContentItem | null, lookup: (id: string) => ContentItem | undefined, distractorIds: readonly string[], audio: AudioService): [string, string] | null {
+  if (!audio.packReady?.value || !audio.clipFor || !isVocab(item)) return null;
+  const partners = distractorIds.map(lookup).filter(isVocab);
+  const keyFor = (w: string): string => {
+    if (equivalentJa(item.kana, w) || item.word === w) return item.id;
+    const hit = partners.find((v) => equivalentJa(v.kana, w) || v.word === w);
+    return hit ? hit.id : `${item.id}#pair`;
+  };
+  const keys: [string, string] = [keyFor(pair[0]), keyFor(pair[1])];
+  return keys.every((k) => audio.clipFor?.(k) !== undefined) ? keys : null;
+}
 
 /** Does this plan run with furigana off? A Shinsa from the Orange exam up (design 04 §12 "no furigana (from Orange)"). */
 export function examFurigana(plan: Pick<SessionPlan, 'mode' | 'station'>): boolean {
@@ -439,8 +467,10 @@ export function SessionView(p: SessionViewProps): JSX.Element {
       const heard = o.heard ?? (rngFor(store.seed(), runner.plan.id, step.id, 'heard')() < 0.5 ? 0 : 1);
       shape = { minimalPair: o.minimalPair, heard };
       const word = o.minimalPair[heard];
+      // One source for both halves (design 08 §10.4): a clip key only when the pack holds both words.
+      const clip = pairClipKeys(o.minimalPair, item, (id) => loader.get(id), step.params.distractorIds ?? [], services.audio)?.[heard];
       judgeReplay.current = () => {
-        void speak(word);
+        void speak(word, clip ? { clip } : undefined);
       };
       judgeReplay.current();
     } else {

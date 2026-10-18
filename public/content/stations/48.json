@@ -234,7 +234,9 @@
   "componentIds": [],
   "storyIds": [
     "s-48-1",
-    "s-48-2"
+    "s-48-2",
+    "s-48-3",
+    "s-48-4"
   ],
   "michikusaIds": [
     "m-48-1",
@@ -245,6 +247,7 @@
   "files": [
     "grammar/n1/grammar-n1-001.json",
     "michikusa/michikusa-s48.json",
+    "stories/n1/listening-s48.json",
     "stories/n1/stories-s48.json",
     "vocab/n1/vocab-n1-002.json",
     "vocab/n1/vocab-n1-004.json"

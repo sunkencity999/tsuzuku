@@ -627,3 +627,88 @@ describe('<RolePlay> inside the frame (contract #32: the hint key)', () => {
     expect(root.querySelector('.taiwa__feedback-line')?.textContent).toBe(S.ok);
   });
 });
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Cast voices (design 08 §8 / §11)                                           */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+describe('<RolePlay> cast voices (design 08 §8 / §11)', () => {
+  it('NPC lines carry their speaker label and clip key beside the synth slot b', async () => {
+    const { audio, calls } = fakeAudio();
+    installServices({ audio });
+    mount('choose');
+    clickText(S.begin);
+    await tick();
+    expect(calls[0]).toMatchObject({ text: toPlain(L(0).ja), o: { voice: 'b', speaker: 'ケン', clip: `${FIXTURE_DIALOGUE_ID}#L0`, interrupt: true } });
+    clickText(S.replayLine);
+    await tick();
+    expect(calls[1]?.o).toMatchObject({ voice: 'b', speaker: 'ケン', clip: `${FIXTURE_DIALOGUE_ID}#L0` });
+  });
+
+  it('after the learner answers, the gold line replays once in the learnerSpeaker\'s voice under "Your line, as ハナ says it"', async () => {
+    const { audio, calls } = fakeAudio();
+    installServices({ audio });
+    mount('choose');
+    clickText(S.begin);
+    await tick();
+    clickText(optionOfKind(1, 'best'));
+    await tick();
+    expect(phase()).toBe('feedback');
+    const gold = (): SpeakCall[] => calls.filter((c) => c.o?.clip === `${FIXTURE_DIALOGUE_ID}#L1`);
+    expect(gold()).toHaveLength(1);
+    expect(gold()[0]).toMatchObject({ text: toPlain(L(1).ja), o: { voice: 'a', speaker: 'ハナ' } });
+    expect(root.querySelector('[data-field="gold-replay"]')?.textContent).toBe('Your line, as ハナ says it');
+    expect(root.querySelector('[data-field="gold-replay"] [lang="ja"]')?.textContent).toBe('ハナ');
+    // the manual replay is the same voice
+    clickText(S.hearModel);
+    await tick();
+    expect(gold()).toHaveLength(2);
+    expect(calls[calls.length - 1]?.o).toMatchObject({ voice: 'a', speaker: 'ハナ' });
+    // continuing plays the next partner line in its own cast voice; line 1 is not replayed again
+    clickText(S.continue);
+    await tick();
+    expect(gold()).toHaveLength(2);
+    expect(calls[calls.length - 1]?.o).toMatchObject({ voice: 'b', speaker: 'ケン', clip: `${FIXTURE_DIALOGUE_ID}#L2` });
+    // the second answered line gets its own single replay
+    clickText(optionOfKind(3, 'ok'));
+    await tick();
+    expect(calls.filter((c) => c.o?.clip === `${FIXTURE_DIALOGUE_ID}#L3`)).toHaveLength(1);
+    expect(calls[calls.length - 1]?.o).toMatchObject({ voice: 'a', speaker: 'ハナ' });
+  });
+
+  it('a 森さん dialogue replays the gold line as 森さん: the learner role is resolved, never assumed', async () => {
+    const MORI = '森さん';
+    const mori: StoryItem = { ...DIALOGUE, id: 's-07-2', learnerSpeaker: MORI, lines: DIALOGUE.lines.map((l) => (l.speaker === 'ハナ' ? { ...l, speaker: MORI } : l)) };
+    const custom = createFakeLoader({ ...FIXTURE, items: { ...FIXTURE.items, 's-07-2': mori } });
+    const { audio, calls } = fakeAudio();
+    installServices({ audio });
+    mount('choose', { storyId: 's-07-2', loader: custom });
+    expect(root.querySelector('.taiwa__role strong')?.textContent).toBe(MORI);
+    clickText(S.begin);
+    await tick();
+    expect(calls[0]?.o).toMatchObject({ voice: 'b', speaker: 'ケン', clip: 's-07-2#L0' });
+    clickText(optionOfKind(1, 'best'));
+    await tick();
+    const gold = calls.filter((c) => c.o?.clip === 's-07-2#L1');
+    expect(gold).toHaveLength(1);
+    expect(gold[0]?.o).toMatchObject({ voice: 'a', speaker: MORI });
+    expect(root.querySelector('[data-field="gold-replay"]')?.textContent).toBe(`Your line, as ${MORI} says it`);
+    expect(root.textContent).not.toContain('as ハナ says it');
+  });
+
+  it('without an audible voice there is no gold replay and no caption', async () => {
+    const audio = { ...nullAudio, hasJaVoice: signal(false), speak: vi.fn(() => Promise.resolve()) };
+    installServices({ audio });
+    mount('choose');
+    clickText(S.begin);
+    await tick();
+    clickText(S.continue); // the partner line is read as text
+    await tick();
+    expect(phase()).toBe('learner');
+    clickText(optionOfKind(1, 'best'));
+    expect(phase()).toBe('feedback');
+    expect(audio.speak).not.toHaveBeenCalled();
+    expect(root.querySelector('[data-field="gold-replay"]')).toBeNull();
+    expect(root.querySelector('[data-action="hear-model"]')).toBeNull();
+  });
+});

@@ -1,9 +1,9 @@
 {
-  "$schema_note": "Implementation work breakdown for docs/design/08-listening-and-audio.md (revised after the skeptics' pass, 2026-10-17). Owners run in parallel after `contracts`; every owner's `paths` are disjoint from every other owner's. Paths marked NEW do not exist yet; everything else is a real file at HEAD 9a36ba6. Rule: every `Record<RouteName | BadgeId | WallpaperId | ContentKind | StatKey>` site in the repo belongs to the owner that changes the table (today: Layout.tsx NAV_OF_ROUTE, art/strings.ts WALLPAPER_NAMES, art/mon.ts ROWS — all in `contracts`).",
+  "$schema_note": "Implementation work breakdown for docs/design/08-listening-and-audio.md (revised after the skeptics' pass, 2026-10-17). STATUS 2026-10-18: every owner landed (contract tier 7ddfd0f, runtime waves A and B, content Pass 4 / 4b, the pipeline pass); acceptance strings amended by the lead are marked 'amended'; docs_to_update items are marked DONE. Owners run in parallel after `contracts`; every owner's `paths` are disjoint from every other owner's. Paths marked NEW do not exist yet; everything else is a real file at HEAD 9a36ba6. Rule: every `Record<RouteName | BadgeId | WallpaperId | ContentKind | StatKey>` site in the repo belongs to the owner that changes the table (today: Layout.tsx NAV_OF_ROUTE, art/strings.ts WALLPAPER_NAMES, art/mon.ts ROWS — all in `contracts`).",
   "design_doc": "docs/design/08-listening-and-audio.md",
   "pre_flight": [
-    "Lead, before the clip-runtime owner starts (≈ 5 min on a real iPhone, Safari): open a page that creates an <audio> from a blob built with new Blob([bytes], { type: 'audio/webm; codecs=opus' }) of a 90 s Opus/WebM sprite; play from a tap; seek to 60 s; set playbackRate 1.25 with preservesPitch; lock the screen for 30 s and confirm audio continues and timeupdate keeps firing. Record the result in docs/BUILD_STATUS.md under Known gaps; a failure re-opens the codec decision (AAC/MP4 fallback) before any runtime code is written.",
-    "Lead: confirm the 20 h top step of the 耳 cap stays (design 08 §12 shows ≈ 20–22 h reachable in Black only with every re-hearing) or lower it to 15 h — the formula constants are in store-listening's PROVIDES either way."
+    "Lead, before the clip-runtime owner starts (≈ 5 min on a real iPhone, Safari): open a page that creates an <audio> from a blob built with new Blob([bytes], { type: 'audio/webm; codecs=opus' }) of a 90 s Opus/WebM sprite; play from a tap; seek to 60 s; set playbackRate 1.25 with preservesPitch; lock the screen for 30 s and confirm audio continues and timeupdate keeps firing. Record the result in docs/BUILD_STATUS.md under Known gaps; a failure re-opens the codec decision (AAC/MP4 fallback) before any runtime code is written. STATUS 2026-10-18: pending with the user (docs/BUILD_STATUS.md Known gaps; the check page is https://claude.ai/artifact/9NG6vie6mNkoiFhzL2BWVW, with the added question whether the FIRST tap unlocks pack playback or only the second); the runtime landed on the design's assumptions, so a failure now is a follow-up, not a block.",
+    "DECIDED (lead, 2026-10-17/18): the 耳 cap steps are 7.5 h and 15 h — EAR_CAP_STEP_HOURS = [7.5, 15], EAR_CAP_STEPS = [70, 85, 100], 100 from 15 h — and REACHABLE_IN_APP_HOURS = round(DISTINCT_AUTHENTIC_HOURS 4.0 × (2.5 + 2)) = 18 (the landed corpus walks to 4.02 h, inside the 0.15 tolerance); the formula constants live in store-listening's PROVIDES."
   ],
   "shared_contracts_first": [
     "src/content/types.ts: LISTENING_GENRES / ListeningGenre, GENRE_FROM_STATION, AUTHENTIC_GENRES, isAuthenticText(s) (bridge || AUTHENTIC genre || casual dialogue), LineEmotion / LINE_EMOTIONS, QuestionKind / QUESTION_KINDS; StoryItem.genre? audioFirst? narrator?; StoryLine.emotion?; ComprehensionQuestion.kind? lineRef?; StationQuota.listening (0 for Stations 1-3, 2 for 4-53; STATIONS rows updated); CONTENT_KINDS += 'pool'; ID_PATTERNS.pool; PoolRef, ListeningPool; ManifestStation.counts excludes 'pool'",
@@ -14,7 +14,7 @@
     "src/shared/routes.ts: Route += { name: 'radio' } (#/radio) and { name: 'story'; id; mode?: 'listen' } (#/story/:id/listen); titleFor rows; src/app/Layout.tsx NAV_OF_ROUTE row radio: 'dojo'",
     "src/shared/catalog.ts: BADGE_IDS += 'teahouse-regular', 'first-hearing' (68); WALLPAPER_IDS += 'chaya-lanterns' (29); QUEST_IDS unchanged (17); src/art/mon.ts ROWS += 常 / 初; src/art/strings.ts WALLPAPER_NAMES += 茶屋の灯",
     "src/shared/session-types.ts: StepParams += clip?: string, refs?: string[]",
-    "src/content/loader.ts: pool(n): Promise<ListeningPool>; manifest files of type 'pool' never enter the id lookup; story files named listening-sNN.json need no loader change (byStation filter at loader.ts:385 already returns every story file whose stations include the station)",
+    "src/content/loader.ts: pool(n): Promise<ListeningPool>; manifest files of type 'pool' never enter the id lookup; story files named listening-sNN.json need no loader change (byStation filter at loader.ts:434 already returns every story file whose stations include the station)",
     "src/learn/pool.ts (NEW, exported from src/learn/index.ts): selectPool(refs, known, cards, today, { mode: 'i+0' | 'i+1'; limit }) and poolMinutes(refs) - the one i+0 / i+1 selector E and F both use; i+1 requires the unknown id's listen card to EXIST and be due within 3 days or not yet in review state",
     "src/shared/ui/TeachOnce.tsx (NEW): dismissible first-contact card keyed by id, reads/writes Progress.teachSeen",
     "scripts/validate-content.ts: V41-V43, V45, V46 as in design 08 §5; V05 and V34 amendments; --cast <path> (default scripts/audio/cast.json; absent -> W); the walk skips listening/pool-*.json like stations/ (else V08 fails on the generated pool files)",
@@ -137,8 +137,8 @@
       ],
       "acceptance": [
         "npm run content:all passes; the committed pools regenerate byte-identically in CI (content:index default check)",
-        "Pool totals match the census within ±6 %: cumulative i+0 vocab examples ≈ 9,362, grammar ≈ 1,583, story lines ≈ 2,743 at Station 53",
-        "No pool file exceeds 80 KB; the 3,412 never-all-known examples appear only in docs/listening-report.md",
+        "Pool totals: cumulative i+0 vocab examples ≈ 8,700 ±6 % (amended by the lead from the census's 9,362 — the corrected linker rule; landed 8,710), grammar ≈ 1,583 (landed 1,531), story lines (landed 5,947 refs = 3,165 lines of the 137 texts + 2,782 lines of the 100 pieces, every all-known line by the writers' tokenIds; the census's 2,743 was counted on the texts alone, before the 100 pieces existed) at Station 53 — docs/listening-report.md §1",
+        "No pool file exceeds 256 KiB (POOL_FILE_BUDGET_BYTES, a HARD limit: content:index fails over it with a BuildIndexError; amended by the lead from 80 KB — the largest landed pool is Station 43 at 178 KiB and 28 files are over 80 KB); the 4,065 examples outside every pool appear only in docs/listening-report.md §5",
         "npm run content:validate still green (pool files are skipped by the validator's walk, contracts owner)"
       ],
       "depends_on": ["contracts"]
@@ -256,7 +256,8 @@
         "PROVIDES ListenPage: for an audioFirst text the Read link is shown only after a pass or behind 'Read it anyway'"
       ],
       "tests": [
-        "src/input/listening/karaoke.test.ts: spans for a ruby'd line sum to moraCount(line.kana); punctuation tokens own zero morae; activeToken is monotone",
+        "src/input/listening/karaoke.test.ts: spans for a ruby'd line sum to the kana's morae without punctuation (speechMorae, the shared body in src/shared/jp.ts); punctuation tokens own zero morae; activeToken is monotone",
+        "src/input/listening/set.test.ts: the set builder and graders split out of ListeningArena.tsx — buildListeningSet orders gist questions first then by kind and dictates one clause of a line over DICTATION_MAX_MORAE when the cue has clauses, gradeDictation bands, implicitListenGrades writes nothing for a missing card; speechMoraCount is the shared speechMorae length",
         "src/input/listening/walk.test.ts: 6-8 items, gist-free, alternating choice/dictation; a 30-mora ref with clauses yields a clause dictation; without clauses it becomes a choice item; deterministic per rng",
         "src/input/listening/ListeningArena.test.tsx: gist questions precede detail/number/speaker/inference; a wrong answer with lineRef plays that line (speak called with clip s-NN-k#L<i>); header shows speaker names and the source chip from services.audio.source and never the word 'recorded'; listening:set payload carries genre/bridge/cold/mode, storyId null in walk mode; cold is false when the id is already in progress.listened from Radio; onProgress drives data-sung on the token spans; synth path keeps data-speaking per line; the offer copy says 'you decide'",
         "src/input/pages/ListenPage.test.tsx: audioFirst text hides Read until passed; non-audioFirst text unchanged"
@@ -361,13 +362,13 @@
         "CONSUMES 'listen:played', the extended 'listening:set', STAT_KEYS radioMinutes/coldSets/coldSetsPassed/listeningAuthenticMinutes/bestCleanTier, isAuthenticText / AUTHENTIC_GENRES, SPEED_TIER_RATES, the S.explainEar* strings from defs-strings",
         "PROVIDES startLedger: listen:played { source: 'radio' | 'readalong' } → listen row source 0 (both sources; seconds / 60 rounded to 0.1); listening:set unchanged; appListeningHours(m) and weekAppMinutes(m, today) helpers; weekProgress unchanged (external only)",
         "PROVIDES startStats: listen:played → radioMinutes (source radio only), listeningAuthenticMinutes (authentic), coldSets when cold && gistCorrect !== null, coldSetsPassed when cold && gistCorrect === true; listening:set → coldSets / coldSetsPassed when cold (storyId !== null), listeningAuthenticMinutes when (bridge || AUTHENTIC_GENRES.has(genre) || casual dialogue — the emitter sets `authentic` from isAuthenticText) && rate ≥ 1.0 && passed, bestCleanTier = max(bestCleanTier, tierOfRate(rate)) when total ≥ 3 && correct === total",
-        "PROVIDES perapera earAxis({ speedTier, bestCleanTier, dictationAcc, authenticHours, coldPassRate, coldSets }): tier = min(speedTier, max(1, bestCleanTier)); base = 20 · tier · clamp(acc/0.9, 0.5, 1); comp = coldSets ≥ 10 ? clamp(coldPassRate/0.8, 0.5, 1) : 1; stepped cap 70/85/100 at 10/20 authentic hours per design 08 §12; authenticListeningHours(m) = external listen+watch + listeningAuthenticMinutes/60; explain line from S.explainEarCap with {cap, app, ext, reach} and S.explainEarTier ('tier {tier}: clean set at {rate}×'); flags keep '(synthetic)' unconditionally; EAR_CAP_HOURS 20 retained, EAR_CAP_MID 85 and EAR_MID_HOURS 10 added; REACHABLE_IN_APP_HOURS exported (the figure the corpus test asserts)",
+        "PROVIDES perapera earAxis({ speedTier, bestCleanTier, dictationAcc, authenticHours, coldPassRate, coldSets }): tier = min(speedTier, max(1, bestCleanTier)); base = 20 · tier · clamp(acc/0.9, 0.5, 1); comp = coldSets ≥ 10 ? clamp(coldPassRate/0.8, 0.5, 1) : 1; stepped cap 70/85/100 at 7.5/15 authentic hours per design 08 §12 (lead decision; was 10/20); authenticListeningHours(m) = external listen+watch + listeningAuthenticMinutes/60; explain line from S.explainEarCap with {cap, app, ext, reach} and S.explainEarTier ('tier {tier}: clean set at {rate}×'); flags keep '(synthetic)' unconditionally; EAR_CAP_STEP_HOURS = [7.5, 15], EAR_CAP_STEPS = [70, 85, 100], EAR_GOAL_HOURS = 15 (the {goal} slot); REACHABLE_IN_APP_HOURS = round(DISTINCT_AUTHENTIC_HOURS × (ARENA_SET_FACTOR 2.5 + RADIO_REHEARINGS 2)) = 18 with DISTINCT_AUTHENTIC_HOURS = 4.0 (the figure the corpus test asserts; the explain line says 'about 18 h')",
         "PROVIDES xp.ts: listen:played grants 0 for both sources (explicit handler with a comment citing design 08 §10.2 / §10.3); listening:set unchanged (walk mode pays like a set)"
       ],
       "tests": [
         "src/store/ledger.test.ts: a radio listen:played of 600 s adds a 10-minute listen/app row; a readalong listen:played of 300 s adds a 5-minute listen/app row; weekProgress ignores app rows; appListeningHours sums only source 0 listen rows",
         "src/store/stats.test.ts: counters per the rules above; an Arena set on a 'news' piece at 0.9× does not add authentic minutes; at 1.0× passed it does; cold flag increments coldSets and coldSetsPassed on pass; 'Radio-first learner still accumulates coldSets' — ten cold Radio tracks with gist answers reach coldSets 10 with no Arena set; a Radio re-hearing with authentic true adds minutes; bestCleanTier rises to 4 after a perfect set at 1.1× and not after a 2/3 set",
-        "src/store/perapera.test.ts: ear = 60 at tier 3 / bestCleanTier 3 / acc 0.9 / 0 authentic hours capped to 60 (below 70); tier 5 preset with bestCleanTier 2 reads as tier 2; 100 possible only with authentic ≥ 20 h; 85 cap between 10 and 20 h; comp factor 0.5 floor at coldPassRate 0 with ≥ 10 cold sets and 1 with fewer than 10; flags include '(synthetic)' always; explain names both hour components and the reachable figure; a corpus-walk case (public/content via the fixture loader) computes distinct authentic hours (bridge + casual dialogues + authentic pieces) and asserts REACHABLE_IN_APP_HOURS = round(distinct × (2.5 + 2)) is ≥ 20 only when pieces are present — so the §12 sentence cannot drift",
+        "src/store/perapera.test.ts: ear = 60 at tier 3 / bestCleanTier 3 / acc 0.9 / 0 authentic hours capped to 60 (below 70); tier 5 preset with bestCleanTier 2 reads as tier 2; 100 possible only with authentic ≥ 15 h; 85 cap between 7.5 and 15 h; comp factor 0.5 floor at coldPassRate 0 with ≥ 10 cold sets and 1 with fewer than 10; flags include '(synthetic)' always; explain names both hour components and the reachable figure; a corpus-walk case (public/content via the fixture loader) computes distinct authentic hours (bridge + casual dialogues + authentic pieces) and asserts the walked figure never exceeds REACHABLE_IN_APP_HOURS = round(distinct × (2.5 + 2)) = 18 and equals it once every quota piece exists (landed: 4.02 h walked → 18.1 h) — so the §12 sentence cannot drift",
         "src/store/xp.test.ts: listen:played emits no xp:gained for radio or readalong; listening:set mode 'walk' pays 20 + 5·correct"
       ],
       "acceptance": [
@@ -610,30 +611,31 @@
     "pass_4b_rewrite": "≈ 450 Station 4-9 vocab example sentences rewritten to the ≤-station cumulative allowlist so every item has one own-station all-known example (V46); files vocab-n5-001 … -004",
     "ids": "s-NN-4 / s-NN-5 for Stations 4-31 (after the three texts), s-NN-3 / s-NN-4 for Stations 32-53; V05: sequence ≤ quota.stories + quota.listening",
     "total_pieces": 100,
-    "estimated_speech_hours": 4.7
+    "estimated_speech_hours": 4.7,
+    "landed_2026_10_18": "100 pieces in 50 listening-sNN.json files, 2,911 lines; 3.9 h by morae (docs/listening-report.md), ≈ 4.1 h by kana characters (the writers' estimator); every station's checker verdict fixed, 0 strict F; every V45 band passes. Pass 4b: 229 examples rewritten (108 + 99 + 20 + 0 + 2 in vocab-n5-001/002/003/004/006), V46 clear at Stations 4–15 (1,244 W remain at 16–53)"
   },
   "render_tiers": [
     {
       "id": "core",
       "contents": "story lines + pieces as they land; vocab words by item id (accent from pitch, verified for pitchConfidence high); kanji example words not covered by a vocab clip; kana + exampleWord; grammar examples; michikusa quotes; generated kana tracks; natural-slow (speedScale 0.85) takes of every sentence clip of Stations 1-17",
-      "hours": "≈ 10.1 rendered (8.8 distinct + 1.3 slow) + 5.2 pieces (4.7 + 0.5 slow)",
-      "bytes_mb": "≈ 126 (+65)",
+      "hours": "design ≈ 10.1 rendered (8.8 distinct + 1.3 slow) + 5.2 pieces; landed: report 13.5 h, three-tier dry run 14.9 h / 671 sprites",
+      "bytes_mb": "design ≈ 126 (+65); landed: report ≈ 164, dry run 177",
       "render_wall_clock_hours_4_engines": "≈ 5 (+2.5)",
       "ships": "first"
     },
     {
       "id": "pool",
-      "contents": "the 9,362 fully-allowlisted vocab example sentences (the pools) 12.4 h + slow takes for Stations 4-17 ≈ 1.2 h; never-all-known examples are not rendered until rewritten",
-      "hours": "≈ 13.6",
-      "bytes_mb": "≈ 169",
+      "contents": "the 8,710 (design 9,362) fully-allowlisted vocab example sentences (the pools) 9.8 h + slow takes for Stations 4-17 ≈ 1.3 h; the 4,065 examples outside every pool are not rendered until rewritten",
+      "hours": "design ≈ 13.6; landed: report 11.0 h, dry run 11.8 h / 510 sprites",
+      "bytes_mb": "design ≈ 169; landed: report ≈ 134, dry run 140",
       "render_wall_clock_hours_4_engines": "≈ 6.5 (overnight)",
       "ships": "second"
     },
     {
       "id": "ear",
-      "contents": "collocations (5,709), word+が pitch-contrast variants (1,266), minimal-pair partners that would otherwise be device-voiced, definitionJa (4,924); cues in <level>/ear.json",
-      "hours": "≈ 10.5 (panel estimate until listening-report has definitionJa lengths)",
-      "bytes_mb": "≈ 131",
+      "contents": "collocations (5,854; design 5,709), word+が pitch-contrast variants (1,266), the 6,387 <itemId>#pair minimal-pair partners (synthesizeMinimalPair, Node-importable from src/learn/distractors.ts), definitionJa (4,924); cues in <level>/ear.json",
+      "hours": "design ≈ 10.5; landed: report 9.4 h (partners not counted), dry run 11.2 h / 483 sprites",
+      "bytes_mb": "design ≈ 131; landed: report ≈ 114, dry run 133",
       "render_wall_clock_hours_4_engines": "≈ 5",
       "ships": "third"
     },
@@ -646,30 +648,30 @@
     }
   ],
   "budgets": {
-    "hours_basis": "scripts/listening-report.ts: kana chars ÷ 7 s + 0.5 s per clip; connected speech ≈ 23.7 h distinct (pool 12.4 + grammar 2.0 + story lines 4.5 + michikusa 0.1 + pieces 4.7), drill clips ≈ 12.7 h (words 1.9, kanji words 0.2 net, kana 0.1, T3 ≈ 10.5); ≈ 36 h distinct, ≈ 39 h rendered with slow takes",
-    "pack_total_mb": "≈ 490 audio + 32 site; dist ≤ 900 MB asserted by audio:check; Pages limit 1 GB",
+    "hours_basis": "scripts/listening-report.ts (docs/listening-report.md, content c-22578c2f0f): morae ÷ 7 s + 0.5 s per clip (speechMorae of the kana); connected speech ≈ 19.6 h distinct (pool 9.8 + grammar 1.9 + story lines 4.0 + michikusa 0.1 + pieces 3.9), drill clips ≈ 11.6 h (words 1.8, kanji words 0.3 net, kana 0.1, T3 9.4 — collocations 2.6, word+が 0.4, definitionJa 6.4; #pair partners not counted); ≈ 31.1 h distinct, ≈ 33.9 h rendered with slow takes. Design figures (kana chars ÷ 7): 23.7 / 12.7 / 36 / 39 h",
+    "pack_total_mb": "≈ 413 (report estimate) / ≈ 451 (three-tier dry run a-acc3792de1: 37.8 h, 1,664 sprites) audio + 32 site; design ≈ 490; dist ≤ 900 MB asserted by audio:check; Pages limit 1 GB",
     "pages_bandwidth": "100 GB/month soft limit; a learner ≈ 0.5 GB over the road (one belt download per belt + prefetch) ≈ 20–60 MB/month; ≈ 200 full-pack or ≈ 1,500 belt downloads per month; content-addressed sprites keep a release's re-download to the changed sprites (reusedBytesShare printed by audio:check)",
     "first_belts_mb": "white+yellow+orange T1+T2 ≈ 40 MB + slow takes ≈ 40 MB",
     "per_station_prefetch_mb": "1-3 (0 under data saver)",
-    "indexes_kb": "≤ 350 raw per level file (≈ 80 gzipped on the wire), ≤ 20 per station, manifest ≤ 80",
+    "indexes_kb": "≤ 350 raw per level file (hard; landed max n3 sentences.json 301), station files warn over 64 (landed max s52 44.5; the design's 20 predates m at two rates), manifest ≤ 256 KiB raw accepted by the lead on 2026-10-18 (three-tier dry run 214; one files[] list); pool files ≤ 256 KiB hard (landed max 178)",
     "memory": "≤ 6 decoded sprites, ≤ 1.2 MB Opus each; the 6 Audio elements are created once in unlock()",
-    "ci_per_deploy": "+ ≈ 490 MB pack fetch, + ≈ 520 MB Pages artifact upload with the full pack"
+    "ci_per_deploy": "+ ≈ 450–490 MB pack fetch, + ≈ 480–520 MB Pages artifact upload with the full pack (none until Phase 3 publishes a release)"
   },
   "docs_to_update": [
-    "docs/design/01-identity-and-thesis.md §2 honesty clause",
-    "docs/design/02-progression.md §1 content counts and quota table (listening 2 per station 4–53, texts 237)",
-    "docs/design/03-sessions-and-loop.md §2.3 Input block",
-    "docs/design/04-exercises.md §5 (listening-set pool mode, question kinds, lineRef, clause dictation, tier OFFER), §11 phase 3 耳 (pool refs), §12 耳 section",
-    "docs/design/05-srs-and-pedagogy.md §9 (Radio and Read-along rows, dojo-hours line) and §11 耳 row",
-    "docs/design/06-rewards.md §2 (68 badges) and §3 (29 wallpapers)",
-    "docs/design/07-architecture.md §1 routes (#/radio, #/story/:id/listen), §2 module layout, §7 audio services, §10 offline, §11 deployment",
-    "docs/ARCHITECTURE.md §0 (script-importable modules) and §1-§6 (contracts owner)",
-    "docs/CONTENT_GUIDE.md §1, §14.2, §18 (contracts owner)",
-    "docs/CHANGELOG.md (contracts owner)",
-    "docs/BUILD_STATUS.md Counts / Known gaps (iPhone pre-flight) / Next steps",
-    "docs/module-plan.json rows for every NEW file",
-    "docs/CONTRACT_NOTES.md",
-    "CONTENT_LICENSE.md 'Synthetic voices' section (render-pipeline owner)"
+    "DONE 2026-10-18 — docs/design/01-identity-and-thesis.md §2 honesty clause",
+    "DONE 2026-10-18 — docs/design/02-progression.md §1 content counts and quota table (listening 2 per station 4–53, texts 237)",
+    "DONE 2026-10-18 — docs/design/03-sessions-and-loop.md §2.3 Input block",
+    "DONE 2026-10-18 — docs/design/04-exercises.md §5 (listening-set pool mode, question kinds, lineRef, clause dictation, tier OFFER), §11 phase 3 耳 (pool refs), §12 耳 section",
+    "DONE 2026-10-18 — docs/design/05-srs-and-pedagogy.md §9 (Radio and Read-along rows, dojo-hours line) and §11 耳 row",
+    "DONE 2026-10-18 — docs/design/06-rewards.md §2 (68 badges) and §3 (29 wallpapers)",
+    "DONE 2026-10-18 — docs/design/07-architecture.md §1 routes (#/radio, #/story/:id/listen), §2 module layout, §7 audio services, §10 offline, §11 deployment",
+    "DONE 2026-10-18 — docs/ARCHITECTURE.md §0 (script-importable modules) and §1-§6 (contracts owner)",
+    "DONE 2026-10-18 — docs/CONTENT_GUIDE.md §1, §14.2, §18 (contracts owner)",
+    "DONE 2026-10-18 — docs/CHANGELOG.md (contracts owner)",
+    "DONE 2026-10-18 — docs/BUILD_STATUS.md Counts / Known gaps (iPhone pre-flight) / Next steps",
+    "DONE 2026-10-18 — docs/module-plan.json rows for every NEW file",
+    "DONE 2026-10-18 — docs/CONTRACT_NOTES.md",
+    "DONE 2026-10-18 — CONTENT_LICENSE.md 'Synthetic voices' section (render-pipeline owner)"
   ],
   "resolved_conflicts": [
     "Pieces as StoryItems with genre/audioFirst/narrator (feasibility judge) instead of a listening/ kind with l- ids (pedagogy proposal): nine fewer contract files, same learner behaviour — but in their own listening-sNN.json files (skeptic: appending to stories-sNN.json breaks MAX_FILE_BYTES at Black); the loader already handles two story files per station",

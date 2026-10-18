@@ -11,8 +11,8 @@
  {
   "path": "src/shared/routes.ts",
   "kind": "lib",
-  "responsibility": "[CONTRACT][P1] Hash route table: Route union, href/parseHash/navigate, current-route signal, per-route document titles. Every link in every group uses href().",
-  "api": "export type Route = {name:'dojo'}|{name:'onboarding'}|{name:'train';mode:SessionMode}|{name:'scroll';id:string}|{name:'road'}|{name:'station';n:number}|{name:'gate';n:number}|{name:'shinsa';belt:Belt}|{name:'story';id:string}|{name:'listen';id:string}|{name:'taiwa';id:string}|{name:'dan'}|{name:'library'}|{name:'collections';tab:'mon'|'kakejiku'|'goshuin'}|{name:'studio';wallpaperId:WallpaperId}|{name:'records'}|{name:'ledger'}|{name:'settings'}|{name:'backup'}|{name:'about'}; export function href(r:Route):string; export function parseHash(hash:string):Route; export function navigate(r:Route,o?:{replace?:boolean}):void; export const route:Signal<Route>; export function titleFor(r:Route):string",
+  "responsibility": "[CONTRACT][P1] Hash route table: Route union, href/parseHash/navigate, current-route signal, per-route document titles. Every link in every group uses href(). Design 08 §10: `#/story/:id/listen` (Read-along, mode \"listen\") and `#/radio` (茶屋ラジオ); titleFor rows for both.",
+  "api": "export type Route = {name:'dojo'}|{name:'onboarding'}|{name:'train';mode:SessionMode}|{name:'scroll';id:string}|{name:'road'}|{name:'station';n:number}|{name:'gate';n:number}|{name:'shinsa';belt:Belt}|{name:'story';id:string;mode?:'listen'}|{name:'listen';id:string}|{name:'taiwa';id:string}|{name:'radio'}|{name:'dan'}|{name:'library'}|{name:'collections';tab:'mon'|'kakejiku'|'goshuin'}|{name:'studio';wallpaperId:WallpaperId}|{name:'records'}|{name:'ledger'}|{name:'settings'}|{name:'backup'}|{name:'about'}; export function href(r:Route):string; export function parseHash(hash:string):Route; export function navigate(r:Route,o?:{replace?:boolean}):void; export const route:Signal<Route>; export function titleFor(r:Route):string",
   "depends_on": [
    "src/content/types.ts",
    "src/shared/session-types.ts",
@@ -189,7 +189,7 @@
  {
   "path": "src/app/pages/SettingsPage.tsx",
   "kind": "page",
-  "responsibility": "[P1] All Settings fields (intensity + custom newPerDay, review cap, retention, feel, theme, voice pick via services.audio.voices(), speed tier, furigana mode, J-J, classic grading, speaking mode, writing, sound, crt, rest day, vertical text, save slot), storage meter from store.storage with export nudge, .ics reminder download, link to 道場の掟.",
+  "responsibility": "[P1] All Settings fields (intensity + custom newPerDay, review cap, retention, feel, theme, voice pick via services.audio.voices(), speed tier, furigana mode, J-J, classic grading, speaking mode, writing, sound, crt, rest day, vertical text, save slot), storage meter from store.storage with export nudge, .ics reminder download, link to 道場の掟. Design 08 §13: the 音声パック voice-pack card (per-belt sizes from the manifest belts and \"on this device\" from cacheUsage(), Download for offline with a progress--ai bar and Remove, the Safari ITP note, \"This build has no voice pack; your device voice speaks\" when absent) read through useClipPlayer() so a cold load shows \"looking\" rather than \"no pack\"; the audioSource toggle (pack | device) with the hint naming which drills each source serves; the dataSaver toggle showing the EFFECTIVE state (dataSaverOn: toggle OR navigator.connection.saveData) with a hint line; the speed-tier note \"Slow is spoken slowly through Station 17; faster speeds keep the pitch\".",
   "api": "export default function SettingsPage(p:{route:Route}):JSX.Element",
   "depends_on": [
    "src/shared/routes.ts",
@@ -204,7 +204,7 @@
  {
   "path": "src/app/pages/BackupPage.tsx",
   "kind": "page",
-  "responsibility": "[P1] Export (JSON; gzip via CompressionStream when available) named tsuzuku-backup-YYYY-MM-DD.json; import via file input -> previewImport -> diff summary (streak max, XP max, collections union, cards newer-wins, ledger union) -> merge or replace; emits backup:exported through the store API.",
+  "responsibility": "[P1] Export (JSON; gzip via CompressionStream when available) named tsuzuku-backup-YYYY-MM-DD.json; import via file input -> previewImport -> diff summary (streak max, XP max, collections union, cards newer-wins, ledger: app rows take the larger side per day and kind, outside and noted rows union) -> merge or replace; emits backup:exported through the store API.",
   "api": "export default function BackupPage(p:{route:Route}):JSX.Element",
   "depends_on": [
    "src/shared/routes.ts",
@@ -295,7 +295,7 @@
  {
   "path": "src/shared/store-types.ts",
   "kind": "lib",
-  "responsibility": "[CONTRACT][P1] Save types: SaveMeta and all slices (design 07 §3 + ARCHITECTURE §1 deltas), CardTuple, CardShard, LogEntry, ItemKind, ItemBelt, Rating, EpochDay, slice key union, and the Store interface (shape of src/store/index.ts) so pure engines can type `Store['cards']` without importing the store. Imports only content/types (no cycles).",
+  "responsibility": "[CONTRACT][P1] Save types: SaveMeta and all slices (design 07 §3 + ARCHITECTURE §1 deltas), CardTuple, CardShard, LogEntry, ItemKind, ItemBelt, Rating, EpochDay, slice key union, and the Store interface (shape of src/store/index.ts) so pure engines can type `Store['cards']` without importing the store. Imports only content/types (no cycles). Design 08 §10–§13: Settings.audioSource (\"pack\" | \"device\") / dataSaver; Progress.listened? (heard text ids, least-recently-heard order), Progress.arenaAt? (text id → epoch day of the last PASSED Arena set; the Arena is the only writer), Progress.teachSeen?; STAT_KEYS += radioMinutes, coldSets, coldSetsPassed, listeningAuthenticMinutes, bestCleanTier.",
   "api": "export type EpochDay Rating ItemKind ItemBelt CardTuple CardFlag(const 1|2|4|8) CardState Profile Settings Streak Progress Quests Collections KageState WeakPoints Ledger Stats SaveMeta CardShard LogEntry SliceKey; export interface Store (ARCHITECTURE §1; session slot typed as unknown-shaped SessionSnapshot via generic); export const SAVE_SCHEMA='tsuzuku.save/1', CARDS_SCHEMA='tsuzuku.cards/1', LOG_SCHEMA='tsuzuku.log/1'",
   "depends_on": [
    "src/content/types.ts"
@@ -332,7 +332,7 @@
  {
   "path": "src/shared/catalog.ts",
   "kind": "lib",
-  "responsibility": "[CONTRACT][P1] Reward catalog ids shared by B (rules), G (art) and F/E (missions): BADGE_IDS (66 incl. the 7 belt badges belt-yellow…belt-black; ids exactly as design 06 §2 incl. gatekeepers-respect, one-minute-monologue, form-chain-20, beyond-the-wall), WALLPAPER_IDS (28, incl. okaeri — the former \"continue\"), QUEST_IDS (17), MISSIONS (tiered Field Missions with belt availability and XP range), SFX_NAMES, ShinsaSection.",
+  "responsibility": "[CONTRACT][P1] Reward catalog ids shared by B (rules), G (art) and F/E (missions): BADGE_IDS (68 incl. the 7 belt badges belt-yellow…belt-black; ids exactly as design 06 §2 incl. gatekeepers-respect, one-minute-monologue, form-chain-20, beyond-the-wall), WALLPAPER_IDS (29, incl. okaeri — the former \"continue\"), QUEST_IDS (17), MISSIONS (tiered Field Missions with belt availability and XP range), SFX_NAMES, ShinsaSection. Design 08 §11: BADGE_IDS += teahouse-regular, first-hearing (68); WALLPAPER_IDS += chaya-lanterns (29); QUEST_IDS unchanged (17).",
   "api": "export const BADGE_IDS:readonly string[]; export type BadgeId; export const WALLPAPER_IDS:readonly string[]; export type WallpaperId; export const QUEST_IDS; export type QuestId; export const MISSIONS:readonly {id:string;tier:1|2|3|4|5;belt:Belt;titleEn:string;xp:[number,number];conversation:boolean}[]; export const SFX_NAMES; export type SfxName; export type ShinsaSection='ear'|'read'|'form'|'mouth'|'write'",
   "depends_on": [
    "src/content/types.ts"
@@ -422,7 +422,7 @@
  {
   "path": "src/store/backup.ts",
   "kind": "lib",
-  "responsibility": "[P1] Export document {meta, shards, log}; optional gzip via CompressionStream; import: parse -> migrate -> preview diff -> merge (streak max, XP max, collections union, cards newer-wins, ledger union by day) or replace; emits backup:exported; bumps stats.exports.",
+  "responsibility": "[P1] Export document {meta, shards, log}; optional gzip via CompressionStream; import: parse -> migrate -> preview diff -> merge (streak max, XP max, collections union, cards newer-wins, ledger: app rows — the larger side's day sum per kind (same-day listen:played rows coalesce, so a union would double-count); outside and noted rows: union by identity; progress.arenaAt per-text max, listened / teachSeen union) or replace; emits backup:exported; bumps stats.exports.",
   "api": "export async function exportSave(o?:{gzip?:boolean}):Promise<{blob:Blob;filename:string}>; export function previewImport(json:string):ImportPreview; export function applyImport(p:ImportPreview,mode:'merge'|'replace'):void; export interface ImportPreview {valid:boolean;errors:string[];summary:{streak:[number,number];xp:[number,number];cards:[number,number];badges:[number,number]}}",
   "depends_on": [
    "src/shared/store-types.ts",
@@ -492,7 +492,7 @@
  {
   "path": "src/store/badge-defs.ts",
   "kind": "lib",
-  "responsibility": "[P1] The 66 Mon definitions (design 06 §2) as data: id, names, glyph, field, tier, and a pure condition over {meta, counters, context event}; conditions reference only SaveMeta paths, STAT_KEYS (stats.kanjiBrown, stats.vocabBrown, …) and ledgerHours(m) from ./ledger; streak badges above 30 days use streak.totalDays, never streak.current.",
+  "responsibility": "[P1] The 68 Mon definitions (design 06 §2) as data: id, names, glyph, field, tier, and a pure condition over {meta, counters, context event}; conditions reference only SaveMeta paths, STAT_KEYS (stats.kanjiBrown, stats.vocabBrown, …) and ledgerHours(m) from ./ledger; streak badges above 30 days use streak.totalDays, never streak.current. Design 08 §11: teahouse-regular 茶屋の常連 (常 · circle · bronze · input; stats.radioMinutes ≥ TEAHOUSE_REGULAR_MINUTES 600, indexed on listen:played) and first-hearing 初耳 (初 · circle · silver · input; stats.coldSetsPassed ≥ FIRST_HEARING_SETS 20, on listening:set + listen:played); BADGE_DEFS exported in BADGE_IDS order.",
   "api": "export interface BadgeDef {id:BadgeId;nameEn:string;nameJa:string;glyph:string;field:'circle'|'hexagon'|'tomoe'|'square'|'petal';tier:'bronze'|'silver'|'gold';describe:string;when(m:SaveMeta,ev?:{name:keyof Events;payload:unknown}):boolean}; export const BADGE_DEFS:readonly BadgeDef[]",
   "depends_on": [
    "src/shared/store-types.ts",
@@ -507,7 +507,7 @@
  {
   "path": "src/store/wallpaper-defs.ts",
   "kind": "lib",
-  "responsibility": "[P1] The 28 Kakejiku unlock definitions (design 06 §3): id, name, concept, unlock predicate, optional quadrant progress 0..1 for progressive reveal, living flag, upgrade rule (daruma eyes). Streak-tied pieces (sakura-storm 30, sumi-dragon 60, lantern-river 100) key on streak.totalDays; okaeri (ex \"continue\") unlocks on Ember restore / repair / Welcome Back.",
+  "responsibility": "[P1] The 29 Kakejiku unlock definitions (design 06 §3): id, name, concept, unlock predicate, optional quadrant progress 0..1 for progressive reveal, living flag, upgrade rule (daruma eyes). Streak-tied pieces (sakura-storm 30, sumi-dragon 60, lantern-river 100) key on streak.totalDays; okaeri (ex \"continue\") unlocks on Ember restore / repair / Welcome Back. Design 08 §11: chaya-lanterns 茶屋の灯 (living; events ledger:entry, listen:played, listening:set; when ledgerHoursOf(m).listen ≥ CHAYA_LANTERNS_HOURS 100; progress = listen hours / 100 so the quadrants reveal at 25 / 50 / 75 / 100 h); buildData fills WallpaperData.listenHours.",
   "api": "export interface WallpaperDef {id:WallpaperId;nameEn:string;nameJa:string;living:boolean;when(m:SaveMeta):boolean;progress?(m:SaveMeta):number;describe:string}; export const WALLPAPER_DEFS:readonly WallpaperDef[]",
   "depends_on": [
    "src/shared/store-types.ts",
@@ -560,8 +560,8 @@
  {
   "path": "src/store/ledger.ts",
   "kind": "lib",
-  "responsibility": "[P2] Input Ledger: add/edit entries, auto entries from story:read and listening:set, mission logging, hours by kind, lifetime total vs 1500 h goal, weekly target by belt (white 0.5 · yellow/orange 1 · green 3 · blue/purple 5 · brown 7 · black 8 · dan 8 h; ≈ 400 h by arrival), XP caps delegated to xp.ts.",
-  "api": "export function addLedgerEntry(e:{day:EpochDay;minutes:number;kind:0|1|2|3;source:0|1;note?:string}):void; export function logMission(id:string,minutes:number):void; export function ledgerHours(m:SaveMeta):{total:number;listen:number;read:number;watch:number;speak:number}; export function weeklyTargetHours(belt:Belt,dan:number):number; export function startLedger(store:Store):()=>void",
+  "responsibility": "[P2] Input Ledger: add/edit entries, auto entries from story:read, listening:set and listen:played (design 08 §12: Radio / Read-along seconds to a tenth of a minute — playedMinutes, MINUTE_DECIMALS 1, under 3 s dropped — COALESCED into today's listen/app row without a note by withCoalescedEntry, so a Radio sitting writes a handful of rows; listening:set / story:read rows stay whole minutes and append; appListeningHours / weekAppMinutes feed the informational \"In the dojo this week\" line while weekProgress keeps outside hours only), mission logging, hours by kind, lifetime total vs 1500 h goal, weekly target by belt (white 0.5 · yellow/orange 1 · green 3 · blue/purple 5 · brown 7 · black 8 · dan 8 h; ≈ 400 h by arrival), XP caps delegated to xp.ts.",
+  "api": "export function addLedgerEntry(e:{day:EpochDay;minutes:number;kind:0|1|2|3;source:0|1;note?:string}):void; export function logMission(id:string,minutes:number):void; export function ledgerHours(m:SaveMeta):{total:number;listen:number;read:number;watch:number;speak:number}; export function weeklyTargetHours(belt:Belt,dan:number):number; export function startLedger(store:Store):()=>void export function withCoalescedEntry(l:Ledger,e:LedgerInput):Ledger; export function withEntry(l,e):Ledger; export function playedMinutes(seconds:number):number; export function sanitizeMinutes(m:number):number; export function wholeMinutes(m:number):number; export function appListeningHours(m:SaveMeta):number; export function weekAppMinutes(m:SaveMeta,today:EpochDay):number; export const MINUTE_DECIMALS=1",
   "depends_on": [
    "src/shared/store-types.ts",
    "src/shared/events.ts",
@@ -574,8 +574,8 @@
  {
   "path": "src/store/perapera.ts",
   "kind": "lib",
-  "responsibility": "[P1] Perapera Index (design 05 §11): five axes from cards (ΣR via learn.retrievability), stats and ledger; composite; monthly history snapshot; '(estimated)'/'(no voice)'/'(synthetic)' flags; 耳 axis capped at 70 until ledgerHours(m).listen + watch ≥ 20 h (all in-app audio is TTS).",
-  "api": "export function peraperaNow(m:SaveMeta,cards:Store['cards'],now:number):{axes:[number,number,number,number,number];labels:string[];composite:number;flags:string[]}; export function snapshotMonth(store:Store):void",
+  "responsibility": "[P1] Perapera Index (design 05 §11): five axes from cards (ΣR via learn.retrievability), stats and ledger; composite; monthly history snapshot; '(estimated)'/'(no voice)'/'(synthetic)' flags; 耳 axis per design 08 §12: tier = min(settings.speedTier, max(1, stats.bestCleanTier)) — the tier the learner has SHOWN —, base = 20 · tier · clamp(dictationAcc / 0.9, 0.5, 1), comp = coldSets ≥ COLD_SETS_MIN 10 ? clamp(coldPassRate / COLD_PASS_TARGET 0.8, 0.5, 1) : 1, authentic = outside listen + watch hours + stats.listeningAuthenticMinutes / 60, cap = 70 / 85 / 100 at EAR_CAP_STEP_HOURS [7.5, 15] (heard in the dojo or outside), ear = min(cap, base · comp); the explain line is S.explainEar (+ explainEarTier / explainEarComp / explainEarCap { cap, goal = EAR_GOAL_HOURS 15, app, ext, reach = REACHABLE_IN_APP_HOURS 18 }) and REACHABLE_IN_APP_HOURS = round(DISTINCT_AUTHENTIC_HOURS 4.0 × (ARENA_SET_FACTOR 2.5 + RADIO_REHEARINGS 2)) is pinned by the corpus walk in perapera.test.ts",
+  "api": "export function peraperaNow(m:SaveMeta,cards:Store['cards'],now:number):{axes:[number,number,number,number,number];labels:string[];composite:number;flags:string[]}; export function snapshotMonth(store:Store):void export const EAR_CAP_STEP_HOURS=[7.5,15], EAR_CAP_STEPS=[70,85,100], EAR_CAP=70, EAR_GOAL_HOURS=15, COLD_SETS_MIN=10, COLD_PASS_TARGET=0.8, ARENA_SET_FACTOR=2.5, RADIO_REHEARINGS=2, DISTINCT_AUTHENTIC_HOURS=4.0, REACHABLE_IN_APP_HOURS=18; export function reachableInAppHours(distinct):number; export function earCap(authenticHours):number; export function authenticListeningHours(m):number; export function appAuthenticHours(m):number",
   "depends_on": [
    "src/shared/store-types.ts",
    "src/learn/index.ts",
@@ -986,7 +986,7 @@
  },
  {
   "path": "scripts/validate-content.ts",
-  "responsibility": "[P1] REAL from day 1 (replaces the console.log stub; 82 Pass-1 files depend on its fix loop): implements CONTENT_GUIDE §18 V01–V40 — V01–V19, V23–V26, V30–V33 in the first commit, V20–V22, V27, V34–V36 within the week, V37–V39 (information-only warnings) in review round 2, V40 (unlocksForms with no conjugable word in the cumulative allowlist, W) in round 2c — over public/content/**; imports ID_PATTERNS, RUBY_RE, KANA_*_RE, STATIONS, COVERAGE_TARGETS/coverageTargetFor, SENTENCE_MAX_CHARS and the ruby helpers directly from src/content/types.ts and src/content/ruby.ts (run with node --experimental-strip-types); writes StoryLine.tokenIds from the V20 match through the shared scripts/linker.ts (inflected verb / copula forms link to their item; V20's missing-from-vocabIds warnings exempt auxiliary spellings); exit code 1 on any F; JSON report {file,id,rule,message}[]; `npm run content:validate`.",
+  "responsibility": "[P1] REAL from day 1 (replaces the console.log stub; 82 Pass-1 files depend on its fix loop): implements CONTENT_GUIDE §18 V01–V46 (V41–V46 are the listening rules of design 08 §5 — fields, cast via --cast <path>, quota / placement, minutes band, own-station example; --strict --listening-release turns V43 and V46 at Stations 4–15 into F; the walk skips listening/pool-*.json; V44 is reported by build-content-index.ts) — V01–V19, V23–V26, V30–V33 in the first commit, V20–V22, V27, V34–V36 within the week, V37–V39 (information-only warnings) in review round 2, V40 (unlocksForms with no conjugable word in the cumulative allowlist, W) in round 2c — over public/content/**; imports ID_PATTERNS, RUBY_RE, KANA_*_RE, STATIONS, COVERAGE_TARGETS/coverageTargetFor, SENTENCE_MAX_CHARS and the ruby helpers directly from src/content/types.ts and src/content/ruby.ts (run with node --experimental-strip-types); writes StoryLine.tokenIds from the V20 match through the shared scripts/linker.ts (inflected verb / copula forms link to their item; V20's missing-from-vocabIds warnings exempt auxiliary spellings); exit code 1 on any F; JSON report {file,id,rule,message}[]; `npm run content:validate`.",
   "api": "export function validate(root:string,o?:{components:ComponentDef[];denylist:string[];strict:boolean}):{failures:Finding[];warnings:Finding[];linked:number}; export interface Finding {file:string;id?:string;rule:string;message:string}; (CLI) node --experimental-strip-types scripts/validate-content.ts [--strict] [--json]",
   "depends_on": [
    "src/content/types.ts",
@@ -1009,19 +1009,20 @@
  },
  {
   "path": "scripts/linker.ts",
-  "responsibility": "[P1] (review round 2c) The story linker: token → item id per CONTENT_GUIDE §14.2 / V20, shared by assign-stations.ts (content:assign writes StoryLine.tokenIds) and validate-content.ts (V19 / V20 and the V36 segmentation) so the two never disagree. buildMatchPool turns a cumulative allowlist (+ a story's plusOne) into exact surfaces (word / kana / altForm, 〜 stripped), generated inflections (inflectedForms: する / 来る paradigms, godan polite / negative / ば / volitional / たい with onbin て / た and contracted てる / てた, ichidan forms, copula forms for an aux です item; only kana surfaces, one-kanji stems and する compounds inflect) and stem prefixes; matchToken consults exact → forms → function tokens / cast names / numerals → prefixes (stemApplies: a one-kanji stem only before okurigana or at token end), so a whole form is the longest match, an AUX_VERBS lexeme beats a content verb, a kana token known only as a kanji word's reading yields to a form, and a kanji homograph goes to the longest stem (resolveForm). Erasable TypeScript only (node --experimental-strip-types).",
-  "api": "export function buildMatchPool(vocab:Iterable<VocabItem>,grammar:Iterable<GrammarItem>,plusOne?:Iterable<VocabItem>):MatchPool; export function matchToken(pool:MatchPool,token:string,names?:ReadonlySet<string>):TokenMatch; export function inflectedForms(surface:string,pos:string):string[]; export function stemApplies(stem:string,token:string):boolean; export const FUNCTION_TOKENS:ReadonlySet<string>; export const AUX_VERBS:ReadonlySet<string>; export const CAST_NAMES:ReadonlySet<string>; export function allowlistStationFor(station:number):number; export function cumulativeIds(bundles:readonly StationBundle[],upTo:number,key:'kanaIds'|'vocabIds'|'grammarIds'):Set<string>; export interface MatchPool; export interface TokenMatch; export interface FormEntry",
+  "responsibility": "[P1] (review round 2c) The story linker: token → item id per CONTENT_GUIDE §14.2 / V20, shared by assign-stations.ts (content:assign writes StoryLine.tokenIds) and validate-content.ts (V19 / V20 and the V36 segmentation) so the two never disagree. buildMatchPool turns a cumulative allowlist (+ a story's plusOne) into exact surfaces (word / kana / altForm, 〜 stripped), generated inflections (inflectedForms: する / 来る paradigms, godan polite / negative / ば / volitional / たい with onbin て / た and contracted てる / てた, ichidan forms, copula forms for an aux です item; only kana surfaces, one-kanji stems and する compounds inflect) and stem prefixes; matchToken consults exact → forms → function tokens / cast names / numerals → prefixes (stemApplies: a one-kanji stem only before okurigana or at token end), so a whole form is the longest match, an AUX_VERBS lexeme beats a content verb, a kana token known only as a kanji word's reading yields to a form, and a kanji homograph goes to the longest stem (resolveForm). Erasable TypeScript only (node --experimental-strip-types). Design 08 §4 (pipeline-pools): also the sentence segmenter — segmentSentence(pool, plain) (greedy longest match over exact ∪ forms ∪ FUNCTION_TOKENS ∪ CAST_NAMES ∪ names; unknown runs one token), linkSentence(pool, plain, names) → { ids, unknown }, and buildPools(root, bundles) → the 53 ListeningPool files content:assign writes (one PoolRef { ref, ids, kana, morae } per sentence whose content tokens all link; knownAt = max(owner station, stations of its ids); story lines by their writers' tokenIds; morae = speechMorae(kana).length from src/shared/jp.ts). linkSentence(...).unknown === 0 is the arbiter of V46.",
+  "api": "export function buildMatchPool(vocab:Iterable<VocabItem>,grammar:Iterable<GrammarItem>,plusOne?:Iterable<VocabItem>):MatchPool; export function matchToken(pool:MatchPool,token:string,names?:ReadonlySet<string>):TokenMatch; export function inflectedForms(surface:string,pos:string):string[]; export function stemApplies(stem:string,token:string):boolean; export const FUNCTION_TOKENS:ReadonlySet<string>; export const AUX_VERBS:ReadonlySet<string>; export const CAST_NAMES:ReadonlySet<string>; export function allowlistStationFor(station:number):number; export function cumulativeIds(bundles:readonly StationBundle[],upTo:number,key:'kanaIds'|'vocabIds'|'grammarIds'):Set<string>; export interface MatchPool; export interface TokenMatch; export interface FormEntry export function segmentSentence(pool:MatchPool,plain:string):string[]; export function linkSentence(pool:MatchPool,plain:string,names?:ReadonlySet<string>):{ids:string[];unknown:number}; export function buildPools(root:string,bundles:readonly StationBundle[]):ListeningPool[]",
   "depends_on": [
    "src/content/types.ts",
-   "src/content/ruby.ts"
+   "src/content/ruby.ts",
+   "src/shared/jp.ts"
   ],
-  "tests": "scripts/linker.test.ts: inflectedForms per paradigm (する, 来る, godan onbin by final kana, godan rows, ichidan, copula); matchToken links forms to the verb (した beats the reading of 下, きた → 来る over 着る and 北, いって → 行く not 言う / 要る, auxiliary spellings to their lexeme, copula forms to the aux です item), a whole form beats a shorter stem (出して → 出す), a content verb's kana reading does not inflect (なった is not 鳴る), forms stay function tokens before the verb is introduced",
+  "tests": "scripts/linker.test.ts: inflectedForms per paradigm (する, 来る, godan onbin by final kana, godan rows, ichidan, copula); matchToken links forms to the verb (した beats the reading of 下, きた → 来る over 着る and 北, いって → 行く not 言う / 要る, auxiliary spellings to their lexeme, copula forms to the aux です item), a whole form beats a shorter stem (出して → 出す), a content verb's kana reading does not inflect (なった is not 鳴る), forms stay function tokens before the verb is introduced segmentSentence on story lines reproduces their tokens' ids within the calibration tolerance (94.3 % verdict agreement on the corpus); buildPools places v-n5-0249#ex0 at the station of its latest id, drops a sentence with an out-of-corpus token, and is byte-identical on a second run (assign-stations.test.ts).",
   "owner_group": "C"
  },
  {
   "path": "scripts/build-content-index.ts",
-  "responsibility": "[P1] Emits public/content/manifest.json (ContentManifest: files with bytes/sha256/belts/stations, stations, totals, componentsPath, redirects) and refreshes stations/NN.json byte-identically (V35); fails if any file exceeds 120 KB or any station bundle is missing; runs in `prebuild` (package.json: \"prebuild\": \"npm run content:validate && npm run content:index\") so dist/ always carries the index; `npm run content:index`.",
-  "api": "export function buildIndex(root:string,version:string):ContentManifest; (CLI) node --experimental-strip-types scripts/build-content-index.ts",
+  "responsibility": "[P1] Emits public/content/manifest.json (ContentManifest: files with bytes/sha256/belts/stations, stations, totals, componentsPath, redirects) and refreshes stations/NN.json byte-identically (V35); fails if any file exceeds 120 KB or any station bundle is missing; runs in `prebuild` (package.json: \"prebuild\": \"npm run content:validate && npm run content:index\") so dist/ always carries the index; `npm run content:index`. Design 08 §4: lists listening/pool-NN.json as type \"pool\" (totals.pool = 53; pool files never enter the id lookup or the station entry sizes), and the default check (on unless --no-check) regenerates the pools in memory and fails on any byte difference or missing ref target (V44 rows in the { file, id, rule, message } shape) and on a pool file over POOL_FILE_BUDGET_BYTES = 256 KiB — a HARD limit, a BuildIndexError naming the file, its bytes and the budget (oversizePools; BuildIndexOptions.poolFileBudget for tests) — so CI's content:index step enforces both.",
+  "api": "export function buildIndex(root:string,version:string):ContentManifest; (CLI) node --experimental-strip-types scripts/build-content-index.ts export const POOL_FILE_BUDGET_BYTES = 256 * 1024; export function oversizePools(root,m,budget?):string[]; BuildIndexOptions.poolFileBudget?:number; BuildIndexError.findings",
   "depends_on": [
    "src/content/types.ts"
   ],
@@ -1621,7 +1622,7 @@
  {
   "path": "src/session/builder.ts",
   "kind": "lib",
-  "responsibility": "[P1] buildPlan(mode): loads station content, pulls due cards and new scrolls via @/learn (queue, intro-policy, governors), assigns exercises per card (exerciseFor), resolves params (choices/tiles via distractors, conjugation answers via conjugate, sentences, story/listening ids via coverage hints from F? no: picks storyId from the station bundle by coverage ≥ coverageTargetFor(station, bridge) using learn.knownSet and StoryLine.tokenIds), rotates production prompts via queue.prodPrompt, inserts recheck steps for arcade misses, inserts Michikusa, skips unregistered exercises, produces SessionPlan with meta (dueTotal/dueTaken/backlog).",
+  "responsibility": "[P1] buildPlan(mode): loads station content, pulls due cards and new scrolls via @/learn (queue, intro-policy, governors), assigns exercises per card (exerciseFor), resolves params (choices/tiles via distractors, conjugation answers via conjugate, sentences, story/listening ids via coverage hints from F? no: picks storyId from the station bundle by coverage ≥ coverageTargetFor(station, bridge) using learn.knownSet and StoryLine.tokenIds), rotates production prompts via queue.prodPrompt, inserts recheck steps for arcade misses, inserts Michikusa, skips unregistered exercises, produces SessionPlan with meta (dueTotal/dueTaken/backlog). Design 08 §11: inputSteps for inputKind \"listening\" rotates unheard audio-first piece → dialogue → Ear Walk (a listening-set step with params.refs from selectPool over PlanContext.pools, i+0 then i+1), never the same genre twice in a row (lastHeardGenre skips kana-track ids), heard texts by last hearing (byLastHearing), and nextToHear(xs, listened, day, arenaAt?) closes a text whose last PASSED Arena set is within ARENA_RECENT_DAYS (REHEAR_DAYS, from @/learn) while another candidate is open; resolveParams sets params.clip for sentence-listen / shadow / pattern-cloze examples and story lines, distractorIds for a real minimal-pair partner, and pickStories({ speakable: true }) keeps a piece without learnerSpeaker out of role-play and Shinsa 口.",
   "api": "export async function buildPlan(mode:SessionMode,o?:{station?:number;tag?:ErrorTag;scrollId?:string;seed?:number}):Promise<SessionPlan>; export function planFromSnapshot(s:SessionSnapshot):SessionPlan",
   "depends_on": [
    "src/shared/session-types.ts",
@@ -2060,7 +2061,7 @@
  {
   "path": "src/shared/audio.ts",
   "kind": "lib",
-  "responsibility": "[CONTRACT][P1] Audio/STT service slot: AudioService and SttService interfaces, nullAudio/nullStt (silent, resolve immediately), services object and installServices(); SfxName from catalog.",
+  "responsibility": "[CONTRACT][P1] Audio/STT service slot: AudioService and SttService interfaces, nullAudio/nullStt (silent, resolve immediately), services object and installServices(); SfxName from catalog. Design 08 §8 / §13 (contract): SpeakOptions.clip / speaker / onProgress / clause; AudioService.source? / clipFor? / packReady? / clips?: ClipPlayer (all optional, like canSpeak, so { ...nullAudio } doubles keep compiling); ClipCue, ClipPlayer (ready, info, loadLevel, loadStation, prefetchStation, cueFor, cueForText, kanaTracks, play, unlock, dispose, cacheUsage, download, remove), ClipPlayOptions (wholeTrack, clause, onProgress, onPlayed), ClipPlayback { done, stop, pause?, resume?, position? }, TrackCue, AudioPackInfo / AudioPackBelt, AudioSource; the pure bodies audioSourceOf(a), voiceAudible(a), packWillSpeak(a, packChosen) and saveDataRequested(nav?); servicesVersion: Signal<number> bumped by installServices() / resetServices() so render-time readers of services.audio can subscribe (src/app/hooks.ts).",
   "api": "export interface VoiceInfo {uri:string;name:string;lang:string;local:boolean;network:boolean}; export interface AudioService { speak(text:string,o?:{kana?:string;rate?:number;voice?:'a'|'b';interrupt?:boolean}):Promise<void>; /* text = plain surface (toPlain(ja)) for sentences, kana only for kana items; resolves on onend | onerror | timeout(estimated duration + 2 s) */ cancel():void; warmUp():void; sfx(name:SfxName):void; setVolume(v:number):void; muted:Signal<boolean>; hasJaVoice:Signal<boolean>; voices():VoiceInfo[]; rateForTier(t:1|2|3|4|5):number }; export interface SttService { available:boolean; recognize(o:{maxMs:number;continuous?:boolean}):Promise<{alternatives:string[]}|null>; abort():void }; export const services:{audio:AudioService;stt:SttService}; export const nullAudio:AudioService; export const nullStt:SttService; export function installServices(p:Partial<typeof services>):void",
   "depends_on": [
    "src/shared/catalog.ts"
@@ -2231,8 +2232,8 @@
  {
   "path": "src/input/reader/StoryReader.tsx",
   "kind": "component",
-  "responsibility": "[P1] 旅日記 episode reader as an exercise step and standalone: lines with <Ruby> fog + tokens tap -> Gloss, silent cpm timer, vertical text toggle (Blue+), bridge badge, then Comprehension; emits story:read (+ledger auto via B); Dictionary-Free detection (≥300 chars, ≥2/3, ≤2 taps); gloss-tap implicit Hard only when the card is due today and this is not the first read; registers 'story-read'.",
-  "api": "registered 'story-read' (null facet, none); export function StoryReader(p:{storyId:string;onDone(r:{correct:number;total:number;cpm:number;glossTaps:number}):void}):JSX.Element",
+  "responsibility": "[P1] 旅日記 episode reader as an exercise step and standalone: lines with <Ruby> fog + tokens tap -> Gloss, silent cpm timer, vertical text toggle (Blue+), bridge badge, then Comprehension; emits story:read (+ledger auto via B); Dictionary-Free detection (≥300 chars, ≥2/3, ≤2 taps); gloss-tap implicit Hard only when the card is due today and this is not the first read; registers 'story-read'. Design 08 §10.3: mode \"listen\" (Read-along, #/story/:id/listen) plays the lines in order with the token sweep (clip `${story.id}#L${i}` + speaker), tap-to-gloss keeps playing and pauses at the line boundary while a gloss is open, per-line chips slow (natural) / my tier / fast name the served cue rate, loop line, then the comprehension questions as an optional self-check; emits listen:played { source: \"readalong\", refs: [story.id], seconds summed from the player, rate, cold, authentic, gistCorrect } — the store's reducer writes the listen/app row (StoryListenResult carries no ledgerLogged; StoryPage never logs this path), 0 XP, progress.listened appended, NEVER story:read.",
+  "api": "registered 'story-read' (null facet, none); export function StoryReader(p:{storyId:string;mode?:\"read\"|\"listen\";onDone(r:StoryReadResult|StoryListenResult):void}):JSX.Element; export interface StoryReadResult (incl. ledgerLogged); export interface StoryListenResult { storyId; seconds; rate; cold; authentic; gistCorrect; heard; … — no ledgerLogged }; export function isStoryRead(storyId):boolean; export const JJ_FROM_STATION",
   "depends_on": [
    "src/shared/exercise-types.ts",
    "src/shared/events.ts",
@@ -2269,8 +2270,8 @@
  {
   "path": "src/input/listening/ListeningArena.tsx",
   "kind": "component",
-  "responsibility": "[P1] 聴解: dialogue/monologue audio only via two voice slots at speed tier, utterances ≤180 chars, questions first, transcript reveal with karaoke highlight, mandatory re-listen at +0.1×; emits listening:set; registers 'listening-set'.",
-  "api": "registered 'listening-set' (null facet, choices, needsTts); export function ListeningArena(p:{storyId:string;rate:number;onDone(r:{correct:number;total:number}):void}):JSX.Element",
+  "responsibility": "[P1] 聴解 (design 08 §10.4): a text — dialogue, monologue or audio-first piece — audio only (one cast voice per speaker through the pack, two device-voice slots at the speed tier otherwise, utterances ≤ 180 chars on that path); questions first (gist first, then by kind; a miss on a question with lineRef replays that line), transcript reveal with karaoke highlight (line; the token sweep from the cue's m boundaries at ≥ 1.0×; pitch dots in slow mode), mandatory re-listen at +0.1×; a line over DICTATION_MAX_MORAE dictates one clause. Pool mode = the Ear Walk (params.refs; walk.ts) with listening:set { storyId: null, refs, mode: \"walk\" }. Header names the speakers and the source chip from audioSourceOf(services.audio) (never \"recorded\"); TeachOnce \"arena-first\" / \"arena-bridge\"; a PASSED text set appends the id to progress.listened and stamps progress.arenaAt[storyId] (the only writer); the Ear Walk and a failed set write nothing; after a clean set the next speed tier is OFFERED (offerTier), never applied silently. The pure half lives in set.ts and is re-exported here. Registers 'listening-set'.",
+  "api": "registered 'listening-set' (null facet, choices, needsTts); export function ListeningArena(p:{storyId?:string;refs?:string[];rate:number;onDone(r:{correct:number;total:number}):void}):JSX.Element; export const TEACH_ARENA_FIRST=\"arena-first\", TEACH_ARENA_BRIDGE=\"arena-bridge\", DICTATED_MIN_RATE=1; re-exports of set.ts (SET_TARGET, REPLAY_BUDGET, DICTATION_MAX_MORAE, buildListeningSet, gradeDictation, implicitListenGrades, …)",
   "depends_on": [
    "src/shared/exercise-types.ts",
    "src/shared/events.ts",
@@ -2279,9 +2280,13 @@
    "src/content/types.ts",
    "src/shared/ui/Ruby.tsx",
    "src/input/reader/Comprehension.tsx",
-   "src/input/strings.ts"
+   "src/input/strings.ts",
+   "src/input/listening/set.ts",
+   "src/input/listening/walk.ts",
+   "src/input/listening/karaoke.ts",
+   "src/shared/ui/TeachOnce.tsx"
   ],
-  "tests": "ListeningArena.test.tsx: text hidden until questions answered; speakers alternate voice slots; re-listen rate +0.1",
+  "tests": "ListeningArena.test.tsx: text hidden until questions answered; speakers alternate voice slots; re-listen rate +0.1 Design 08: gist questions precede detail / number / speaker / inference; a wrong answer with lineRef plays that line (clip s-NN-k#L<i>); the header shows speaker names and the source chip and never the word \"recorded\"; listening:set carries genre / bridge / cold / mode and storyId null in walk mode; cold is false when the id is already in progress.listened from Radio; a passed set writes arenaAt and a failed set does not; onProgress drives data-sung on the token spans; the offer copy says \"you decide\".",
   "owner_group": "F"
  },
  {
@@ -2785,7 +2790,7 @@
  {
   "path": "src/art/wallpapers/index.ts",
   "kind": "lib",
-  "responsibility": "[P1] Registry of the 28 generators keyed by WallpaperId; renderWallpaper(id, size, reforge) computes seed = hashSeed(profile.seed, id, reforgeCount) and composes; locked silhouette variant; quadrant reveal mask.",
+  "responsibility": "[P1] Registry of the 29 generators keyed by WallpaperId; renderWallpaper(id, size, reforge) computes seed = hashSeed(profile.seed, id, reforgeCount) and composes; locked silhouette variant; quadrant reveal mask.",
   "api": "export const WALLPAPERS:Record<WallpaperId,WallpaperSpec>; export async function renderWallpaper(id:WallpaperId,o:{size:'desktop'|'phone';reforge:number;revealed:0|1|2|3|4;locked:boolean}):Promise<{svg:string;texts:TextLayer[];post:string}>",
   "depends_on": [
    "src/shared/catalog.ts",
@@ -2820,7 +2825,8 @@
    "src/art/wallpapers/station-sign.ts",
    "src/art/wallpapers/kyoto-arrival.ts",
    "src/art/wallpapers/road-continues.ts",
-   "src/art/wallpapers/end-card.ts"
+   "src/art/wallpapers/end-card.ts",
+   "src/art/wallpapers/chaya-lanterns.ts"
   ],
   "tests": "index.test.ts: every WALLPAPER_ID has a generator; same (seed,data,size) -> byte-identical SVG for all 28 (snapshot); phone variant respects safe zones; locked renders a sumi silhouette",
   "owner_group": "G"
@@ -3540,5 +3546,365 @@
   "depends_on": [],
   "tests": "covered by banned.test.ts",
   "owner_group": "G"
+ },
+ {
+  "path": "src/app/hooks.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (design 08 §8 / §13) Shell hooks: render-time reads of services.audio subscribed to servicesVersion (read .value once in render; installServices()/resetServices() bump it), so a page sees the real audio service when it lands after first paint — no poll, no timer. useClipPlayer reports whether \"is there a pack?\" is settled: once the slot holds something other than nullAudio or any install / reset has happened; only then does an undefined player mean this build has none. Contract with main.tsx: installAudio() bumps the version on EVERY outcome (installServices({}) when the audio barrel fails to load or createWebAudio throws).",
+  "api": "export function useAudioService():AudioService; export function useClipPlayer():{clips:ClipPlayer|undefined;settled:boolean}",
+  "depends_on": [
+   "src/shared/audio.ts"
+  ],
+  "tests": "hooks.test.tsx: a component re-renders with the live service after installServices(); settled false while the slot is nullAudio and no install happened, true after installServices({}) with clips undefined (a build with no pack)",
+  "owner_group": "A"
+ },
+ {
+  "path": "src/audio/clips.ts",
+  "kind": "service",
+  "responsibility": "[P1] (design 08 §8; docs/AUDIO_PACK.md §2–§4 are the shapes it reads) The voice-pack ClipPlayer: fetches ./audio/manifest.json (404 or no Opus/WebM support → ready \"absent\"), lazy-loads the versioned indexes per level / station / kana, resolves clip keys (<itemId>, <itemId>#ex<k>, <storyId>#L<i>, <storyId> whole text — absent when whole is null —, track:<name>; byText for sentences and lines only) to the cue nearest the requested rate, and plays through a fixed pool of 6 Audio elements unlocked inside the first gesture (play().then(pause) on a silent Opus blob; afterwards only src swaps, LRU, blob URLs re-wrapped as audio/webm; codecs=opus). Timing is event-driven: played seconds from currentTime deltas on timeupdate (right with the screen off), reconciled on pause / ended / visibilitychange; the stop at cue.end on timeupdate with a foreground backstop timer; a wholeTrack cue sets no timer and ends on `ended`; rAF drives onProgress (karaoke) only. pause()/resume()/position() hold a playback in place (done.seconds counts both halves once). Explicit cache: the tsuzuku-audio-v1 Cache API bucket, read match-first, written ONLY by prefetchStation() (PREFETCH_BUDGET_BYTES, off while dataSaverOn()) and download(belt); prune() = set difference against manifest.files[].path. Store-free (saveDataRequested is a re-export of shared/audio).",
+  "api": "export function createClipPlayer(o?:ClipPlayerOptions):ClipPlayerEx; export const AUDIO_CACHE, POOL_SIZE, OPUS_BLOB_TYPE, PREFETCH_BUDGET_BYTES, STOP_BACKSTOP_MS, SLOW_RATE; export { saveDataRequested } from shared/audio; helpers spritePath, nearestRate, clauseRange, karaokeAt, parseManifest, beltOfStation, levelOfStation",
+  "depends_on": [
+   "src/shared/audio.ts",
+   "src/content/types.ts",
+   "src/shared/hash.ts"
+  ],
+  "tests": "clips.test.ts (fake Audio / fetch / caches / rAF): zero Audio constructions after unlock() across 20 sprites; play() before unlock resolves { source: \"none\" }; stop within 20 ms of cue.end on timeupdate; wholeTrack sets no timer and ends on `ended`; played seconds = Σ timeupdate deltas with document.hidden; pause/resume/position (resume continues, done.seconds counted once, stop while paused resolves the seconds heard, pause inside the startup window is a pause); whole: null → no cueFor(storyId) and never synthesised; clause sub-range seeks; LRU revokes blob URLs; blob type audio/webm; codecs=opus; ready absent on 404 / canPlayType \"\"; cueFor(word) never resolves through byText; a plain play() never cache.puts, prefetchStation and download do; prune keeps only manifest paths",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/audio/data-saver.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (design 08 §13) The data-saver gate, one body for every reader: dataSaverOn(settings?, nav?) = settings.dataSaver || saveDataRequested(nav) (the learner's toggle OR navigator.connection.saveData), prefetchAllowed() its negation. Settings shows the EFFECTIVE state, the boot prefetch in main.tsx and Radio's \"no sprite beyond the current track\" rule read it. saveDataRequested is the pure contract body in shared/audio.ts, re-exported here and on @/audio.",
+  "api": "export function dataSaverOn(s?:Pick<Settings,\"dataSaver\">,nav?:unknown):boolean; export function prefetchAllowed(s?,nav?):boolean; export { saveDataRequested }; export type DataSaverSettings",
+  "depends_on": [
+   "src/shared/audio.ts",
+   "src/shared/store-types.ts",
+   "src/store/index.ts"
+  ],
+  "tests": "data-saver.test.ts: toggle on → on; toggle off + connection.saveData true → on; neither → off; absent / throwing navigator → off; saveDataRequested is the same function as shared/audio's",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/listening/set.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (review round 2; design 08 §9–§10.4) The Listening Arena's pure half, split out of ListeningArena.tsx and re-exported from it: constants (SET_TARGET, SET_MIN_LINES, SET_MAX, REPLAY_BUDGET, DICTATION_MAX_MORAE 22, CLAUSE_MIN_MORAE, JA_CHOICES_FROM_STATION, RELISTEN_DELTA, IMPLICIT_WINDOW_DAYS, PASS_RATIO), the set builder (gist questions first, then by kind — QUESTION_KIND_RANK; choice and dictation items; a line over DICTATION_MAX_MORAE dictates one clause when the cue has clauses — pickClause), the dictation grader (mora-level score bands) and implicitListenGrades (Good / Again on listen cards due within the window; writes nothing for a missing card). Mora counts are the shared speechMorae body (speechMoraCount).",
+  "api": "export function buildListeningSet(story,o:SetOptions):ListenItem[]; export function gradeDictation(typed,target,o?):DictationGrade; export function implicitListenGrades(line,result,cards,today,o?:EvidenceOptions):{cardKey;rating}[]; export function orderQuestions(qs):Q[]; export function dictable(line):boolean; export function pickClause(line,cue):[number,number]|null; export function voiceSlots(speakers):Record<string,\"a\"|\"b\">; export function slotFor(...); export function relistenRate(rate):number; export function isStoryItem(x):x is StoryItem; export function wordSurfacesIn(...); types ListenItem, SetOptions, DictationGrade, EvidenceOptions",
+  "depends_on": [
+   "src/content/types.ts",
+   "src/shared/jp.ts",
+   "src/shared/audio.ts",
+   "src/shared/store-types.ts",
+   "src/input/listening/karaoke.ts"
+  ],
+  "tests": "set.test.ts: gist questions precede detail / number / speaker / inference; a 30-mora line with clauses yields a clause dictation and without clauses a choice item; dictation bands 0.95 / 0.80; implicitListenGrades skips a missing card and respects the 3-day window; speechMoraCount equals speechMorae(kana).length",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/listening/karaoke.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (design 08 §9) Karaoke timing math, pure: tokenMoraSpans(line) = [start, end) mora spans per token over segmentsToTokens(line.ja, line.tokens) with the cumulative speechMoraCount of each token's kana (punctuation tokens own zero morae; V13 guarantees the readings concatenate to line.kana, the order the cue's m boundaries were aligned to); activeToken(spans, mora) is monotone; clauseSpans / clauseKana / clauseText cut a long line into the clauses the cue's c boundaries name (clause dictation); isSlowCue(cue) = the served rate is the natural-slow take (NATURAL_SLOW_RATE 0.85, pitch dots only then). speechMoraSplit is the shared speechMorae body (RE_NOT_MORA).",
+  "api": "export type MoraSpan=[number,number]; export const NATURAL_SLOW_RATE=0.85; export function speechMoraSplit(kana):string[]; export function speechMoraCount(kana):number; export function tokenMoraSpans(line):MoraSpan[]; export function activeToken(spans,mora):number; export function clauseSpans(clauses,total):MoraSpan[]; export function clauseKana(kana,span):string; export function clauseText(line,span):string|null; export function isSlowCue(cue):boolean",
+  "depends_on": [
+   "src/content/types.ts",
+   "src/content/ruby.ts",
+   "src/shared/jp.ts",
+   "src/shared/audio.ts"
+  ],
+  "tests": "karaoke.test.ts: spans for a ruby'd line sum to the kana's morae without punctuation (speechMorae); punctuation tokens own zero morae; activeToken is monotone; clause spans cover [0, total) and clauseKana / clauseText agree; isSlowCue at 0.85 only",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/listening/walk.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (design 08 §10.4) The Ear Walk: buildWalkSet(refs, items, o) turns 6–8 i+0 / i+1 pool refs (PoolRef, selected by @/learn selectPool) into ListenItems — alternating choice and dictation, gist-free, a ref over DICTATION_MAX_MORAE dictating one clause when the cue has clauses and becoming a choice item otherwise; deterministic per rng (WALK_SEED_TAG). parseRef / resolveRef / poolRefFor map a pool ref (v-…#ex<k>, g-…#ex<k>, s-NN-k#L<i>) back to the sentence, its kana and the clip key; heardLines(items) lists the lines a set actually played. The Arena takes params.refs (pool mode) instead of params.storyId and emits listening:set { storyId: null, refs, mode: \"walk\" }.",
+  "api": "export const WALK_TARGET, WALK_MAX, WALK_SEED_TAG; export function parseRef(ref):ParsedRef|null; export function resolveRef(ref:PoolRef,get):WalkLine|null; export function poolRefFor(ref:string,get):PoolRef|null; export function buildWalkSet(refs:readonly PoolRef[],items:(id)=>ContentItem|undefined,o:WalkOptions):ListenItem[]; export function heardLines(items):number[]; types WalkLine, ParsedRef, WalkOptions",
+  "depends_on": [
+   "src/content/types.ts",
+   "src/shared/hash.ts",
+   "src/input/listening/set.ts"
+  ],
+  "tests": "walk.test.ts: 6–8 items, gist-free, alternating choice / dictation; a 30-mora ref with clauses yields a clause dictation, without clauses a choice item; an unresolvable ref is skipped; deterministic per rng",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/listening/radio-playlist.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (design 08 §10.2) Pure playlist builder for 茶屋ラジオ: buildPlaylist(input) → up to RADIO_MAX_SECONDS (45 min) of tracks from (1) cold pieces and dialogues ≤ station not yet in listened (gist question offered; never a text the Arena passed within ARENA_RECENT_DAYS — arenaRecent, from progress.arenaAt through arenaRecentIds(), ignoring a stamp more than ARENA_FUTURE_SLACK_DAYS = 1 day in the future), (2) i+0 pool sentences at the learner's tier weighted by 1 − R(listen), (3) re-hearings — the Arena-recent texts first (\"worked on recently\"), then least recently heard — one tier faster than last time with a gist question whenever the text isAuthenticText and the rate ≥ 1.0; honest \"nothing new\" notice when fresh material is exhausted; Stations 1–3 play the generated kana tracks + the White story lines (PIECES_FROM_STATION). Deterministic per (seed, day) through rngFor(seed, day, RADIO_RNG_SALT). ARENA_RECENT_DAYS is re-exported from @/learn (one definition).",
+  "api": "export function buildPlaylist(input:PlaylistInput):Playlist; export function arenaRecentIds(arenaAt:Record<string,EpochDay>|undefined,today:EpochDay):Set<string>; export function speechSeconds(morae):number; export function lineMorae(kana):number; export function textSeconds(story):number; export function radioEligible(story,station):boolean; export function gistQuestion(story):ComprehensionQuestion|null; export function rehearingTier(last):SpeedTier; export function rehearingAsksGist(story,rate):boolean; export function speakerOf(...); export function listenRetention(...); export { ARENA_RECENT_DAYS }; export const RADIO_MAX_SECONDS, COLD_MAX_TRACKS, COLD_MAX_SECONDS, SENTENCE_MAX_SECONDS, ARENA_FUTURE_SLACK_DAYS, MIN_SENTENCE_WEIGHT, PIECES_FROM_STATION, RADIO_RNG_SALT; types Track, TrackKind, Playlist, PlaylistInput, PlaylistNotice",
+  "depends_on": [
+   "src/content/types.ts",
+   "src/shared/hash.ts",
+   "src/shared/audio.ts",
+   "src/shared/store-types.ts",
+   "src/learn/index.ts",
+   "src/shared/jp.ts"
+  ],
+  "tests": "radio-playlist.test.ts: deterministic per (seed, day); cold texts precede sentences; total ≤ 45 min; a Station-2 learner gets kana tracks + White lines and the exhaustion notice; re-hearing rate is one tier above the last; a bridge re-hearing at 1.0× carries a gist question and a polite non-bridge dialogue does not; no text within its 14-day Arena window is served as cold and such texts lead the re-hearings; arenaRecentIds ignores a stamp > 1 day in the future",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/listening/media-session.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (design 08 §8) Lock-screen / Media Session glue behind feature detection: setMetadata(track) with title = titleJa, artist = \"{speaker} · synthetic · VOICEVOX:{character}\" (the honest credit line; characterOf strips the VOICEVOX: prefix), album 茶屋ラジオ · station (no artwork yet — BUILD_STATUS Known gaps); setPlaybackState; setHandlers for play / pause / previoustrack / nexttrack / seekbackward (MEDIA_ACTIONS). Without navigator.mediaSession (jsdom, old Firefox, kiosk shells) every call is a no-op returning false. Radio calls these in pack mode only.",
+  "api": "export function mediaSessionOf(nav?):MediaSessionLike|null; export function characterOf(voice):string; export function artistLine(speaker,voice):string; export function setMetadata(track:TrackMeta,o?):boolean; export function setPlaybackState(state,o?):boolean; export function setHandlers(h:MediaSessionHandlers,o?):{wired:boolean;clear():void}; export const MEDIA_ACTIONS; types MediaSessionLike, MediaSessionHandlers, TrackMeta",
+  "depends_on": [],
+  "tests": "media-session.test.ts: no-op (false) without navigator.mediaSession; metadata set with artist \"ハナ · synthetic · VOICEVOX:九州そら\" when present; handlers wired and cleared",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/listening/Radio.tsx",
+  "kind": "component",
+  "responsibility": "[P1] (design 08 §10.2) 茶屋ラジオ: a non-session surface (never a training day, no XP, no session events) that plays one track at a time through services.audio — whole-text sprites edge to edge as wholeTrack cues (`ended` advances; with document.hidden only whole-text tracks continue), sentence tracks foreground only, the device voice line by line without a pack. loadRadioInputs(loader, { station, listened, arenaRecent?, clips? }) fetches the cold candidates, the Arena-recent ids ahead of the least-recently-heard cut (REHEAR_LOAD_MAX each) and the pools in the station window. Emits listen:played per track { source: \"radio\", refs, seconds from the player's media-event count at volume > 0 (never a wall clock), rate, cold, authentic (isAuthenticText && rate ≥ 1.0 && gistCorrect === true), gistCorrect (null when skipped) }; a pause / skip / speed change / leave logs a partial row (position() minus what was already logged) and the completed row is done.seconds minus those partials. Pause IN PLACE when the ClipPlayback exposes pause/resume/position, else stop and restart (S.pauseNote / S.pauseNoteInPlace). Heard ids → progress.listened (a re-hearing moves its id to the back); never writes arenaAt. Keys Space ← → L [ ] T G ?; \"?\" writes Hard on due listen cards (recordImplicit) and shows the transcript for TRANSCRIPT_FLASH_MS; the prefetch of the next sprite gates on dataSaverOn(); header chip \"synthetic voice (VOICEVOX)\" / \"device voice\"; TeachOnce RADIO_TEACH_ID \"radio-first\"; Media Session metadata in pack mode.",
+  "api": "export function Radio(p:RadioProps):JSX.Element; export async function loadRadioInputs(loader,o:{station;listened;arenaRecent?:ReadonlySet<string>;clips?:ClipPlayer|null}):Promise<RadioInputs>; export function refSurface(ref,loader):{ja;en}|null; export function isStory(x):x is StoryItem; export function levelOfStation(n):Level; export const RADIO_TEACH_ID=\"radio-first\", TRANSCRIPT_FLASH_MS, POOL_STATION_WINDOW, COLD_LOAD_MAX, REHEAR_LOAD_MAX, RADIO_IMPLICIT_EXERCISE; types RadioProps, RadioInputs",
+  "depends_on": [
+   "src/shared/audio.ts",
+   "src/shared/events.ts",
+   "src/shared/store-types.ts",
+   "src/content/loader.ts",
+   "src/content/types.ts",
+   "src/store/index.ts",
+   "src/learn/index.ts",
+   "src/learn/apply.ts",
+   "src/shared/ui/TeachOnce.tsx",
+   "src/shared/ui/Ruby.tsx",
+   "src/input/listening/radio-playlist.ts",
+   "src/input/listening/media-session.ts",
+   "src/input/listening/karaoke.ts",
+   "src/input/listening/radio-strings.ts",
+   "src/audio/index.ts"
+  ],
+  "tests": "Radio.test.tsx: listen:played seconds equal the fake player's timeupdate-derived count with document.hidden and no rAF ticks (a 600 s track logs 600 s); authentic only after a correct gist answer, cold and re-hearing alike; gistCorrect null when skipped; \"?\" calls recordImplicit with rating 2 on due listen cards; no xp:gained, no session:started; progress.listened grows and a re-hearing moves to the back; header never contains \"recorded\"; pause in place resumes from the same position and logs no second twice; a playback without pause() stops and restarts; the loader fetches Arena-recent ids ahead of the LRU cut",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/listening/Radio.css",
+  "kind": "style",
+  "responsibility": "[P1] (design 08 §10.2; styles-2b) Radio layout: the player card, track list, transcript (karaoke-timed .listen__clause* / data-sung hooks), source chip, pause note and the TeachOnce scope; tokens only, reduced-motion guarded, no fixed widths at 390 px.",
+  "api": "classes .radio*, .listen__clause*",
+  "depends_on": [
+   "src/styles/tokens.css",
+   "src/styles/components.css"
+  ],
+  "tests": "covered by Radio.test.tsx (class hooks present) and src/styles/pages-css.test.ts conventions",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/listening/radio-strings.ts",
+  "kind": "lib",
+  "responsibility": "[P1] Sensei-voice copy for 茶屋ラジオ and its page (header chips \"synthetic voice (VOICEVOX)\" / \"device voice\" / \"text only\", the \"Here it is again at {rate}×\" line, the exhaustion notice, pause notes, the \"radio-first\" teach card, Media Session album); linted by src/i18n/banned.test.ts — the words recorded / native / human / real never describe a voice.",
+  "api": "export const S; export { fill } from @/shared/ui/strings",
+  "depends_on": [
+   "src/shared/ui/strings.ts"
+  ],
+  "tests": "banned.test.ts (lint over every strings.ts); Radio.test.tsx asserts the chip copy",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/pages/RadioPage.tsx",
+  "kind": "page",
+  "responsibility": "[P1] #/radio → <Radio> for the learner's station, listened ids and Arena-recent ids (arenaRecentIds(progress.arenaAt, today)), reading servicesVersion in render so the pack chip is right when the audio service lands; PAGE_SOURCES.radio in src/app/pages.ts (needsExercises false), exported from src/input/index.ts; NAV_OF_ROUTE.radio = \"dojo\".",
+  "api": "export default function RadioPage(p:RadioPageProps):JSX.Element; export interface RadioPageProps",
+  "depends_on": [
+   "src/shared/routes.ts",
+   "src/store/index.ts",
+   "src/input/listening/Radio.tsx",
+   "src/input/listening/radio-playlist.ts",
+   "src/shared/audio.ts"
+  ],
+  "tests": "RadioPage.test.tsx: renders the Radio for the saved station; passes the Arena-recent ids; src/app/pages.test.ts resolves route radio to the page module",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/input/pages/RadioPage.css",
+  "kind": "style",
+  "responsibility": "[P1] Page frame for #/radio (title, back link, the Dojo tile echo); tokens only.",
+  "api": "classes .radio-page*",
+  "depends_on": [
+   "src/styles/tokens.css"
+  ],
+  "tests": "covered by RadioPage.test.tsx",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/learn/pool.ts",
+  "kind": "lib",
+  "responsibility": "[P1] [CONTRACT] (design 08 §4, exported from src/learn/index.ts) Graded listening from the sentence pools at the learner's LIVE known set — the one selector the Ear Walk, Radio, sentence-listen planning, Gatekeeper / Shinsa 耳 and the Station page share: selectPool(refs, known, cards, today, { mode, limit? }) with i+0 = every id known and i+1 = exactly one unknown id whose listen card EXISTS and is due within IMPLICIT_WINDOW_DAYS (3) or not yet in review state (input order preserved, deterministic); plusOneId(ref, known) = the i+1 word Radio glosses; poolMinutes(refs) = Σ(morae / MORAE_PER_SECOND 7 + CLIP_PAD_SECONDS 0.5) / 60 — the speech estimate scripts/listening-report.ts uses. ARENA_RECENT_DAYS = 14 is the one \"worked on recently\" constant (progress.arenaAt) for radio-playlist.ts and session/builder.ts, which may not import each other. Pure: today and the cards are injected.",
+  "api": "export function selectPool(refs:readonly PoolRef[],known:ReadonlySet<string>,cards:Pick<CardsApi,\"get\">,today:EpochDay,o:SelectPoolOptions):PoolRef[]; export function plusOneId(ref:PoolRef,known):string|null; export function poolMinutes(refs):number; export const IMPLICIT_WINDOW_DAYS=3, ARENA_RECENT_DAYS=14, MORAE_PER_SECOND=7, CLIP_PAD_SECONDS=0.5; export type PoolMode=\"i+0\"|\"i+1\"; export interface SelectPoolOptions",
+  "depends_on": [
+   "src/content/types.ts",
+   "src/shared/ids.ts",
+   "src/shared/store-types.ts"
+  ],
+  "tests": "pool.test.ts: i+0 returns only refs whose ids are all known; i+1 returns refs with exactly one unknown id whose listen card exists and is due within 3 days or not in review state; an unknown id with no listen card is not i+1; deterministic order; poolMinutes = Σ(morae/7 + 0.5)/60",
+  "owner_group": "C"
+ },
+ {
+  "path": "src/shared/speak-text.ts",
+  "kind": "lib",
+  "responsibility": "[P1] [CONTRACT] (design 08 §7) The pure text-to-engine bodies moved out of src/audio/tts.ts so Node can import them for the render pipeline: textToSpeak(plain, kana?) decides what is spoken (the plain surface for sentences, the kana for an isolated word ≤ WORD_MAX_CHARS whose surface would misread) and stripDisplayMarks cleans display-only marks (leading / trailing 〜 ～ ~, interior 〜 slots and … ‥ runs → 、, 「」 / 『』 around a bare pattern unwrapped, 1–2 kana optional parentheticals unwrapped and other parentheticals dropped, a spaced / between alternatives → 、; \"\" when nothing speakable is left). `.ts`-extension imports, no store or signals; tts.ts and @/audio re-export both so callers never changed.",
+  "api": "export function textToSpeak(plain:string,kana?:string):string; export function stripDisplayMarks(text:string):string; export const WORD_MAX_CHARS",
+  "depends_on": [
+   "src/content/ruby.ts",
+   "src/shared/jp.ts"
+  ],
+  "tests": "speak-text.test.ts: the stripDisplayMarks / textToSpeak cases moved from tts.test.ts; a spawned `node --experimental-strip-types -e \"import('./src/shared/speak-text.ts')\"` succeeds",
+  "owner_group": "F"
+ },
+ {
+  "path": "src/shared/ui/TeachOnce.tsx",
+  "kind": "component",
+  "responsibility": "[P1] [CONTRACT] (design 08 §11) Dismissible first-contact card keyed by id, store-free: takes seen (Progress.teachSeen or a Set) and onDismiss(id) as props; exports isTeachSeen / markTeachSeen(progress, id) so every surface writes the same shape (store.patch(\"progress\", (p) => markTeachSeen(p, id))) and TEACH_ID_RE / isTeachId (lowercase ASCII ≤ 64 chars — the shape fillMeta keeps; a bad id throws a RangeError in dev). Shipped ids: morae-beats, held-beat (kana drills), arena-first, arena-bridge (Arena), radio-first (Radio), ear-panel (Station page). Imports ./ui.css (.teach-once).",
+  "api": "export function TeachOnce(p:TeachOnceProps):JSX.Element|null; export function isTeachSeen(seen:TeachSeen,id:string):boolean; export function markTeachSeen<P extends Pick<Progress,\"teachSeen\">>(p:P,id:string):P; export const TEACH_ID_RE; export function isTeachId(id):boolean; types TeachOnceProps, TeachSeen",
+  "depends_on": [
+   "src/shared/store-types.ts",
+   "src/shared/ui/strings.ts"
+  ],
+  "tests": "TeachOnce.test.tsx: renders once, dismiss writes the id into progress.teachSeen, a seen id renders nothing, an id outside TEACH_ID_RE throws in dev",
+  "owner_group": "D"
+ },
+ {
+  "path": "src/art/wallpapers/chaya-lanterns.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (design 08 §11) 茶屋の灯 Teahouse Lanterns: a roadside teahouse at dusk with one chōchin per HOURS_PER_LANTERN (10) hours of WallpaperData.listenHours (dojo and outside listen rows alike), eaves slots first then a roadside rope receding with the road (roadGeometry, vergeAt, placeLanterns), capped at MAX_LANTERNS (60); living piece, no per-speaker data; registered in art/wallpapers/index.ts WALLPAPERS (29). Unlock: ledgerHours(m).listen ≥ 100, quadrants at 25 / 50 / 75 / 100 h (store/wallpaper-defs.ts).",
+  "api": "export const spec:WallpaperSpec; export const HOURS_PER_LANTERN=10, MAX_LANTERNS=60; export function listenHoursOf(data):number; export function lanternCount(hours):number; export function roadGeometry(size):Road; export function vergeAt(road,t):Point; export function eavesSlots(...); export function placeLanterns(road,count,rng):LanternLayout; types Road, Lantern, LanternLayout",
+  "depends_on": [
+   "src/art/wallpapers/spec.ts",
+   "src/art/wallpapers/data.ts",
+   "src/art/svg.ts",
+   "src/art/noise.ts",
+   "src/art/color.ts",
+   "src/shared/hash.ts"
+  ],
+  "tests": "chaya-lanterns.test.ts: snapshot for a fixed seed at both compositions; lantern count = floor(listenHours / 10) capped at 60; 0 lanterns at 0 h",
+  "owner_group": "G"
+ },
+ {
+  "path": "scripts/listening-report.ts",
+  "responsibility": "[P1] (design 08 §2 / §4 / §12; `npm run content:report`, a step of content:all) Builds docs/listening-report.md from public/content and the pools regenerated in memory by the same buildPools call content:assign writes them from: §1 pools by station (own / i+0 / i+1 refs and minutes, file bytes against POOL_FILE_BUDGET_BYTES, the V46 own-station census), §2 hours by source and render tier (speech estimate = speechMorae ÷ MORAE_PER_SECOND + CLIP_PAD_SECONDS per clip; bytes at KB_PER_SECOND 3.46), §3 the authentic inventory (bridge texts, casual non-bridge dialogues from CASUAL_FROM_STATION 10, authentic pieces; distinct hours, and the reachable figure = distinct × (ARENA_SET_FACTOR 2.5 + RADIO_REHEARINGS 2) that src/store/perapera.ts pins as REACHABLE_IN_APP_HOURS), §4 segmenter calibration against the stories' tokenIds, §5 the examples outside every pool (Pass 4b candidates). Design 08 §2 and §12 quote the file. writeReport is byte-stable (changed: false on a clean tree).",
+  "api": "export function buildReport(root:string):Report; export function renderMarkdown(r:Report):string; export function writeReport(root:string,outPath:string):{report:Report;changed:boolean;path:string}; export function readBundles(root):StationBundle[]; export function estimateMorae(...):number; export function calibrate(...):CalibrationData; export const KB_PER_SECOND=3.46, SLOW_TAKE_UP_TO_STATION=17, PIECE_SLOW_UP_TO_STATION, ARENA_SET_FACTOR=2.5, RADIO_REHEARINGS=2, CASUAL_FROM_STATION=10; types Report, ReportData, StationRow, SentenceRow, ItemRow, HoursData, AuthenticData, CalibrationData; CLI: node scripts/listening-report.ts [--root] [--out] [--json]",
+  "depends_on": [
+   "src/content/types.ts",
+   "src/content/ruby.ts",
+   "src/shared/jp.ts",
+   "scripts/linker.ts",
+   "scripts/assign-stations.ts",
+   "scripts/build-content-index.ts"
+  ],
+  "tests": "scripts/listening-report.test.ts: the Station 4 own-station share equals the census within the ±6 % tokenizer tolerance; the authentic inventory over the shipped corpus reports 25 bridge texts and 29 casual non-bridge dialogues from Station 10; the reachable figure equals round(distinct × 4.5); the report is byte-stable on a second run; ceilings on the never-all-known counts",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/render-audio.ts",
+  "responsibility": "[P1] (design 08 §7; runbook docs/AUDIO_PACK.md §6) The VOICEVOX render pipeline, run on the build Mac and never in CI: inventory (every clip spec per tier core | pool | ear — story and piece lines, words by item id from the word surface with a user-dictionary entry { surface, pronunciation, accent_type: pitch }, kanji example words not covered by a vocab clip, kana + exampleWord, grammar and pool examples, michikusa quotes, generated kana tracks, #ga / #col / #def / #pair; natural-slow 0.85 takes of Stations 1–17 sentence clips), clip ids = sha256(engine|version|styleId|dictVersion|text|kana|speedScale|pitchScale|intonationScale|accentOverride) cached in .audio-cache, the four-engine queue with transport-failure retirement, the verify ladder (verify.ts), sprites (sprites.ts), indexes + manifest (indexes.ts), skipped.jsonl, pruning of sprites the manifest no longer names; --dry-run --fixtures runs without an engine or ffmpeg; a dry or partial (--stations / --limit) run refuses to overwrite a real pack unless --force; exits 1 when ≥ 2 % of clips were skipped unless --allow-skips. Text handed to the engine is textToSpeak(toPlain(ja), kana) (src/shared/speak-text.ts).",
+  "api": "CLI: node scripts/audio/render-audio.ts [--tier core|pool|ear]… [--stations A-B] [--engines url,…] [--dry-run] [--fixtures [dir]] [--limit N] [--root] [--out] [--cache] [--cast] [--ffmpeg] [--dict high|all|none] [--no-prune] [--previous <manifest>] [--force] [--allow-skips]; exports loadCorpus, loadCast, resolveVoices, inventory, dictionaryEntries, dictVersionOf, clipId / clipIdOf, spokenForms, wordText, levelOfId; consts ENGINE_NAME, ENGINE_VERSION \"0.25.2\", DEFAULT_ENGINES (127.0.0.1:50021…50024), SLOW_RATE 0.85, SLOW_PAUSE_SCALE 1.3, SLOW_THROUGH_STATION 17, TIERS, NARRATOR",
+  "depends_on": [
+   "src/shared/speak-text.ts",
+   "src/shared/jp.ts",
+   "src/content/ruby.ts",
+   "src/content/types.ts",
+   "src/learn/distractors.ts",
+   "scripts/audio/verify.ts",
+   "scripts/audio/sprites.ts",
+   "scripts/audio/indexes.ts",
+   "scripts/audio/kana-tracks.ts",
+   "scripts/audio/cast.json"
+  ],
+  "tests": "render-audio.test.ts: import() of src/shared/speak-text.ts, src/shared/jp.ts, src/content/ruby.ts, src/content/types.ts and src/learn/distractors.ts succeeds under Node; --dry-run --fixtures writes a manifest, indexes and skipped.jsonl without an engine or ffmpeg; clip ids are stable across runs and change when pitch / speedScale change; a vocab word clip is keyed by item id, never by kana; kanji example words reuse the vocab clip only when word + kana match; two speakers of one text never share a character; verify.ts's synthesizeMinimalPair is the same function as src/learn/distractors.ts's",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/verify.ts",
+  "responsibility": "[P1] (design 08 §7 step 3) Pure per-clip verification of a VOICEVOX audio_query: (a) morae — the engine's moras (pause_mora dropped) against the content kana under the lenient fold (katakana → hiragana, は/わ へ/え を/お, ぢ/じ づ/ず, long vowels canonical; foldMora / lenientMorae / engineMorae — every ladder string in the engine's notation, ー expanded to the preceding vowel because the is_kana parser rejects it); (b) accent — a pitchConfidence: high word's accent_phrases[0].accent equals pitch (heiban 0 ↔ the mora count), withAccent sets it for a re-query; the ladder LADDER: surface → user-dict the offending word → kanaPatch of the span in AquesTalk notation (toAquesTalk) and /accent_phrases?is_kana=true → the content kana as plain text → skip. queryDuration / pauseMoraIndexes feed the indexes' m / c cues. Re-exports synthesizeMinimalPair from src/learn/distractors.ts for the <itemId>#pair clip text (one body, Node-importable).",
+  "api": "export function verifyMorae(q:AudioQuery,kana:string):MoraVerdict; export function verifyAccent(q,pitch:number):AccentVerdict; export function expectedAccent(pitch,moraCount):number; export function withAccent(q,accent):AudioQuery; export function withAccentPhrases(...); export function foldMora / foldMorae / lenientMorae / engineMorae / queryMorae / rawQueryMorae; export function toAquesTalk(kana):string; export function kanaPatch(...):string; export function kanaText(q):string; export function queryDuration(q):number; export function pauseMoraIndexes(q):number[]; export const LADDER; export { synthesizeMinimalPair } from src/learn/distractors.ts; types AudioQuery, VvMora, VvAccentPhrase, MoraVerdict, AccentVerdict, LadderStep",
+  "depends_on": [
+   "src/shared/jp.ts",
+   "src/learn/distractors.ts"
+  ],
+  "tests": "verify.test.ts: lenient fold accepts は/わ, を/お, ヅ/ズ, long vowels; 何でも→ナニデモ and 二分→ニブン fixtures fail step 0 and produce the is_kana patch string of step 2 (クォーツ → クォオ'ツ); a 雨 fixture with accent 2 against pitch 1 is flagged and the override query carries accent 1; heiban 0 maps to the mora count",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/sprites.ts",
+  "responsibility": "[P1] (design 08 §7 steps 5–6; docs/AUDIO_PACK.md §1) Sprite assembly: layout(parts) places 16-bit mono 24 kHz clips one after another with PAD_SECONDS 0.3 pads and GUARD_SECONDS 0.02 inside them (cue start / end), concatPcm, planMixedSprites splits mixed-kind sprites at MAX_MIXED_SECONDS 90 (one sprite per text whatever its length), wavHeader / wrapWav / pcmOfWav / wavSeconds, sha256Hex / sha8 and spriteName (<name>-<sha8>.webm — content-addressed, renamed only when the bytes change), estimateOpusBytes (OPUS_BYTES_PER_SECOND 3.46 KB/s), and the two shell-outs encodeOpus (ffmpeg -c:a libopus -b:a 24k -ac 1 -ar 24000 -application voip -flags +bitexact — identical PCM gives identical bytes) and ffmpegHasOpus.",
+  "api": "export function layout(parts:readonly ClipLength[]):Layout; export function spriteSeconds(layout):number; export function concatPcm(parts:PcmPart[]):Buffer; export function planMixedSprites<T>(clips:T[]):T[][]; export function wavHeader / wrapWav / pcmOfWav / wavSeconds; export function sha256Hex(buf):string; export function sha8(buf):string; export function spriteName(name,bytes):string; export function estimateOpusBytes(seconds):number; export function encodeOpus(wav,out,ffmpeg?):void; export function ffmpegHasOpus(ffmpeg?):boolean; export const SAMPLE_RATE=24000, BYTES_PER_SAMPLE=2, PAD_SECONDS=0.3, GUARD_SECONDS=0.02, MAX_MIXED_SECONDS=90, OPUS_ARGS, OPUS_BYTES_PER_SECOND, OPUS_FILE_OVERHEAD",
+  "depends_on": [],
+  "tests": "sprites.test.ts: PCM concat cue math (sample offsets, 20 ms guards inside 300 ms pads); a text longer than 90 s is still one sprite; mixed-kind sprites split at 90 s; the sprite file name carries sha8 of its bytes and is unchanged when the bytes are",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/indexes.ts",
+  "responsibility": "[P1] (design 08 §7 steps 6–7, §9; docs/AUDIO_PACK.md §3–§4 are the shapes, kept in step with this file) Pure builders from the pipeline's clip records to the JSON the clip runtime reads: buildIndexes(clips, tracks, audioVersion) → the CueIndex files (<level>/words.json, sentences.json with byText, ear.json; kana/words.json), the StoriesIndex per station (texts[storyId] = { f, whole: { s, e } | null — null when any line was skipped —, lines[i] cues with m mora boundaries and c clause boundaries }, misc, byText), kana/tracks.json, and the two check-only sidecars files.json (path → sha256) and kana.json (clip key → hex8 of the verified kana); the manifest (tsuzuku.audio/1: audioVersion = a- + 10 hex of sha256 over contentVersion | castSha | engine | dictVersion | tiers, belts, files [{ path, bytes, seconds, clips, belt, tier }] — sprites only, no sha256 —, indexes, totals, render, skipped, credits, reusedBytesShare, contentDiffShare, changedClipShare, partial). Morae are counted with speechMorae / moraCount from src/shared/jp.ts over one spokenKana string (moraTotal / clauseBoundaries), so c[last] === moraTotal by construction; textKey = fnv1a32 hex8 of the spoken text (both spoken forms when the kana changes it). Budgets: MAX_LEVEL_INDEX_BYTES 350 KB (fails), MAX_STATION_INDEX_BYTES 64 KB (warns), MAX_MANIFEST_BYTES 256 KiB (warns; the lead-accepted figure of 2026-10-18), MAX_DIST_BYTES 900 MB.",
+  "api": "export function buildIndexes(clips:readonly RenderedClip[],tracks:readonly TrackRecord[],audioVersion:string):IndexFile[]; export function moraBoundaries(q,speedScale):number[]; export function moraTotal(kana):number; export function clauseBoundaries(kana,q):number[]; export function textKey(spoken):string; export function kanaHash(kana):string; export function kanaDiffShare(prev,next):number|null; export function fnv1a32(s):number; export const hex8; export const INDEX_SCHEMA=\"tsuzuku.audio-index/1\", MANIFEST_SCHEMA=\"tsuzuku.audio/1\", PACK_SCHEMA=\"tsuzuku.audio-pack/1\", MAX_LEVEL_INDEX_BYTES, MAX_STATION_INDEX_BYTES, MAX_MANIFEST_BYTES, MAX_DIST_BYTES, DICTATION_MAX_MORAE=22, KANA_SIDECAR, FILES_SIDECAR, stationScope; types ClipKind, RenderedClip, TrackRecord, CompactCue, CueIndex, StoryEntry, StoriesIndex, TrackRow, TracksIndex, KanaIndex, AnyIndex, IndexFile",
+  "depends_on": [
+   "src/shared/jp.ts",
+   "src/shared/speak-text.ts",
+   "src/content/ruby.ts",
+   "src/content/types.ts",
+   "scripts/audio/verify.ts"
+  ],
+  "tests": "indexes.test.ts: m boundaries sum to the query duration within 40 ms; c boundaries land on pause_mora / 。、 and c[last] === m.length on every corpus cue; byText holds sentences only and both spoken forms; a level's sentences.json over the fixture stays ≤ 350 KB; #col / #def cues land in ear.json only; whole is null when a line was skipped; manifest belts sum to the files sums",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/kana-tracks.ts",
+  "responsibility": "[P1] (design 08 §10.5; docs/AUDIO_PACK.md §3.3) Generated kana tracks for Stations 1–3 (no pieces, no chant StoryItems): kanaTracks(items) builds the specs from the KanaItem rows — gojūon row walks per script (basic, dakuten, handakuten, yōon), base ↔ dakuten / handakuten pairs, counting 1–10, greetings, minimal pairs (both words, one voice, one rate), the exampleWords — each with its segments (what is said when, for the Radio transcript), all in ハナ's voice (KANA_TRACK_VOICE) at rate 1; trackCoverage checks every row, dakuten pair, counting item and exampleWord is covered.",
+  "api": "export function kanaTracks(items:readonly KanaItem[]):KanaTrackSpec[]; export function trackCoverage(items,tracks):TrackCoverage; export const KANA_TRACK_VOICE, DAKUTEN_BASE, COUNTING, GREETINGS, MINIMAL_PAIRS; types KanaTrackKind, TrackSegment, KanaTrackSpec, TrackCoverage",
+  "depends_on": [
+   "src/content/types.ts"
+  ],
+  "tests": "kana-tracks.test.ts: tracks generated from KanaItem rows cover every row, every dakuten pair, counting 1–10 and all 238 exampleWords; minimal-pair tracks pair both words in one voice at one rate",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/pack.ts",
+  "responsibility": "[P1] (design 08 §7 step 8) Packs the rendered audio into release assets: one tar per tier, tsuzuku-audio-<audioVersion>-<tier>.tar, built with the system tar from the manifest's files and indexes (tarPaths / tiersOf), and writes the committed pointer public/audio-pack.json (tsuzuku.audio-pack/1: repo, audioVersion, tag audio-<audioVersion>, assets [{ tier, name, sha256, bytes }], credits) through buildPointer; refuses a dry-run or partial manifest (manifest.dryRun / manifest.partial). emptyPointer() is the no-pack pointer CI reads today.",
+  "api": "CLI: node scripts/audio/pack.ts [--audio public/audio] [--out .audio-cache/release] [--pointer public/audio-pack.json]; export function pack(o:PackOptions):AudioPackPointer; export function buildPointer(manifest,assets,repo?):AudioPackPointer; export function emptyPointer():AudioPackPointer; export function tarPaths(manifest,tier):string[]; export function tiersOf(manifest):string[]; types PackOptions",
+  "depends_on": [
+   "scripts/audio/indexes.ts",
+   "scripts/audio/sprites.ts"
+  ],
+  "tests": "pack.test.ts: one tar per tier with exactly the tier's sprites and the indexes; the pointer names tag, assets, sha256 and bytes; a dry-run or partial manifest is refused",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/publish.ts",
+  "responsibility": "[P1] (design 08 §7 step 8) Publishes the pack as the GitHub release audio-<audioVersion> on sunkencity999/tsuzuku through the gh CLI: publishCommands(pointer, assetsDir) plans `gh release create` / `gh release upload --clobber` for every asset after verifyAssets checks each file's sha256 and bytes against the pointer; a DRY RUN unless --yes (the npm script audio:publish passes --dry-run by design — the guard; the real release is the lead's `npm run audio:publish -- --yes`).",
+  "api": "CLI: node scripts/audio/publish.ts [--dry-run] [--yes] [--pointer public/audio-pack.json] [--assets .audio-cache/release] [--repo owner/name]; export function publish(o:PublishOptions):number; export function publishCommands(pointer,assetsDir,repo?):PublishPlan; export function verifyAssets(pointer,assetsDir):void; types PublishPlan, PublishOptions",
+  "depends_on": [
+   "scripts/audio/pack.ts"
+  ],
+  "tests": "covered by pack.test.ts (pointer shape) and a dry-run assertion that the planned gh commands name the tag and every asset",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/fetch-audio-pack.ts",
+  "responsibility": "[P1] (design 08 §7 step 9; deploy.yml) Fetches the voice pack into the build: reads public/audio-pack.json, finds the release audio-<audioVersion> through the GitHub API, STREAMS each asset to a temp file (Readable.fromWeb(res.body).pipe(createWriteStream), sha256 while streaming — never a whole asset in memory), verifies sha256 + bytes for every asset first, then spawnSync(\"tar\", [\"-xf\", tmp, \"-C\", dest]). No pack (no pointer, an empty asset list, a 404 release) exits 0 with NONE_MESSAGE \"audio pack: none — speechSynthesis only\"; every other failure (hash or size mismatch, failed download, API error, failing tar) exits 1 whatever the flags and leaves public/audio untouched — a corrupt asset never deploys silently. --optional is accepted for symmetry with audio:check and changes nothing. GNU tar or bsdtar must be on the runner.",
+  "api": "CLI: node scripts/audio/fetch-audio-pack.ts [--optional] [--pointer public/audio-pack.json] [--dest public/audio] [--repo owner/name]; export async function fetchAudioPack(o:FetchOptions):Promise<FetchOutcome>; export async function streamToFile(res,path):Promise<{sha256;bytes}>; export const NONE_MESSAGE, API; types FetchOptions, FetchOutcome, FetchLike, SpawnLike",
+  "depends_on": [
+   "scripts/audio/pack.ts"
+  ],
+  "tests": "fetch-audio-pack.test.ts: fake fetch with a streaming body; sha256 mismatch exits 1 and leaves public/audio untouched; --optional with no pack warns and exits 0; a missing release exits 0 with the none message; tar is invoked via spawnSync with the temp path; every asset is verified before any tar runs",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/check-audio.ts",
+  "responsibility": "[P1] (design 08 §7 step 9; deploy.yml's last step) Post-build pack check: no pack → exit 0 with NONE_MESSAGE; a stale manifest.contentVersion warns; an index kana that differs from the content's kana (kana.json sidecar vs contentKanaLookup) or a cue with no record fails; manifest.belts sums must equal the files sums (checkBelts); dist over MAX_DIST_BYTES 900 MB fails (checkDist); reusedBytesShare against the previous manifest warns below REUSE_WARN_BELOW 0.9 while the content diff (contentDiffShare from the two kana.json sidecars) is below SMALL_DIFF_BELOW 0.05 or unknown (checkReuse).",
+  "api": "CLI: node scripts/audio/check-audio.ts [--optional] [--audio public/audio] [--content public/content] [--dist dist] [--previous <manifest.json>] [--content-diff <0..1>]; export function checkAudio(o:CheckOptions):{code:number;findings:Finding[]}; export function checkIndexes / checkBelts / checkDist / checkReuse; export function contentKanaLookup(root):KanaLookup; export function readKanaKeys(path):Record<string,string>; export function dirBytes(dir):number; export const NONE_MESSAGE, REUSE_WARN_BELOW=0.9, SMALL_DIFF_BELOW=0.05; types Finding, KanaLookup, CheckOptions",
+  "depends_on": [
+   "src/content/types.ts",
+   "src/content/ruby.ts",
+   "src/shared/jp.ts",
+   "scripts/audio/indexes.ts"
+  ],
+  "tests": "check-audio.test.ts: stale contentVersion warns; index kana ≠ content kana fails; dist over 900 MB fails; reusedBytesShare computed from two fixture manifests and the warning gated on the content diff; no pack exits 0",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/audio/cast.json",
+  "responsibility": "[P1] (design 08 §6; docs/AUDIO_PACK.md §7) tsuzuku.cast/1 — one entry per speaker / narrator label { name, gender, age, character, style, emotionStyles?, credit }: 62 labels (the 46 original speakers, the narrator roles anchor / lecturer / reader, the 13 locals the pieces pre-announced) over 22 permitted VOICEVOX characters; ハナ = 九州そら (also narration, kana tracks, word clips), ケン = 玄野武宏, 田中さん = ちび式じい, anchor = 波音リツ, lecturer = 麒ヶ島宗麟, reader = 冥鳴ひまり, 渡辺さん 45 = 東北イタコ; two speakers of one text never share a character; never 青山龍星, 後鬼, もち子さん, ユーレイちゃん, No.7, Voidoll, ぞん子. Style ids are resolved from GET /speakers at render time. The validator's V42 (--cast) fails strict mode on a label this file does not resolve; the credit list equals CONTENT_LICENSE.md's.",
+  "api": "data: { schema: \"tsuzuku.cast/1\", engine: \"VOICEVOX 0.25.2\", notes, speakers: [{ name, gender, age, character, style, emotionStyles?, credit }] }",
+  "depends_on": [],
+  "tests": "render-audio.test.ts (every speaker and planned piece resolves; no two speakers of a text share a character); scripts/validate-content.test.ts V42 fixtures; CONTENT_LICENSE.md credit list compared by the docs owner",
+  "owner_group": "C"
  }
 ]

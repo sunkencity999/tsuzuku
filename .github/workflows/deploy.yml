@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      audio:
+        description: 'Fetch the voice pack named in public/audio-pack.json into the build (false rehearses the no-pack path: the site speaks through the device voice)'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -24,10 +29,22 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run content:validate
+      - run: npm run content:validate -- --strict --listening-release
       - run: npm run content:index
+      # The pack is a release asset on sunkencity999/tsuzuku (tag audio-<audioVersion>, docs/AUDIO_PACK.md §6).
+      # fetch-audio-pack.ts streams each tar to a temp file, verifies sha256 while streaming, then `tar -xf` (GNU tar is on ubuntu-latest).
+      # An empty asset list or a missing release exits 0 with "audio pack: none — speechSynthesis only"; the site builds without a pack.
+      # Cost with the full pack: ≈ 490 MB download here + ≈ 520 MB Pages artifact below.
+      - name: Fetch the voice pack
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.audio == true }}
+        run: npm run audio:fetch -- --optional
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm test
       - run: npm run build
+      # Stale contentVersion warns; an index kana that differs from the content fails; dist over 900 MB fails.
+      - name: Check the voice pack against the content and the dist budget
+        run: npm run audio:check -- --optional
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

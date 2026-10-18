@@ -1,13 +1,13 @@
 import { createHash } from 'node:crypto';
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { CONTENT_KINDS } from '../src/content/types.ts';
-import { assign } from './assign-stations.ts';
+import { assign, bundlesFromCorpus } from './assign-stations.ts';
 import type { PlanEntry } from './assign-stations.ts';
-import { buildIndex, deriveContentVersion, isDerivedVersion, listContentFiles, oversizeStations, stationEntrySizes, stringifyManifest, writeIndex, MAX_FILE_BYTES, STATION_ENTRY_BUDGET_BYTES } from './build-content-index.ts';
+import { BuildIndexError, buildIndex, checkPools, deriveContentVersion, isDerivedVersion, listContentFiles, listPoolFiles, oversizePools, oversizeStations, stationEntrySizes, stringifyManifest, writeIndex, MAX_FILE_BYTES, POOL_FILE_BUDGET_BYTES, STATION_ENTRY_BUDGET_BYTES } from './build-content-index.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const GOOD = join(here, '__fixtures__', 'good');
@@ -71,7 +71,7 @@ describe('build-content-index', () => {
     expect(kana.stations).toEqual([1, 2]);
     const story = m.files.find((f) => f.path === 'stories/n5/stories-s04.json')!;
     expect(story.stations).toEqual([4]);
-    expect(m.totals).toEqual({ kana: 21, vocab: 16, kanji: 9, grammar: 3, story: 1, conjugation: 3, component: 11, michikusa: 3, station: 53, pool: 0 });
+    expect(m.totals).toEqual({ kana: 21, vocab: 16, kanji: 9, grammar: 3, story: 1, conjugation: 3, component: 11, michikusa: 3, station: 53, pool: 53 });
     expect(m.stations[3]!.counts).toEqual({ kana: 0, vocab: 0, kanji: 8, grammar: 3, story: 1, michikusa: 3 });
     expect(m.stations[3]!.path).toBe('stations/04.json');
   });
@@ -213,5 +213,127 @@ describe('build-content-index', () => {
     expect(Object.keys(m.redirects)).toEqual(['v-n5-0999', 'v-n5-9999']);
     expect(listContentFiles(root)).not.toContain('_meta/redirects.json');
     expect(existsSync(join(root, '_meta/redirects.json'))).toBe(true);
+  });
+
+  /* ── design 08 §4–§5: listening pools in the manifest, V44 in the default check ── */
+
+  it('lists the 53 pool files as type pool with stations [NN] and count = refs; totals.pool = 53; station counts and entries exclude pools', () => {
+    const root = corpus();
+    const m = buildIndex(root, '1.0.0', { generatedAt: AT });
+    const pools = m.files.filter((f) => f.type === 'pool');
+    expect(pools.map((f) => f.path)).toEqual(Array.from({ length: 53 }, (_, i) => `listening/pool-${String(i + 1).padStart(2, '0')}.json`));
+    expect(listPoolFiles(root)).toEqual(pools.map((f) => f.path));
+    const p4 = pools.find((f) => f.path === 'listening/pool-04.json')!;
+    expect(p4).toMatchObject({ type: 'pool', level: null, stations: [4], belts: ['yellow'] });
+    const onDisk = JSON.parse(readFileSync(join(root, p4.path), 'utf8')) as { refs: unknown[] };
+    expect(p4.count).toBe(onDisk.refs.length);
+    expect(p4.count).toBeGreaterThan(0);
+    expect(p4.bytes).toBe(statSync(join(root, p4.path)).size);
+    expect(m.totals.pool).toBe(53);
+    expect(Object.keys(m.stations[3]!.counts)).not.toContain('pool');
+    expect(listContentFiles(root).some((p) => p.startsWith('listening/'))).toBe(false);
+    for (const s of stationEntrySizes(root, m)) expect(s.files.some((p) => p.startsWith('listening/'))).toBe(false);
+    expect(m.files.map((f) => f.path)).toEqual([...m.files.map((f) => f.path)].sort());
+    expect(POOL_FILE_BUDGET_BYTES).toBe(256 * 1024);
+    expect(oversizePools(root, m)).toEqual([]);
+    expect(oversizePools(root, m, 100)).toEqual(expect.arrayContaining([expect.stringMatching(/^listening\/pool-04\.json: \d+ bytes \(\d+ (?:KiB|bytes)\) > POOL_FILE_BUDGET_BYTES 100 bytes \(\d+ refs with their kana — a pool file is ≤ 100 bytes, design 08 §4\)$/)]));
+    expect(writeIndex(root, '1.0.0', { generatedAt: AT }).warnings).toEqual([]);
+  });
+
+  it('the pool budget is a HARD limit (lead decision, wave B): a pool file over it fails the default check with a BuildIndexError naming the file and its bytes; check: false only warns', () => {
+    const root = corpus();
+    const p4 = statSync(join(root, 'listening/pool-04.json')).size;
+    expect(p4).toBeGreaterThan(100);
+    let err: unknown;
+    try {
+      buildIndex(root, '1.0.0', { generatedAt: AT, poolFileBudget: 100 });
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(BuildIndexError);
+    expect((err as Error).message).toMatch(/^listening pool file\(s\) over the 100-byte budget \(a pool file is ≤ 100 bytes; /);
+    expect((err as Error).message).toContain(`listening/pool-04.json: ${p4} bytes`);
+    expect((err as BuildIndexError).findings).toEqual([]);
+    expect(() => buildIndex(root, '1.0.0', { generatedAt: AT, poolFileBudget: 100, check: false })).not.toThrow();
+    const w = writeIndex(root, '1.0.0', { generatedAt: AT, poolFileBudget: 100, check: false }).warnings;
+    expect(w.some((line) => line.startsWith(`listening/pool-04.json: ${p4} bytes`))).toBe(true);
+    // the shipped budget holds on the fixture corpus
+    expect(() => buildIndex(root, '1.0.0', { generatedAt: AT })).not.toThrow();
+  });
+
+  it('V44: the default check regenerates the pools and throws rows when a pool file is edited by hand or missing; check: false does not; deriveContentVersion moves with a pool', () => {
+    const root = corpus();
+    const rel = 'listening/pool-04.json';
+    const p = join(root, rel);
+    const original = readFileSync(p, 'utf8');
+    const before = deriveContentVersion(root);
+    expect(() => buildIndex(root, '1.0.0', { generatedAt: AT })).not.toThrow();
+    expect(checkPools(root, bundlesFromCorpus(root))).toEqual([]);
+    writeFileSync(p, original.replace('"morae": ', '"morae": 9'));
+    let err: unknown;
+    try {
+      buildIndex(root, '1.0.0', { generatedAt: AT });
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(BuildIndexError);
+    expect((err as Error).message).toMatch(/^V44: 1 listening pool finding/);
+    expect((err as BuildIndexError).findings).toEqual([{ file: rel, rule: 'V44', message: expect.stringMatching(/does not regenerate byte-identically/) }]);
+    expect(checkPools(root, bundlesFromCorpus(root))).toEqual((err as BuildIndexError).findings);
+    expect(buildIndex(root, '1.0.0', { generatedAt: AT, check: false }).totals.pool).toBe(53);
+    expect(deriveContentVersion(root)).not.toBe(before);
+    writeFileSync(p, original);
+    expect(deriveContentVersion(root)).toBe(before);
+    rmSync(p);
+    try {
+      buildIndex(root, '1.0.0', { generatedAt: AT });
+    } catch (e) {
+      err = e;
+    }
+    expect((err as BuildIndexError).findings).toEqual([{ file: rel, rule: 'V44', message: expect.stringMatching(/missing/) }]);
+    expect(buildIndex(root, '1.0.0', { generatedAt: AT, check: false }).totals.pool).toBe(52);
+    // a pool nothing generates is reported too
+    writeFileSync(p, original);
+    writeFileSync(join(root, 'listening/pool-53.json'), original.replace('"station": 4', '"station": 53'));
+    rmSync(join(root, 'stations/53.json'));
+    const rows = checkPools(root, bundlesFromCorpus(root).filter((b) => b.number !== 53));
+    expect(rows).toEqual([{ file: 'listening/pool-53.json', rule: 'V44', message: expect.stringMatching(/unexpected pool file/) }]);
+  });
+
+  it('a listening-s07.json story file is listed with stations [7] beside stories-s07.json, exactly like it, and its linked lines feed pool-07', () => {
+    const root = mkdtempSync(join(tmpdir(), 'tsuzuku-index-'));
+    tmps.push(root);
+    cpSync(GOOD, root, { recursive: true });
+    const text = (id: string, extra: Record<string, unknown> = {}) => ({
+      id,
+      stationId: 'st-07',
+      titleJa: '{水|みず}',
+      titleEn: 'Water',
+      kind: 'story',
+      register: 'polite',
+      lines: [{ ja: '{水|みず}です。', kana: 'みずです。', en: 'Water.', tokens: ['水', 'です', '。'] }],
+      vocabIds: ['v-n5-0008'],
+      grammarIds: [],
+      comprehension: [],
+      recapEn: 'Water.',
+      ...extra,
+    });
+    mkdirSync(join(root, 'stories/n5'), { recursive: true });
+    writeFileSync(join(root, 'stories/n5/stories-s07.json'), JSON.stringify({ schema: 'tsuzuku.content/1', type: 'story', level: 'n5', items: [text('s-07-1')] }, null, 2) + '\n');
+    writeFileSync(join(root, 'stories/n5/listening-s07.json'), JSON.stringify({ schema: 'tsuzuku.content/1', type: 'story', level: 'n5', items: [text('s-07-4', { genre: 'exchange', audioFirst: true, narrator: 'ハナ' })] }, null, 2) + '\n');
+    const allow = mkdtempSync(join(tmpdir(), 'tsuzuku-allow-'));
+    tmps.push(allow);
+    assign(root, PLAN, { write: true, allowlistsDir: allow });
+    const m = buildIndex(root, '1.0.0', { generatedAt: AT });
+    const a = m.files.find((f) => f.path === 'stories/n5/stories-s07.json')!;
+    const b = m.files.find((f) => f.path === 'stories/n5/listening-s07.json')!;
+    expect(a).toMatchObject({ type: 'story', level: 'n5', count: 1, stations: [7], belts: ['yellow'] });
+    expect(b).toMatchObject({ type: 'story', level: 'n5', count: 1, stations: [7], belts: ['yellow'] });
+    expect(m.totals.story).toBe(3);
+    expect(m.stations[6]!.counts.story).toBe(2);
+    const pool7 = JSON.parse(readFileSync(join(root, 'listening/pool-07.json'), 'utf8')) as { refs: { ref: string; ids: string[] }[] };
+    expect(pool7.refs.map((r) => r.ref)).toEqual(['s-07-1#L0', 's-07-4#L0']);
+    expect(pool7.refs[1]!.ids).toEqual(['v-n5-0008']);
+    expect(m.files.find((f) => f.path === 'listening/pool-07.json')!.count).toBe(2);
   });
 });

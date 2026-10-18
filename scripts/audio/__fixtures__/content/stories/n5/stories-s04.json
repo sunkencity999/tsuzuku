@@ -1,0 +1,169 @@
+{
+ "schema": "tsuzuku.content/1",
+ "type": "story",
+ "level": "n5",
+ "writer": "stories-s04",
+ "generatedAt": "2026-10-17T00:00:00Z",
+ "items": [
+  {
+   "id": "s-04-1",
+   "stationId": "st-04",
+   "titleJa": "{雨|あめ}",
+   "titleEn": "Rain",
+   "kind": "dialogue",
+   "register": "polite",
+   "learnerSpeaker": "ハナ",
+   "lines": [
+    {
+     "speaker": "ハナ",
+     "ja": "はい、{分|わ}かりました。",
+     "kana": "はい、わかりました。",
+     "en": "Yes, understood.",
+     "tokens": [
+      "はい",
+      "、",
+      "分かりました",
+      "。"
+     ],
+     "tokenIds": [
+      "v-n5-0001",
+      null,
+      null,
+      null
+     ]
+    },
+    {
+     "speaker": "ケン",
+     "ja": "{今日|きょう}は{雨|あめ}です。",
+     "kana": "きょうはあめです。",
+     "en": "It is raining today.",
+     "tokens": [
+      "今日",
+      "は",
+      "雨",
+      "です",
+      "。"
+     ],
+     "tokenIds": [
+      null,
+      null,
+      "v-n5-0002",
+      null,
+      null
+     ],
+     "emotion": "glad"
+    },
+    {
+     "speaker": "ハナ",
+     "ja": "すみません、この{電車|でんしゃ}は{東京|とうきょう}に{行|い}きますか。",
+     "kana": "すみません、このでんしゃはとうきょうにいきますか。",
+     "en": "Excuse me, does this train go to Tokyo?",
+     "tokens": [
+      "すみません",
+      "、",
+      "この",
+      "電車",
+      "は",
+      "東京",
+      "に",
+      "行きます",
+      "か",
+      "。"
+     ],
+     "tokenIds": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+     ]
+    }
+   ],
+   "vocabIds": [
+    "v-n5-0001",
+    "v-n5-0002"
+   ],
+   "grammarIds": [
+    "g-n5-001"
+   ],
+   "comprehension": [
+    {
+     "q": "What is the weather?",
+     "choices": [
+      "Rain",
+      "Snow",
+      "Sun",
+      "Wind"
+     ],
+     "answer": 0
+    }
+   ],
+   "recapEn": "It rains."
+  },
+  {
+   "id": "s-04-2",
+   "stationId": "st-04",
+   "titleJa": "{何|なん}でも",
+   "titleEn": "Anything",
+   "kind": "story",
+   "register": "polite",
+   "lines": [
+    {
+     "ja": "{何|なん}でも{食|た}べる。",
+     "kana": "なんでもたべる。",
+     "en": "I eat anything.",
+     "tokens": [
+      "何でも",
+      "食べる",
+      "。"
+     ],
+     "tokenIds": [
+      "v-n5-0005",
+      null,
+      null
+     ]
+    },
+    {
+     "ja": "{二分|にふん}で{着|つ}きます。",
+     "kana": "にふんでつきます。",
+     "en": "We arrive in two minutes.",
+     "tokens": [
+      "二分",
+      "で",
+      "着きます",
+      "。"
+     ],
+     "tokenIds": [
+      "v-n5-0008",
+      null,
+      null,
+      null
+     ]
+    }
+   ],
+   "vocabIds": [
+    "v-n5-0005",
+    "v-n5-0008"
+   ],
+   "grammarIds": [],
+   "comprehension": [
+    {
+     "q": "How long?",
+     "choices": [
+      "Two minutes",
+      "Two hours",
+      "Two days",
+      "Two weeks"
+     ],
+     "answer": 0
+    }
+   ],
+   "recapEn": "Two minutes."
+  }
+ ]
+}

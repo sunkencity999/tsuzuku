@@ -1,0 +1,70 @@
+{
+ "name": "gontazaka",
+ "text": "権太坂",
+ "kana": "ごんたざか",
+ "styleId": 16,
+ "note": "michikusa quote",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ゴ",
+      "consonant": "g",
+      "consonant_length": 0.03707767277956009,
+      "vowel": "o",
+      "vowel_length": 0.150013729929924,
+      "pitch": 5.587568283081055
+     },
+     {
+      "text": "ン",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "N",
+      "vowel_length": 0.08162599802017212,
+      "pitch": 5.7776360511779785
+     },
+     {
+      "text": "タ",
+      "consonant": "t",
+      "consonant_length": 0.0782078430056572,
+      "vowel": "a",
+      "vowel_length": 0.08972985297441483,
+      "pitch": 5.81741189956665
+     },
+     {
+      "text": "ザ",
+      "consonant": "z",
+      "consonant_length": 0.07653234153985977,
+      "vowel": "a",
+      "vowel_length": 0.10635718703269958,
+      "pitch": 5.6099371910095215
+     },
+     {
+      "text": "カ",
+      "consonant": "k",
+      "consonant_length": 0.1302720457315445,
+      "vowel": "a",
+      "vowel_length": 0.1540999710559845,
+      "pitch": 5.372823238372803
+     }
+    ],
+    "accent": 3,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ゴンタ'ザカ"
+ }
+}

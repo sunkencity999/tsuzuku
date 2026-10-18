@@ -1,0 +1,38 @@
+{
+ "name": "kana-a",
+ "text": "あ",
+ "kana": "あ",
+ "styleId": 16,
+ "note": "kana item (text = the kana)",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ア",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "a",
+      "vowel_length": 0.22033171355724335,
+      "pitch": 5.426016807556152
+     }
+    ],
+    "accent": 1,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ア'"
+ }
+}

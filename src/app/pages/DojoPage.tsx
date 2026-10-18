@@ -29,7 +29,11 @@ import './pages.css';
 /* Types                                                                      */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-/** The contract feed plus whatever extras E's full feed carries (all optional). */
+/**
+ * The contract feed plus whatever extras E's full feed carries (all optional),
+ * among them `radioMinutes` (design 08 §10.2: minutes of 茶屋ラジオ material the
+ * learner can already follow; `null` when the feed cannot say).
+ */
 export type Feed = DojoFeed & Partial<Omit<DojoFeedFull, keyof DojoFeed>>;
 
 /** E's `gateForecast(fc, scrolls)`: the store forecast with the Scroll block taken off when nothing is left to teach. */
@@ -164,6 +168,38 @@ function SessionButtons(p: { feed: Feed }): JSX.Element {
         );
       })}
     </div>
+  );
+}
+
+/**
+ * 茶屋ラジオ tile (design 08 §10.2): a quiet link under the session buttons.
+ * The minute count is the feed's; without a feed the number is hidden and the
+ * link stays. Never a session, never a training day — the copy says so.
+ */
+function RadioTile(p: { feed: Feed }): JSX.Element {
+  const n = p.feed.radioMinutes;
+  const hasCount = typeof n === 'number' && Number.isFinite(n);
+  return (
+    <section class="panel page__section dojo__radio" aria-labelledby="dojo-radio" data-radio>
+      <h2 id="dojo-radio">
+        {S.dojoRadioTitle}
+        <span class="ja" lang="ja">
+          {S.dojoRadioTitleJa}
+        </span>
+      </h2>
+      <p class="dojo__line">{S.dojoRadioLede}</p>
+      {hasCount ? (
+        <p class="dojo__radio-min" data-radio-minutes>
+          {fmt(S.dojoRadioMinutes, { n: num(n) })}
+        </p>
+      ) : null}
+      <p class="dojo__line">{S.dojoRadioNote}</p>
+      <div class="page__actions">
+        <a class="btn" href={href({ name: 'radio' })} data-radio-link>
+          {S.dojoRadioOpen}
+        </a>
+      </div>
+    </section>
   );
 }
 
@@ -467,6 +503,7 @@ export default function DojoPage(p: DojoPageProps): JSX.Element {
             </h2>
             <SessionButtons feed={feed} />
           </section>
+          <RadioTile feed={feed} />
           <Quests />
           <GateBanner feed={feed} />
           <ShinsaBanner feed={feed} />

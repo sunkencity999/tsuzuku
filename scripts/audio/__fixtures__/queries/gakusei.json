@@ -1,0 +1,117 @@
+{
+ "name": "gakusei",
+ "text": "私は学生です。",
+ "kana": "わたしはがくせいです。",
+ "styleId": 16,
+ "note": "grammar example",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ワ",
+      "consonant": "w",
+      "consonant_length": 0.011642858386039734,
+      "vowel": "a",
+      "vowel_length": 0.10055570304393768,
+      "pitch": 5.371505260467529
+     },
+     {
+      "text": "タ",
+      "consonant": "t",
+      "consonant_length": 0.07488085329532623,
+      "vowel": "a",
+      "vowel_length": 0.08062349259853363,
+      "pitch": 5.648487567901611
+     },
+     {
+      "text": "シ",
+      "consonant": "sh",
+      "consonant_length": 0.14688514173030853,
+      "vowel": "i",
+      "vowel_length": 0.05268579721450806,
+      "pitch": 5.695682525634766
+     },
+     {
+      "text": "ワ",
+      "consonant": "w",
+      "consonant_length": 0.038569286465644836,
+      "vowel": "a",
+      "vowel_length": 0.1119767427444458,
+      "pitch": 5.64103364944458
+     }
+    ],
+    "accent": 4,
+    "pause_mora": null,
+    "is_interrogative": false
+   },
+   {
+    "moras": [
+     {
+      "text": "ガ",
+      "consonant": "g",
+      "consonant_length": 0.07328111678361893,
+      "vowel": "a",
+      "vowel_length": 0.1130848228931427,
+      "pitch": 5.371081829071045
+     },
+     {
+      "text": "ク",
+      "consonant": "k",
+      "consonant_length": 0.06923572719097137,
+      "vowel": "U",
+      "vowel_length": 0.06977952271699905,
+      "pitch": 0
+     },
+     {
+      "text": "セ",
+      "consonant": "s",
+      "consonant_length": 0.16126742959022522,
+      "vowel": "e",
+      "vowel_length": 0.0825088620185852,
+      "pitch": 5.603279113769531
+     },
+     {
+      "text": "エ",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "e",
+      "vowel_length": 0.13981115818023682,
+      "pitch": 5.6603474617004395
+     },
+     {
+      "text": "デ",
+      "consonant": "d",
+      "consonant_length": 0.048937223851680756,
+      "vowel": "e",
+      "vowel_length": 0.1156197190284729,
+      "pitch": 5.591547012329102
+     },
+     {
+      "text": "ス",
+      "consonant": "s",
+      "consonant_length": 0.07936596870422363,
+      "vowel": "U",
+      "vowel_length": 0.1777399480342865,
+      "pitch": 0
+     }
+    ],
+    "accent": 5,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ワタシワ'/ガ_クセエデ'_ス"
+ }
+}

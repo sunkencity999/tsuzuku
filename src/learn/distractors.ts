@@ -6,11 +6,16 @@
  * `meanings[0]`), never returns duplicates, and degrades gracefully on a small pool
  * (tiered preference lists, then built-in fallbacks) so the UI always gets
  * a full set of choices.
+ *
+ * Importable under plain node (ARCHITECTURE §0 rule: pure, no store or
+ * signals, every relative import carries its `.ts` extension — pinned by
+ * `distractors.test.ts`), so the audio pipeline (`scripts/audio/verify.ts`)
+ * can import `synthesizeMinimalPair` instead of carrying a copy.
  */
-import type { GrammarItem, KanaItem, KanjiItem, SentenceExample, StoryLine, VocabItem } from '../content/types';
-import { toPlain } from '../content/ruby';
-import { shuffle, type Rng } from '../shared/hash';
-import { equivalentJa, levenshtein, moraSplit, normalizeAnswer, normalizeEn, normalizeJa, toHiragana } from '../shared/jp';
+import type { GrammarItem, KanaItem, KanjiItem, SentenceExample, StoryLine, VocabItem } from '../content/types.ts';
+import { toPlain } from '../content/ruby.ts';
+import { shuffle, type Rng } from '../shared/hash.ts';
+import { equivalentJa, levenshtein, moraSplit, normalizeAnswer, normalizeEn, normalizeJa, toHiragana } from '../shared/jp.ts';
 
 /** Particle keys of Particle Duel (design 04 §4). */
 export const PARTICLES: readonly string[] = ['は', 'が', 'を', 'に', 'で', 'と', 'へ', 'から', 'まで', 'より', 'の'];
@@ -71,6 +76,15 @@ export function kanaDistance(a: string, b: string): number {
   return levenshtein(moraSplit(normalizeJa(a, { foldKatakana: true })), moraSplit(normalizeJa(b, { foldKatakana: true })));
 }
 
+/**
+ * Consonant toggles for the synthesized partner: voicing both ways (か ↔ が …),
+ * plus one-way entries so a mora without a voicing partner still has a
+ * same-length contrast — the handakuten row to its voiced neighbour (ぱ → ば)
+ * and ら / れ / ろ to the stop learners hear them as (ろ → ど, the ら / だ
+ * confusion). り / る have no such stop (ぢ / づ would be written じ / ず, an
+ * r → z contrast nobody mishears), so they fall through to the ん ↔ ー swap.
+ * The voiced ち / つ are written じ / ず (`CANONICAL_SPELLING`).
+ */
 const VOICING: Record<string, string> = {};
 {
   const pairs = ['かが', 'きぎ', 'くぐ', 'けげ', 'こご', 'さざ', 'しじ', 'すず', 'せぜ', 'そぞ', 'ただ', 'ちぢ', 'つづ', 'てで', 'とど', 'はば', 'ひび', 'ふぶ', 'へべ', 'ほぼ'];
@@ -78,6 +92,37 @@ const VOICING: Record<string, string> = {};
     VOICING[p[0] as string] = p[1] as string;
     VOICING[p[1] as string] = p[0] as string;
   }
+  for (const p of ['ぱば', 'ぴび', 'ぷぶ', 'ぺべ', 'ぽぼ', 'らだ', 'れで', 'ろど']) VOICING[p[0] as string] = p[1] as string;
+}
+const CANONICAL_SPELLING: Record<string, string> = { ぢ: 'じ', づ: 'ず' };
+
+const RE_SMALL_VOWEL_MORA = /^.[ぁぃぅぇぉゎ]$/u;
+
+/**
+ * `mora` with its consonant toggled (`VOICING`), or `null` when it has no
+ * partner (vowels, な / ま / や / わ rows, ん) or carries a small vowel
+ * (ふぁ, てぃ: ぶぁ / でぃ are not kana a learner should read).
+ */
+function toggleConsonant(mora: string): string | null {
+  const t = RE_SMALL_VOWEL_MORA.test(mora) ? undefined : VOICING[mora[0] as string];
+  return t ? (CANONICAL_SPELLING[t] ?? t) + mora.slice(1) : null;
+}
+
+const SPECIAL_SWAP: Record<string, string> = { ん: 'ー', ー: 'ん' };
+
+/**
+ * The last special mora (ん / ー) at index ≥ 1 swapped for the other one
+ * (えん → えー, のー → のん), or `null` when none exists or the swap would
+ * write ーー / んん (ろーん). Both are one-beat prolongations, so the pair
+ * keeps its mora count and asks the ear which beat it heard.
+ */
+function swapSpecialMora(morae: readonly string[]): string | null {
+  for (let i = morae.length - 1; i >= 1; i--) {
+    const to = SPECIAL_SWAP[morae[i] as string];
+    if (!to || morae[i - 1] === to || morae[i + 1] === to) continue;
+    return [...morae.slice(0, i), to, ...morae.slice(i + 1)].join('');
+  }
+  return null;
 }
 const VOWEL_OF: Record<string, string> = {};
 {
@@ -92,25 +137,49 @@ const VOWEL_OF: Record<string, string> = {};
 }
 
 /**
- * Synthesizes a minimal pair for `kana` when no corpus neighbour exists:
- * toggles a small っ, a long vowel, or voicing on the first eligible mora.
- * Always differs from the input.
+ * Synthesizes a minimal pair for `kana` when no corpus neighbour exists
+ * (design 04 §5; the audio pipeline renders exactly this partner as the
+ * `<id>#pair` clip, so the rule is frozen by `scripts/audio/render-audio.test.ts`
+ * and this module stays importable under node for `scripts/audio/verify.ts`):
+ *  1. small っ — removed when present (きって → きて); otherwise inserted
+ *     before the first mora at index ≥ 1 that is not ー / ん / っ
+ *     (きて → きって, アーカイブ → あーっかいぶ, せんせい → せんっせい):
+ *     っー is kana the engine refuses, っん is not Japanese (a っ never
+ *     precedes ん), and a っ never ends a word.
+ *  2. no such mora (ほん, パン, ローン — every later mora is ー / ん): a
+ *     near miss of the SAME mora count — a consonant toggle on the first
+ *     mora (ほん → ぼん, パン → ばん, ローン → どーん), else ん ↔ ー on the
+ *     last special mora (えん → えー, りん → りー). The residual when neither
+ *     applies drops one ー (あーん → あん, SHORTER by one — no corpus word
+ *     reaches it), else appends ー.
+ *  3. a single mora: long vowel added (か → かあ), else its consonant
+ *     toggled (きゃ → ぎゃ, ぴゃ → びゃ), else ー appended (ん → んー,
+ *     ふぁ → ふぁー: a small-vowel mora is never toggled).
+ * Always differs from the input, hiragana out.
  */
 export function synthesizeMinimalPair(kana: string): string {
   const k = toHiragana(kana);
   const morae = moraSplit(k);
-  // 1. small っ: remove if present, else insert before the second mora.
+  // 1. small っ: remove if present, else insert before the first mora (index ≥ 1) a っ can precede.
   const sokuon = morae.indexOf('っ');
   if (sokuon >= 0) return morae.filter((_, i) => i !== sokuon).join('');
-  if (morae.length >= 2) return [morae[0], 'っ', ...morae.slice(1)].join('');
-  // 2. long vowel on a single mora: add or drop.
+  const at = morae.findIndex((m, i) => i >= 1 && m !== 'ー' && m !== 'ん' && m !== 'っ');
+  if (at >= 1) return [...morae.slice(0, at), 'っ', ...morae.slice(at)].join('');
+  // 2. nothing a っ can precede (ほん, ローン): a same-length near miss instead.
+  if (morae.length >= 2) {
+    const toggled = toggleConsonant(morae[0] as string);
+    if (toggled) return toggled + morae.slice(1).join('');
+    const swapped = swapSpecialMora(morae);
+    if (swapped) return swapped;
+    const long = morae.lastIndexOf('ー');
+    if (long >= 1) return morae.filter((_, i) => i !== long).join('');
+    return k + 'ー';
+  }
+  // 3. a single mora: long vowel, else consonant toggle, else ー.
   const first = morae[0] ?? k;
-  const base = first[0] as string;
-  const v = VOWEL_OF[base];
+  const v = VOWEL_OF[first[0] as string];
   if (first.length === 1 && v) return first + v;
-  // 3. voicing toggle.
-  if (VOICING[base]) return VOICING[base] + first.slice(1);
-  return k + 'ー';
+  return toggleConsonant(first) ?? k + 'ー';
 }
 
 /**

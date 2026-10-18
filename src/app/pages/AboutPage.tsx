@@ -11,9 +11,11 @@
  */
 import type { JSX } from 'preact';
 import { content } from '@/content/loader';
+import { services, type ClipPlayer } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import { href, type Route } from '@/shared/routes';
 import { store } from '@/store';
+import { useClipPlayer } from '../hooks';
 import { loadErrors } from '../pages';
 import { S, fmt } from './strings';
 import './pages.css';
@@ -32,12 +34,24 @@ const HOW: readonly { title: string; body: string }[] = [
   { title: S.aboutGovernorTitle, body: S.aboutGovernor },
 ];
 
-const LICENSES: readonly string[] = [S.aboutLicenseCode, S.aboutLicenseContent, S.aboutLicenseFonts, S.aboutLicenseWanakana, S.aboutLicensePreact];
+const LICENSES: readonly string[] = [S.aboutLicenseCode, S.aboutLicenseContent, S.aboutLicenseFonts, S.aboutLicenseWanakana, S.aboutLicensePreact, S.aboutLicenseVoices];
 
 /** Content version: the loader's manifest when loaded, else what the save remembers. */
 export function contentVersionLine(): string {
   const v = content.version.value ?? store.meta().contentVersion;
   return v ? fmt(S.aboutContentVersion, { v }) : S.aboutContentNone;
+}
+
+/**
+ * `VOICEVOX:<character>` credits from the runtime manifest (design 08 §6), or
+ * null when this build has no pack (no player installed, or `ready` is not
+ * `'ready'`): the page then says the device voice speaks. The page passes the
+ * player from `useClipPlayer()` (`app/hooks.ts`), which re-renders the page
+ * when the audio barrel lands on a cold load.
+ */
+export function voiceCredits(clips: ClipPlayer | undefined = services.audio.clips): readonly string[] | null {
+  if (!clips || clips.ready.value !== 'ready') return null;
+  return clips.info.value?.credits ?? null;
 }
 
 const EVENTS_SHOWN = 20;
@@ -54,6 +68,10 @@ function describe(payload: unknown): string {
 export default function AboutPage(_p: { route: Route }): JSX.Element {
   const errors = loadErrors();
   const recent = bus.recent().slice(-EVENTS_SHOWN).reverse();
+  // Behind first paint the audio barrel is still installing (main.tsx): say "looking" then, never a false "no pack".
+  const { clips, settled } = useClipPlayer();
+  const credits = voiceCredits(clips);
+  const probing = !clips ? !settled : clips.ready.value === 'unknown' || clips.ready.value === 'loading';
   return (
     <div class="page about">
       <h1 class="page__title">
@@ -118,6 +136,16 @@ export default function AboutPage(_p: { route: Route }): JSX.Element {
         </div>
       </section>
 
+      <section class="panel page__section" aria-labelledby="about-voices">
+        <h2 id="about-voices">
+          {S.aboutVoicesTitle}
+          <span class="ja" lang="ja">
+            {S.aboutVoicesTitleJa}
+          </span>
+        </h2>
+        <p data-honest-share>{S.honestShare}</p>
+      </section>
+
       <section class="panel page__section" aria-labelledby="about-credits">
         <h2 id="about-credits">{S.aboutCreditsTitle}</h2>
         <p>{S.aboutCredits}</p>
@@ -128,6 +156,21 @@ export default function AboutPage(_p: { route: Route }): JSX.Element {
               {l}
             </li>
           ))}
+          {credits && credits.length > 0 ? (
+            credits.map((c) => (
+              <li key={c} class="list__item" data-credit={c}>
+                <span lang="ja">{c}</span> <span class="muted">{S.aboutVoiceCreditNote}</span>
+              </li>
+            ))
+          ) : probing ? (
+            <li class="list__item muted" data-pack-loading>
+              {S.setPackLoading}
+            </li>
+          ) : (
+            <li class="list__item" data-no-pack>
+              {S.aboutVoicesNone}
+            </li>
+          )}
         </ul>
       </section>
 

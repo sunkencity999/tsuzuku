@@ -5,9 +5,22 @@
  * counters and the ledger — no nightly job on a static site:
  *
  *  語彙  0.6 · ΣR(rec) / 10,000 + 0.4 · ΣR(prod) / 6,000, × 100, capped
- *  耳    20 · speedTier · clamp(dictationAcc / 0.9, 0.5, 1); held at 70 until the
- *        ledger holds 20 h of outside listening (listen + watch); always
- *        "(synthetic)" because every in-app voice is TTS
+ *  耳    design 08 §12 (replaces 05 §11's row):
+ *          tier      = min(settings.speedTier, max(1, stats.bestCleanTier))
+ *          base      = 20 · tier · clamp(dictationAcc / 0.9, 0.5, 1)
+ *          comp      = coldSets ≥ 10 ? clamp(coldPassRate / 0.8, 0.5, 1) : 1
+ *          authentic = outside listen + watch hours + listeningAuthenticMinutes / 60
+ *          cap       = authentic < 7.5 ? 70 : authentic < 15 ? 85 : 100   (EAR_CAP_STEP_HOURS)
+ *          ear       = min(cap, base · comp)
+ *        The radar reads the tier the learner has SHOWN (a clean set), never
+ *        only the dial; comp is comprehension on first hearing, either
+ *        surface. Always "(synthetic)": every in-app voice is a VOICEVOX
+ *        character voice; the ledger's outside hours are real people. The
+ *        explain line names both hour components and REACHABLE_IN_APP_HOURS,
+ *        the figure the dojo alone can carry a learner to — pinned from the
+ *        corpus inventory (DISTINCT_AUTHENTIC_HOURS × (one Arena set ≈ 2.5×
+ *        the speech + two Radio re-hearings)); `perapera.test.ts` walks
+ *        `public/content` so the sentence cannot drift from the content.
  *  読    best Speed Read cpm / 500 × 100, capped (the save holds no per-episode
  *        cpm history, so the best stands in for the design's rolling median
  *        and the explanation says so)
@@ -23,8 +36,9 @@
  */
 import { cardRetrievability } from '@/learn';
 import type { CardKey } from '../content/types';
+import { SPEED_TIER_RATES } from '../shared/audio';
 import { bus } from '../shared/events';
-import type { CardTuple, EpochDay, SaveMeta, Store } from '../shared/store-types';
+import type { CardTuple, EpochDay, SaveMeta, SpeedTier, Store } from '../shared/store-types';
 import { epochDay, monthKey } from '../shared/time';
 import { S, fill } from './defs-strings';
 
@@ -39,15 +53,46 @@ export const PERAPERA_LABELS_EN: readonly [string, string, string, string, strin
 
 export const VOCAB_REC_TARGET = 10_000;
 export const VOCAB_PROD_TARGET = 6_000;
-export const EAR_CAP = 70;
-export const EAR_CAP_HOURS = 20;
 /**
- * Design 08 §12 interim — the hours the dojo alone can carry a learner to ("The dojo alone can carry
- * you to about {reach} h"), §12's "20 h is reachable in Black". Fills the `{reach}` slot of
- * `S.explainEarCap` until the store-listening owner replaces it with the corpus-walk figure
- * (beside `EAR_CAP_STEP_HOURS`; `perapera.test.ts` then walks the inventory).
+ * 耳 cap steps (design 08 §12, lead decision in the CHANGELOG): 70 below
+ * `EAR_CAP_STEP_HOURS[0]` h of authentic listening, 85 below `[1]`, 100 from
+ * there. `EAR_GOAL_HOURS` is the top step, the `{goal}` of `S.explainEarCap`.
  */
-export const EAR_REACH_HOURS = 20;
+export const EAR_CAP_STEP_HOURS: readonly [number, number] = [7.5, 15];
+export const EAR_CAP_STEPS: readonly [number, number, number] = [70, 85, 100];
+/** The floor cap (no authentic listening yet). */
+export const EAR_CAP = EAR_CAP_STEPS[0];
+export const EAR_GOAL_HOURS = EAR_CAP_STEP_HOURS[1];
+/** First hearings before comprehension on first hearing enters the 耳 axis, and the pass rate that reads as full. */
+export const COLD_SETS_MIN = 10;
+export const COLD_PASS_TARGET = 0.8;
+/**
+ * How far the dojo alone carries authentic listening (design 08 §12): an
+ * Arena set runs ≈ `ARENA_SET_FACTOR` × the speech it holds, and two Radio
+ * re-hearings at ≥ 1.0× with the gist question (`RADIO_REHEARINGS`) add the
+ * speech length each. `DISTINCT_AUTHENTIC_HOURS` is the corpus inventory —
+ * bridge texts + casual non-bridge dialogues + `AUTHENTIC_GENRES` pieces,
+ * each rendered once — under the app's own speech estimate (`learn/pool.ts`:
+ * morae ÷ 7 per second + 0.5 s a line): the shipped bridge 25 ≈ 0.96 h +
+ * casual 29 ≈ 0.63 h, plus ≈ 2.4 h for the ≈ 48 authentic-genre pieces of
+ * the §3 program (Orange `casual-talk`, Blue–Black `interview` / `news` /
+ * `drama` / `debate` / `lecture` / `casual-talk`) at ≈ 86 % of their §3
+ * length caps, between the ≈ 78 % the Yellow–Green pieces fill and the cap
+ * itself. (§12's "4.8 h" quoted a looser estimator: 1.1 + 0.7 h for the same
+ * bridge + casual texts.) `perapera.test.ts` walks `public/content`: the
+ * walked figure never exceeds `REACHABLE_IN_APP_HOURS` (the `{reach}` of
+ * `S.explainEarCap`), and once every quota piece exists it must equal it —
+ * so the sentence cannot drift from the content; the failing title names the
+ * figure to write here.
+ */
+export const ARENA_SET_FACTOR = 2.5;
+export const RADIO_REHEARINGS = 2;
+export const DISTINCT_AUTHENTIC_HOURS = 4.0;
+/** Hours of authentic listening the dojo yields from `distinctHours` of authentic texts, rounded. */
+export function reachableInAppHours(distinctHours: number): number {
+  return Math.round(distinctHours * (ARENA_SET_FACTOR + RADIO_REHEARINGS));
+}
+export const REACHABLE_IN_APP_HOURS = reachableInAppHours(DISTINCT_AUTHENTIC_HOURS);
 export const DICTATION_TARGET = 0.9;
 export const READ_TARGET_CPM = 500;
 export const MONOLOGUE_TARGET_WPM = 100;
@@ -88,6 +133,10 @@ function pct(x: number): number {
   return Math.round(x * 100);
 }
 
+function tenth(x: number): number {
+  return Math.round(x * 10) / 10;
+}
+
 function dayIn(ms: number, tz: string): EpochDay {
   try {
     return epochDay(ms, tz);
@@ -96,11 +145,22 @@ function dayIn(ms: number, tz: string): EpochDay {
   }
 }
 
-/** Hours of external `listen` + `watch` minutes in the ledger (the 耳 cap). */
+/** Hours of external `listen` + `watch` minutes in the ledger (real people; one input of the 耳 cap). */
 export function externalListeningHours(m: SaveMeta): number {
   let minutes = 0;
   for (const e of m.ledger.entries) if (e[3] === 1 && (e[2] === 0 || e[2] === 2)) minutes += e[1];
   return minutes / 60;
+}
+
+/** Hours of authentic-style listening heard in the dojo (`stats.listeningAuthenticMinutes`, design 08 §12). */
+export function appAuthenticHours(m: SaveMeta): number {
+  const mins = m.stats.listeningAuthenticMinutes;
+  return Number.isFinite(mins) && mins > 0 ? mins / 60 : 0;
+}
+
+/** The 耳 cap input: outside listen + watch hours + the dojo's authentic minutes / 60 (design 08 §12). */
+export function authenticListeningHours(m: SaveMeta): number {
+  return externalListeningHours(m) + appAuthenticHours(m);
 }
 
 /** ΣR over vocab (`v-`) `rec` and `prod` cards today. Chunks count through `prod`. */
@@ -127,12 +187,50 @@ export function vocabAxis(sumRec: number, sumProd: number): number {
   return clamp((0.6 * sumRec) / VOCAB_REC_TARGET + (0.4 * sumProd) / VOCAB_PROD_TARGET, 0, 1) * 100;
 }
 
-/** `dictationAcc` null = no dictation evidence yet (the 0.5 floor applies). */
-export function earAxis(speedTier: number, dictationAcc: number | null, externalHours: number): number {
+export interface EarInput {
+  /** `settings.speedTier` — the dial. */
+  speedTier: number;
+  /** `stats.bestCleanTier` — the fastest set with every question right (`total ≥ 3`). */
+  bestCleanTier: number;
+  /** `dictation95at1x / dictationLines`; null = no dictation evidence yet (the 0.5 floor applies). */
+  dictationAcc: number | null;
+  /** `authenticListeningHours(m)`. */
+  authenticHours: number;
+  /** `coldSetsPassed / coldSets`; ignored below `COLD_SETS_MIN` first hearings. */
+  coldPassRate: number;
+  coldSets: number;
+}
+
+/** The tier the radar reads: the dial, capped by the tier the learner has shown (never below 1). */
+export function earTier(speedTier: number, bestCleanTier: number): SpeedTier {
+  const shown = Number.isFinite(bestCleanTier) ? Math.max(1, Math.floor(bestCleanTier)) : 1;
+  const dial = Number.isFinite(speedTier) ? speedTier : 1;
+  return clamp(Math.min(dial, shown), 1, 5) as SpeedTier;
+}
+
+/** 20 · tier · clamp(acc / 0.9, 0.5, 1). */
+export function earBase(tier: number, dictationAcc: number | null): number {
   const factor = dictationAcc === null ? 0.5 : clamp(dictationAcc / DICTATION_TARGET, 0.5, 1);
-  let ear = 20 * clamp(speedTier, 1, 5) * factor;
-  if (externalHours < EAR_CAP_HOURS) ear = Math.min(ear, EAR_CAP);
-  return clamp(ear, 0, 100);
+  return 20 * clamp(tier, 1, 5) * factor;
+}
+
+/** Comprehension on first hearing: 1 until `COLD_SETS_MIN` first hearings, then clamp(rate / 0.8, 0.5, 1). */
+export function earComp(coldSets: number, coldPassRate: number): number {
+  if (!(coldSets >= COLD_SETS_MIN)) return 1;
+  return clamp((Number.isFinite(coldPassRate) ? coldPassRate : 0) / COLD_PASS_TARGET, 0.5, 1);
+}
+
+/** 70 / 85 / 100 at the `EAR_CAP_STEP_HOURS` steps of authentic listening. */
+export function earCap(authenticHours: number): number {
+  const h = Number.isFinite(authenticHours) ? authenticHours : 0;
+  return h < EAR_CAP_STEP_HOURS[0] ? EAR_CAP_STEPS[0] : h < EAR_CAP_STEP_HOURS[1] ? EAR_CAP_STEPS[1] : EAR_CAP_STEPS[2];
+}
+
+/** The 耳 axis, design 08 §12: `min(cap, base · comp)`, to six decimals so `100 · (0.6 / 0.8)` reads 75, not 74.999…. */
+export function earAxis(i: EarInput): number {
+  const tier = earTier(i.speedTier, i.bestCleanTier);
+  const ear = earBase(tier, i.dictationAcc) * earComp(i.coldSets, i.coldPassRate);
+  return Math.round(clamp(Math.min(earCap(i.authenticHours), ear), 0, 100) * 1e6) / 1e6;
 }
 
 export function readAxis(bestCpm: number): number {
@@ -163,17 +261,23 @@ export function peraperaNow(m: SaveMeta, cards: CardWalker, now: number): Perape
   const vocab = vocabAxis(v.rec, v.prod);
   const explainVocab = fill(S.explainVocab, { rec: v.recCards, prod: v.prodCards });
 
-  // 耳 (synthetic)
-  const hours = externalListeningHours(m);
+  // 耳 (synthetic) — design 08 §12
+  const ext = externalListeningHours(m);
+  const app = appAuthenticHours(m);
+  const authentic = ext + app;
   const dictationAcc = st.dictationLines > 0 ? ratio(st.dictation95at1x, st.dictationLines) : null;
-  const ear = earAxis(m.settings.speedTier, dictationAcc, hours);
-  let explainEar = dictationAcc === null ? fill(S.explainEarNoData, { tier: m.settings.speedTier }) : fill(S.explainEar, { tier: m.settings.speedTier, acc: pct(dictationAcc) });
-  // S.explainEarCap slots (design 08 §12, contract tier): {cap, goal, app, ext, reach}. `app` reads the new
-  // listeningAuthenticMinutes counter (0 until the listening surfaces write it); the cap formula itself is unchanged here.
-  if (hours < EAR_CAP_HOURS) {
-    explainEar +=
-      ' ' + fill(S.explainEarCap, { cap: EAR_CAP, goal: EAR_CAP_HOURS, app: Math.round((st.listeningAuthenticMinutes / 60) * 10) / 10, ext: Math.round(hours * 10) / 10, reach: EAR_REACH_HOURS });
-  }
+  const coldSets = Number.isFinite(st.coldSets) ? st.coldSets : 0;
+  const coldPassRate = ratio(st.coldSetsPassed, coldSets);
+  const tier = earTier(m.settings.speedTier, st.bestCleanTier);
+  const ear = earAxis({ speedTier: m.settings.speedTier, bestCleanTier: st.bestCleanTier, dictationAcc, authenticHours: authentic, coldPassRate, coldSets });
+  const earLines: string[] = [dictationAcc === null ? fill(S.explainEarNoData, { tier }) : fill(S.explainEar, { tier, acc: pct(dictationAcc) })];
+  // The dial sits above the tier shown: name the fastest clean set so the lower reading is explained.
+  if (tier < m.settings.speedTier) earLines.push(fill(S.explainEarTier, { tier, rate: SPEED_TIER_RATES[tier] }));
+  // Comprehension on first hearing, once there is any (the factor itself waits for COLD_SETS_MIN).
+  if (coldSets > 0) earLines.push(fill(S.explainEarComp, { passed: st.coldSetsPassed, sets: coldSets, rate: pct(coldPassRate) }));
+  // Below the top step: both hour components and how far the dojo alone can carry it.
+  if (authentic < EAR_GOAL_HOURS) earLines.push(fill(S.explainEarCap, { cap: earCap(authentic), goal: EAR_GOAL_HOURS, app: tenth(app), ext: tenth(ext), reach: REACHABLE_IN_APP_HOURS }));
+  const explainEar = earLines.join(' ');
 
   // 読
   const read = readAxis(st.speedReadBestCpm);

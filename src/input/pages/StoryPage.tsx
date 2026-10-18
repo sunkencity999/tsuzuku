@@ -1,14 +1,25 @@
 /**
  * TSUZUKU — `#/story/:id`: a Tabi Nikki episode read outside a session
- * (design 04 §7, 05 §9). Episode header (title, station link, kind, bridge),
- * the previous episode's recap, the reader, then the result: score, cpm and
- * belt band, gloss taps, 辞書要らず, Kaiden evidence, ledger minutes.
+ * (design 04 §7, 05 §9), and `#/story/:id/listen`: the 読み聞かせ Read-along
+ * (design 08 §10.3). Episode header (title, station link, kind, bridge), the
+ * previous episode's recap, the reader, then the result.
  *
- * The reader emits `story:read`; B's reducers grant XP, stats, badges and
- * the ledger row. When the result says B did not log the minutes
+ * Read: the reader emits `story:read`; B's reducers grant XP, stats, badges
+ * and the ledger row. When the result says B did not log the minutes
  * (`ledgerLogged: false`, e.g. reducers not wired), the page logs them itself
  * through `addLedgerEntry` so a standalone read always reaches the 耳目帳 and
- * never twice. A missing id shows a calm empty state with ways back.
+ * never twice.
+ *
+ * Listen: the reader emits `listen:played` (a `listen` ledger row with
+ * `source: app`, 0 XP, never `story:read`). The store's `listen:played`
+ * reducer OWNS that row — it may merge the day's Radio and Read-along
+ * seconds into one row, so "the ledger did not grow during the emit" is no
+ * signal and the page logs nothing itself (a fallback here would double-log).
+ * The result card names the heard time, the served rate and voice, the gist
+ * self-check and the minutes the reducer logs (`playedMinutes`, the
+ * reducer's own rounding), and offers the plain reader ("Read it as an
+ * episode" is a first read as before). A missing id shows a calm empty state
+ * with ways back.
  */
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
@@ -16,8 +27,8 @@ import { content, type ContentLoader } from '@/content/loader';
 import { STATIONS, type StoryItem } from '@/content/types';
 import { href, type Route } from '@/shared/routes';
 import { Ruby } from '@/shared/ui/Ruby';
-import { KIND_INDEX, addLedgerEntry, store } from '@/store';
-import { JJ_FROM_STATION, StoryReader, isStoryItem, storyStation, type StoryReadResult } from '../reader/StoryReader';
+import { KIND_INDEX, addLedgerEntry, playedMinutes, store } from '@/store';
+import { JJ_FROM_STATION, StoryReader, formatHeard, formatRate, isStoryItem, sourceLabel, storyStation, type StoryListenResult, type StoryReadResult } from '../reader/StoryReader';
 import { S, fill } from '../reader/strings';
 import './StoryPage.css';
 
@@ -44,6 +55,23 @@ export function minutesLine(r: StoryReadResult): string {
   return r.minutes > 0 ? fill(S.resultMinutes, { n: r.minutes }) : S.resultMinutesNone;
 }
 
+/**
+ * Ledger minutes of a Read-along: the store's own `playedMinutes(seconds)`
+ * (`seconds / 60` to a tenth, design 08 §12), so the card names exactly what
+ * the `listen:played` reducer logs. Under 3 s rounds to 0 and the reducer
+ * logs nothing.
+ */
+export function listenMinutes(r: Pick<StoryListenResult, 'seconds' | 'heard'>): number {
+  return r.heard ? playedMinutes(r.seconds) : 0;
+}
+
+/** Ledger line of a Read-along result: nothing heard → nothing logged; under three seconds → nothing logged. */
+export function listenMinutesLine(r: Pick<StoryListenResult, 'seconds' | 'heard'>): string {
+  if (!r.heard) return S.heardNone;
+  const m = listenMinutes(r);
+  return m > 0 ? fill(S.resultListenMinutes, { n: m }) : S.resultListenMinutesNone;
+}
+
 function tapsLine(n: number): string {
   if (n === 0) return S.resultTapsNone;
   if (n === 1) return S.resultTapsOne;
@@ -55,6 +83,7 @@ type Loaded = { kind: 'loading' } | { kind: 'missing' } | { kind: 'ok'; story: S
 export default function StoryPage(p: StoryPageProps): JSX.Element {
   const loader = p.loader ?? content;
   const id = p.route.name === 'story' ? p.route.id : null;
+  const listen = p.route.name === 'story' && p.route.mode === 'listen';
   const settings = store.settings.value;
   const learnerStation = store.progress.value.station;
 
@@ -64,11 +93,13 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
   });
   const [prev, setPrev] = useState<StoryItem | null>(null);
   const [result, setResult] = useState<StoryReadResult | null>(null);
+  const [heard, setHeard] = useState<StoryListenResult | null>(null);
   const [readKey, setReadKey] = useState(0);
 
   useEffect(() => {
     let alive = true;
     setResult(null);
+    setHeard(null);
     setPrev(null);
     if (!id) {
       setLoaded({ kind: 'missing' });
@@ -101,7 +132,7 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
     return () => {
       alive = false;
     };
-  }, [id, loader]);
+  }, [id, listen, loader]);
 
   const onDone = (r: StoryReadResult): void => {
     setResult(r);
@@ -110,10 +141,24 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
     }
   };
 
+  /** The listen row belongs to the store's `listen:played` reducer (it may merge same-day rows); the page only shows the result. */
+  const onListened = (r: StoryListenResult): void => {
+    setHeard(r);
+  };
+
+  const eyebrow = listen ? (
+    <p class="story-page__eyebrow" data-field="mode">
+      <span lang="ja">{S.listenTitleJa}</span> {S.listenTitle}
+    </p>
+  ) : (
+    <p class="story-page__eyebrow">{S.pageTitle}</p>
+  );
+  const pageLabel = listen ? S.listenTitle : S.pageTitle;
+
   if (loaded.kind === 'loading') {
     return (
-      <article class="story-page" aria-label={S.pageTitle} data-state="loading">
-        <p class="story-page__eyebrow">{S.pageTitle}</p>
+      <article class="story-page" aria-label={pageLabel} data-state="loading" data-mode={listen ? 'listen' : 'read'}>
+        {eyebrow}
         <p class="story-page__note" role="status">
           {S.storyLoading}
         </p>
@@ -124,8 +169,8 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
   if (loaded.kind === 'missing') {
     const st = id ? storyStation(id) : undefined;
     return (
-      <article class="story-page" aria-label={S.pageTitle} data-state="missing">
-        <p class="story-page__eyebrow">{S.pageTitle}</p>
+      <article class="story-page" aria-label={pageLabel} data-state="missing" data-mode={listen ? 'listen' : 'read'}>
+        {eyebrow}
         <div class="story-page__empty" role="status">
           <strong>{S.storyMissing}</strong>
           <p class="story-page__note">{S.storyMissingHint}</p>
@@ -152,11 +197,26 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
   const stationDef = STATIONS.find((s) => s.number === station);
   const jj = settings.jj || learnerStation >= JJ_FROM_STATION;
   const titleMode = settings.furigana === 'off' ? 'off' : 'always';
+  const state = listen ? (heard ? 'result' : 'listening') : result ? 'result' : 'reading';
+
+  const navLinks = (
+    <>
+      <a class="btn btn--ghost" href={href({ name: 'station', n: station })} data-link="station">
+        {S.backToStation}
+      </a>
+      <a class="btn btn--ghost" href={href({ name: 'ledger' })} data-link="ledger">
+        {S.toLedger}
+      </a>
+      <a class="btn btn--ghost" href={href({ name: 'dojo' })} data-link="dojo">
+        {S.backToDojo}
+      </a>
+    </>
+  );
 
   return (
-    <article class="story-page" aria-label={S.pageTitle} data-state={result ? 'result' : 'reading'}>
+    <article class="story-page" aria-label={pageLabel} data-state={state} data-mode={listen ? 'listen' : 'read'}>
       <header class="story-page__head">
-        <p class="story-page__eyebrow">{S.pageTitle}</p>
+        {eyebrow}
         <h1 class="story-page__title" lang="ja">
           <Ruby ja={story.titleJa} mode={titleMode} />
         </h1>
@@ -176,7 +236,9 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
           <li class="chip">{story.kind === 'dialogue' ? S.dialogueLabel : S.episodeLabel}</li>
           {story.bridge ? <li class="chip chip--accent">{S.bridgeChip}</li> : null}
         </ul>
-        <p class="story-page__note">{S.standaloneNote}</p>
+        <p class="story-page__note" data-field="standalone-note">
+          {listen ? S.listenStandaloneNote : S.standaloneNote}
+        </p>
       </header>
 
       {prev ? (
@@ -187,7 +249,55 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
         </aside>
       ) : null}
 
-      {result ? (
+      {listen && heard ? (
+        <>
+          <section class="story-page__result" aria-label={S.listenResultTitle} data-heard={heard.heard ? 'true' : 'false'} data-field="listen-result">
+            <h2>{S.listenResultTitle}</h2>
+            <p class="story-page__score" data-field="heard">
+              {formatHeard(heard.seconds)}
+            </p>
+            <ul class="story-page__facts">
+              {heard.heard ? (
+                <li data-field="rate">
+                  {fill(S.listenRate, { rate: formatRate(heard.rate) })} · {fill(S.listenSource, { source: sourceLabel(heard.source) })}
+                </li>
+              ) : null}
+              <li data-field="gist">{heard.gistCorrect === null ? S.listenGistSkipped : heard.gistCorrect ? S.listenGistRight : S.listenGistWrong}</li>
+              {heard.answered ? <li data-field="score">{fill(S.questionsScore, { correct: heard.correct, total: heard.total })}</li> : null}
+              {heard.heard && heard.cold ? <li data-field="cold">{S.listenCold}</li> : null}
+              {heard.authentic ? (
+                <li data-mark="true" data-field="authentic">
+                  {S.listenAuthentic}
+                </li>
+              ) : null}
+              <li data-field="minutes">{listenMinutesLine(heard)}</li>
+            </ul>
+            <div class="story-page__actions">
+              <button
+                type="button"
+                class="btn"
+                data-action="listen-again"
+                onClick={() => {
+                  setHeard(null);
+                  setReadKey((k) => k + 1);
+                }}
+              >
+                {S.listenAgain}
+              </button>
+              <a class="btn" href={href({ name: 'story', id: story.id })} data-link="read">
+                {S.listenReadIt}
+              </a>
+              {navLinks}
+            </div>
+          </section>
+          <aside class="story-page__recap" data-field="recap">
+            <h2>{S.recapLabel}</h2>
+            <p>{story.recapEn}</p>
+          </aside>
+        </>
+      ) : null}
+
+      {!listen && result ? (
         <>
           <section class="story-page__result" aria-label={S.resultTitle} data-passed={result.passed ? 'true' : 'false'} data-field="result">
             <h2>{S.resultTitle}</h2>
@@ -220,15 +330,7 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
               >
                 {S.readAgain}
               </button>
-              <a class="btn btn--ghost" href={href({ name: 'station', n: station })} data-link="station">
-                {S.backToStation}
-              </a>
-              <a class="btn btn--ghost" href={href({ name: 'ledger' })} data-link="ledger">
-                {S.toLedger}
-              </a>
-              <a class="btn btn--ghost" href={href({ name: 'dojo' })} data-link="dojo">
-                {S.backToDojo}
-              </a>
+              {navLinks}
             </div>
           </section>
           <aside class="story-page__recap" data-field="recap">
@@ -236,9 +338,26 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
             <p>{story.recapEn}</p>
           </aside>
         </>
-      ) : (
+      ) : null}
+
+      {listen && !heard ? (
         <StoryReader
-          key={readKey}
+          key={`listen:${readKey}`}
+          mode="listen"
+          storyId={story.id}
+          loader={loader}
+          sessionId={`listen:${story.id}:${store.today()}`}
+          feel={settings.feel}
+          furigana={settings.furigana}
+          jj={jj}
+          station={learnerStation}
+          onDone={onListened}
+        />
+      ) : null}
+
+      {!listen && !result ? (
+        <StoryReader
+          key={`read:${readKey}`}
           storyId={story.id}
           loader={loader}
           sessionId={`story:${story.id}:${store.today()}`}
@@ -248,7 +367,7 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
           station={learnerStation}
           onDone={onDone}
         />
-      )}
+      ) : null}
     </article>
   );
 }

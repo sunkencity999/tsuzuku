@@ -626,6 +626,11 @@
           "en": "Please take care of yourself."
         },
         {
+          "ja": "{毎朝|まいあさ}、{体|からだ}を{洗|あら}います。",
+          "kana": "まいあさ、からだをあらいます。",
+          "en": "I wash my body every morning."
+        },
+        {
           "ja": "{今日|きょう}は{体|からだ}が{重|おも}くて、{何|なに}もしたくない。",
           "kana": "きょうはからだがおもくて、なにもしたくない。",
           "en": "My body feels heavy today, and I don't want to do anything."

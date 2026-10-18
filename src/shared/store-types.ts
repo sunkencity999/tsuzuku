@@ -213,6 +213,14 @@ export interface Progress {
    * from the complement. Never a read mark (that is `storiesRead`).
    */
   listened?: string[];
+  /**
+   * Text id → epoch day of the last PASSED Arena set on that text (design 08
+   * §10.2: 茶屋ラジオ prefers re-hearings of texts the Arena touched within
+   * `IMPLICIT_WINDOW_DAYS`… and the 14-day "worked on recently" rule). Written
+   * by the Arena only; Radio and Read-along never write it. Capped by
+   * migrations (`ARENA_AT_MAX`, oldest days dropped); backups keep the later day.
+   */
+  arenaAt?: Record<string, EpochDay>;
   /** Ids of first-contact teach cards the learner dismissed (`shared/ui/TeachOnce`, design 08 §11). */
   teachSeen?: string[];
 }

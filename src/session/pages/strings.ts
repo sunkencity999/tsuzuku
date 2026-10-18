@@ -9,6 +9,7 @@
  * Values are plain strings; `{key}` placeholders are filled by `fill()`.
  * Nothing counts down, nothing shames; linted by `src/i18n/banned.test.ts`.
  */
+import type { ListeningGenre } from '../../content/types';
 import type { ShinsaSection } from '../../shared/catalog';
 import type { ItemKind } from '../../shared/store-types';
 import type { ScrollKind } from '../../learn';
@@ -104,6 +105,28 @@ export const S = {
   storyListen: 'Listen',
   storyTalk: 'Role-play',
   storyBridge: 'Native Bridge',
+  /** An audio-first piece (design 08 §3): heard before it is read; its Read link opens once it has been heard. */
+  storyListenFirst: 'Listen first',
+
+  // ── StationPage · 耳 Ear panel (design 08 §10.1) ───────────────────────
+  // Honesty vocabulary (design 08 §10.1): a chip says synthetic voice (VOICEVOX) / device voice / text only, never a word that claims a human voice.
+  earTitle: '耳 Ear',
+  earAria: 'Ear: listening at this station',
+  earIntro: 'Three doors to listening. The chip beside each says which voice you will get.',
+  earSet: '聴解 Set',
+  earSetEn: 'a short set: hear it, then answer',
+  earReadAlong: '読み聞かせ Read-along',
+  earReadAlongEn: 'the text read to you, each word lit as it sounds',
+  earRadio: '茶屋ラジオ Radio from here',
+  earRadioEn: 'only sentences you can already follow; not a session, never a training day',
+  earOpen: 'Open',
+  earChipSynthetic: 'synthetic voice (VOICEVOX)',
+  earChipDevice: 'device voice',
+  earChipText: 'text only',
+  earMinutes: '{n} min you can follow today',
+  earMinutesNone: 'Nothing to follow yet today; the pool grows as your words take root.',
+  earTeachTitle: '耳 Ear · hearing comes first',
+  earTeachBody: 'A Set asks what you heard, Read-along plays the text with each word lit, and the Radio plays only sentences made of words you already know. Every voice in the dojo is synthetic — a VOICEVOX character voice when the audio pack is present, your device’s voice otherwise — and the chip beside each door says which.',
   michikusaTitle: '道草 Michikusa',
   michikusaCollected: '{n} of {total} collected',
   michikusaMore: '{n} more at {name}',
@@ -338,6 +361,25 @@ export const ITEM_KIND_LABEL: Record<ItemKind, string> = {
   grammar: 'Grammar',
   component: 'Components',
   chunk: 'Set phrases',
+};
+
+/** English names of the listening genres (design 08 §3), shown beside an audio-first piece on the Station page. */
+export const GENRE_LABEL: Record<ListeningGenre, string> = {
+  exchange: 'exchange',
+  'self-intro': 'self-introduction',
+  phone: 'phone call',
+  directions: 'directions',
+  voicemail: 'voicemail',
+  'casual-talk': 'casual talk',
+  narrative: 'told story',
+  announcement: 'announcement',
+  weather: 'weather report',
+  interview: 'interview',
+  news: 'news',
+  drama: 'drama',
+  debate: 'debate',
+  lecture: 'lecture',
+  essay: 'essay read aloud',
 };
 
 export const ITEM_KIND_GLYPH: Record<ItemKind, string> = {

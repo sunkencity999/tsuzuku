@@ -80,7 +80,7 @@ export const S = {
   peraperaNoHistory: 'The first monthly snapshot is taken at the next day roll. History builds from there.',
   peraperaHistoryTitle: 'Month by month',
   peraperaFlagsLabel: 'Flags',
-  peraperaFlagSynthetic: 'Synthetic: every voice in the app is text-to-speech. Real listening is the hours you log.',
+  peraperaFlagSynthetic: "Synthetic: every voice in the dojo is a VOICEVOX character voice. The ledger's outside hours are real people.",
   peraperaFlagEstimated: 'Estimated: the self-assessment path, not recognition.',
   peraperaFlagNoVoice: 'No voice: speaking features are off, so 口 is left out of the composite.',
   peraperaFlagReported: 'Reported: ledger hours are self-reported and not verified.',
@@ -139,9 +139,17 @@ export const S = {
   /* ── Ledger page ────────────────────────────────────────────────── */
   ledgerTitle: 'Input Ledger',
   ledgerTitleJa: '耳目帳',
-  ledgerLede: 'Hours of real listening, reading, watching and speaking. Self-reported, so every number here says so.',
+  ledgerLede: 'Hours of listening, reading, watching and speaking. Outside hours are self-reported and say so; dojo hours are counted by the app.',
   reported: '(reported)',
   toRecords: 'Back to Records',
+
+  // The dojo's share (design 08 §12): informational beside the external ring, never part of the target
+  weekDojo: 'In the dojo this week: {h} h heard',
+  weekDojoNote: 'Informational. The ring counts outside hours only.',
+  dojoVoicesTitle: 'The dojo’s voices',
+  dojoVoicesTitleJa: '声',
+  honestShare:
+    'Every voice in the dojo is synthetic: VOICEVOX character voices, pre-rendered, clear and consistent on purpose. The dojo holds about 24 hours of sentences and texts, plus about 13 hours of word and phrase clips for drills, and gives you about 70–90 hours of worthwhile listening over the road, because each piece returns at rising speed. That covers the weekly listening target through Orange (from Station 9), about a quarter of it from Green to Purple and an eighth at Brown and Black. Real people mumble, overlap and joke; the ledger’s outside hours exist for that, and the 1,500-hour goal still needs the world.',
 
   // Lifetime
   lifetimeTitle: 'Lifetime',

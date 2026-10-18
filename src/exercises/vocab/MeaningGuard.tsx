@@ -12,7 +12,9 @@
  * definition with English behind a tap.
  *
  * This file also hosts the helpers the vocab drills share: `isVocabItem`,
- * `wordRuby`, `fogFor`, `readingHidden`, `vocabPoolFrom`, `speakWord`, `beltNow`,
+ * `wordRuby`, `fogFor`, `readingHidden`, `vocabPoolFrom`, `speakWord` (keyed
+ * for the voice pack: `item.id` for the bare word, `${item.id}#col<k>` for
+ * the k-th collocation, design 08 §8), `wordClipKey`, `beltNow`,
  * `correctChoice` (`params.answer`, then the primary gloss, before any
  * secondary meaning — so the choice the planner placed is the graded one),
  * `<WordHead>`, `<VocabAfter>`, `<Speaker>`.
@@ -109,13 +111,28 @@ export function vocabPoolFrom(item: VocabItem, params: StepParams): VocabItem[] 
 }
 
 /**
+ * Clip key of what `speakWord(item, text)` says (design 08 §8): the item id
+ * for the bare word, `${item.id}#col<k>` for its k-th collocation, `null`
+ * for any other text (no pack clip exists for it; the device voice reads it).
+ */
+export function wordClipKey(item: Pick<VocabItem, 'id' | 'word' | 'collocations'>, text?: string): string | null {
+  if (text === undefined || text === item.word) return item.id;
+  const k = item.collocations?.indexOf(text) ?? -1;
+  return k >= 0 ? `${item.id}#col${k}` : null;
+}
+
+/**
  * The word through the audio slot: the bare word goes with its kana reading
- * (single kanji are misread in isolation); any other `text` (a collocation)
- * is spoken as written, since passing the word's kana would make the engine
- * say the bare word instead of the phrase.
+ * (single kanji are misread in isolation) and its clip key; any other `text`
+ * (a collocation) is spoken as written with the `#col<k>` key, since passing
+ * the word's kana would make the engine say the bare word instead of the
+ * phrase. The pack resolves the key to a cue and falls back to the device
+ * voice when it misses, so with no pack nothing changes.
  */
 export function speakWord(item: VocabItem, text?: string): Promise<void> {
-  return text === undefined || text === item.word ? speak(item.word, { kana: item.kana }) : speak(text);
+  const clip = wordClipKey(item, text);
+  if (text === undefined || text === item.word) return speak(item.word, { kana: item.kana, clip: item.id });
+  return speak(text, clip ? { clip } : undefined);
 }
 
 export function beltNow(): Belt {

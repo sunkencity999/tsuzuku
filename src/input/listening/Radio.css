@@ -1,0 +1,245 @@
+/*
+ * TSUZUKU — Teahouse Radio player (src/input/listening, group F).
+ * Tokens only. Mobile-first: one column at 360 px with the 16 px gutter;
+ * 44 px targets; the track card is the stage, the toolbar wraps beneath it.
+ */
+.radio {
+  display: grid;
+  gap: var(--sp-3);
+  box-sizing: border-box;
+  width: 100%;
+}
+.radio__head {
+  display: grid;
+  gap: var(--sp-2);
+}
+.radio__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-5);
+}
+.radio__title-ja {
+  font-family: var(--font-brush);
+  font-size: var(--fs-6);
+  line-height: var(--lh-ja);
+}
+.radio__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-2);
+}
+.radio__chip-source[data-mode='clips'] {
+  border-color: var(--matcha);
+}
+.radio__chip-source[data-mode='text'] {
+  color: var(--fg-muted);
+}
+.radio__tagline,
+.radio__playlist-notice,
+.radio__keys {
+  margin: 0;
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+}
+.radio__notice {
+  font-size: var(--fs-2);
+}
+.radio__state {
+  margin: 0;
+  padding: var(--sp-4) 0;
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+/* ── track card ─────────────────────────────────────────────────────── */
+.radio__track {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+.radio__track-of {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--fg-muted);
+}
+.radio__track-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-2);
+}
+.radio__track-title {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0;
+  font-size: var(--fs-5);
+  line-height: var(--lh-ja);
+}
+.radio__track-en {
+  font-size: var(--fs-2);
+  font-weight: normal;
+  color: var(--fg-muted);
+}
+.radio__again,
+.radio__status,
+.radio__track-notice,
+.radio__note {
+  margin: 0;
+  font-size: var(--fs-2);
+}
+.radio__again {
+  color: var(--ai);
+}
+.radio__status {
+  color: var(--fg-muted);
+}
+.radio__note {
+  padding-top: var(--sp-1);
+  border-top: 1px dashed var(--line);
+}
+.radio[data-status='playing'] .radio__track {
+  box-shadow: inset 0 0 0 1px var(--matcha);
+}
+
+/* ── gist question ──────────────────────────────────────────────────── */
+.radio__gist {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+.radio__gist-prompt {
+  margin: 0;
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+}
+.radio__gist-q {
+  margin: 0;
+  font-size: var(--fs-4);
+}
+.radio__choices {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.radio__choice {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--touch);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.radio__choice:hover {
+  border-color: var(--fg-muted);
+}
+.radio__choice kbd {
+  flex: 0 0 auto;
+  font-family: var(--font-ui);
+  font-size: var(--fs-1);
+  color: var(--fg-muted);
+}
+
+/* ── controls ───────────────────────────────────────────────────────── */
+.radio__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.radio__controls .btn,
+.radio__controls .hanko {
+  min-height: var(--touch);
+}
+.radio__play {
+  min-width: 7rem;
+}
+
+/* ── transcript ─────────────────────────────────────────────────────── */
+.radio__transcript {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.radio__transcript[data-flash='true'] {
+  border-color: var(--kin);
+}
+.radio__transcript-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.radio__subtitle {
+  margin: 0;
+  font-size: var(--fs-3);
+}
+.radio__lines {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.radio__line {
+  display: grid;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: var(--sp-1) var(--sp-2);
+  border-left: 3px solid transparent;
+  line-height: var(--lh-ja);
+}
+.radio__line[data-speaking='true'] {
+  border-left-color: var(--shu);
+  background: var(--raised);
+}
+.radio__speaker {
+  font-size: var(--fs-1);
+  color: var(--fg-muted);
+}
+.radio__line-ja {
+  font-family: var(--font-ja);
+  font-size: var(--fs-4);
+}
+.radio__line-en {
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+}
+/* a sentence track has one line and no cue index: it reads as spoken while the player runs */
+.radio__line--one {
+  padding: var(--sp-2) var(--sp-3);
+}
+.radio[data-status='playing'] .radio__line--one {
+  border-left-color: var(--shu);
+  background: var(--raised);
+}
+
+/* ── done ───────────────────────────────────────────────────────────── */
+.radio__done {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+.radio__done p {
+  margin: 0;
+}
+
+@media (min-width: 600px) {
+  .radio__controls {
+    gap: var(--sp-2) var(--sp-3);
+  }
+}

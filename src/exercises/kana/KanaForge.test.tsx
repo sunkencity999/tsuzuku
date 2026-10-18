@@ -222,7 +222,7 @@ describe('<KanaForge>', () => {
     expect(q('.kana-forge__romaji')?.textContent).toBe('wo');
     expect(root.textContent).not.toContain('Show romaji');
     expect(q('.kana-ear__speaker')).not.toBeNull();
-    expect(speak).toHaveBeenCalledWith('を', { kana: 'を' });
+    expect(speak).toHaveBeenCalledWith('を', { kana: 'を', clip: 'k-h-wo' });
     expect(p.onHint).not.toHaveBeenCalled();
     type(input, 'o');
     key(input, 'Enter');
@@ -248,7 +248,7 @@ describe('<KanaForge>', () => {
     const p = props(NE);
     const input = mount(p, true);
     expect(speak).toHaveBeenCalledTimes(1);
-    expect(speak).toHaveBeenCalledWith('ね', { kana: 'ね' });
+    expect(speak).toHaveBeenCalledWith('ね', { kana: 'ね', clip: 'k-h-ne' });
     key(document.body, ' ');
     expect(speak).toHaveBeenCalledTimes(2);
     expect(p.onReplay).toHaveBeenCalledTimes(1);

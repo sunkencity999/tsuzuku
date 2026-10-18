@@ -1,0 +1,108 @@
+{
+ "name": "line-pause",
+ "text": "はい、分かりました。",
+ "kana": "はい、わかりました。",
+ "styleId": 16,
+ "note": "line with a 、 pause: pause_mora + clause boundary",
+ "engine": "VOICEVOX 0.25.2",
+ "query": {
+  "accent_phrases": [
+   {
+    "moras": [
+     {
+      "text": "ハ",
+      "consonant": "h",
+      "consonant_length": 0.06697360426187515,
+      "vowel": "a",
+      "vowel_length": 0.17230014503002167,
+      "pitch": 5.804732322692871
+     },
+     {
+      "text": "イ",
+      "consonant": null,
+      "consonant_length": null,
+      "vowel": "i",
+      "vowel_length": 0.10018125176429749,
+      "pitch": 5.6272101402282715
+     }
+    ],
+    "accent": 1,
+    "pause_mora": {
+     "text": "、",
+     "consonant": null,
+     "consonant_length": null,
+     "vowel": "pau",
+     "vowel_length": 1.2850284576416016,
+     "pitch": 0
+    },
+    "is_interrogative": false
+   },
+   {
+    "moras": [
+     {
+      "text": "ワ",
+      "consonant": "w",
+      "consonant_length": 0.009999999776482582,
+      "vowel": "a",
+      "vowel_length": 0.11321912705898285,
+      "pitch": 5.329726219177246
+     },
+     {
+      "text": "カ",
+      "consonant": "k",
+      "consonant_length": 0.08641719818115234,
+      "vowel": "a",
+      "vowel_length": 0.09901129454374313,
+      "pitch": 5.662016868591309
+     },
+     {
+      "text": "リ",
+      "consonant": "r",
+      "consonant_length": 0.021010637283325195,
+      "vowel": "i",
+      "vowel_length": 0.09056788682937622,
+      "pitch": 5.736691951751709
+     },
+     {
+      "text": "マ",
+      "consonant": "m",
+      "consonant_length": 0.07322032004594803,
+      "vowel": "a",
+      "vowel_length": 0.08872735500335693,
+      "pitch": 5.794530391693115
+     },
+     {
+      "text": "シ",
+      "consonant": "sh",
+      "consonant_length": 0.04226803034543991,
+      "vowel": "I",
+      "vowel_length": 0.1291857361793518,
+      "pitch": 0
+     },
+     {
+      "text": "タ",
+      "consonant": "t",
+      "consonant_length": 0.09359006583690643,
+      "vowel": "a",
+      "vowel_length": 0.1469906121492386,
+      "pitch": 5.392375469207764
+     }
+    ],
+    "accent": 4,
+    "pause_mora": null,
+    "is_interrogative": false
+   }
+  ],
+  "speedScale": 1,
+  "pitchScale": 0,
+  "intonationScale": 1,
+  "volumeScale": 1,
+  "prePhonemeLength": 0.1,
+  "postPhonemeLength": 0.1,
+  "pauseLength": null,
+  "pauseLengthScale": 1,
+  "outputSamplingRate": 24000,
+  "outputStereo": false,
+  "kana": "ハ'イ、ワカリマ'_シタ"
+ }
+}

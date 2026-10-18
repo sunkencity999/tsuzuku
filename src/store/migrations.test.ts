@@ -1,6 +1,7 @@
 import { CARDS_SCHEMA, LOG_SCHEMA, NAME_MAX_GLYPHS, type CardShard, type CardTuple, type LogEntry } from '../shared/store-types';
 import { freshSave, freshWeakPoints } from './defaults';
 import {
+  ARENA_AT_MAX,
   CURRENT,
   LISTENED_MAX,
   MigrationError,
@@ -127,6 +128,56 @@ describe('migrateMeta', () => {
     expect(capped.meta.progress.teachSeen).toHaveLength(TEACH_SEEN_MAX);
     expect(capped.meta.progress.teachSeen?.[0]).toBe('card-3');
     expect(capped.coerced).toEqual(expect.arrayContaining(['progress.listened', 'progress.teachSeen']));
+    expect(migrateMetaChecked(capped.meta).coerced).toEqual([]);
+  });
+
+  it('progress.arenaAt (design 08 §10.2): id-like keys with non-negative integer days survive, the rest is dropped, a non-object or an all-bad object is removed, the cap keeps the NEWEST days; an old save without it stays without it', () => {
+    // absent: an old save migrates unchanged — no `arenaAt: {}` is invented (the field is optional, not a template default)
+    const old = freshSave(NOW, 'UTC');
+    const { meta: m0, coerced: c0 } = migrateMetaChecked(old);
+    expect('arenaAt' in m0.progress).toBe(false);
+    expect(c0).toEqual([]);
+    // a well-formed record passes through untouched
+    const ok = freshSave(NOW, 'UTC');
+    ok.progress = { ...ok.progress, arenaAt: { 's-07-2': 20_100, 'm-10-2': 0 } };
+    expect(migrateMetaChecked(ok)).toEqual({ meta: ok, coerced: [] });
+    // bad keys and bad values are dropped, never cut or rounded
+    const s = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    s.progress.arenaAt = { 's-07-2': 20_100, 'Hello there': 20_000, 'S-07-3': 20_000, 's-08-1': -3, 's-08-2': 1.5, 's-09-1': 'x', 's-10-1': Number.POSITIVE_INFINITY, 's-10-2': Number.NaN, 's-10-3': null, ['x'.repeat(65)]: 20_000, 's-11-1': 0 };
+    const { meta, coerced } = migrateMetaChecked(s);
+    expect(meta.progress.arenaAt).toEqual({ 's-07-2': 20_100, 's-11-1': 0 });
+    expect(coerced).toEqual(['progress.arenaAt']);
+    expect(migrateMetaChecked(meta).coerced).toEqual([]);
+    // a non-object is removed and reported
+    for (const bad of [['s-07-2'], 'text', 42, null]) {
+      const b = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+      b.progress.arenaAt = bad;
+      const r = migrateMetaChecked(b);
+      expect('arenaAt' in r.meta.progress).toBe(false);
+      expect(r.coerced).toEqual(['progress.arenaAt']);
+    }
+    // every entry bad → nothing valid is left: the key goes, as for a non-object (one shape for "nothing valid"); an honest {} is left alone
+    const allBad = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    allBad.progress.arenaAt = { 'Hello there': 20_000, 's-08-1': -3, 's-08-2': 1.5 };
+    const rb = migrateMetaChecked(allBad);
+    expect('arenaAt' in rb.meta.progress).toBe(false);
+    expect(rb.coerced).toEqual(['progress.arenaAt']);
+    const emptyOk = freshSave(NOW, 'UTC');
+    emptyOk.progress = { ...emptyOk.progress, arenaAt: {} };
+    expect(migrateMetaChecked(emptyOk)).toEqual({ meta: emptyOk, coerced: [] });
+    // the cap keeps the newest days (not the last keys): the oldest 10 go, key order of the survivors is kept
+    expect(ARENA_AT_MAX).toBe(1024);
+    const big = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    const rec: Record<string, number> = {};
+    for (let i = 0; i < ARENA_AT_MAX + 10; i++) rec[`t-${i}`] = 30_000 - i; // first keys are the newest days
+    big.progress.arenaAt = rec;
+    const capped = migrateMetaChecked(big);
+    const keys = Object.keys(capped.meta.progress.arenaAt ?? {});
+    expect(keys).toHaveLength(ARENA_AT_MAX);
+    expect(keys[0]).toBe('t-0');
+    expect(keys[ARENA_AT_MAX - 1]).toBe(`t-${ARENA_AT_MAX - 1}`);
+    expect(capped.meta.progress.arenaAt?.[`t-${ARENA_AT_MAX}`]).toBeUndefined(); // the oldest ten dropped
+    expect(capped.coerced).toEqual(['progress.arenaAt']);
     expect(migrateMetaChecked(capped.meta).coerced).toEqual([]);
   });
 

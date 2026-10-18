@@ -1,0 +1,1468 @@
+{
+  "schema": "tsuzuku.content/1",
+  "type": "story",
+  "level": "n5",
+  "writer": "listening-s09",
+  "generatedAt": "2026-10-17T00:00:00Z",
+  "items": [
+    {
+      "id": "s-09-4",
+      "stationId": "st-09",
+      "titleJa": "{大人|おとな}{二枚|にまい}ください",
+      "titleEn": "Two adults, please",
+      "kind": "dialogue",
+      "register": "polite",
+      "genre": "exchange",
+      "audioFirst": true,
+      "learnerSpeaker": "ハナ",
+      "names": [
+        "高橋さん"
+      ],
+      "lines": [
+        {
+          "speaker": "高橋さん",
+          "ja": "いらっしゃいませ。ハナさんですね。",
+          "kana": "いらっしゃいませ。ハナさんですね。",
+          "en": "Welcome. You're Hana-san, aren't you?",
+          "tokens": [
+            "いらっしゃいませ",
+            "。",
+            "ハナさん",
+            "です",
+            "ね",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0029",
+            null,
+            null,
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "こんにちは。{高橋|たかはし}さんもここですか。",
+          "kana": "こんにちは。たかはしさんもここですか。",
+          "en": "Hello. You're here too, Takahashi-san?",
+          "tokens": [
+            "こんにちは",
+            "。",
+            "高橋さん",
+            "も",
+            "ここ",
+            "です",
+            "か",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "こんにちは。高橋さんもここにいますか。",
+              "kind": "ok",
+              "recast": "こんにちは。高橋さんもここですか。"
+            },
+            {
+              "text": "こんにちは。高橋さんもここですか。",
+              "kind": "best"
+            },
+            {
+              "text": "こんにちは。高橋さんもここ？",
+              "kind": "register-wrong",
+              "recast": "こんにちは。高橋さんもここですか。"
+            },
+            {
+              "text": "こんにちは。高橋さんはここもですか。",
+              "kind": "grammar-wrong",
+              "recast": "こんにちは。高橋さんもここですか。"
+            }
+          ],
+          "accept": [
+            "こんにちは。高橋さんもここにいますか。",
+            "こんにちは、高橋さんもここですか。"
+          ],
+          "mustInclude": [
+            "こんにちは",
+            "高橋さん",
+            "ここ"
+          ],
+          "tokenIds": [
+            "v-n5-0006",
+            null,
+            null,
+            "v-n5-0125",
+            "v-n5-0051",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "高橋さん",
+          "ja": "ええ。{今日|きょう}の{午後|ごご}はここにいます。",
+          "kana": "ええ。きょうのごごはここにいます。",
+          "en": "Yes. This afternoon I'm here.",
+          "tokens": [
+            "ええ",
+            "。",
+            "今日",
+            "の",
+            "午後",
+            "は",
+            "ここ",
+            "に",
+            "います",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0137",
+            "v-n5-0126",
+            "v-n5-0159",
+            "v-n5-0118",
+            "v-n5-0051",
+            "v-n5-0121",
+            "v-n5-0273",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "そうですか。{大人|おとな}{二枚|にまい}ください。",
+          "kana": "そうですか。おとなにまいください。",
+          "en": "I see. Two adults, please.",
+          "tokens": [
+            "そうですか",
+            "。",
+            "大人",
+            "二枚",
+            "ください",
+            "。"
+          ],
+          "plusOne": [
+            "v-n4-0007"
+          ],
+          "options": [
+            {
+              "text": "そうですか。大人を二枚ください。",
+              "kind": "ok",
+              "recast": "そうですか。大人二枚ください。"
+            },
+            {
+              "text": "そうですか。大人二枚ください。",
+              "kind": "best"
+            },
+            {
+              "text": "そうですか。大人二枚。",
+              "kind": "register-wrong",
+              "recast": "そうですか。大人二枚ください。"
+            },
+            {
+              "text": "そうですか。大人二枚くださいます。",
+              "kind": "grammar-wrong",
+              "recast": "そうですか。大人二枚ください。"
+            }
+          ],
+          "accept": [
+            "そうですか。大人を二枚ください。",
+            "大人二枚ください。",
+            "大人二枚お願いします。"
+          ],
+          "mustInclude": [
+            "大人",
+            "二枚",
+            "ください"
+          ],
+          "tokenIds": [
+            "v-n5-0030",
+            null,
+            "v-n4-0007",
+            "v-n5-0113",
+            "g-n5-043",
+            null
+          ]
+        },
+        {
+          "speaker": "高橋さん",
+          "ja": "はい。{大人|おとな}は{一枚|いちまい}{五百円|ごひゃくえん}です。",
+          "kana": "はい。おとなはいちまいごひゃくえんです。",
+          "en": "Yes. Adults are 500 yen each.",
+          "tokens": [
+            "はい",
+            "。",
+            "大人",
+            "は",
+            "一枚",
+            "五百円",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n4-0007"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n4-0007",
+            "v-n5-0118",
+            "v-n5-0113",
+            "v-n5-0115",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{二枚|にまい}で{千円|せんえん}ですね。お{願|ねが}いします。",
+          "kana": "にまいでせんえんですね。おねがいします。",
+          "en": "So 1,000 yen for two. Here you are.",
+          "tokens": [
+            "二枚",
+            "で",
+            "千円",
+            "です",
+            "ね",
+            "。",
+            "お願いします",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "千円ですね。お願いします。",
+              "kind": "ok",
+              "recast": "二枚で千円ですね。お願いします。"
+            },
+            {
+              "text": "二枚で千円ですね。お願いします。",
+              "kind": "best"
+            },
+            {
+              "text": "二枚で千円ね。はい。",
+              "kind": "register-wrong",
+              "recast": "二枚で千円ですね。お願いします。"
+            },
+            {
+              "text": "二枚が千円ですね。お願いします。",
+              "kind": "grammar-wrong",
+              "recast": "二枚で千円ですね。お願いします。"
+            }
+          ],
+          "accept": [
+            "二枚で千円ですね。はい、お願いします。",
+            "千円ですね。お願いします。"
+          ],
+          "mustInclude": [
+            "二枚",
+            "千円",
+            "お願いします"
+          ],
+          "tokenIds": [
+            "v-n5-0113",
+            "v-n5-0122",
+            "v-n5-0115",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0019",
+            null
+          ]
+        },
+        {
+          "speaker": "高橋さん",
+          "ja": "ありがとうございます。{上|うえ}に{行|い}きますか。",
+          "kana": "ありがとうございます。うえにいきますか。",
+          "en": "Thank you. Are you going up?",
+          "tokens": [
+            "ありがとうございます",
+            "。",
+            "上",
+            "に",
+            "行きます",
+            "か",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0010",
+            null,
+            "v-n5-0148",
+            "v-n5-0121",
+            "v-n5-0274",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "はい。あの{水|みず}の{上|うえ}の{花|はな}が{見|み}たいです。",
+          "kana": "はい。あのみずのうえのはながみたいです。",
+          "en": "Yes. I want to see the flowers on that water.",
+          "tokens": [
+            "はい",
+            "。",
+            "あの",
+            "水",
+            "の",
+            "上",
+            "の",
+            "花",
+            "が",
+            "見たい",
+            "です",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0551"
+          ],
+          "options": [
+            {
+              "text": "はい。水の上の花が見たいです。",
+              "kind": "ok",
+              "recast": "はい。あの水の上の花が見たいです。"
+            },
+            {
+              "text": "はい。あの水の上の花が見たいです。",
+              "kind": "best"
+            },
+            {
+              "text": "うん。あの水の上の花が見たい。",
+              "kind": "register-wrong",
+              "recast": "はい。あの水の上の花が見たいです。"
+            },
+            {
+              "text": "はい。あの水の上の花を見るたいです。",
+              "kind": "grammar-wrong",
+              "recast": "はい。あの水の上の花が見たいです。"
+            }
+          ],
+          "accept": [
+            "はい。水の上の花が見たいです。",
+            "はい。あの水の上の花を見たいです。"
+          ],
+          "mustInclude": [
+            "水",
+            "花",
+            "見たい"
+          ],
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0050",
+            "v-n5-0406",
+            "v-n5-0126",
+            "v-n5-0148",
+            "v-n5-0126",
+            "v-n5-0551",
+            "v-n5-0119",
+            "v-n5-0276",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "speaker": "高橋さん",
+          "ja": "ええ、きれいですよ。{今|いま}は{小|ちい}さいですね。",
+          "kana": "ええ、きれいですよ。いまはちいさいですね。",
+          "en": "Yes, they are pretty. Right now they are still small, though.",
+          "tokens": [
+            "ええ",
+            "、",
+            "きれい",
+            "です",
+            "よ",
+            "。",
+            "今",
+            "は",
+            "小さい",
+            "です",
+            "ね",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0397",
+            "v-n5-0132",
+            "v-n5-0129",
+            null,
+            "v-n5-0136",
+            "v-n5-0118",
+            "v-n5-0351",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "{高橋|たかはし}さんも{一緒|いっしょ}に{行|い}きませんか。",
+          "kana": "たかはしさんもいっしょにいきませんか。",
+          "en": "Won't you come up with us too, Takahashi-san?",
+          "tokens": [
+            "高橋さん",
+            "も",
+            "一緒に",
+            "行きません",
+            "か",
+            "。"
+          ],
+          "plusOne": [
+            "v-n5-0683"
+          ],
+          "options": [
+            {
+              "text": "高橋さんも一緒にどうですか。",
+              "kind": "ok",
+              "recast": "高橋さんも一緒に行きませんか。"
+            },
+            {
+              "text": "高橋さんも一緒に行きませんか。",
+              "kind": "best"
+            },
+            {
+              "text": "高橋さんも一緒に行かない？",
+              "kind": "register-wrong",
+              "recast": "高橋さんも一緒に行きませんか。"
+            },
+            {
+              "text": "高橋さんも一緒に行きませんですか。",
+              "kind": "grammar-wrong",
+              "recast": "高橋さんも一緒に行きませんか。"
+            }
+          ],
+          "accept": [
+            "高橋さんも一緒にどうですか。",
+            "高橋さんも行きませんか。"
+          ],
+          "mustInclude": [
+            "高橋さん",
+            "一緒に",
+            "行きませんか"
+          ],
+          "tokenIds": [
+            null,
+            "v-n5-0125",
+            "v-n5-0683",
+            "v-n5-0274",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "高橋さん",
+          "ja": "ありがとうございます。{私|わたし}はここにいます。",
+          "kana": "ありがとうございます。わたしはここにいます。",
+          "en": "Thank you. I am staying here.",
+          "tokens": [
+            "ありがとうございます",
+            "。",
+            "私",
+            "は",
+            "ここ",
+            "に",
+            "います",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0010",
+            null,
+            "v-n5-0041",
+            "v-n5-0118",
+            "v-n5-0051",
+            "v-n5-0121",
+            "v-n5-0273",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "そうですか。{上|うえ}は{暑|あつ}いですか。",
+          "kana": "そうですか。うえはあついですか。",
+          "en": "I see. Is it hot up there?",
+          "tokens": [
+            "そうですか",
+            "。",
+            "上",
+            "は",
+            "暑い",
+            "です",
+            "か",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "そうですか。上も暑いですか。",
+              "kind": "ok",
+              "recast": "そうですか。上は暑いですか。"
+            },
+            {
+              "text": "そうですか。上は暑いですか。",
+              "kind": "best"
+            },
+            {
+              "text": "そっか。上、暑い？",
+              "kind": "register-wrong",
+              "recast": "そうですか。上は暑いですか。"
+            },
+            {
+              "text": "そうですか。上は暑いますか。",
+              "kind": "grammar-wrong",
+              "recast": "そうですか。上は暑いですか。"
+            }
+          ],
+          "accept": [
+            "そうですか。上も暑いですか。",
+            "上は暑いですか。"
+          ],
+          "mustInclude": [
+            "上",
+            "暑い"
+          ],
+          "tokenIds": [
+            "v-n5-0030",
+            null,
+            "v-n5-0148",
+            "v-n5-0118",
+            "v-n5-0358",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "高橋さん",
+          "ja": "ええ、とても。{冷|つめ}たいお{茶|ちゃ}はどうですか。",
+          "kana": "ええ、とても。つめたいおちゃはどうですか。",
+          "en": "Yes, very. How about a cold tea?",
+          "tokens": [
+            "ええ",
+            "、",
+            "とても",
+            "。",
+            "冷たい",
+            "お茶",
+            "は",
+            "どう",
+            "です",
+            "か",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "g-n5-028",
+            null,
+            "v-n5-0361",
+            "v-n5-0408",
+            "v-n5-0118",
+            "v-n5-0060",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "いいですね。お{茶|ちゃ}を{一本|いっぽん}ください。",
+          "kana": "いいですね。おちゃをいっぽんください。",
+          "en": "Good idea. One tea, please.",
+          "tokens": [
+            "いい",
+            "です",
+            "ね",
+            "。",
+            "お茶",
+            "を",
+            "一本",
+            "ください",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "いいですね。一本ください。",
+              "kind": "ok",
+              "recast": "いいですね。お茶を一本ください。"
+            },
+            {
+              "text": "いいですね。お茶を一本ください。",
+              "kind": "best"
+            },
+            {
+              "text": "いいね。お茶、一本ちょうだい。",
+              "kind": "register-wrong",
+              "recast": "いいですね。お茶を一本ください。"
+            },
+            {
+              "text": "いいですね。お茶が一本ください。",
+              "kind": "grammar-wrong",
+              "recast": "いいですね。お茶を一本ください。"
+            }
+          ],
+          "accept": [
+            "いいですね。一本ください。",
+            "はい、お茶を一本ください。"
+          ],
+          "mustInclude": [
+            "お茶",
+            "一本",
+            "ください"
+          ],
+          "tokenIds": [
+            "v-n5-0356",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0408",
+            "v-n5-0120",
+            "v-n5-0114",
+            "g-n5-043",
+            null
+          ]
+        },
+        {
+          "speaker": "高橋さん",
+          "ja": "{二百円|にひゃくえん}です。{夕方|ゆうがた}、{店|みせ}で{会|あ}いましょう。",
+          "kana": "にひゃくえんです。ゆうがた、みせであいましょう。",
+          "en": "200 yen. Let's meet at the shop this evening.",
+          "tokens": [
+            "二百円",
+            "です",
+            "。",
+            "夕方",
+            "、",
+            "店",
+            "で",
+            "会いましょう",
+            "。"
+          ],
+          "aizuchiSlot": true,
+          "tokenIds": [
+            "v-n5-0115",
+            "v-n5-0132",
+            null,
+            "v-n5-0242",
+            null,
+            "v-n5-0417",
+            "v-n5-0122",
+            "v-n5-0291",
+            null
+          ]
+        },
+        {
+          "speaker": "ハナ",
+          "ja": "はい。ありがとうございます。いってきます。",
+          "kana": "はい。ありがとうございます。いってきます。",
+          "en": "Yes, thank you. Off we go!",
+          "tokens": [
+            "はい",
+            "。",
+            "ありがとうございます",
+            "。",
+            "いってきます",
+            "。"
+          ],
+          "options": [
+            {
+              "text": "ありがとうございます。いってきます。",
+              "kind": "ok",
+              "recast": "はい。ありがとうございます。いってきます。"
+            },
+            {
+              "text": "はい。ありがとうございます。いってきます。",
+              "kind": "best"
+            },
+            {
+              "text": "うん、ありがとう。いってきます。",
+              "kind": "register-wrong",
+              "recast": "はい。ありがとうございます。いってきます。"
+            },
+            {
+              "text": "はい。ありがとうございます。いってらっしゃい。",
+              "kind": "grammar-wrong",
+              "recast": "はい。ありがとうございます。いってきます。"
+            }
+          ],
+          "accept": [
+            "ありがとうございます。いってきます。",
+            "はい、ありがとうございます。いってきます。"
+          ],
+          "mustInclude": [
+            "ありがとうございます",
+            "いってきます"
+          ],
+          "tokenIds": [
+            "v-n5-0001",
+            null,
+            "v-n5-0010",
+            null,
+            "v-n5-0024",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0029",
+        "v-n5-0006",
+        "v-n5-0003",
+        "v-n5-0137",
+        "v-n5-0159",
+        "v-n5-0051",
+        "v-n5-0030",
+        "v-n4-0007",
+        "v-n5-0113",
+        "v-n5-0001",
+        "v-n5-0115",
+        "v-n5-0019",
+        "v-n5-0010",
+        "v-n5-0148",
+        "v-n5-0274",
+        "v-n5-0050",
+        "v-n5-0406",
+        "v-n5-0551",
+        "v-n5-0276",
+        "v-n5-0397",
+        "v-n5-0136",
+        "v-n5-0351",
+        "v-n5-0683",
+        "v-n5-0041",
+        "v-n5-0358",
+        "v-n5-0361",
+        "v-n5-0408",
+        "v-n5-0060",
+        "v-n5-0356",
+        "v-n5-0114",
+        "v-n5-0242",
+        "v-n5-0417",
+        "v-n5-0291",
+        "v-n5-0024",
+        "v-n5-0120",
+        "v-n5-0118",
+        "v-n5-0119",
+        "v-n5-0121",
+        "v-n5-0122",
+        "v-n5-0125",
+        "v-n5-0126",
+        "v-n5-0127",
+        "v-n5-0128",
+        "v-n5-0129",
+        "v-n5-0132",
+        "v-n5-0273"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-006",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-017",
+        "g-n5-019",
+        "g-n5-021",
+        "g-n5-024",
+        "g-n5-025",
+        "g-n5-028",
+        "g-n5-030",
+        "g-n5-031",
+        "g-n5-034",
+        "g-n5-036",
+        "g-n5-039",
+        "g-n5-040",
+        "g-n5-041",
+        "g-n5-043"
+      ],
+      "comprehension": [
+        {
+          "q": "What is happening in this conversation?",
+          "choices": [
+            "Hana is buying tickets to go up the castle",
+            "Hana is ordering kamaboko at the shop",
+            "Hana is asking the way to the station",
+            "Hana is booking a room at the inn"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "How much does Hana pay for the two tickets?",
+          "choices": [
+            "¥200",
+            "¥500",
+            "¥1,000",
+            "¥1,200"
+          ],
+          "answer": 2,
+          "kind": "number",
+          "lineRef": 5
+        },
+        {
+          "q": "Why does Takahashi-san not go up with Hana?",
+          "choices": [
+            "It is too hot for her",
+            "She has already been up today",
+            "She is going back to the shop now",
+            "She is staying here at the window"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 10
+        },
+        {
+          "q": "What does Takahashi-san say about the flowers on the water?",
+          "choices": [
+            "They are already in full bloom",
+            "They are pretty but still small",
+            "They are red and big",
+            "There are none this year"
+          ],
+          "answer": 1,
+          "kind": "detail",
+          "lineRef": 8
+        },
+        {
+          "q": "What else does Hana buy besides the tickets?",
+          "choices": [
+            "One bottle of cold tea",
+            "Two kamaboko",
+            "A map of the town",
+            "A photograph of the castle"
+          ],
+          "answer": 0,
+          "kind": "detail",
+          "lineRef": 13
+        }
+      ],
+      "recapEn": "At the castle-gate ticket window Hana finds Takahashi-san, who is there this afternoon. Two adult tickets come to 1,000 yen. Hana wants to see the flowers on the water; they are pretty but still small. Takahashi-san stays at the window, sells Hana a cold tea for 200 yen, and they agree to meet at the shop in the evening."
+    },
+    {
+      "id": "s-09-5",
+      "stationId": "st-09",
+      "titleJa": "{三時|さんじ}に{小田原城|おだわらじょう}で",
+      "titleEn": "At the castle at three",
+      "kind": "story",
+      "register": "polite",
+      "genre": "phone",
+      "audioFirst": true,
+      "narrator": "田中さん",
+      "names": [
+        "小田原駅",
+        "小田原城",
+        "箱根"
+      ],
+      "lines": [
+        {
+          "ja": "もしもし、ハナさんですか。{田中|たなか}です。",
+          "kana": "もしもし、ハナさんですか。たなかです。",
+          "en": "Hello, is that Hana? This is Tanaka.",
+          "tokens": [
+            "もしもし",
+            "、",
+            "ハナさん",
+            "です",
+            "か",
+            "。",
+            "田中",
+            "です",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            null,
+            null,
+            null,
+            "v-n5-0132",
+            "v-n5-0127",
+            null,
+            null,
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、そうです。{今|いま}、{小田原駅|おだわらえき}にいます。",
+          "kana": "ええ、そうです。いま、おだわらえきにいます。",
+          "en": "Yes, that's right. I'm at Odawara Station now.",
+          "tokens": [
+            "ええ",
+            "、",
+            "そうです",
+            "。",
+            "今",
+            "、",
+            "小田原駅",
+            "に",
+            "います",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0022",
+            null,
+            "v-n5-0136",
+            null,
+            null,
+            "v-n5-0121",
+            "v-n5-0273",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、{駅|えき}の{前|まえ}の{椅子|いす}です。{朝|あさ}の{椅子|いす}ですよ。",
+          "kana": "ええ、えきのまえのいすです。あさのいすですよ。",
+          "en": "Yes, the bench in front of the station. The one from this morning.",
+          "tokens": [
+            "ええ",
+            "、",
+            "駅",
+            "の",
+            "前",
+            "の",
+            "椅子",
+            "です",
+            "。",
+            "朝",
+            "の",
+            "椅子",
+            "です",
+            "よ",
+            "。"
+          ],
+          "emotion": "warm",
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0419",
+            "v-n5-0126",
+            "v-n5-0152",
+            "v-n5-0126",
+            "v-n5-0177",
+            "v-n5-0132",
+            null,
+            "v-n5-0141",
+            "v-n5-0126",
+            "v-n5-0177",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "{暑|あつ}いですね。{私|わたし}は{元気|げんき}ですよ。",
+          "kana": "あついですね。わたしはげんきですよ。",
+          "en": "It is hot, isn't it? I am doing fine, though.",
+          "tokens": [
+            "暑い",
+            "です",
+            "ね",
+            "。",
+            "私",
+            "は",
+            "元気",
+            "です",
+            "よ",
+            "。"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            "v-n5-0358",
+            "v-n5-0132",
+            "v-n5-0128",
+            null,
+            "v-n5-0041",
+            "v-n5-0118",
+            "v-n5-0388",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "ハナさんは{今|いま}、どこですか。",
+          "kana": "ハナさんはいま、どこですか。",
+          "en": "Where are you now, Hana?",
+          "tokens": [
+            "ハナさん",
+            "は",
+            "今",
+            "、",
+            "どこ",
+            "です",
+            "か",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            null,
+            "v-n5-0118",
+            "v-n5-0136",
+            null,
+            "v-n5-0056",
+            "v-n5-0132",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "{小田原城|おだわらじょう}の{公園|こうえん}ですか。いいですね。",
+          "kana": "おだわらじょうのこうえんですか。いいですね。",
+          "en": "At the castle park? That's nice.",
+          "tokens": [
+            "小田原城",
+            "の",
+            "公園",
+            "です",
+            "か",
+            "。",
+            "いい",
+            "です",
+            "ね",
+            "。"
+          ],
+          "emotion": "glad",
+          "tokenIds": [
+            null,
+            "v-n5-0126",
+            "v-n5-0433",
+            "v-n5-0132",
+            "v-n5-0127",
+            null,
+            "v-n5-0356",
+            "v-n5-0132",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "{私|わたし}は{三時|さんじ}に{小田原城|おだわらじょう}へ{行|い}きます。",
+          "kana": "わたしはさんじにおだわらじょうへいきます。",
+          "en": "I'm going to Odawara Castle at three.",
+          "tokens": [
+            "私",
+            "は",
+            "三時",
+            "に",
+            "小田原城",
+            "へ",
+            "行きます",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0041",
+            "v-n5-0118",
+            "v-n5-0154",
+            "v-n5-0121",
+            null,
+            "v-n5-0123",
+            "v-n5-0274",
+            null
+          ]
+        },
+        {
+          "ja": "ハナさん、{一緒|いっしょ}に{上|うえ}に{行|い}きませんか。",
+          "kana": "ハナさん、いっしょにうえにいきませんか。",
+          "en": "Hana, won't you go up to the top with me?",
+          "tokens": [
+            "ハナさん",
+            "、",
+            "一緒に",
+            "上",
+            "に",
+            "行きません",
+            "か",
+            "。"
+          ],
+          "emotion": "warm",
+          "plusOne": [
+            "v-n5-0683"
+          ],
+          "tokenIds": [
+            null,
+            null,
+            "v-n5-0683",
+            "v-n5-0148",
+            "v-n5-0121",
+            "v-n5-0274",
+            "v-n5-0127",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、{上|うえ}です。{朝|あさ}は{外|そと}だけでしたね。",
+          "kana": "ええ、うえです。あさはそとだけでしたね。",
+          "en": "Yes, the top. This morning it was only the outside, wasn't it?",
+          "tokens": [
+            "ええ",
+            "、",
+            "上",
+            "です",
+            "。",
+            "朝",
+            "は",
+            "外",
+            "だけ",
+            "でした",
+            "ね",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0148",
+            "v-n5-0132",
+            null,
+            "v-n5-0141",
+            "v-n5-0118",
+            "v-n5-0151",
+            null,
+            "v-n5-0135",
+            "v-n5-0128",
+            null
+          ]
+        },
+        {
+          "ja": "{上|うえ}から{町|まち}を{見|み}ましょう。{箱根|はこね}の{山|やま}も。",
+          "kana": "うえからまちをみましょう。はこねのやまも。",
+          "en": "Let's look at the town from the top. And the Hakone mountains.",
+          "tokens": [
+            "上",
+            "から",
+            "町",
+            "を",
+            "見ましょう",
+            "。",
+            "箱根",
+            "の",
+            "山",
+            "も",
+            "。"
+          ],
+          "emotion": "glad",
+          "plusOne": [
+            "v-n5-0548"
+          ],
+          "tokenIds": [
+            "v-n5-0148",
+            "v-n5-0130",
+            "v-n5-0425",
+            "v-n5-0120",
+            "v-n5-0276",
+            null,
+            null,
+            "v-n5-0126",
+            "v-n5-0548",
+            "v-n5-0125",
+            null
+          ]
+        },
+        {
+          "ja": "ええ。{明日|あした}は{電車|でんしゃ}で{箱根|はこね}へ{行|い}きますよ。",
+          "kana": "ええ。あしたはでんしゃではこねへいきますよ。",
+          "en": "Yes. Tomorrow I am going to Hakone by train.",
+          "tokens": [
+            "ええ",
+            "。",
+            "明日",
+            "は",
+            "電車",
+            "で",
+            "箱根",
+            "へ",
+            "行きます",
+            "よ",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0138",
+            "v-n5-0118",
+            "v-n5-0420",
+            "v-n5-0122",
+            null,
+            "v-n5-0123",
+            "v-n5-0274",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、{今|いま}、{二時|にじ}{十四分|じゅうよんぷん}です。",
+          "kana": "ええ、いま、にじじゅうよんぷんです。",
+          "en": "Yes, it is now 2:14.",
+          "tokens": [
+            "ええ",
+            "、",
+            "今",
+            "、",
+            "二時",
+            "十四分",
+            "です",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0136",
+            null,
+            "v-n5-0154",
+            "v-n5-0155",
+            "v-n5-0132",
+            null
+          ]
+        },
+        {
+          "ja": "{駅|えき}の{時計|とけい}は{二時|にじ}{十三分|じゅうさんぷん}ですよ。",
+          "kana": "えきのとけいはにじじゅうさんぷんですよ。",
+          "en": "The station clock says 2:13, you know.",
+          "tokens": [
+            "駅",
+            "の",
+            "時計",
+            "は",
+            "二時",
+            "十三分",
+            "です",
+            "よ",
+            "。"
+          ],
+          "emotion": "annoyed",
+          "tokenIds": [
+            "v-n5-0419",
+            "v-n5-0126",
+            "v-n5-0172",
+            "v-n5-0118",
+            "v-n5-0154",
+            "v-n5-0155",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、{一分|いっぷん}{遅|おそ}いです。{大丈夫|だいじょうぶ}ですよ。",
+          "kana": "ええ、いっぷんおそいです。だいじょうぶですよ。",
+          "en": "Yes, it is a minute slow. That is all right, though.",
+          "tokens": [
+            "ええ",
+            "、",
+            "一分",
+            "遅い",
+            "です",
+            "。",
+            "大丈夫",
+            "です",
+            "よ",
+            "。"
+          ],
+          "emotion": "annoyed",
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0155",
+            "v-n5-0370",
+            "v-n5-0132",
+            null,
+            "v-n5-0403",
+            "v-n5-0132",
+            "v-n5-0129",
+            null
+          ]
+        },
+        {
+          "ja": "では、{三時|さんじ}に{小田原城|おだわらじょう}の{前|まえ}で。",
+          "kana": "では、さんじにおだわらじょうのまえで。",
+          "en": "Well then, at three, in front of Odawara Castle.",
+          "tokens": [
+            "では",
+            "、",
+            "三時",
+            "に",
+            "小田原城",
+            "の",
+            "前",
+            "で",
+            "。"
+          ],
+          "emotion": "neutral",
+          "tokenIds": [
+            null,
+            null,
+            "v-n5-0154",
+            "v-n5-0121",
+            null,
+            "v-n5-0126",
+            "v-n5-0152",
+            "v-n5-0122",
+            null
+          ]
+        },
+        {
+          "ja": "ええ、{待|ま}ちますよ。{失礼|しつれい}します。",
+          "kana": "ええ、まちますよ。しつれいします。",
+          "en": "Yes, I will be waiting. Goodbye.",
+          "tokens": [
+            "ええ",
+            "、",
+            "待ちます",
+            "よ",
+            "。",
+            "失礼します",
+            "。"
+          ],
+          "emotion": "warm",
+          "tokenIds": [
+            "v-n5-0003",
+            null,
+            "v-n5-0290",
+            "v-n5-0129",
+            null,
+            "v-n5-0028",
+            null
+          ]
+        }
+      ],
+      "vocabIds": [
+        "v-n5-0003",
+        "v-n5-0022",
+        "v-n5-0136",
+        "v-n5-0419",
+        "v-n5-0152",
+        "v-n5-0177",
+        "v-n5-0141",
+        "v-n5-0358",
+        "v-n5-0388",
+        "v-n5-0056",
+        "v-n5-0433",
+        "v-n5-0356",
+        "v-n5-0041",
+        "v-n5-0154",
+        "v-n5-0274",
+        "v-n5-0683",
+        "v-n5-0148",
+        "v-n5-0151",
+        "v-n5-0425",
+        "v-n5-0276",
+        "v-n5-0548",
+        "v-n5-0138",
+        "v-n5-0420",
+        "v-n5-0155",
+        "v-n5-0172",
+        "v-n5-0370",
+        "v-n5-0290",
+        "v-n5-0028",
+        "v-n5-0403",
+        "v-n5-0118",
+        "v-n5-0120",
+        "v-n5-0121",
+        "v-n5-0122",
+        "v-n5-0123",
+        "v-n5-0125",
+        "v-n5-0126",
+        "v-n5-0127",
+        "v-n5-0128",
+        "v-n5-0129",
+        "v-n5-0130",
+        "v-n5-0132",
+        "v-n5-0135",
+        "v-n5-0273"
+      ],
+      "grammarIds": [
+        "g-n5-001",
+        "g-n5-003",
+        "g-n5-004",
+        "g-n5-007",
+        "g-n5-008",
+        "g-n5-009",
+        "g-n5-010",
+        "g-n5-012",
+        "g-n5-017",
+        "g-n5-018",
+        "g-n5-019",
+        "g-n5-020",
+        "g-n5-021",
+        "g-n5-023",
+        "g-n5-024",
+        "g-n5-025",
+        "g-n5-031",
+        "g-n5-036",
+        "g-n5-038",
+        "g-n5-039",
+        "g-n5-040"
+      ],
+      "comprehension": [
+        {
+          "q": "Why is Tanaka-san calling Hana?",
+          "choices": [
+            "To invite her to go up the castle with him at three",
+            "To say goodbye before his train to Hakone",
+            "To ask where the kamaboko shop is",
+            "To tell her tomorrow's weather"
+          ],
+          "answer": 0,
+          "kind": "gist"
+        },
+        {
+          "q": "What time does Tanaka-san say he will go to the castle?",
+          "choices": [
+            "2:13",
+            "2:14",
+            "3:00",
+            "3:30"
+          ],
+          "answer": 2,
+          "kind": "number",
+          "lineRef": 6
+        },
+        {
+          "q": "Where is Tanaka-san calling from?",
+          "choices": [
+            "The kamaboko shop",
+            "The castle park",
+            "The train to Hakone",
+            "The bench in front of the station"
+          ],
+          "answer": 3,
+          "kind": "detail",
+          "lineRef": 2
+        },
+        {
+          "q": "What does Tanaka-san say about the station clock?",
+          "choices": [
+            "It is a minute slow",
+            "It is a minute fast",
+            "It has stopped",
+            "It is exactly right"
+          ],
+          "answer": 0,
+          "kind": "detail",
+          "lineRef": 13
+        },
+        {
+          "q": "Where is Hana when Tanaka-san calls?",
+          "choices": [
+            "At the inn",
+            "At the castle park",
+            "At the station",
+            "At Takahashi-san's shop"
+          ],
+          "answer": 1,
+          "kind": "detail",
+          "lineRef": 5
+        }
+      ],
+      "recapEn": "Tanaka-san phones Hana from the bench in front of Odawara Station: he will go to the castle at three and invites her up to the top, since in the morning they saw only the outside. Tomorrow he goes to Hakone by train. It is 2:14; the station clock says 2:13, a minute slow. They meet in front of the castle."
+    }
+  ]
+}

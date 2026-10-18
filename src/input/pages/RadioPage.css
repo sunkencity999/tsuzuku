@@ -1,0 +1,34 @@
+/*
+ * TSUZUKU — RadioPage (#/radio, src/input/pages, group F).
+ * Tokens only. Mobile-first: one column at 360 px with the 16 px gutter;
+ * 44 px targets; the player fills the middle, the honesty note sits lowest.
+ */
+.radio-page {
+  display: grid;
+  gap: var(--sp-4);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-3) var(--gutter) var(--sp-6);
+}
+.radio-page__nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-3);
+}
+.radio-page__nav .btn {
+  min-height: var(--touch);
+}
+.radio-page__hint,
+.radio-page__note {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+}
+.radio-page__note {
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}

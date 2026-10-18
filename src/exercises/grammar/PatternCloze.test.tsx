@@ -157,6 +157,22 @@ describe('<PatternCloze> typed', () => {
     expect(pr.onReplay).toHaveBeenCalledTimes(1);
   });
 
+  it('passes params.clip through to every play (design 08 §8), with the kana when the example carries one', () => {
+    const pr = props({ step: step({ params: { sentence: SENTENCE, blank: [7, 11], answer: '飲みます', promptEn: 'I drink coffee every morning.', clip: 'g-n5-003#ex1' } }) });
+    mount(pr);
+    expect(speakSpy).toHaveBeenCalledTimes(1);
+    expect(speakSpy).toHaveBeenCalledWith('毎朝コーヒーを飲みます。', { clip: 'g-n5-003#ex1' });
+    act(() => btn('Replay the sentence').click());
+    expect(speakSpy).toHaveBeenLastCalledWith('毎朝コーヒーを飲みます。', { clip: 'g-n5-003#ex1' });
+    expect(speakSpy).toHaveBeenCalledTimes(2);
+
+    act(() => render(null, root));
+    speakSpy.mockClear();
+    const derived = props({ item: DESU, step: step({ itemId: DESU.id, cardKey: 'g-n5-001#cloze', params: { clip: 'g-n5-001#ex0' } }), exposures: 2 });
+    mount(derived);
+    expect(speakSpy).toHaveBeenCalledWith('コーヒーはおいしいです。', { kana: 'コーヒーはおいしいです。', clip: 'g-n5-001#ex0' });
+  });
+
   it('kana-equivalent answers are accepted: のみます for 飲みます → Good, and the blank fills with the ruby form', () => {
     const pr = props();
     mount(pr);

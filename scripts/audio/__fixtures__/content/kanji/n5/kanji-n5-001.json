@@ -1,0 +1,81 @@
+{
+ "schema": "tsuzuku.content/1",
+ "type": "kanji",
+ "level": "n5",
+ "writer": "kanji-n5-001",
+ "generatedAt": "2026-10-17T00:00:00Z",
+ "items": [
+  {
+   "id": "j-日",
+   "char": "日",
+   "meanings": [
+    "sun",
+    "day"
+   ],
+   "on": [
+    "ニチ",
+    "ジツ"
+   ],
+   "kun": [
+    "ひ",
+    "か"
+   ],
+   "strokes": 4,
+   "jlpt": 5,
+   "components": [
+    "sun"
+   ],
+   "mnemonic": "The sun seen through a paper window.",
+   "examples": [
+    {
+     "word": "日曜日",
+     "kana": "にちようび",
+     "en": "Sunday"
+    },
+    {
+     "word": "毎日",
+     "kana": "まいにち",
+     "en": "every day"
+    },
+    {
+     "word": "日",
+     "kana": "にち",
+     "en": "day (counter)"
+    }
+   ],
+   "station": 4
+  },
+  {
+   "id": "j-雨",
+   "char": "雨",
+   "meanings": [
+    "rain"
+   ],
+   "on": [
+    "ウ"
+   ],
+   "kun": [
+    "あめ"
+   ],
+   "strokes": 8,
+   "jlpt": 5,
+   "components": [
+    "rain"
+   ],
+   "mnemonic": "Drops under a roof.",
+   "examples": [
+    {
+     "word": "雨",
+     "kana": "あめ",
+     "en": "rain"
+    },
+    {
+     "word": "大雨",
+     "kana": "おおあめ",
+     "en": "heavy rain"
+    }
+   ],
+   "station": 5
+  }
+ ]
+}

@@ -1,13 +1,14 @@
 import { effect, signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { installServices, nullAudio, resetServices, type VoiceInfo } from '@/shared/audio';
+import type { Belt } from '@/content/types';
+import { installServices, nullAudio, resetServices, servicesVersion, type AudioPackInfo, type AudioSource, type ClipPlayer, type ClipReady, type VoiceInfo } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import { route, syncRouteFromLocation } from '@/shared/routes';
 import type { Settings } from '@/shared/store-types';
 import { INTENSITY_PRESETS, newPerDayFor, resetStoreForTests, store } from '@/store';
 import { DEFAULT_TEST_NOW, makeTestStore, card } from '@/store/testing';
-import SettingsPage, { applyFeel, japaneseVoices, kbOf, parseTime } from './SettingsPage';
+import SettingsPage, { applyFeel, dataSaverEffective, formatBytes, japaneseVoices, kbOf, packInfo, packSpeaks, parseTime, resetDataSaverAutoForTests, saveDataRequested } from './SettingsPage';
 import { S, fmt } from './strings';
 
 /** Counts the store's `resetSave` calls: the danger zone must delegate to it, not run a wipe of its own. */
@@ -38,6 +39,8 @@ afterEach(() => {
   root.remove();
   resetStoreForTests();
   resetServices();
+  resetDataSaverAutoForTests();
+  vi.useRealTimers();
   bus.reset();
 });
 
@@ -466,5 +469,341 @@ describe('<SettingsPage>', () => {
     expect(store.seed()).toMatch(/^[0-9a-f]{16}$/);
     expect(store.meta().createdAt).toBe(t);
     expect(store.meta().createdAt).not.toBe(oldCreated);
+  });
+});
+
+/* ── 音声パック voice pack card (design 08 §13) ────────────────────────────── */
+
+const MB = 1024 * 1024;
+const INFO: AudioPackInfo = {
+  audioVersion: 'a-0123456789',
+  contentVersion: 'c-031e32624e',
+  engine: 'VOICEVOX 0.25.2',
+  belts: { white: { bytes: 12 * MB, seconds: 540, files: 4 }, yellow: { bytes: 38 * MB, seconds: 3000, files: 20 } },
+  totals: { bytes: 490 * MB, seconds: 80_000, files: 400 },
+  credits: ['VOICEVOX:九州そら', 'VOICEVOX:玄野武宏'],
+};
+
+/** A `ClipPlayer` double: `download` reports 19 of 38 MB synchronously, then resolves. */
+function fakeClips(ready: ClipReady, info: AudioPackInfo | null, usageBytes = 0) {
+  const download = vi.fn((_belt: Belt, onProgress?: (done: number, total: number) => void): Promise<void> => {
+    onProgress?.(19 * MB, 38 * MB);
+    return Promise.resolve();
+  });
+  const remove = vi.fn((): Promise<void> => Promise.resolve());
+  const cacheUsage = vi.fn(() => Promise.resolve({ bytes: usageBytes, files: 3 }));
+  const clips: ClipPlayer = {
+    ready: signal(ready),
+    info: signal(info),
+    loadLevel: () => Promise.resolve(),
+    loadStation: () => Promise.resolve(),
+    prefetchStation() {},
+    cueFor: () => undefined,
+    cueForText: () => undefined,
+    kanaTracks: () => Promise.resolve([]),
+    play: () => ({ done: Promise.resolve({ source: 'none' as const, seconds: 0 }), stop() {} }),
+    unlock() {},
+    dispose() {},
+    cacheUsage,
+    download,
+    remove,
+  };
+  return { clips, download, remove, cacheUsage };
+}
+
+const flush = (): Promise<void> =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+
+describe('<SettingsPage> 音声パック voice pack (design 08 §13)', () => {
+  it('renders real sizes from the manifest and the cache usage, one row per belt, and says synthetic — never "recorded voice"', async () => {
+    await makeTestStore({ save: { profile: { belt: 'yellow' } } });
+    const { clips, cacheUsage } = fakeClips('ready', INFO, 7.5 * MB);
+    installServices({ audio: { ...nullAudio, clips } });
+    mount();
+    await flush();
+    const cardEl = q('[data-voice-pack]');
+    expect(cardEl.getAttribute('data-pack-state')).toBe('ready');
+    expect(cacheUsage).toHaveBeenCalled();
+    expect(q('[data-pack-sizes]').textContent).toBe(fmt(S.setPackSizes, { belt: '38 MB', all: '490 MB', device: '7.5 MB' }));
+    expect(Array.from(root.querySelectorAll('[data-pack-belt]')).map((li) => li.getAttribute('data-pack-belt'))).toEqual(['white', 'yellow']);
+    const yellow = q('[data-pack-belt="yellow"]');
+    expect(yellow.querySelector('[lang="ja"]')?.textContent).toBe('黄帯');
+    expect(yellow.textContent).toContain('Yellow');
+    expect(yellow.textContent).toContain('38 MB');
+    expect(yellow.textContent).toContain('50 min');
+    expect(cardEl.querySelector('h3 [lang="ja"]')?.textContent).toBe(S.setPackTitleJa);
+    expect(cardEl.textContent).toContain(S.setPackTitle);
+    expect(cardEl.textContent).toMatch(/synthetic/i);
+    expect(cardEl.textContent).toContain('VOICEVOX');
+    expect(cardEl.textContent).not.toMatch(/recorded/i);
+    expect(cardEl.textContent).toContain(S.setPackSafari);
+    expect(root.querySelector('[data-pack-none]')).toBeNull();
+    expect(packInfo(clips)).toBe(INFO);
+  });
+
+  it('Download calls clips.download(belt) with a progress callback, shows the bar, then re-reads the cache usage', async () => {
+    await makeTestStore({ save: { profile: { belt: 'yellow' } } });
+    const { clips, download, cacheUsage } = fakeClips('ready', INFO, 0);
+    installServices({ audio: { ...nullAudio, clips } });
+    mount();
+    await flush();
+    const before = cacheUsage.mock.calls.length;
+    act(() => {
+      q<HTMLButtonElement>('[data-pack-download="yellow"]').click();
+    });
+    expect(download).toHaveBeenCalledTimes(1);
+    expect(download.mock.calls[0]![0]).toBe('yellow');
+    expect(typeof download.mock.calls[0]![1]).toBe('function');
+    // 19 of 38 MB reported synchronously: the bar reads 50 % and every other button waits.
+    const bar = q('[data-pack-belt="yellow"] [data-pack-progress]');
+    expect(bar.getAttribute('aria-valuenow')).toBe('50');
+    expect(bar.classList.contains('progress--ai')).toBe(true); // a download is indigo (components.css .progress--ai), not XP gold
+    expect(q('[data-pack-belt="yellow"]').getAttribute('data-busy')).toBe('true');
+    expect(q<HTMLButtonElement>('[data-pack-download="white"]').disabled).toBe(true);
+    expect(q('[data-pack-note]').textContent).toBe(fmt(S.setPackDownloading, { belt: 'Yellow', pct: 50 }));
+    await flush();
+    expect(root.querySelector('[data-pack-progress]')).toBeNull();
+    expect(q('[data-pack-note]').textContent).toBe(fmt(S.setPackDownloaded, { belt: 'Yellow' }));
+    expect(cacheUsage.mock.calls.length).toBeGreaterThan(before);
+    expect(q<HTMLButtonElement>('[data-pack-download="white"]').disabled).toBe(false);
+  });
+
+  it('Remove calls clips.remove(belt) and says so; a failed download leaves the card usable and says so', async () => {
+    await makeTestStore({ save: { profile: { belt: 'yellow' } } });
+    const { clips, download, remove } = fakeClips('ready', INFO, 0);
+    installServices({ audio: { ...nullAudio, clips } });
+    mount();
+    await flush();
+    act(() => {
+      q<HTMLButtonElement>('[data-pack-remove="white"]').click();
+    });
+    expect(remove).toHaveBeenCalledWith('white');
+    await flush();
+    expect(q('[data-pack-note]').textContent).toBe(fmt(S.setPackRemoved, { belt: 'White' }));
+
+    download.mockImplementationOnce(() => Promise.reject(new Error('offline')));
+    act(() => {
+      q<HTMLButtonElement>('[data-pack-download="white"]').click();
+    });
+    await flush();
+    expect(q('[data-pack-note]').textContent).toBe(S.setPackFailed);
+    expect(root.querySelector('[data-pack-progress]')).toBeNull();
+    expect(q<HTMLButtonElement>('[data-pack-download="white"]').disabled).toBe(false);
+  });
+
+  it('without a pack the card says the device voice speaks: the probe found none, or the real service came without a player; while a probe runs it only says it is looking (then the sizes arrive live)', async () => {
+    await makeTestStore();
+    const absent = fakeClips('absent', null);
+    installServices({ audio: { ...nullAudio, clips: absent.clips } });
+    mount();
+    expect(q('[data-voice-pack]').getAttribute('data-pack-state')).toBe('absent');
+    expect(q('[data-pack-none]').textContent).toBe(S.setPackNone);
+    expect(root.querySelector('[data-pack-sizes]')).toBeNull();
+    expect(root.querySelector('[data-pack-loading]')).toBeNull();
+    expect(absent.cacheUsage).not.toHaveBeenCalled();
+    expect(packInfo(undefined)).toBeNull();
+
+    // The real audio service installed without a player: a build with no pack, settled at once.
+    render(null, root);
+    installServices({ audio: { ...nullAudio, setVolume: vi.fn() } });
+    mount();
+    expect(q('[data-voice-pack]').getAttribute('data-pack-state')).toBe('absent');
+    expect(q('[data-pack-none]').textContent).toBe(S.setPackNone);
+
+    render(null, root);
+    const probing = fakeClips('loading', null, 3 * MB);
+    installServices({ audio: { ...nullAudio, clips: probing.clips } });
+    mount();
+    expect(q('[data-voice-pack]').getAttribute('data-pack-state')).toBe('probing');
+    expect(q('[data-pack-loading]').textContent).toBe(S.setPackLoading);
+    expect(root.querySelector('[data-pack-none]')).toBeNull();
+    expect(probing.cacheUsage).not.toHaveBeenCalled();
+    act(() => {
+      probing.clips.info.value = INFO;
+      probing.clips.ready.value = 'ready';
+    });
+    await flush();
+    expect(q('[data-voice-pack]').getAttribute('data-pack-state')).toBe('ready');
+    expect(q('[data-pack-sizes]').textContent).toBe(fmt(S.setPackSizes, { belt: '12 MB', all: '490 MB', device: '3 MB' }));
+  });
+
+  it('a cold load (audio services not installed yet) says it is looking, then shows the sizes the moment the service lands: the slot’s version signal re-renders the page — no poll, no interval', async () => {
+    await makeTestStore({ save: { profile: { belt: 'yellow' } } });
+    const intervals = vi.spyOn(globalThis, 'setInterval');
+    servicesVersion.value = 0; // nullAudio: main.tsx has not installed the audio barrel yet
+    mount();
+    expect(q('[data-voice-pack]').getAttribute('data-pack-state')).toBe('probing');
+    expect(q('[data-pack-loading]').textContent).toBe(S.setPackLoading);
+    expect(root.querySelector('[data-pack-none]')).toBeNull();
+    const { clips, cacheUsage } = fakeClips('ready', INFO, 7.5 * MB);
+    act(() => {
+      installServices({ audio: { ...nullAudio, clips } });
+    });
+    await flush();
+    expect(q('[data-voice-pack]').getAttribute('data-pack-state')).toBe('ready');
+    expect(q('[data-pack-sizes]').textContent).toBe(fmt(S.setPackSizes, { belt: '38 MB', all: '490 MB', device: '7.5 MB' }));
+    expect(cacheUsage).toHaveBeenCalled();
+    expect(intervals).not.toHaveBeenCalled();
+    intervals.mockRestore();
+
+    // Once anything has been installed or reset the question is settled: an empty slot is a build with no pack.
+    render(null, root);
+    resetServices();
+    expect(servicesVersion.value).toBeGreaterThan(0);
+    mount();
+    expect(q('[data-voice-pack]').getAttribute('data-pack-state')).toBe('absent');
+    expect(q('[data-pack-none]').textContent).toBe(S.setPackNone);
+    expect(root.querySelector('[data-pack-loading]')).toBeNull();
+  });
+
+  it('a pack that carries nothing for the learner’s belt says so instead of a false 0 MB', async () => {
+    await makeTestStore({ save: { profile: { belt: 'green' } } });
+    const { clips } = fakeClips('ready', INFO, 3 * MB);
+    installServices({ audio: { ...nullAudio, clips } });
+    mount();
+    await flush();
+    expect(q('[data-pack-sizes]').textContent).toBe(fmt(S.setPackSizesNoBelt, { all: '490 MB', device: '3 MB' }));
+    expect(q('[data-pack-sizes]').textContent).not.toMatch(/Your belt: 0 MB/);
+    expect(Array.from(root.querySelectorAll('[data-pack-belt]')).map((li) => li.getAttribute('data-pack-belt'))).toEqual(['white', 'yellow']);
+  });
+
+  it('the device-voice picker reads the pack too: no device voice but a speaking pack (source clips) says the pack speaks, never a bare "no voice"; a ready pack the learner has not chosen is the device voice; neither present says no voice', async () => {
+    await makeTestStore();
+    installServices({ audio: { ...nullAudio, hasJaVoice: signal(false), packReady: signal(true), source: signal<AudioSource>('clips') } });
+    mount();
+    expect(packSpeaks({ ...nullAudio, source: signal<AudioSource>('clips') }, true)).toBe(true);
+    expect(packSpeaks({ ...nullAudio, source: signal<AudioSource>('clips') })).toBe(true); // the default reads the store: 'pack'
+    // the learner's choice wins (the contract-tier `packWillSpeak`): a 'clips' source left over under 'device' is not the pack speaking
+    expect(packSpeaks({ ...nullAudio, source: signal<AudioSource>('clips') }, false)).toBe(false);
+    // `source` is capability-correct from mount (the idle default): a ready pack under settings.audioSource 'device' reads 'synth' and is the device voice, not the pack.
+    expect(packSpeaks({ ...nullAudio, hasJaVoice: signal(true), packReady: signal(true), source: signal<AudioSource>('synth') }, false)).toBe(false);
+    // A ready pack the learner chose speaks even while the master volume is 0 (the idle `source` reads 'none'); under 'device' it does not.
+    expect(packSpeaks({ ...nullAudio, packReady: signal(true) }, true)).toBe(true);
+    expect(packSpeaks({ ...nullAudio, packReady: signal(true) }, false)).toBe(false);
+    expect(packSpeaks({ ...nullAudio, packReady: signal(true) })).toBe(true); // the default reads the store: 'pack'
+    expect(packSpeaks(nullAudio, true)).toBe(false);
+    expect(packSpeaks(nullAudio)).toBe(false);
+    const placeholder = q<HTMLSelectElement>('select[data-setting="ttsVoiceURI"]').options[0]?.textContent;
+    expect(placeholder).toBe(S.setVoiceNonePack);
+    expect(placeholder).not.toBe(S.setVoiceNone);
+    expect(S.setVoiceNonePack).not.toMatch(/recorded/i);
+
+    // Muted pack (source idles at 'none'), chosen: still the pack line; switch to the device voice and no voice is left to name.
+    render(null, root);
+    installServices({ audio: { ...nullAudio, hasJaVoice: signal(false), packReady: signal(true), source: signal<AudioSource>('none') } });
+    mount();
+    const option = (): string | undefined => q<HTMLSelectElement>('select[data-setting="ttsVoiceURI"]').options[0]?.textContent;
+    expect(option()).toBe(S.setVoiceNonePack);
+    radio('audioSource', 'device');
+    expect(option()).toBe(S.setVoiceNone);
+
+    // No pack at all (no `packReady`): no voice.
+    render(null, root);
+    installServices({ audio: { ...nullAudio, hasJaVoice: signal(false), source: signal<AudioSource>('none') } });
+    mount();
+    radio('audioSource', 'pack');
+    expect(option()).toBe(S.setVoiceNone);
+  });
+
+  it('the device-voice picker and speed hints re-render when the audio barrel lands after first paint (servicesVersion), with no other interaction', async () => {
+    await makeTestStore();
+    servicesVersion.value = 0;
+    mount();
+    const option = (): string | undefined => q<HTMLSelectElement>('select[data-setting="ttsVoiceURI"]').options[0]?.textContent;
+    expect(option()).toBe(S.setVoiceNone);
+    act(() => {
+      installServices({ audio: { ...nullAudio, hasJaVoice: signal(false), packReady: signal(true), source: signal<AudioSource>('clips') } });
+    });
+    expect(option()).toBe(S.setVoiceNonePack);
+  });
+
+  it('audioSource and dataSaver persist through the store, with the hint naming what each source serves and the speed-tier note', async () => {
+    await makeTestStore();
+    mount();
+    expect(settings().audioSource).toBe('pack');
+    expect(q<HTMLInputElement>('input[data-setting="audioSource"][value="pack"]').checked).toBe(true);
+    radio('audioSource', 'device');
+    expect(settings().audioSource).toBe('device');
+    radio('audioSource', 'pack');
+    expect(settings().audioSource).toBe('pack');
+    expect(settings().dataSaver).toBe(false);
+    toggle('dataSaver');
+    expect(settings().dataSaver).toBe(true);
+    toggle('dataSaver');
+    expect(settings().dataSaver).toBe(false);
+    expect(root.textContent).toContain(S.setAudioSourceHint);
+    expect(S.setAudioSourceHint).toMatch(/Pitch Ear/);
+    expect(root.textContent).toContain(S.setDataSaverHint);
+    expect(root.textContent).not.toContain(S.setDataSaverForced);
+    expect(q<HTMLInputElement>('input[data-setting="dataSaver"]').checked).toBe(false);
+    expect(q('[data-speed-note]').textContent).toBe(S.setSpeedTierNote);
+    expect(S.setSpeedTierNote).toBe('Slow is spoken slowly through Station 17; faster speeds keep the pitch.');
+  });
+
+  it('data saver switches itself on when the browser asks to save data (navigator.connection.saveData) — once per boot — and the switch is read-only while the browser forces it: the effective state shows, the hint says why, a tap writes nothing', async () => {
+    await makeTestStore();
+    Object.defineProperty(navigator, 'connection', { value: { saveData: true }, configurable: true });
+    const sw = (): HTMLInputElement => q<HTMLInputElement>('input[data-setting="dataSaver"]');
+    try {
+      expect(saveDataRequested()).toBe(true);
+      mount();
+      expect(settings().dataSaver).toBe(true);
+      // The switch shows the EFFECTIVE state (design 08 §13) and is disabled: the browser forces data saving, idle downloads stay off and the hint says so.
+      expect(sw().checked).toBe(true);
+      expect(sw().disabled).toBe(true);
+      expect(root.textContent).toContain(S.setDataSaverForced);
+      expect(S.setDataSaverForced).toBe('Your browser asks for data saving — idle downloads are off.');
+      toggle('dataSaver');
+      toggle('dataSaver');
+      expect(settings().dataSaver).toBe(true); // no invisible write, no flip-flop
+      expect(sw().checked).toBe(true);
+      expect(sw().disabled).toBe(true);
+      // The learner's stored choice is theirs once the browser stops asking: the switch is live again.
+      delete (navigator as { connection?: unknown }).connection;
+      render(null, root);
+      mount();
+      expect(sw().disabled).toBe(false);
+      expect(sw().checked).toBe(true);
+      expect(root.textContent).toContain(S.setDataSaverHint);
+      expect(root.textContent).not.toContain(S.setDataSaverForced);
+      toggle('dataSaver');
+      expect(settings().dataSaver).toBe(false);
+      expect(sw().checked).toBe(false);
+      // The same boot does not overrule that choice when the browser asks again…
+      Object.defineProperty(navigator, 'connection', { value: { saveData: true }, configurable: true });
+      render(null, root);
+      mount();
+      expect(settings().dataSaver).toBe(false);
+      expect(sw().checked).toBe(true); // …but the effective state is still "on" while forced.
+      expect(sw().disabled).toBe(true);
+      // The next boot asks again.
+      render(null, root);
+      resetDataSaverAutoForTests();
+      mount();
+      expect(settings().dataSaver).toBe(true);
+    } finally {
+      delete (navigator as { connection?: unknown }).connection;
+    }
+    expect(saveDataRequested()).toBe(false);
+    expect(saveDataRequested({ connection: { saveData: false } })).toBe(false);
+    expect(saveDataRequested({})).toBe(false);
+    expect(saveDataRequested(null)).toBe(false);
+    expect(dataSaverEffective({ dataSaver: false }, false)).toBe(false);
+    expect(dataSaverEffective({ dataSaver: false }, true)).toBe(true);
+    expect(dataSaverEffective({ dataSaver: true }, false)).toBe(true);
+    expect(dataSaverEffective({ dataSaver: false })).toBe(false); // the live navigator: no connection hint here
+  });
+
+  it('formatBytes reads as a learner does', () => {
+    expect(formatBytes(0)).toBe('0 MB');
+    expect(formatBytes(500)).toBe('1 KB');
+    expect(formatBytes(300 * 1024)).toBe('300 KB');
+    expect(formatBytes(1.5 * MB)).toBe('1.5 MB');
+    expect(formatBytes(38 * MB)).toBe('38 MB');
+    expect(formatBytes(490 * MB)).toBe('490 MB');
+    expect(formatBytes(1.25 * 1024 * MB)).toBe('1.3 GB');
+    expect(formatBytes(Number.NaN)).toBe('0 MB');
   });
 });

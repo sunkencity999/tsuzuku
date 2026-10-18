@@ -1,0 +1,18 @@
+{
+ "schema": "tsuzuku.content/1",
+ "type": "michikusa",
+ "writer": "michikusa-s04",
+ "generatedAt": "2026-10-17T00:00:00Z",
+ "items": [
+  {
+   "id": "m-04-1",
+   "stationId": "st-04",
+   "kind": "road-history",
+   "titleEn": "The First Real Hill",
+   "bodyEn": "Past the town the road met Gontazaka.",
+   "ja": "{権太坂|ごんたざか}",
+   "kana": "ごんたざか",
+   "sourceNote": "Hiroshige, Hōeidō Tōkaidō 1833–34"
+  }
+ ]
+}

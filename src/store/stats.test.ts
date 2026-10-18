@@ -3,7 +3,7 @@ import { bus, type Events } from '../shared/events';
 import { mulberry32 } from '../shared/hash';
 import { epochDay } from '../shared/time';
 import { STAT_KEYS as CONTRACT_KEYS } from '../shared/store-types';
-import { STAT_KEYS, honesty, rollingMean, startStats, updateMedian } from './stats';
+import { CLEAN_SET_MIN_TOTAL, LISTENING_PASS_RATIO, STAT_KEYS, honesty, listeningSetPassed, rollingMean, setIsAuthentic, startStats, tierOfRate, updateMedian } from './stats';
 import { resetStoreForTests, store } from './store';
 import { DEFAULT_TEST_NOW, makeTestStore } from './testing';
 
@@ -252,5 +252,124 @@ describe('startStats reducer', () => {
       fullDays: 1,
     });
     expect(store.daily.value[TODAY].input).toBe(12);
+  });
+});
+
+describe('listening counters (design 08 §12)', () => {
+  let stop: () => void = () => undefined;
+  afterEach(() => stop());
+
+  const set = (o: Partial<Events['listening:set']> = {}): Events['listening:set'] => ({ storyId: 's-10-1', correct: 3, total: 3, rate: 1, minutes: 5, ...o });
+  const played = (o: Partial<Events['listen:played']> = {}): Events['listen:played'] => ({ source: 'radio', refs: ['s-04-1'], seconds: 600, rate: 1, cold: false, authentic: false, gistCorrect: null, ...o });
+
+  it('tierOfRate picks the nearest SPEED_TIER_RATES entry; a tie goes to the slower tier; the Dan rate reads as 5', () => {
+    expect([0.75, 0.9, 1, 1.1, 1.25].map(tierOfRate)).toEqual([1, 2, 3, 4, 5]);
+    expect(tierOfRate(1.5)).toBe(5);
+    expect(tierOfRate(0.5)).toBe(1);
+    expect(tierOfRate(0.95)).toBe(2); // 0.9 and 1.0 are equally near
+    expect(tierOfRate(1.05)).toBe(3); // 1.0 and 1.1 are equally near
+    expect(tierOfRate(1.08)).toBe(4);
+    expect(tierOfRate(Number.NaN)).toBe(1);
+    expect(LISTENING_PASS_RATIO).toBe(2 / 3);
+    expect(CLEAN_SET_MIN_TOTAL).toBe(3);
+    expect(listeningSetPassed({ correct: 2, total: 3 })).toBe(true);
+    expect(listeningSetPassed({ correct: 1, total: 3 })).toBe(false);
+    expect(listeningSetPassed({ correct: 0, total: 0 })).toBe(false);
+    expect(setIsAuthentic({ authentic: true })).toBe(true);
+    expect(setIsAuthentic({ authentic: false, bridge: true })).toBe(true); // a disjunction: any one signal counts
+    expect(setIsAuthentic({ authentic: false, genre: 'news' })).toBe(true);
+    expect(setIsAuthentic({ genre: 'news' })).toBe(true);
+    expect(setIsAuthentic({ bridge: true })).toBe(true);
+    expect(setIsAuthentic({ authentic: false, bridge: false, genre: 'exchange' })).toBe(false);
+    expect(setIsAuthentic({ genre: 'exchange' })).toBe(false);
+    expect(setIsAuthentic({})).toBe(false);
+  });
+
+  it('an Arena set on a news piece at 0.9× adds no authentic minutes; at 1.0× passed it does; failed or non-authentic sets never do', async () => {
+    await makeTestStore();
+    stop = startStats(store);
+    bus.emit('listening:set', set({ genre: 'news', rate: 0.9, minutes: 5 }));
+    expect(store.stats.value.listeningAuthenticMinutes).toBe(0);
+    bus.emit('listening:set', set({ genre: 'news', rate: 1, minutes: 5 }));
+    expect(store.stats.value.listeningAuthenticMinutes).toBe(5);
+    bus.emit('listening:set', set({ genre: 'news', rate: 1, correct: 1, total: 3, minutes: 4 })); // failed
+    expect(store.stats.value.listeningAuthenticMinutes).toBe(5);
+    bus.emit('listening:set', set({ authentic: true, rate: 1.1, minutes: 2.5 })); // casual dialogue flagged by the emitter
+    expect(store.stats.value.listeningAuthenticMinutes).toBe(7.5);
+    bus.emit('listening:set', set({ authentic: false, genre: 'news', rate: 1.25, minutes: 5 })); // an authentic genre counts whatever the flag says (disjunction)
+    expect(store.stats.value.listeningAuthenticMinutes).toBe(12.5);
+    bus.emit('listening:set', set({ bridge: true, rate: 1, minutes: 3 }));
+    expect(store.stats.value.listeningAuthenticMinutes).toBe(15.5);
+    bus.emit('listening:set', set({ authentic: false, bridge: false, genre: 'exchange', rate: 1.25, minutes: 5 })); // no signal at all
+    bus.emit('listening:set', set({ storyId: null, mode: 'walk', refs: ['v-n5-0249#ex0'], rate: 1.25, minutes: 2 })); // pool sentences, no text
+    expect(store.stats.value.listeningAuthenticMinutes).toBe(15.5);
+    expect(store.stats.value.listeningSets).toBe(8);
+  });
+
+  it('cold flag increments coldSets and coldSetsPassed on a pass; a warm set or a walk-mode set is never a first hearing', async () => {
+    await makeTestStore();
+    stop = startStats(store);
+    bus.emit('listening:set', set({ cold: true, correct: 3, total: 3 }));
+    expect(store.stats.value).toMatchObject({ coldSets: 1, coldSetsPassed: 1 });
+    bus.emit('listening:set', set({ cold: true, correct: 1, total: 3 }));
+    expect(store.stats.value).toMatchObject({ coldSets: 2, coldSetsPassed: 1 });
+    bus.emit('listening:set', set({ cold: false, correct: 3, total: 3 }));
+    bus.emit('listening:set', set({ correct: 3, total: 3 })); // flag absent
+    bus.emit('listening:set', set({ cold: true, storyId: null, mode: 'walk', refs: ['v-n5-0249#ex0'], correct: 6, total: 6 }));
+    expect(store.stats.value).toMatchObject({ coldSets: 2, coldSetsPassed: 1, listeningSets: 5 });
+  });
+
+  it('Radio-first learner still accumulates coldSets: ten cold Radio tracks with gist answers reach coldSets 10 with no Arena set', async () => {
+    await makeTestStore();
+    stop = startStats(store);
+    for (let i = 0; i < 10; i++) bus.emit('listen:played', played({ cold: true, gistCorrect: i < 8 }));
+    expect(store.stats.value).toMatchObject({ coldSets: 10, coldSetsPassed: 8, listeningSets: 0 });
+    bus.emit('listen:played', played({ cold: true, gistCorrect: null })); // question skipped: counts nothing
+    bus.emit('listen:played', played({ cold: false, gistCorrect: true })); // a re-hearing is not a first hearing
+    bus.emit('listen:played', played({ source: 'readalong', cold: true, gistCorrect: false })); // Read-along counts like Radio
+    expect(store.stats.value).toMatchObject({ coldSets: 11, coldSetsPassed: 8 });
+  });
+
+  it('radioMinutes counts radio seconds / 60 only; a Radio re-hearing with authentic true adds authentic minutes; Read-along adds none to radioMinutes', async () => {
+    await makeTestStore();
+    stop = startStats(store);
+    bus.emit('listen:played', played({ source: 'radio', seconds: 600 }));
+    expect(store.stats.value).toMatchObject({ radioMinutes: 10, listeningAuthenticMinutes: 0 });
+    bus.emit('listen:played', played({ source: 'readalong', refs: ['s-27-1'], seconds: 300, authentic: true, gistCorrect: true }));
+    expect(store.stats.value).toMatchObject({ radioMinutes: 10, listeningAuthenticMinutes: 5 });
+    bus.emit('listen:played', played({ source: 'radio', seconds: 90, rate: 1.1, cold: false, authentic: true, gistCorrect: true })); // re-hearing at full speed, gist right
+    expect(store.stats.value).toMatchObject({ radioMinutes: 11.5, listeningAuthenticMinutes: 6.5 });
+    for (let i = 0; i < 3; i++) bus.emit('listen:played', played({ seconds: 40 })); // three 40 s kana tracks = 2 min, not 0 and not 3
+    expect(store.stats.value.radioMinutes).toBeCloseTo(13.5, 9);
+    bus.emit('listen:played', played({ seconds: Number.NaN }));
+    bus.emit('listen:played', played({ seconds: -5 }));
+    expect(store.stats.value.radioMinutes).toBeCloseTo(13.5, 9);
+    expect(store.stats.value.listeningAuthenticMinutes).toBe(6.5);
+  });
+
+  it('bestCleanTier rises to 4 after a perfect set at 1.1× and not after a 2/3 set; needs total ≥ 3; never lowers; a walk-mode set counts', async () => {
+    await makeTestStore();
+    stop = startStats(store);
+    expect(store.stats.value.bestCleanTier).toBe(1);
+    bus.emit('listening:set', set({ correct: 2, total: 3, rate: 1.1 }));
+    expect(store.stats.value.bestCleanTier).toBe(1);
+    bus.emit('listening:set', set({ correct: 2, total: 2, rate: 1.25 })); // too small a set
+    expect(store.stats.value.bestCleanTier).toBe(1);
+    bus.emit('listening:set', set({ correct: 3, total: 3, rate: 1.1 }));
+    expect(store.stats.value.bestCleanTier).toBe(4);
+    bus.emit('listening:set', set({ correct: 3, total: 3, rate: 0.75 }));
+    expect(store.stats.value.bestCleanTier).toBe(4);
+    bus.emit('listening:set', set({ storyId: null, mode: 'walk', refs: ['v-n5-0249#ex0'], correct: 6, total: 6, rate: 1.5 }));
+    expect(store.stats.value.bestCleanTier).toBe(5);
+  });
+
+  it('daily input keeps the tenth of a minute a Radio row carries', async () => {
+    await makeTestStore();
+    stop = startStats(store);
+    bus.emit('ledger:entry', { minutes: 0.7, kind: 0, source: 0 });
+    bus.emit('ledger:entry', { minutes: 0.7, kind: 0, source: 0 });
+    bus.emit('ledger:entry', { minutes: 12, kind: 0, source: 1 });
+    bus.emit('ledger:entry', { minutes: 0, kind: 0, source: 0 });
+    expect(store.daily.value[TODAY].input).toBe(13.4);
   });
 });

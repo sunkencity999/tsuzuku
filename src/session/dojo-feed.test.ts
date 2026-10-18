@@ -2,19 +2,19 @@
  * dojo-feed.ts — the home screen's one line and its company.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import type { CardKey } from '../content/types';
-import { FIXTURE_IDS, STATION_4, V, createFakeLoader } from '../content/fixtures';
+import type { CardKey, ListeningPool } from '../content/types';
+import { FIXTURE, FIXTURE_IDS, G, STATION_4, V, createFakeLoader } from '../content/fixtures';
 import { bus } from '../shared/events';
 import { SESSION_SCHEMA, type SessionPlan } from '../shared/session-types';
 import { epochDay, weekOf } from '../shared/time';
 import type { CardTuple } from '../shared/store-types';
 import { resetStoreForTests, store } from '../store';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../store/testing';
-import { kiaiInit } from '../learn';
+import { kiaiInit, poolMinutes, selectPool } from '../learn';
 import { S } from './engine-strings';
-import { loadPlanContext } from './builder';
-import { forecastCounts } from '../store/derived';
-import { SCROLL_BLOCK_MINUTES, dojoFeed, forecastLine, gateForecast, resumeInfo, sentenceOfDay, welcomeState } from './dojo-feed';
+import { loadPlanContext, withPools } from './builder';
+import { forecastCounts, knownIds } from '../store/derived';
+import { SCROLL_BLOCK_MINUTES, dojoFeed, forecastLine, gateForecast, radioMinutesFor, resumeInfo, sentenceOfDay, welcomeState } from './dojo-feed';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const loader = createFakeLoader();
@@ -208,5 +208,38 @@ describe('the forecast line prices the reviews it names (design 03 §3)', () => 
     expect(minutes).toBeGreaterThan(feed.minutes.kumite);
     // at the design's 4 s floor per rep the named reviews alone take this long
     expect(minutes).toBeGreaterThanOrEqual(Math.floor((feed.due * 4) / 60));
+  });
+});
+
+describe('radioMinutes for the Dojo tile (design 08 §4, §10.2)', () => {
+  it('is null without pools and the rounded i+0 minutes at the live known set with them — never the allowlist figure', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: brownVocab() });
+    expect((await dojoFeed({ loader, teaser: false })).radioMinutes).toBeNull();
+    const pool: ListeningPool = {
+      schema: 'tsuzuku.pool/1',
+      station: 4,
+      refs: [
+        { ref: `${V.人}#ex0`, ids: [V.人, G.は, G.です], kana: 'あのひとはケンです。', morae: 10 },
+        { ref: `${V.飲む}#ex0`, ids: [V.コーヒー, V.飲む], kana: 'まいあさコーヒーをのみます。', morae: 14 },
+        { ref: `${V.私}#ex0`, ids: [V.私, G.は, G.です], kana: 'わたしはハナです。', morae: 9 },
+        // long enough that the allowlist figure and the live figure differ by whole minutes
+        { ref: `${G.ます}#ex2`, ids: [V.私, V.人, G.ます], kana: 'ひとがいます。'.repeat(40), morae: 280 },
+      ],
+    };
+    const L = createFakeLoader({ ...FIXTURE, pools: { 4: pool } });
+    const feed = await dojoFeed({ loader: L, teaser: false });
+    const known = knownIds(TODAY);
+    expect(known.has(V.私)).toBe(false); // station-1 words are not in brownVocab
+    expect(known.has(V.人)).toBe(true);
+    const live = selectPool(pool.refs, known, store.cards, TODAY, { mode: 'i+0' });
+    expect(live.map((r) => r.ref)).toEqual([`${V.人}#ex0`, `${V.飲む}#ex0`]);
+    const expected = Math.round(poolMinutes(live));
+    expect(feed.radioMinutes).toBe(expected);
+    expect(feed.radioMinutes).not.toBe(Math.round(poolMinutes(pool.refs)));
+    const ctx = await withPools(await loadPlanContext({ loader: L, station: 4 }));
+    expect(radioMinutesFor(ctx)).toBe(expected);
+    expect(radioMinutesFor({ ...ctx, pools: [] })).toBeNull();
+    // with every word known the live figure is the whole pool
+    expect(radioMinutesFor({ ...ctx, known: new Set(pool.refs.flatMap((r) => r.ids)) })).toBe(Math.round(poolMinutes(pool.refs)));
   });
 });

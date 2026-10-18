@@ -18,6 +18,8 @@ Binding rules: every unlock condition is deterministic, machine-checkable agains
 | Tabi Nikki episode ≥ 2/3 | 25 + 5 per correct question |
 | Speed Read correct | 15 |
 | Listening Arena set | 20 + 5 per correct question |
+| Ear Walk (`listening-set` in pool mode) | 20 + 5 per correct question |
+| 茶屋ラジオ Radio track · Read-along (`listen:played`) | 0 (passive hearing is input, not effort; design 08 §10.2 / §10.3) |
 | Dictation line (by accuracy × tier) | 3–6 |
 | Shadow line pass / set of 5 | 3 / +10 |
 | Role-play (+ all best, + all aizuchi) | 25 (+10, +5) |
@@ -38,9 +40,9 @@ A Standard day lands around 420 XP; no daily cap. Arcade modes (Rapid Fire, Goj�
 
 ---
 
-## 2. Mon (紋) — badges (66)
+## 2. Mon (紋) — badges (68)
 
-Each badge is a circular family-crest-style emblem rendered from a declarative spec `{ring, field, glyph, accent}`: ring **Bronze** single (`#B87333`), **Silver** double (`#C9CED6`), **Gold** double + 16 rays (`--kin`); field circle / hexagon / tomoe / square / petal; one kanji glyph in Yuji Syuku. Unearned crests show as grey stone with the condition in plain text. Earning = hanko slam at −6° with ink bleed and the 300 ms thump. Conditions reference only `SaveMeta` paths (`ARCHITECTURE §1`), `STAT_KEYS` counters (`stats.*`) and the `ledgerHours(m)` helper of `store/ledger.ts`; `BADGE_IDS` in `shared/catalog.ts` lists exactly these 66 ids, and no badge id is also a wallpaper or exercise id (`catalog.test.ts`).
+Each badge is a circular family-crest-style emblem rendered from a declarative spec `{ring, field, glyph, accent}`: ring **Bronze** single (`#B87333`), **Silver** double (`#C9CED6`), **Gold** double + 16 rays (`--kin`); field circle / hexagon / tomoe / square / petal; one kanji glyph in Yuji Syuku. Unearned crests show as grey stone with the condition in plain text. Earning = hanko slam at −6° with ink bleed and the 300 ms thump. Conditions reference only `SaveMeta` paths (`ARCHITECTURE §1`), `STAT_KEYS` counters (`stats.*`) and the `ledgerHours(m)` helper of `store/ledger.ts`; `BADGE_IDS` in `shared/catalog.ts` lists exactly these 68 ids, and no badge id is also a wallpaper or exercise id (`catalog.test.ts`).
 
 | Id | Name | 和名 | Glyph · field | Condition | Tier |
 |---|---|---|---|---|---|
@@ -79,6 +81,8 @@ Each badge is a circular family-crest-style emblem rendered from a declarative s
 | speed-reader | Speed Reader | 速読 | 速 · petal | Speed Read ≥ 300 cpm with the question correct | Silver |
 | golden-ear | Golden Ear | 地獄耳 | 耳 · circle | `stats.dictation95at1x >= 100` | Silver |
 | fast-ear | Fast Forward | 倍速の耳 | 倍 · circle | 20 Listening Arena passes at ≥ 1.25× | Gold |
+| teahouse-regular | Teahouse Regular | 茶屋の常連 | 常 · circle | `stats.radioMinutes >= 600` (茶屋ラジオ minutes played; design 08 §11) | Bronze |
+| first-hearing | First Hearing | 初耳 | 初 · circle | `stats.coldSetsPassed >= 20` (texts understood on first hearing, Arena or Radio; design 08 §12) | Silver |
 | voice | Voice Unlocked | 声出し | 声 · circle | `stats.shadowPass >= 1` | Bronze |
 | shadow-warrior | Shadow Warrior | 影武者 | 影 · hexagon | `stats.shadowPass >= 500` | Gold |
 | aizuchi | Aizuchi Master | 相槌名人 | 槌 · hexagon | 20 role-plays with ≥ 80 % aizuchi slots hit | Silver |
@@ -107,9 +111,9 @@ Each badge is a circular family-crest-style emblem rendered from a declarative s
 
 ---
 
-## 3. Kakejiku (掛け軸) — wallpapers (28)
+## 3. Kakejiku (掛け軸) — wallpapers (29)
 
-**Rules.** Each piece is a seeded SVG scene (`seed = hash(profile.seed, wallpaperId, reforgeCount)`) with two compositions, desktop 16:9 and phone 9:19.5, rendered to PNG at 1920×1080 / 2560×1440 and 1170×2532 / 1290×2796; 3840×2160 only where `canRender4k()` holds — a desktop pointer at ≥ 1024 px, not iOS, and `navigator.deviceMemory` (when the browser reports it) ≥ 4 GB; everywhere else the picker stops at 2560×1440 and says so. Phone layouts keep the top 12 % and bottom 10 % as safe zones. **Progressive reveal:** locked pieces show as a sumi silhouette; those tied to a counter reveal in quadrants at 25/50/75/100 % of the condition. **Reforge** re-rolls detail **once per day per piece** and is labelled as cosmetic ("same picture, new brush"); **living** pieces re-render from current state. Personalization tokens: `nameKana`, `chosenKanji`, belt seal, `streak.longest` (streak-based personalization is frozen at the longest streak so a break never shrinks a piece), total days, a Mastered sentence of the learner's choice (a typed custom sentence is capped at 48 glyphs; every sentence the art lays out is cut to 96), station, date (Japanese era format). Pipeline in `07 §8`. `WALLPAPER_IDS` lists exactly these 28 ids.
+**Rules.** Each piece is a seeded SVG scene (`seed = hash(profile.seed, wallpaperId, reforgeCount)`) with two compositions, desktop 16:9 and phone 9:19.5, rendered to PNG at 1920×1080 / 2560×1440 and 1170×2532 / 1290×2796; 3840×2160 only where `canRender4k()` holds — a desktop pointer at ≥ 1024 px, not iOS, and `navigator.deviceMemory` (when the browser reports it) ≥ 4 GB; everywhere else the picker stops at 2560×1440 and says so. Phone layouts keep the top 12 % and bottom 10 % as safe zones. **Progressive reveal:** locked pieces show as a sumi silhouette; those tied to a counter reveal in quadrants at 25/50/75/100 % of the condition. **Reforge** re-rolls detail **once per day per piece** and is labelled as cosmetic ("same picture, new brush"); **living** pieces re-render from current state. Personalization tokens: `nameKana`, `chosenKanji`, belt seal, `streak.longest` (streak-based personalization is frozen at the longest streak so a break never shrinks a piece), total days, a Mastered sentence of the learner's choice (a typed custom sentence is capped at 48 glyphs; every sentence the art lays out is cut to 96), station, date (Japanese era format). Pipeline in `07 §8`. `WALLPAPER_IDS` lists exactly these 29 ids.
 
 | Id | Name | Concept | Palette | Technique | Personalization | Unlock |
 |---|---|---|---|---|---|---|
@@ -135,6 +139,7 @@ Each badge is a circular family-crest-style emblem rendered from a declarative s
 | vending-night | 自販機の夜 Vending Machine Night | glowing machine in rain, labelled cans | sumi, `#FFD166`, neon-c | inner glow, 400 rain lines, puddle flip | can labels = katakana words you mastered | 300 katakana vocab Brown |
 | onsen | 温泉の湯気 Onsen Steam | rotenburo at night, steam curls | night, matcha, washi steam | feTurbulence steam, mountain silhouettes | stones = planned rest days taken | 10 rest days |
 | waveform | 聴写の波形 Waveform | oscilloscope trace of a sentence you dictated perfectly | sumi, neon-c | synthetic envelope from mora count/pitch, pixel text | that sentence in DotGothic16 | Golden Ear badge |
+| chaya-lanterns | 茶屋の灯 Teahouse Lanterns | a roadside teahouse at dusk, one chōchin per 10 h of listening | dusk indigo, lantern gold, washi | eaves slots first, then a roadside rope receding with the road (`roadGeometry`, `placeLanterns`) | lantern count = floor(`WallpaperData.listenHours` / 10), capped at 60 — dojo and outside `listen` rows alike (living) | `ledgerHours(m).listen >= 100`; quadrants reveal at 25 / 50 / 75 / 100 h (design 08 §11) |
 | golden-screen | 金屏風 Golden Screen | six-panel gold-leaf byōbu, cloud bands, cranes | kin jitter, sumi, washi | leaf grid with luminance jitter, suyari-gasumi, 6-point cranes | a formal greeting with your name on panel six | 二段 Nidan |
 | festival | 祭り Festival Night | lantern strings, taiko stand, happi silhouettes, fireworks | sumi, shu, kin bursts | catenary strings, radial burst particles | casual words on the banners | 三段 Sandan |
 | station-sign | 駅名標 Station Sign | generic platform sign at dusk | washi plate, kon, sakura sky | plate geometry, dusk gradient | center = your name in katakana; left/right = previous/next station | any Gatekeeper |
@@ -187,4 +192,4 @@ An SVG scene that is the save file made visible; everything below is determinist
 7. New items pause when the forge is overloaded; new items stop at 2 × target. The app protects you from your own enthusiasm.
 8. Zen removes every pressure element without reducing learning or XP.
 9. "How this game works" explains FSRS, the grading map, ki rules, the Judge and the governor in plain language.
-10. Your study data never leaves the browser: export any time, import anywhere, no backend, no analytics. Speech recognition and some system voices are provided by your browser or OS vendor and **may send audio or text to their servers** (Chromium recognition requires network); the self-assessment path is fully offline and earns identical XP. Recognition is off (`settings.speaking = 'self'`) until you opt in after reading this notice, and network voices are marked in the voice picker.
+10. Your study data never leaves the browser: export any time, import anywhere, no backend, no analytics. Speech recognition and some system voices are provided by your browser or OS vendor and **may send audio or text to their servers** (Chromium recognition requires network); the self-assessment path is fully offline and earns identical XP. The voice pack's clips are synthetic VOICEVOX character voices rendered at build time and fetched from this site's own release; playing them sends nothing anywhere, and every chip and header says *synthetic voice (VOICEVOX)* (design 08 §6). Recognition is off (`settings.speaking = 'self'`) until you opt in after reading this notice, and network voices are marked in the voice picker.

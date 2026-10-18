@@ -61,7 +61,7 @@ export const PAGE_SOURCES: Record<RouteName, PageSource> = {
   listen: { module: '@/input', export: 'ListenPage', files: ['src/input/index.ts'], needsExercises: true },
   taiwa: { module: '@/input', export: 'TaiwaPage', files: ['src/input/index.ts'], needsExercises: true },
   // 茶屋ラジオ (design 08 §10.2, ARCHITECTURE §6): a non-session surface, so it never waits for the registry.
-  // The row is final; `RadioPage` is exported from the F barrel by the radio owner (listening-plan `radio`).
+  // `RadioPage` (src/input/pages/RadioPage.tsx) is exported from the F barrel.
   radio: { module: '@/input', export: 'RadioPage', files: ['src/input/index.ts'], needsExercises: false },
   records: { module: '@/records', export: 'RecordsPage', files: ['src/records/index.ts'], needsExercises: false },
   ledger: { module: '@/records', export: 'LedgerPage', files: ['src/records/index.ts'], needsExercises: false },

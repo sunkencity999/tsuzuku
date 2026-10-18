@@ -1,6 +1,10 @@
+import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { GrammarItem, KanaItem, KanjiItem, SentenceExample, StoryLine, VocabItem } from '../content/types';
 import { mulberry32 } from '../shared/hash';
-import { normalizeAnswer, normalizeEn } from '../shared/jp';
+import { moraSplit, normalizeAnswer, normalizeEn, toHiragana } from '../shared/jp';
 import {
   FALLBACK_GLOSSES,
   PARTICLES,
@@ -299,9 +303,96 @@ describe('kana similarity helpers', () => {
     expect(synthesizeMinimalPair('きって')).toBe('きて');
     expect(synthesizeMinimalPair('きて')).toBe('きって');
   });
+  it('synthesizeMinimalPair: っ is removed when present, else inserted before the first mora (index ≥ 1) that is not ー / ん — never before ー or ん, never last', () => {
+    // byte-stable where the second mora already took the っ
+    expect(synthesizeMinimalPair('はい')).toBe('はっい');
+    expect(synthesizeMinimalPair('おばさん')).toBe('おっばさん');
+    expect(synthesizeMinimalPair('キテ')).toBe('きって'); // hiragana out
+    expect(synthesizeMinimalPair('いぬ')).toBe('いっぬ');
+    expect(synthesizeMinimalPair('きゃく')).toBe('きゃっく');
+    // ー / ん at index 1 are skipped (っー is kana the engine refuses; っん is not Japanese)
+    expect(synthesizeMinimalPair('アーカイブ')).toBe('あーっかいぶ');
+    expect(synthesizeMinimalPair('コーヒー')).toBe('こーっひー');
+    expect(synthesizeMinimalPair('かんがみる')).toBe('かんっがみる');
+    expect(synthesizeMinimalPair('ヴィンテージ')).toBe('ゔぃんってーじ');
+    expect(synthesizeMinimalPair('せんせい')).toBe('せんっせい');
+    // an existing っ is still removed, wherever it sits
+    expect(synthesizeMinimalPair('ざっし')).toBe('ざし');
+    expect(synthesizeMinimalPair('あっ')).toBe('あ');
+  });
+  it('synthesizeMinimalPair: a word with nothing a っ can precede gets a same-length near miss — consonant toggle, then ん ↔ ー; the residual drops one ー', () => {
+    // consonant toggle on the first mora (voicing, handakuten → dakuten, ら / れ / ろ → だ / で / ど), じ / ず spellings
+    expect(synthesizeMinimalPair('ほん')).toBe('ぼん');
+    expect(synthesizeMinimalPair('かん')).toBe('がん');
+    expect(synthesizeMinimalPair('ぜん')).toBe('せん');
+    expect(synthesizeMinimalPair('パン')).toBe('ばん');
+    expect(synthesizeMinimalPair('ペン')).toBe('べん');
+    expect(synthesizeMinimalPair('ちゃん')).toBe('じゃん');
+    expect(synthesizeMinimalPair('じゅん')).toBe('しゅん');
+    expect(synthesizeMinimalPair('ローン')).toBe('どーん'); // never ろお (a 2-mora word for a 3-mora input) and never ろっーん
+    expect(synthesizeMinimalPair('れん')).toBe('でん');
+    // no consonant partner: the last special mora swaps ん ↔ ー (り / る have no stop they are heard as, so they land here too)
+    expect(synthesizeMinimalPair('えん')).toBe('えー');
+    expect(synthesizeMinimalPair('もん')).toBe('もー');
+    expect(synthesizeMinimalPair('ファン')).toBe('ふぁー');
+    expect(synthesizeMinimalPair('のー')).toBe('のん');
+    expect(synthesizeMinimalPair('りん')).toBe('りー'); // not じん
+    expect(synthesizeMinimalPair('るん')).toBe('るー'); // not ずん
+    // a swap that would write ーー / んん falls back to dropping one ー: the ONE step that shortens (3 → 2 morae; no corpus word reaches it)
+    expect(synthesizeMinimalPair('あーん')).toBe('あん');
+    for (const k of ['ほん', 'パン', 'ローン', 'れん', 'えん', 'ファン', 'ちゃん', 'りん', 'るん']) expect(moraSplit(synthesizeMinimalPair(k))).toHaveLength(moraSplit(toHiragana(k)).length);
+    // single morae keep the long-vowel / toggle / ー ladder (the corpus' 68 single morae are byte-stable)
+    expect(synthesizeMinimalPair('か')).toBe('かあ');
+    expect(synthesizeMinimalPair('しゅ')).toBe('じゅ'); // a two-character mora skips the long-vowel step, as before
+    expect(synthesizeMinimalPair('きゃ')).toBe('ぎゃ');
+    expect(synthesizeMinimalPair('ん')).toBe('んー');
+    // single morae outside the corpus, pinned so the pipeline's copy (scripts/audio/verify.ts) can be checked against them
+    expect(synthesizeMinimalPair('ぴゃ')).toBe('びゃ'); // handakuten → dakuten (was ぴゃー)
+    expect(synthesizeMinimalPair('りょ')).toBe('りょー'); // り has no toggle
+    expect(synthesizeMinimalPair('ふぁ')).toBe('ふぁー'); // a small-vowel mora is never toggled (ぶぁ is not learner kana)
+    expect(synthesizeMinimalPair('てぃ')).toBe('てぃー');
+  });
+  it('synthesizeMinimalPair never writes っー / っん / a trailing っ and never sounds like the input', () => {
+    const words = ['きて', 'きって', 'か', 'ん', 'コーヒー', 'おばあさん', 'アーカイブ', 'きゃく', 'ゔ', 'ー', 'はい', 'ローン', 'ほん', 'パン', 'えん', 'ファン', 'ちゃん', 'ベンチャー', 'インターフェース', 'ノート', 'ボールペン', 'せんせい', 'おんなのこ', 'あーん', 'のー', 'キー', 'ゼロ', 'りんご', 'るーる', 'れんらく', 'ぴあの', 'ぷりん', 'ぽけっと'];
+    for (const w of words) {
+      const p = synthesizeMinimalPair(w);
+      expect(p, w).not.toMatch(/っー|っん|っ$/u);
+      expect(p, w).not.toBe(toHiragana(w));
+      expect(normalizeAnswer(p), w).not.toBe(normalizeAnswer(w));
+    }
+  });
   it('minimalPairPartner prefers distance 1 and skips identical readings', () => {
     const w = { id: 'a', kana: 'おばさん' };
     const pool = [w, { id: 'b', kana: 'おばさん' }, { id: 'c', kana: 'おばあさん' }, { id: 'd', kana: 'おじいさん' }];
     expect(minimalPairPartner(w, pool)).toEqual(['おばさん', 'おばあさん']);
+  });
+});
+
+describe('distractors stays importable under plain node (ARCHITECTURE §0: the audio pipeline imports synthesizeMinimalPair instead of copying it)', () => {
+  const here = dirname(fileURLToPath(import.meta.url));
+
+  it('every relative import carries its .ts extension; no store, signals, DOM or alias import in the source', () => {
+    const src = readFileSync(resolve(here, 'distractors.ts'), 'utf8');
+    const imports = [...src.matchAll(/^import\s[^'"]*['"]([^'"]+)['"]/gm)].map((m) => m[1] as string);
+    expect(imports.length).toBeGreaterThan(0);
+    for (const spec of imports) {
+      if (spec.startsWith('.')) expect(spec, spec).toMatch(/\.ts$/);
+      expect(spec, spec).not.toMatch(/^@\/|\/store|signals|preact/);
+    }
+    expect(src).not.toMatch(/\b(document|window|navigator|localStorage)\b/);
+  });
+
+  it('import() succeeds under node with type stripping and synthesizeMinimalPair gives the tested partners', () => {
+    const moduleUrl = pathToFileURL(resolve(here, 'distractors.ts')).href;
+    const script = [
+      `const m = await import(${JSON.stringify(moduleUrl)});`,
+      `if (typeof m.synthesizeMinimalPair !== 'function') { console.error('missing export'); process.exit(2); }`,
+      `console.log(JSON.stringify(['コーヒー', 'ローン', 'きって', 'か', 'せんせい'].map((k) => m.synthesizeMinimalPair(k))));`,
+    ].join('\n');
+    const r = spawnSync(process.execPath, ['--input-type=module', '--no-warnings', '-e', script], { encoding: 'utf8', timeout: 30_000 });
+    expect(r.error).toBeUndefined();
+    expect(r.stderr).toBe('');
+    expect(r.status).toBe(0);
+    expect(JSON.parse(r.stdout.trim())).toEqual(['こーっひー', 'どーん', 'きて', 'かあ', 'せんっせい']);
   });
 });

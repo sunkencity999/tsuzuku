@@ -219,6 +219,23 @@
   align-items: center;
   gap: var(--sp-2) var(--sp-3);
 }
+.pitch-contrast__hear {
+  margin-left: auto;
+  min-height: var(--touch);
+}
+.pitch-contrast__hear [lang='ja'] {
+  font-family: var(--font-ja);
+  font-size: var(--fs-3);
+  line-height: 1;
+}
+/* the ga note (design 08 §11, Station 7 card): the particle shows where the fall lands */
+.pitch-contrast__ga {
+  padding-left: var(--sp-3);
+  border-left: 3px solid var(--ai);
+}
+/* .pitch-contrast__note — the source line (synthetic voice (VOICEVOX) or the dictionary
+   pattern) is two full sentences, so it keeps .drill__hint's UI face at fs-2 / --fg-muted;
+   --font-pixel stays on the short chip / label hooks (design 01: DotGothic16 for labels). */
 
 @media (prefers-reduced-motion: reduce) {
   .vocab__speaker,

@@ -167,6 +167,82 @@
   margin-top: var(--sp-3);
 }
 
+/* ── station · 耳 Ear panel (design 08 §10.1) ────────────────────────── */
+
+.station-ear__intro {
+  margin: 0 0 var(--sp-2);
+}
+
+.station-ear .teach-once {
+  margin: 0 0 var(--sp-3);
+}
+
+.station-ear__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.station-ear__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.station-ear__label {
+  font-size: var(--fs-3);
+}
+
+.station-ear__side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+}
+
+.station-ear__chip {
+  font-size: var(--fs-1);
+  white-space: nowrap;
+}
+
+.station-ear__chip--synthetic {
+  border-color: var(--matcha);
+}
+
+.station-ear__chip--text {
+  color: var(--fg-muted);
+}
+
+.station-ear__minutes {
+  margin: var(--sp-2) 0 0;
+  font-family: var(--font-pixel);
+  font-size: var(--fs-1);
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+}
+
+.station-story__first {
+  color: var(--kin);
+}
+
+.station-story__genre {
+  font-family: var(--font-pixel);
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 480px) {
+  .station-ear__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .station-ear__side {
+    justify-content: space-between;
+  }
+}
+
 .station-items {
   margin: var(--sp-3) 0;
 }

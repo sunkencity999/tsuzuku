@@ -2,15 +2,16 @@
  * params.ts — resolved step params: bunsetsu tiles, Form Chain links, Minimal Pair sides (design 04 §4, §5).
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import type { CardKey, GrammarItem, KanjiItem, StoryItem, VocabItem } from '../content/types';
-import { FIXTURE_IDS, FIXTURE_STORY_ID, G, KANJI, V, createFakeLoader } from '../content/fixtures';
+import type { CardKey, GrammarItem, KanjiItem, ListeningPool, PoolRef, StoryItem, VocabItem } from '../content/types';
+import { FIXTURE, FIXTURE_DIALOGUE_ID, FIXTURE_IDS, FIXTURE_STORY_ID, G, KANJI, V, createFakeLoader } from '../content/fixtures';
+import { toPlain } from '../content/ruby';
 import { bus } from '../shared/events';
 import { epochDay } from '../shared/time';
 import type { CardTuple } from '../shared/store-types';
 import { resetStoreForTests } from '../store';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../store/testing';
 import { conjugate } from '../learn';
-import { loadPlanContext, pickStories, resolveParams, splitBunsetsu, storyCoverage } from './builder';
+import { isListeningText, isSpeakable, knownSentences, loadPlanContext, loadPools, pickStories, resolveParams, splitBunsetsu, storyCoverage } from './builder';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const loader = createFakeLoader();
@@ -61,6 +62,29 @@ describe('bunsetsu tiles and Minimal Pair (design 04 §4, §5)', () => {
     }
     expect(seen.size).toBe(2);
     expect(seen.has('いぬ')).toBe(true);
+  });
+
+  it('Minimal Pair names the real partner in distractorIds (design 08 §10.4: both clips keyed by item id); a synthesized partner leaves it unset', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards() });
+    const ctx = await loadPlanContext({ loader, station: 4 });
+    const inu = loader.get<VocabItem>(V.犬)!;
+    const p = resolveParams(ctx, 'minimal-pair', inu, { rep: 0 });
+    // the nearest loaded neighbour of いぬ (mora distance 2; the smallest kana wins a tie) is のむ
+    expect(p.distractorIds).toEqual([V.飲む]);
+    const partner = ctx.vocabPool.find((v) => v.id === p.distractorIds![0])!;
+    expect(p.choices).toContain(partner.kana);
+    expect(p.choices).toContain(inu.kana);
+    // the step shape the drill pins (MinimalPair.test.tsx): choices + answer + rate + distractorIds, nothing else
+    expect(Object.keys(p).sort()).toEqual(['answer', 'choices', 'distractorIds', 'rate']);
+    // the partner is never the item itself, whichever half is spoken
+    for (let i = 1; i < 20; i++) expect(resolveParams(ctx, 'minimal-pair', inu, { rep: i }).distractorIds).toEqual([V.飲む]);
+    // no loaded neighbour within two morae: the partner is synthesized (いっぬ), has no item id, and the field stays unset
+    const alone = resolveParams({ ...ctx, vocabPool: [inu, loader.get<VocabItem>(V.おはよう)!] }, 'minimal-pair', inu, { rep: 0 });
+    expect(alone.distractorIds).toBeUndefined();
+    expect(alone.choices).toHaveLength(2);
+    expect(alone.choices).toContain(inu.kana);
+    expect(alone.choices!.some((c) => c !== inu.kana && !ctx.vocabPool.some((v) => v.kana === c))).toBe(true);
+    expect(Object.keys(alone).sort()).toEqual(['answer', 'choices', 'rate']);
   });
 });
 
@@ -260,5 +284,126 @@ describe('Pitch Ear minimal pairs (design 04 §2): distractorIds carries the loa
     expect(resolveParams(pool, 'pitch-ear', { ...雨(), confusables: [lowTwin.id, V.食べる] }, { rep: 0 }).distractorIds).toEqual([lowTwin.id]);
     // an unloaded confusable resolves to nothing → lookup
     expect(resolveParams(pool, 'pitch-ear', { ...雨(), confusables: ['v-n5-0000'] }, { rep: 0 }).distractorIds).toEqual([ame0.id]);
+  });
+});
+
+describe('clip keys and pool-first dictation (design 08 §4, §8)', () => {
+  const POOL_NOMU: ListeningPool = { schema: 'tsuzuku.pool/1', station: 4, refs: [{ ref: `${V.飲む}#ex0`, ids: [V.コーヒー, V.飲む], kana: 'まいあさコーヒーをのみます。', morae: 14 }] };
+
+  it('resolveParams sets clip keys for examples, story lines and bare words; a pinned example skips the rotation; the Ear Walk carries refs', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards() });
+    const ctx = await loadPlanContext({ loader, station: 4 });
+    expect(ctx.pools).toBeUndefined();
+    const nomu = loader.get<VocabItem>(V.飲む)!;
+    expect(resolveParams(ctx, 'sentence-listen', nomu, { rep: 0 }).clip).toBe(`${V.飲む}#ex0`);
+    expect(resolveParams(ctx, 'shadow', nomu, { rep: 0 }).clip).toBe(`${V.飲む}#ex0`);
+    expect(resolveParams(ctx, 'shadow', null, { storyId: FIXTURE_STORY_ID, lineIndex: 3 }).clip).toBe(`${FIXTURE_STORY_ID}#L3`);
+    expect(resolveParams(ctx, 'sentence-listen', nomu, { storyId: FIXTURE_STORY_ID, lineIndex: 8 })).toMatchObject({ clip: `${FIXTURE_STORY_ID}#L8`, storyId: FIXTURE_STORY_ID, lineIndex: 8 });
+    expect(resolveParams(ctx, 'pattern-cloze', loader.get(G.です)!, { rep: 0 }).clip).toBe(`${G.です}#ex0`);
+    expect(resolveParams(ctx, 'pattern-cloze', loader.get(G.です)!, { rep: 1 }).clip).toBe(`${G.です}#ex1`);
+    expect(resolveParams(ctx, 'pattern-cloze', loader.get(G.です)!, { rep: 4 }).clip).toBe(`${G.です}#ex1`);
+    expect(resolveParams(ctx, 'pattern-cloze', { ...loader.get<GrammarItem>(G.です)!, examples: [] }, { rep: 0 }).clip).toBeUndefined();
+    const bare = resolveParams(ctx, 'sentence-listen', { ...nomu, examples: [] }, { rep: 0 });
+    expect(toPlain(bare.sentence!)).toBe('飲む');
+    expect(bare.clip).toBe(V.飲む);
+    const pinned = resolveParams(ctx, 'sentence-listen', loader.get(G.ます)!, { rep: 0, example: 2 });
+    expect(pinned.clip).toBe(`${G.ます}#ex2`);
+    expect(pinned.sentence).toBe(loader.get<GrammarItem>(G.ます)!.examples[2]!.ja);
+    expect(resolveParams(ctx, 'pattern-cloze', loader.get(G.です)!, { rep: 0, example: 2 }).clip).toBe(`${G.です}#ex2`);
+    // the Arena derives its own line keys: text steps carry none; an Ear Walk carries its refs
+    expect(resolveParams(ctx, 'listening-set', loader.get(FIXTURE_STORY_ID)!, { storyId: FIXTURE_STORY_ID }).clip).toBeUndefined();
+    const walk = resolveParams(ctx, 'listening-set', null, { refs: ['s-04-1#L0', 'v-n5-0007#ex0'] });
+    expect(walk.refs).toEqual(['s-04-1#L0', 'v-n5-0007#ex0']);
+    expect(walk.storyId).toBeUndefined();
+    expect(walk.rate).toBeGreaterThan(0);
+  });
+
+  it('sentence-listen chooses the all-known pool example when one exists, else a known story line with the word, else the bare word', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards() });
+    const ctx = await loadPlanContext({ loader, station: 4 });
+    const nomu = loader.get<VocabItem>(V.飲む)!;
+    // コーヒー unknown → the example is not i+0 → a story line whose tokens are all known, keyed by the line
+    const known = new Set([...ctx.known].filter((id) => id !== V.コーヒー));
+    const line = resolveParams({ ...ctx, pools: [POOL_NOMU], known }, 'sentence-listen', nomu, { rep: 0 });
+    expect(line.storyId).toBe(FIXTURE_STORY_ID);
+    expect(line.lineIndex).toBe(8);
+    expect(line.clip).toBe(`${FIXTURE_STORY_ID}#L8`);
+    expect(line.sentence).toBe(loader.get<StoryItem>(FIXTURE_STORY_ID)!.lines[8]!.ja);
+    // the rotation walks the known lines
+    expect(resolveParams({ ...ctx, pools: [POOL_NOMU], known }, 'sentence-listen', nomu, { rep: 1 }).lineIndex).toBe(10);
+    // every word known → the pool example wins, with its ref as the clip key
+    const ex = resolveParams({ ...ctx, pools: [POOL_NOMU] }, 'sentence-listen', nomu, { rep: 0 });
+    expect(ex.clip).toBe(`${V.飲む}#ex0`);
+    expect(ex.sentence).toBe(nomu.examples[0]!.ja);
+    expect(ex.storyId).toBeUndefined();
+    // pools present, no i+0 example and no known line → the bare word, never an example with an untaught word
+    const bare = resolveParams({ ...ctx, pools: [POOL_NOMU], known, stories: [] }, 'sentence-listen', nomu, { rep: 0 });
+    expect(toPlain(bare.sentence!)).toBe('飲む');
+    expect(bare.clip).toBe(V.飲む);
+    expect(bare.storyId).toBeUndefined();
+    // shadow keeps the example rotation (its warm-up draws from knownSentences instead)
+    expect(resolveParams({ ...ctx, pools: [POOL_NOMU], known }, 'shadow', nomu, { rep: 0 }).clip).toBe(`${V.飲む}#ex0`);
+  });
+
+  it('pickStories filters: speakable, audioFirst, genre, listening', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards() });
+    const ctx = await loadPlanContext({ loader, station: 4 });
+    const story = loader.get<StoryItem>(FIXTURE_STORY_ID)!;
+    const dialogue = loader.get<StoryItem>(FIXTURE_DIALOGUE_ID)!;
+    const { learnerSpeaker: _ls, ...noPart } = dialogue;
+    void _ls;
+    const piece: StoryItem = { ...noPart, id: 's-04-4', audioFirst: true, genre: 'exchange' };
+    const pieceWithPart: StoryItem = { ...dialogue, id: 's-04-5', audioFirst: true, genre: 'phone', learnerSpeaker: 'ハナ' };
+    const told: StoryItem = { ...story, id: 's-04-6', audioFirst: true, genre: 'self-intro', narrator: 'ハナ' };
+    const all = { ...ctx, stories: [story, dialogue, piece, pieceWithPart, told] };
+    const ids = (xs: StoryItem[]): string[] => xs.map((s) => s.id);
+    expect(ids(pickStories(all, { speakable: true }))).toEqual([dialogue.id, pieceWithPart.id]);
+    expect(ids(pickStories(all, { kind: 'dialogue' }))).toEqual([dialogue.id, piece.id, pieceWithPart.id]);
+    expect(ids(pickStories(all, { audioFirst: true }))).toEqual([piece.id, pieceWithPart.id, told.id]);
+    expect(ids(pickStories(all, { audioFirst: false }))).toEqual([story.id, dialogue.id]);
+    expect(ids(pickStories(all, { genre: 'phone' }))).toEqual([pieceWithPart.id]);
+    expect(ids(pickStories(all, { listening: true }))).toEqual([dialogue.id, piece.id, pieceWithPart.id, told.id]);
+    expect(ids(pickStories(all, { kind: 'story', audioFirst: false }))).toEqual([story.id]);
+    expect(isSpeakable(piece)).toBe(false);
+    expect(isSpeakable(pieceWithPart)).toBe(true);
+    expect(isSpeakable(told)).toBe(false);
+    expect(isSpeakable(story)).toBe(false);
+    expect(isListeningText(told)).toBe(true);
+    expect(isListeningText(dialogue)).toBe(true);
+    expect(isListeningText(story)).toBe(false);
+  });
+
+  it('knownSentences tops up with i+0 pool examples carrying clip keys; without pools, with examples[0]; story lines carry their line key', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } }, cards: allCards() });
+    const ctx = await loadPlanContext({ loader, station: 4 });
+    const refs: PoolRef[] = [
+      { ref: `${V.人}#ex0`, ids: [V.人, G.は, G.です], kana: 'あのひとはケンです。', morae: 10 },
+      { ref: `${G.です}#ex1`, ids: [G.は, V.水, G.です], kana: 'これはみずです。', morae: 8 },
+      { ref: `${V.飲む}#ex0`, ids: [V.コーヒー, V.飲む], kana: 'まいあさコーヒーをのみます。', morae: 14 },
+      { ref: `${FIXTURE_STORY_ID}#L1`, ids: [V.私, G.は, G.です], kana: 'わたしはハナです。', morae: 9 },
+    ];
+    const pools: ListeningPool[] = [{ schema: 'tsuzuku.pool/1', station: 4, refs }];
+    const known = new Set([...ctx.known].filter((id) => id !== V.コーヒー));
+    const got = knownSentences({ ...ctx, stories: [], pools, known }, 10);
+    // story-line refs are not examples; the コーヒー example is not i+0
+    expect(got.map((s) => s.clip).sort()).toEqual([`${G.です}#ex1`, `${V.人}#ex0`]);
+    expect(got.find((s) => s.clip === `${V.人}#ex0`)!.sentence).toBe(loader.get<VocabItem>(V.人)!.examples[0]!.ja);
+    expect(got.find((s) => s.clip === `${G.です}#ex1`)!.kana).toBe(loader.get<GrammarItem>(G.です)!.examples[1]!.kana);
+    const legacy = knownSentences({ ...ctx, stories: [], known }, 50);
+    expect(legacy.length).toBeGreaterThan(5);
+    expect(legacy.every((s) => /#ex0$/.test(s.clip ?? ''))).toBe(true);
+    expect(legacy.some((s) => s.clip === `${V.コーヒー}#ex0`)).toBe(false);
+    const lines = knownSentences(ctx, 3);
+    expect(lines).toHaveLength(3);
+    expect(lines.every((s) => s.storyId !== undefined && s.clip === `${s.storyId}#L${s.lineIndex}`)).toBe(true);
+  });
+
+  it('loadPools skips stations without a pool and keeps the rest ascending', async () => {
+    expect(await loadPools(loader, 4)).toEqual([]);
+    const pool = (station: number): ListeningPool => ({ schema: 'tsuzuku.pool/1', station, refs: [] });
+    const L = createFakeLoader({ ...FIXTURE, pools: { 4: pool(4), 1: pool(1) } });
+    expect((await loadPools(L, 4)).map((p) => p.station)).toEqual([1, 4]);
+    expect((await loadPools(L, 3)).map((p) => p.station)).toEqual([1]);
+    expect(await loadPools(L, 0)).toEqual([]);
   });
 });

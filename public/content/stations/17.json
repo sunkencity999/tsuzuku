@@ -123,7 +123,9 @@
   "storyIds": [
     "s-17-1",
     "s-17-2",
-    "s-17-3"
+    "s-17-3",
+    "s-17-4",
+    "s-17-5"
   ],
   "michikusaIds": [
     "m-17-1",
@@ -137,6 +139,7 @@
     "kanji/n4/kanji-n4-001.json",
     "kanji/n4/kanji-n4-002.json",
     "michikusa/michikusa-s17.json",
+    "stories/n4/listening-s17.json",
     "stories/n4/stories-s17.json",
     "vocab/n4/vocab-n4-001.json",
     "vocab/n4/vocab-n4-002.json"
