@@ -233,8 +233,10 @@ export function Recorder(p: RecorderProps): JSX.Element {
   const pitchLine = hints.pitch ? fill(S.checkPitch, { shape: S.pitchShape[hints.pitch] ?? hints.pitch }) : S.checkPitchNone;
 
   return (
-    <section class="recorder status-window" data-state={state} aria-labelledby={`${id}-t`}>
-      <h3 id={`${id}-t`}>{S.recorderTitle}</h3>
+    <section class="recorder sheet" data-state={state} aria-labelledby={`${id}-t`}>
+      <h3 id={`${id}-t`} class="eyebrow">
+        {S.recorderTitle}
+      </h3>
 
       {degradedNote ? (
         <p class="recorder__note" role="status">

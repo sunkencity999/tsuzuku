@@ -1073,7 +1073,7 @@ export function Radio(p: RadioProps): JSX.Element {
       ) : null}
 
       {status === 'done' ? (
-        <div class="radio__done status-window" role="status">
+        <div class="radio__done sheet" role="status">
           <h3 class="radio__subtitle">{S.doneTitle}</h3>
           <p>{fill(S.doneLine, { n: round1(heard / 60) })}</p>
           {note ? (
@@ -1086,7 +1086,7 @@ export function Radio(p: RadioProps): JSX.Element {
           </button>
         </div>
       ) : track ? (
-        <div class="radio__track status-window" aria-live="polite">
+        <div class="radio__track sheet" aria-live="polite">
           <p class="radio__track-of">{fill(S.trackOf, { i: index + 1, n: playlist.tracks.length })}</p>
           <div class="radio__track-head">
             <span class="chip chip--tag">{kindLabel(track)}</span>
@@ -1114,7 +1114,7 @@ export function Radio(p: RadioProps): JSX.Element {
       ) : null}
 
       {status === 'question' && gist && gistQ ? (
-        <div class="radio__gist status-window" role="group" aria-label={S.gistTitle}>
+        <div class="radio__gist sheet" role="group" aria-label={S.gistTitle}>
           <p class="radio__gist-prompt">{S.gistTitle}</p>
           <p class="radio__gist-q" lang={gistJa ? 'ja' : undefined}>
             {gistJa ? <Ruby ja={gistQ.q} mode={furigana} /> : gistQ.q}

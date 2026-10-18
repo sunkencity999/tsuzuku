@@ -65,6 +65,32 @@
   align-items: center;
   width: 100%;
 }
+/* the hiku underline (d58): a scaled pseudo-element 4 px above the foot, off the focus border's same ink, so the draw
+   reads; --dur-2 on focus; reduced motion stands it */
+.kana-input__ink {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+.kana-input__ink::after {
+  content: '';
+  position: absolute;
+  inset: auto var(--sp-3) var(--sp-1);
+  height: 2px;
+  pointer-events: none;
+  background: var(--ai);
+  transform-origin: left center;
+  scale: 0 1;
+}
+.kana-input__ink:focus-within::after {
+  scale: 1 1;
+}
+.kana-input__ink.ink-hiku[data-axis='x'] {
+  animation: none;
+}
+.kana-input__ink.ink-hiku[data-axis='x']::after {
+  animation: hiku var(--dur-2) var(--ease-draw) both;
+}
 .kana-input__field {
   box-sizing: border-box;
   width: 100%;

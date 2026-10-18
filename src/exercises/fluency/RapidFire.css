@@ -1,169 +1,46 @@
 /*
- * TSUZUKU — <RapidFire> (src/exercises/fluency, group D).
- * Arcade skin: pixel numerals, a clock that turns vermilion under 10 s, a
- * hit/miss flash on the card edge (never above 3 Hz, off under reduced
- * motion). Tokens only; fits 360 px.
+ * TSUZUKU — <RapidFire> (src/exercises/fluency). The arcade as a woodblock print (design 09 §2.5, §10 D1):
+ * .poster-title / .meter / .eyebrow / .sheet and the ink verbs from motion.css, .hiscore from arcade.css under
+ * the arcade feel. The clock turns vermilion under 10 s (a colour set, never a tween); a hit presses the COUNT (osu
+ * on the Ticker while it ticks — the card is already the next prompt's when the hit lands), a miss draws a vermilion
+ * hairline (static); nothing here glows. Tokens only; fits 360 px; the reduced form rides the zeroed tokens.
  */
-.rapid {
-  display: grid;
-  gap: var(--sp-4);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.rapid__title {
-  margin: 0;
-  font-size: var(--fs-5);
-  line-height: 1.2;
-}
-.rapid__title [lang='ja'] {
-  font-family: var(--font-brush);
-}
-.rapid__intro,
-.rapid__meta,
-.rapid__empty,
-.rapid__note,
-.rapid__xp,
-.rapid__best,
-.rapid__label,
-.rapid__prompt,
-.rapid__sub {
-  margin: 0;
-}
-.rapid__intro {
-  line-height: var(--lh-latin);
-}
-.rapid__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2) var(--sp-4);
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
-.rapid__num {
-  font-family: var(--font-pixel);
-  font-variant-numeric: tabular-nums;
-  color: var(--fg);
-}
-.rapid__empty {
-  color: var(--fg-muted);
-}
-
-/* ── run ─────────────────────────────────────────────────────────────── */
-.rapid__hud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2) var(--sp-4);
-  align-items: center;
-}
-.rapid__clock {
-  font-size: var(--fs-5);
-  line-height: 1;
-}
-.rapid__clock[data-low='true'] .rapid__num {
-  color: var(--shu);
-}
-.rapid__count {
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
-.rapid__hud .combo {
-  margin-left: auto;
-}
-
-.rapid__card {
-  display: grid;
-  gap: var(--sp-3);
-  transition: box-shadow var(--dur-1) var(--ease);
-}
-.rapid[data-flash='hit'] .rapid__card {
-  box-shadow: inset 0 0 0 3px var(--matcha);
-}
-.rapid[data-flash='miss'] .rapid__card {
-  box-shadow: inset 0 0 0 3px var(--shu);
-}
-.rapid__label {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
-.rapid__prompt {
-  font-family: var(--font-ja);
-  font-size: var(--fs-5);
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-.rapid__sub {
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
-.rapid__sub[lang='ja'] {
-  font-family: var(--font-ja);
-}
-.rapid__controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-  justify-content: flex-end;
-}
-
-/* ── over ────────────────────────────────────────────────────────────── */
-.rapid__tally {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-3);
-  margin: 0;
-}
-.rapid__tally > div {
-  display: grid;
-  gap: var(--sp-1);
-}
-.rapid__tally dt {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
-.rapid__tally dd {
-  margin: 0;
-  font-size: var(--fs-5);
-  line-height: 1;
-}
-.rapid__tally dd[data-new='true'] {
-  color: var(--kin);
-}
-.rapid__best {
-  font-family: var(--font-pixel);
-  color: var(--kin);
-}
-.rapid__note,
-.rapid__xp {
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
-
-/* arcade feel: neon numerals */
-.rapid[data-feel='arcade'] .rapid__num {
-  color: var(--neon-c);
-}
-.rapid[data-feel='arcade'] .rapid__clock[data-low='true'] .rapid__num {
-  color: var(--neon-m);
-}
-
+.rapid { display: grid; gap: var(--sp-4); width: 100%; box-sizing: border-box; }
+.rapid__title { margin: 0; font-size: var(--fs-5); }
+.rapid__title [lang='ja'] { font-family: var(--font-brush); }
+.rapid__eyebrow, .rapid__best-eyebrow { margin: calc(-1 * var(--sp-3)) 0 0; }
+.rapid__best-eyebrow { color: var(--kin-text); }
+.rapid__intro, .rapid__meta, .rapid__empty, .rapid__note, .rapid__xp, .rapid__best, .rapid__label, .rapid__prompt, .rapid__sub { margin: 0; }
+.rapid__intro { line-height: var(--lh-latin); }
+.rapid__meta { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); font-size: var(--fs-2); color: var(--fg-muted); }
+.rapid__num { font-family: var(--font-pixel); font-variant-numeric: tabular-nums; color: var(--fg); }
+.rapid__empty { color: var(--fg-muted); }
+/* ── run ── */
+.rapid__hud { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); align-items: center; }
+.rapid__clock { font-size: var(--fs-5); line-height: 1; }
+.rapid__clock[data-low='true'] .rapid__num { color: var(--shu-text); }
+.rapid__time { --meter-tone: var(--kin); flex: 1 1 120px; }
+.rapid__time[data-low='true'] { --meter-tone: var(--shu); }
+.rapid__count { font-size: var(--fs-2); color: var(--fg-muted); }
+.rapid__count .ticker[data-ticking] { display: inline-block; animation: osu var(--dur-2) var(--spring) both; }
+.rapid__hud .combo { margin-left: auto; }
+.rapid__card { display: grid; gap: var(--sp-3); }
+.rapid[data-flash='miss'] .rapid__card { box-shadow: inset 0 -2px 0 var(--shu); }
+.rapid__prompt { font-family: var(--font-ja); font-size: var(--fs-5); line-height: 1.4; overflow-wrap: anywhere; }
+.rapid__sub { font-size: var(--fs-2); color: var(--fg-muted); }
+.rapid__sub[lang='ja'] { font-family: var(--font-ja); }
+.rapid__controls { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: flex-end; }
+/* ── over: the tally tiles stagger in (--i) ── */
+.rapid__tally { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); margin: 0; }
+.rapid__tally > div { display: grid; gap: var(--sp-1); }
+.rapid__tally dd { margin: 0; font-size: var(--fs-5); line-height: 1; }
+.rapid__tally dd[data-new='true'] { color: var(--kin-text); }
+.rapid__best { font-family: var(--font-pixel); color: var(--kin-text); }
+.rapid__note, .rapid__xp { font-size: var(--fs-2); color: var(--fg-muted); }
+/* arcade feel: the print's inks on the numerals */
+.rapid[data-feel='arcade'] .rapid__num { color: var(--neon-c-text); }
+.rapid[data-feel='arcade'] .rapid__time { --meter-tone: var(--neon-c); }
+.rapid[data-feel='arcade'] .rapid__clock[data-low='true'] .rapid__num, .rapid[data-feel='arcade'] .rapid__time[data-low='true'] { color: var(--neon-m-text); --meter-tone: var(--neon-m); }
 @media (min-width: 600px) {
-  .rapid__tally {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rapid__card {
-    transition: none;
-  }
-}
-.reduced-motion .rapid__card {
-  transition: none;
+  .rapid__tally { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }

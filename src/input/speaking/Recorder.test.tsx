@@ -67,6 +67,10 @@ describe('<Recorder> without media devices', () => {
     const onSelfGrade = vi.fn();
     act(() => render(<Recorder modelKana="おはようございます" onSelfGrade={onSelfGrade} media={null} />, root));
     expect(q('.recorder')?.getAttribute('data-state')).toBe('unsupported');
+    // paper, not the cartouche (design 09 §2.5, §12.1 d53); the title keeps the label voice as an .eyebrow
+    expect(q('.recorder')?.classList.contains('sheet')).toBe(true);
+    expect(q('.recorder')?.classList.contains('status-window')).toBe(false);
+    expect(q('.recorder > h3')?.classList.contains('eyebrow')).toBe(true);
     expect(q('.recorder__rec')).toBeNull();
     expect(q('.recorder__note')?.textContent).toContain(S.recorderUnsupported);
     expect(q('.recorder__note')?.textContent).toContain('8 seconds');
@@ -261,6 +265,8 @@ describe('speaking.css (design 09 §6.6, §6.7)', () => {
     expect(level).not.toMatch(/\bheight\s*:/);
     expect(/\.recorder__bar\s*\{[^}]*transform-origin:\s*bottom/.test(css)).toBe(true);
     expect(css).not.toMatch(/\.monologue__(track|fill)|\.speak__label/);
+    expect(css).not.toMatch(/status-window/);
+    expect(/\.recorder\s*\{[^}]*\b(padding|background|border)\s*:/.test(css)).toBe(false);
   });
 
   it('every duration is a token; the live loop is ≥ 1,400 ms (§6.8); no local reduced-motion block (§6.6)', () => {

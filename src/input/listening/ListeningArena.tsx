@@ -765,7 +765,7 @@ function Arena(p: ArenaProps): JSX.Element {
             {services.audio.hasJaVoice.value ? S.volumeOff : S.noVoice}
           </div>
         )}
-        <div class="arena__stage status-window" aria-live="polite">
+        <div class="arena__stage sheet" aria-live="polite">
           {hasVoice ? (
             <div class="arena__waves" data-busy={busy ? 'true' : undefined} aria-hidden="true">
               {heard.map((i) => {
@@ -1017,7 +1017,7 @@ function Arena(p: ArenaProps): JSX.Element {
   return (
     <div class="arena arena--done" data-feel={feel} data-phase="done" data-mode={walk ? 'walk' : 'text'}>
       {header}
-      <div class="arena__result status-window" role="status">
+      <div class="arena__result sheet" role="status">
         <h3 class="arena__subtitle">{S.resultTitle}</h3>
         <p class="arena__result-line">{fill(S.resultLine, { correct: r.correct, total: r.total, rate: p.rate })}</p>
         <p class="arena__result-note">{pass ? S.resultPass : S.resultMiss}</p>

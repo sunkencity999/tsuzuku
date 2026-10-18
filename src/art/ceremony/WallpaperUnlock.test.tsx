@@ -6,7 +6,7 @@ import { href } from '../../shared/routes';
 import { makeTestStore } from '../../store/testing';
 import { WALLPAPER_NAMES } from '../strings';
 import { S } from './strings';
-import { setLazyArtForTests, type WallpaperRenderOptions, type WallpapersModule } from './support';
+import { EXIT_FALLBACK_MS, setLazyArtForTests, type WallpaperRenderOptions, type WallpapersModule } from './support';
 import { UNROLL_AT, WallpaperUnlock, placeholderWallpaperSvg } from './WallpaperUnlock';
 
 let root: HTMLDivElement;
@@ -62,7 +62,12 @@ describe('<WallpaperUnlock>', () => {
     await settle();
     const section = root.querySelector('.kakejiku-unlock')!;
     expect(section.getAttribute('data-preview')).toBe('placeholder');
-    expect(root.querySelector('.kakejiku__art svg')).not.toBeNull();
+    // the silk is one <img> data URL: the placeholder's mist blur is rasterised once, never a live filter (§6.7 rule 2)
+    const art = root.querySelector('img.kakejiku__art')!;
+    expect(art.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
+    expect(decodeURIComponent(art.getAttribute('src')!)).toContain('<feGaussianBlur');
+    expect(root.querySelectorAll('filter')).toHaveLength(0);
+    expect(root.querySelectorAll('[filter]')).toHaveLength(0);
     expect(root.querySelector('.kakejiku-unlock__name')?.textContent).toBe(WALLPAPER_NAMES['torii-dawn'].ja);
     expect(root.querySelector('.kakejiku-unlock__name')?.getAttribute('lang')).toBe('ja');
     expect(root.querySelector('.kakejiku-unlock__name-en')?.textContent).toBe(WALLPAPER_NAMES['torii-dawn'].en);
@@ -88,8 +93,10 @@ describe('<WallpaperUnlock>', () => {
     expect(calls[0]).toMatchObject({ size: 'phone', reforge: 0, revealed: 2, locked: true });
     const section = root.querySelector('.kakejiku-unlock')!;
     expect(section.getAttribute('data-preview')).toBe('render');
-    expect(root.querySelector('#fake-great-wave')).not.toBeNull();
-    expect(root.querySelector('.kakejiku__art')?.innerHTML).toContain('ハナ');
+    const rendered = decodeURIComponent(root.querySelector('img.kakejiku__art')!.getAttribute('src')!);
+    expect(rendered).toContain('id="fake-great-wave"');
+    expect(rendered).toContain('ハナ');
+    expect(root.querySelector('#fake-great-wave')).toBeNull();
     expect(root.querySelector('.kakejiku-unlock__eyebrow')?.textContent).toContain(S.wallpaperRevealed);
     expect(root.querySelector('.kakejiku-unlock__quadrant')?.textContent).toBe('2 of 4');
     expect(root.querySelector('.kakejiku-unlock__pending')).toBeNull();
@@ -122,13 +129,42 @@ describe('<WallpaperUnlock>', () => {
     expect(section().classList.contains('kakejiku-unlock--open')).toBe(true);
   });
 
-  it('Continue and the Studio link both complete the ceremony', () => {
+  it('Continue and the Studio link both complete the ceremony (at once under reduced motion; one exit per card)', () => {
     const onDone = vi.fn();
     act(() => render(<WallpaperUnlock id="daruma" onDone={onDone} reduced />, root));
+    expect(root.querySelector('.kakejiku-unlock')?.classList.contains('sheet')).toBe(true);
+    expect(root.querySelector('[class*="ink-"]')).toBeNull();
     (root.querySelector('.kakejiku-unlock__continue') as HTMLButtonElement).click();
     expect(onDone).toHaveBeenCalledTimes(1);
     (root.querySelector('.kakejiku-unlock__studio') as HTMLAnchorElement).click();
-    expect(onDone).toHaveBeenCalledTimes(2);
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it('when the host owns the exit (hostExit) Continue hands over at once, no kasure on the card', () => {
+    vi.useFakeTimers();
+    const onDone = vi.fn();
+    act(() => render(<WallpaperUnlock id="daruma" onDone={onDone} reduced={false} hostExit />, root));
+    act(() => {
+      (root.querySelector('.kakejiku-unlock__continue') as HTMLButtonElement).click();
+    });
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('.kakejiku-unlock')?.hasAttribute('data-leaving')).toBe(false);
+  });
+
+  it('with motion, Continue dries the card out first: data-leaving on the root, onDone on the ≤ 200 ms fallback', () => {
+    vi.useFakeTimers();
+    const onDone = vi.fn();
+    act(() => render(<WallpaperUnlock id="daruma" onDone={onDone} reduced={false} />, root));
+    expect(root.querySelector('.kakejiku-unlock')?.classList.contains('ink-nijimi')).toBe(true);
+    act(() => {
+      (root.querySelector('.kakejiku-unlock__continue') as HTMLButtonElement).click();
+    });
+    expect(onDone).not.toHaveBeenCalled();
+    expect(root.querySelector('.kakejiku-unlock')?.hasAttribute('data-leaving')).toBe(true);
+    act(() => {
+      vi.advanceTimersByTime(EXIT_FALLBACK_MS);
+    });
+    expect(onDone).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -1,7 +1,7 @@
 import { ITEM_KINDS, type ItemKind } from '../../shared/store-types';
 import { tonguePath } from '../../shared/ui/Lantern';
 import { svgDoc } from '../svg';
-import { DRIFT_VARIANTS, FLAME_CAP, FLAME_TOKEN, HEARTH_STATES, HEARTH_TONGUES, WILL_CHANGE_CAP, allocate, emptyCounts, flamesSvg, hearthClass, hearthStateOf, hearthSvg } from './flames';
+import { DRIFT_VARIANTS, FLAME_CAP, FLAME_TOKEN, HEARTH_LOOP_S, HEARTH_STATES, HEARTH_STEPS, HEARTH_TONGUES, WILL_CHANGE_CAP, allocate, emptyCounts, flamesSvg, hearthClass, hearthStateOf, hearthSvg } from './flames';
 
 function parse(inner: string, w = 960, h = 540): Document {
   const doc = new DOMParser().parseFromString(svgDoc({ w, h, body: [inner] }), 'image/svg+xml');
@@ -94,6 +94,7 @@ describe('flamesSvg', () => {
     expect(live).toContain(`dj-kf-drift-${DRIFT_VARIANTS - 1}`);
     expect(live).toContain('prefers-reduced-motion');
     expect(live).toContain('.reduced-motion .dj-kf{animation:none}');
+    expect(live).toContain(':root[data-reduced-motion] .dj-kf{animation:none}');
     expect(live).toContain('animation-duration:');
     expect(live).not.toContain('<animate');
     const still = flamesSvg({ ...o, reducedMotion: true }).svg;
@@ -192,6 +193,41 @@ describe('hearth', () => {
     expect(live).not.toContain('<animate');
     // nothing faster than ~0.7 Hz: every duration ≥ 1.4 s
     for (const m of live.matchAll(/animation(?:-duration)?:[^;}]*?([\d.]+)s/g)) expect(Number(m[1])).toBeGreaterThanOrEqual(1.4);
+    const still = hearthSvg({ ...box, reducedMotion: true });
+    expect(still).not.toContain('@keyframes');
+    expect(still).not.toContain('animation');
+    expect(still).not.toContain('<style');
+    expect(parse(still).querySelectorAll('.dj-hf-tongue').length).toBe(HEARTH_TONGUES * 2);
+  });
+
+  it('the loops are stepped (design 09 §12.1 d56): steps(3, jump-none) on the flicker and the embers — a timing function runs per keyframe segment, two per loop, so each presents 4 changes a cycle — the four tongue durations and the pulse as declared, all ≥ 1.4 s; the reduced form rests under all three selectors', () => {
+    const live = hearthSvg({ ...box, reducedMotion: false });
+    const [t0, t1, t2, t3] = HEARTH_LOOP_S.tongues;
+    expect(HEARTH_STEPS).toEqual({ flicker: 3, ember: 3 });
+    expect(live).toContain(`.dj-hf-tongue{animation:dj-hf-flicker ${t0}s steps(3,jump-none) infinite;`);
+    expect(live).toContain(`.dj-hf-t1 .dj-hf-tongue{animation-duration:${t1}s;`);
+    expect(live).toContain(`.dj-hf-t2 .dj-hf-tongue{animation-duration:${t2}s;`);
+    expect(live).toContain(`.dj-hf-t3 .dj-hf-tongue{animation-duration:${t3}s;`);
+    expect(live).toContain(`.dj-hf-ember{animation:dj-hf-pulse ${HEARTH_LOOP_S.ember}s steps(3,jump-none) infinite}`);
+    expect(live).not.toContain('steps(4,');
+    expect([t0, t1, t2, t3]).toEqual([1.6, 1.9, 1.45, 1.75]);
+    expect(HEARTH_LOOP_S.ember).toBe(2.6);
+    // no eased loop remains: every infinite animation is a steps() one
+    expect(live).not.toMatch(/ease-in-out/);
+    for (const m of live.matchAll(/animation:[^;}]*infinite/g)) expect(m[0]).toMatch(/steps\(\d,jump-none\)/);
+    for (const d of [...HEARTH_LOOP_S.tongues, HEARTH_LOOP_S.ember]) expect(d).toBeGreaterThanOrEqual(1.4);
+    // changes a second = 2·(steps − 1) / duration (two segments a loop): the base tongue 2.5 Hz, the fastest 4 / 1.45 ≈ 2.76, the embers 4 / 2.6 ≈ 1.54 — never sixty
+    const perSecond = (steps: number, d: number): number => (2 * (steps - 1)) / d;
+    expect(perSecond(HEARTH_STEPS.flicker, t0)).toBeLessThanOrEqual(2.5);
+    for (const d of HEARTH_LOOP_S.tongues) expect(perSecond(HEARTH_STEPS.flicker, d)).toBeLessThan(3);
+    expect(perSecond(HEARTH_STEPS.ember, HEARTH_LOOP_S.ember)).toBeLessThan(2);
+    // a stepped cycle still rises then falls once: the 0 / 50 / 100 keyframes change brightness direction twice per cycle (§6.8)
+    expect(live).toContain('@keyframes dj-hf-flicker{0%,100%{transform:scale(1,1)}50%{transform:scale(0.93,1.08)}}');
+    expect(live).toContain('@keyframes dj-hf-pulse{0%,100%{opacity:0.45}50%{opacity:0.95}}');
+    // reduced motion rests the loops under the media query, the body class and the root attribute
+    expect(live).toContain('@media (prefers-reduced-motion:reduce){.dj-hf-tongue,.dj-hf-ember{animation:none}}');
+    expect(live).toContain('.reduced-motion .dj-hf-tongue,.reduced-motion .dj-hf-ember{animation:none}');
+    expect(live).toContain(':root[data-reduced-motion] .dj-hf-tongue,:root[data-reduced-motion] .dj-hf-ember{animation:none}');
     const still = hearthSvg({ ...box, reducedMotion: true });
     expect(still).not.toContain('@keyframes');
     expect(still).not.toContain('animation');

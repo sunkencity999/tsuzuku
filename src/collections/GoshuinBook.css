@@ -98,6 +98,10 @@
   font-family: var(--font-brush);
   font-size: var(--fs-4);
 }
+/* the caption's brush survives the Ruby span's own --font-ja */
+.goshuin-book__page .goshuin__name .ruby {
+  font-family: inherit;
+}
 .goshuin-book__romaji {
   font-size: var(--fs-1);
   font-weight: 400;

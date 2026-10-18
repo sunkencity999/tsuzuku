@@ -14,16 +14,30 @@
  *  training snapshot (`persist: false`). Intro, result and the Station page
  *  all read `rematchAllowed`, so the rematch copy agrees everywhere; the Grudge
  *  List shown is `grudgeItems()` (well-formed keys only).
+ *
+ *  Design 09 §9 / §10 D1: the wall is a `.meter` (--value = what still stands)
+ *  made of STONE — a dither tile on the unscaled track and `geom.shatter`
+ *  pieces from `src/art/ceremony/gate-wall.ts`, imported statically (the art
+ *  tier is open to every group, d44 / d49), so the wall is stone from its
+ *  first frame — one piece falls per clean rep (`chippedPieces`), transform /
+ *  opacity only; the doors part on a pass (translate). The station name shows
+ *  romaji only below Green kana and a kana `<Ruby>` from Green on (d49,
+ *  `src/art/road/reading`); a gate that is not open yet lies AHEAD, never
+ *  "locked" (arcade-strings).
  */
 import type { JSX } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { effect } from '@preact/signals';
+import { WALL_H, WALL_MAX_PIECES, WALL_W, wallPieces, wallStoneUrl } from '../art/ceremony/gate-wall';
+import { romajiAllowed, rubyMarkup, signRubyMode } from '../art/road/reading';
 import { content as appContent, type ContentLoader } from '../content/loader';
 import { STATIONS, type DrillId, type StationDef } from '../content/types';
 import { hashSeed } from '../shared/hash';
 import { parseCardKey } from '../shared/ids';
 import type { SessionPlan, Step, StepResult } from '../shared/session-types';
+import { Ruby } from '../shared/ui/Ruby';
 import { store } from '../store';
+import { S as AS } from './arcade-strings';
 import { BELT_NAME, S as ES, fill } from './engine-strings';
 import { GATE_ASSISTED_PASS, GATE_PASS, GATE_PHASE_PASS, buildGate, finishGate, gateAvailable, gateOutcome, grudgeItems, rematchAllowed, scoreGate, stepHit, type GateScore } from './gatekeeper';
 import { dayStartMs } from '../shared/time';
@@ -105,19 +119,62 @@ export function missesIn(plan: SessionPlan, results: readonly StepResult[], step
   return out;
 }
 
-function Wall(p: { plan: SessionPlan; results: readonly StepResult[] }): JSX.Element {
-  const stepById = new Map(p.plan.steps.map((s) => [s.id, s] as const));
-  const total = p.plan.steps.length;
-  const hits = p.results.filter((r) => stepHit(stepById.get(r.stepId), r)).length;
+/* ── the stone wall (design 09 §10 D1) ─────────────────────────────────── */
+
+/** The wall's drawing space, as gate-wall.ts draws it (100 × 12, stretched to the track). */
+const WALL_VIEW = `0 0 ${WALL_W} ${WALL_H}`;
+
+/** How many pieces a wall of `total` reps shatters into (one per rep up to gate-wall.ts's cap: ≤ 12 extra nodes). */
+export function wallPieceCount(total: number): number {
+  return Math.max(1, Math.min(WALL_MAX_PIECES, Math.floor(total)));
+}
+
+/**
+ * Pieces chipped away after `hits` clean reps of `total`: one per hit while
+ * the wall has a piece per rep; beyond the cap, piece i falls once hits reach
+ * its share of the reps — monotone, 0 at no hits, every piece at a full wall.
+ */
+export function chippedPieces(hits: number, total: number): number {
+  if (total <= 0) return 0;
+  const pieces = wallPieceCount(total);
+  let n = 0;
+  for (let i = 0; i < pieces; i++) if (hits >= Math.ceil(((i + 1) * total) / pieces)) n++;
+  return n;
+}
+
+/** Clean reps so far (the wall's chips). */
+export function wallHits(plan: SessionPlan, results: readonly StepResult[]): number {
+  const stepById = new Map(plan.steps.map((s) => [s.id, s] as const));
+  return results.filter((r) => stepHit(stepById.get(r.stepId), r)).length;
+}
+
+/**
+ * Takes numbers, not the runner's arrays: `runner.results` is one array mutated
+ * in place, and @preact/signals shallow-compares the props of a component with
+ * hook state, so an unchanged reference would freeze the wall. The stone tile
+ * (theme read at render) is a CSS background on the unscaled track; the
+ * pieces are flat polygons: svg + ≤ 8 polygons = ≤ 9 extra nodes.
+ */
+function Wall(p: { total: number; hits: number; seed: number }): JSX.Element {
+  const { total, hits } = p;
   const left = Math.max(0, total - hits);
-  const pct = total > 0 ? Math.round((left / total) * 100) : 100;
+  const pieces = wallPieceCount(total);
+  const chipped = chippedPieces(hits, total);
+  const dark = typeof document !== 'undefined' && document.documentElement.getAttribute('data-color-scheme') === 'dark';
+  const shards = useMemo(() => wallPieces(p.seed, pieces), [p.seed, pieces]);
+  const stone = useMemo(() => wallStoneUrl(dark ? 'dark' : 'light'), [dark]);
   return (
-    <div class="gate-wall" role="progressbar" aria-label={S.wallAria} aria-valuemin={0} aria-valuemax={total} aria-valuenow={left}>
+    <div class="gate-wall" role="progressbar" aria-label={S.wallAria} aria-valuemin={0} aria-valuemax={total} aria-valuenow={left} data-wall="stone" style={{ '--wall-stone': `url("${stone}")` }}>
       <span class="gate-wall__label" lang="ja">
         {S.wallLabel}
       </span>
-      <span class="progress gate-wall__track">
-        <span class="progress__fill gate-wall__fill" style={{ width: `${pct}%` }} />
+      <span class="meter gate-wall__track" style={{ '--value': String(total > 0 ? left / total : 1) }}>
+        <span class="meter__fill" />
+        <svg class="gate-wall__shards" viewBox={WALL_VIEW} preserveAspectRatio="none" aria-hidden="true" focusable="false">
+          {shards.map((pts, i) => (
+            <polygon key={i} class="gate-wall__piece" points={pts} data-chipped={i < chipped ? '' : undefined} />
+          ))}
+        </svg>
       </span>
       <span class="gate-wall__count">{fill(S.wallChipped, { n: hits, total })}</span>
     </div>
@@ -128,7 +185,7 @@ function GrudgeList(p: { ids: readonly string[]; loader: ContentLoader; title?: 
   return (
     <section class="gate-grudge" aria-label={S.grudgeTitle}>
       {p.title !== false ? (
-        <h4 class="gate-view__label" lang="ja">
+        <h4 class="eyebrow gate-grudge__title" lang="ja">
           {S.grudgeTitle}
         </h4>
       ) : null}
@@ -159,8 +216,13 @@ export function GateView(p: GateViewProps): JSX.Element {
   const [phaseIntro, setPhaseIntro] = useState<number | null>(null);
   const [score, setScore] = useState<GateScore | null>(null);
   const [, setTick] = useState(0);
+  const [doorsOpen, setDoorsOpen] = useState(false);
   const finished = useRef(false);
   const cardsVersion = store.cards.version.value;
+  const wallSeed = hashSeed(store.seed(), 'gate-wall', n);
+  // signage (design 09 §3.3, d49): romaji only below Green kana; a kana ruby from Green on
+  const romaji = romajiAllowed(store.profile.value.belt);
+  const rubyMode = signRubyMode(store.settings.value.furigana);
 
   useEffect(() => {
     let alive = true;
@@ -210,6 +272,16 @@ export function GateView(p: GateViewProps): JSX.Element {
     finishGate(n, sc, mode);
     setScore(sc);
   }, [stage, runner, mode, n]);
+
+  // the doors part one tick after the result mounts, so the translate transitions from closed
+  useEffect(() => {
+    if (stage !== 'result') {
+      setDoorsOpen(false);
+      return;
+    }
+    const t = setTimeout(() => setDoorsOpen(true), 0);
+    return () => clearTimeout(t);
+  }, [stage]);
 
   // No retreat: leaving the room (browser Back, route change) mid-fight abandons the run honestly.
   useEffect(
@@ -271,7 +343,14 @@ export function GateView(p: GateViewProps): JSX.Element {
   const header = (
     <header class="gate-view__keeper">
       <p class="gate-view__station">
-        <span lang="ja">{def.nameJa}</span> {def.nameRomaji} · {fill(S.beltLine, { belt: BELT_NAME[def.belt], jlpt: def.jlpt ? fill(S.jlptLine, { n: def.jlpt }) : S.levelKana })}
+        {romaji ? (
+          <>
+            <span lang="ja">{def.nameJa}</span> {def.nameRomaji}
+          </>
+        ) : (
+          <Ruby ja={rubyMarkup(def.nameJa, def.nameRomaji)} mode={rubyMode} />
+        )}{' '}
+        · {fill(S.beltLine, { belt: BELT_NAME[def.belt], jlpt: def.jlpt ? fill(S.jlptLine, { n: def.jlpt }) : S.levelKana })}
       </p>
       <h2 class="gate-view__name">
         <span lang="ja">{def.gateJa}</span> <span class="gate-view__name-en">{def.gateEn}</span>
@@ -343,9 +422,11 @@ export function GateView(p: GateViewProps): JSX.Element {
         {cleared ? (
           <p class="gate-view__status">{assistedCleared ? S.gateClearedAssistedLine : S.gateClearedLine}</p>
         ) : !ready ? (
-          <div class="notice">
+          <div class="notice gate-view__ahead">
+            <p class="eyebrow">{AS.ahead}</p>
             <p>{S.gateNotOpenTitle}</p>
             {avail ? <p>{fill(S.gateNotReadyLine, { introduced: avail.introduced, total: avail.total, green: avail.green })}</p> : null}
+            <p class="gate-view__note">{AS.gateAheadLine}</p>
           </div>
         ) : rm.allowed ? (
           <p class="gate-view__status">{attempts > 0 ? S.rematchOpen : fill(S.gateReadyLine, { name: keeper })}</p>
@@ -389,9 +470,10 @@ export function GateView(p: GateViewProps): JSX.Element {
           {header}
           {mode.assisted ? <p class="notice notice--shu gate-view__banner">{S.assistedBanner}</p> : null}
           {mode.revenge ? <p class="gate-view__line">{S.revengeLine}</p> : null}
-          <Wall plan={plan} results={runner.results} />
-          <article class="status-window gate-phase" aria-label={fill(S.phaseTitle, { n: phaseIntro + 1, total: plan.blocks.length })}>
-            <h3 class="status-window__label">{fill(S.phaseTitle, { n: phaseIntro + 1, total: plan.blocks.length })}</h3>
+          <Wall total={plan.steps.length} hits={wallHits(plan, runner.results)} seed={wallSeed} />
+          {phaseIntro === 0 ? <p class="gate-view__note">{AS.wallStone}</p> : null}
+          <article class="sheet gate-phase" aria-label={fill(S.phaseTitle, { n: phaseIntro + 1, total: plan.blocks.length })}>
+            <h3 class="eyebrow">{fill(S.phaseTitle, { n: phaseIntro + 1, total: plan.blocks.length })}</h3>
             <p class="gate-phase__name" lang="ja">
               {block?.label ?? ''}
             </p>
@@ -413,7 +495,7 @@ export function GateView(p: GateViewProps): JSX.Element {
     return (
       <section class="gate-view" aria-label={S.gateAria} data-stage="fight">
         {mode.assisted ? <p class="notice notice--shu gate-view__banner">{S.assistedBanner}</p> : null}
-        <Wall plan={plan} results={runner.results} />
+        <Wall total={plan.steps.length} hits={wallHits(plan, runner.results)} seed={wallSeed} />
         <SessionHost runner={runner} onExit={leave} view={p.view} />
       </section>
     );
@@ -443,12 +525,16 @@ export function GateView(p: GateViewProps): JSX.Element {
         {header}
         <h3 class="gate-view__result">{line}</h3>
         {sc.passed ? (
-          <div class="gate-stamp" aria-label={S.stampTitle}>
-            <span class={`seal gate-stamp__seal${sc.perfect ? ' seal--perfect' : ''}${outcome === 'assisted' ? ' gate-stamp__seal--assisted' : ''}`} lang="ja">
-              {def.nameJa}
-            </span>
-            <p class="gate-stamp__line">{sc.perfect ? S.stampPerfectLine : outcome === 'assisted' ? S.stampAssistedLine : S.stampLine}</p>
-          </div>
+          <>
+            <p class="eyebrow gate-view__wall-down">{AS.wallDown}</p>
+            <div class="gate-stamp" aria-label={S.stampTitle} data-doors={doorsOpen ? 'open' : 'closed'}>
+              <div class={`gate-doors${doorsOpen ? ' gate-doors--open' : ''}`} role="img" aria-label={AS.doorsAlt} />
+              <span class={`seal gate-stamp__seal${sc.perfect ? ' seal--perfect' : ''}${outcome === 'assisted' ? ' gate-stamp__seal--assisted' : ''}`} lang="ja">
+                {def.nameJa}
+              </span>
+              <p class="gate-stamp__line">{sc.perfect ? S.stampPerfectLine : outcome === 'assisted' ? S.stampAssistedLine : S.stampLine}</p>
+            </div>
+          </>
         ) : null}
         <dl class="gate-result__table">
           <div class="gate-result__row">

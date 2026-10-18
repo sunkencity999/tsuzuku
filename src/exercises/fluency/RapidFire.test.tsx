@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { FIXTURE, G, V, createFakeLoader } from '@/content/fixtures';
@@ -10,6 +12,7 @@ import { dayOf } from '@/shared/time';
 import { store } from '@/store';
 import { DEFAULT_TEST_NOW, captureEvents, card, makeTestStore } from '@/store/testing';
 import { RapidFire, ROUND_MS, meta, promptFor } from './RapidFire';
+import { S as RS, fill as rfill } from './rapid-strings';
 
 // `content` is a singleton; route its reads to the fixture loader (the actual
 // module keeps ContentError / isChunk for the fixtures' own imports).
@@ -150,17 +153,28 @@ describe('rapid fire prompts', () => {
 });
 
 describe('<RapidFire>', () => {
-  it('intro shows the pool size and the personal best; Start opens the round with the clock running', () => {
+  it('intro shows the pool size and the personal best under a poster title; Start opens the round with the clock and its meter running', () => {
     mount(step());
     expect(q('.rapid')?.getAttribute('data-phase')).toBe('intro');
+    expect(q('.rapid__title')?.classList.contains('poster-title')).toBe(true);
     expect(q('.rapid__meta')?.textContent).toContain('4 cards in the pool');
     expect(q('.rapid__meta')?.textContent).toContain('Personal best');
     clickText('Start');
     expect(q('.rapid')?.getAttribute('data-phase')).toBe('run');
     expect(q('.rapid__clock')?.textContent).toBe('60 s');
+    const meter = q<HTMLElement>('.rapid__time') as HTMLElement;
+    expect(meter.classList.contains('meter')).toBe(true);
+    expect(meter.style.getPropertyValue('--value')).toBe('1.000');
+    expect(q('.rapid__card')?.classList.contains('sheet')).toBe(true);
+    expect(q('.rapid__card .eyebrow')).not.toBeNull();
     expect(q('.rapid__prompt')).not.toBeNull();
     tick(5000);
     expect(q('.rapid__clock')?.textContent).toBe('55 s');
+    expect(Number(meter.style.getPropertyValue('--value'))).toBeCloseTo(55 / 60, 2);
+    expect(q('.rapid__count .ticker[data-roll]')).not.toBeNull();
+    // the press lands on the count (RapidFire.css: osu on the Ticker while it ticks), never on the next prompt's card
+    expect(q('.rapid__card')?.classList.contains('ink-osu')).toBe(false);
+    expect(readFileSync(resolve(process.cwd(), 'src/exercises/fluency/RapidFire.css'), 'utf8')).toMatch(/\.rapid__count \.ticker\[data-ticking\] \{[^}]*animation: osu var\(--dur-2\)/);
   });
 
   it('a correct answer counts and writes nothing — except Good on a Kaiden card (implicit evidence)', () => {
@@ -216,7 +230,39 @@ describe('<RapidFire>', () => {
     expect(cap.events.some(([n]) => n === 'xp:gained')).toBe(false);
     expect(q('.rapid__tally')?.textContent).toContain('Correct');
     expect(q('.rapid__note')?.textContent).toContain('untimed');
+    // the result is the print: poster title, a .sheet tally whose tiles stagger (--i) and roll (<Ticker roll>)
+    expect(q('.rapid__title')?.classList.contains('poster-title')).toBe(true);
+    expect(q('.rapid__tally')?.classList.contains('sheet')).toBe(true);
+    const tiles = Array.from(root.querySelectorAll<HTMLElement>('.rapid__tally > div'));
+    expect(tiles.length).toBe(4);
+    tiles.forEach((t, i) => {
+      expect(t.classList.contains('ink-nijimi')).toBe(true);
+      expect(t.style.getPropertyValue('--i')).toBe(String(i));
+      expect(t.querySelector('.ticker[data-roll]')).not.toBeNull();
+    });
+    // a first round has no own best to pass: no BEST eyebrow (footnote 5)
+    expect(q('.rapid__best-eyebrow')).toBeNull();
     void seen;
+  });
+
+  it('the BEST eyebrow names the learner’s OWN previous best only when the round passes it, never on a miss', async () => {
+    await makeTestStore({ now: () => clock.t, save: { stats: { rapidBest: 1 } }, cards: { [K_INU]: mature(), [K_MIZU]: mature({ s: 200, flags: CardFlag.kaiden }), [K_SHOKU]: mature({ s: 20 }), [K_DESU]: mature({ s: 25 }) } });
+    mount(step());
+    clickText('Start');
+    answer(true);
+    answer(true);
+    clickText('Finish');
+    expect(q('.rapid__best-eyebrow')?.textContent).toBe(rfill(RS.bestEyebrow, { n: 1 }));
+    expect(q('.rapid__best-eyebrow')?.classList.contains('eyebrow')).toBe(true);
+    // a round at or under the own best: no eyebrow
+    await makeTestStore({ now: () => clock.t, save: { stats: { rapidBest: 5 } }, cards: { [K_INU]: mature(), [K_MIZU]: mature({ s: 200, flags: CardFlag.kaiden }), [K_SHOKU]: mature({ s: 20 }), [K_DESU]: mature({ s: 25 }) } });
+    mount(step({ id: 'rf-3' }));
+    clickText('Start');
+    answer(true);
+    answer(false);
+    clickText('Finish');
+    expect(q('.rapid__best-eyebrow')).toBeNull();
+    expect(q('.rapid__best')).toBeNull();
   });
 
   it('Continue hands the runner one clean summary result; Finish ends the round early', () => {

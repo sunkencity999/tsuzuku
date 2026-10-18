@@ -9,7 +9,7 @@ import type { StoryItem } from '@/content/types';
 import { bus } from '@/shared/events';
 import { installServices, nullAudio, resetServices, type AudioService } from '@/shared/audio';
 import type { Route } from '@/shared/routes';
-import { KIND_INDEX, addLedgerEntry, playedMinutes, store } from '@/store';
+import { KIND_INDEX, addLedgerEntry, playedMinutes, resetStoreForTests, store } from '@/store';
 import { captureEvents, makeTestStore } from '@/store/testing';
 import { S } from '../reader/strings';
 import StoryPage, { listenMinutes, listenMinutesLine, minutesLine, previousEpisodeIds } from './StoryPage';
@@ -422,6 +422,34 @@ describe('design 09 (C4): sheets, eyebrows and the Mincho fence', () => {
     const prev = q('[data-field="previously"]');
     expect(prev?.classList.contains('sheet')).toBe(true);
     expect(prev?.querySelector('h2')?.classList.contains('eyebrow')).toBe(true);
+  });
+
+  it('the station chip reads by the kana rule (§3.3, §12.1 d49): romaji at Yellow, a kana <ruby> and no romaji at Green, `tap` reading as `always` inside the link', async () => {
+    resetStoreForTests();
+    await makeTestStore({ now: () => clock, save: { progress: { station: 4 }, profile: { belt: 'yellow' }, settings: { furigana: 'tap' } } });
+    mount();
+    await settle();
+    const yellow = q('.story-page__chips [data-link="station"]')!;
+    expect(yellow.textContent).toContain('保土ヶ谷');
+    expect(yellow.textContent).toContain('Hodogaya');
+    expect(yellow.querySelector('ruby')).toBeNull();
+    render(null, root);
+    resetStoreForTests();
+    await makeTestStore({ now: () => clock, save: { progress: { station: 4 }, profile: { belt: 'green' }, settings: { furigana: 'tap' } } });
+    mount();
+    await settle();
+    const green = q('.story-page__chips [data-link="station"]')!;
+    expect(green.textContent).toContain('保土ヶ谷');
+    expect(green.textContent).not.toContain('Hodogaya');
+    const ruby = green.querySelector('ruby');
+    expect(ruby).not.toBeNull();
+    expect(ruby?.querySelector('rt')?.textContent).toBe('ほどがや');
+    expect(ruby?.closest('[lang="ja"]')).not.toBeNull();
+    // signage inside a link never nests a tap-to-reveal control (signRubyMode: tap → always)
+    expect(green.querySelector('.ruby--always')).not.toBeNull();
+    expect(green.querySelector('button, [tabindex]')).toBeNull();
+    // the chip's JA rides --fs-2 so the reading's rt (0.5em) lands at 7 px, not the chip's 12 px halved
+    expect(css).toMatch(/\.story-page__chips a\.chip \[lang="ja"\]\s*\{\s*font-size:\s*var\(--fs-2\);\s*\}/);
   });
 
   it('StoryPage.css: no local card paper, no label rule, no Mincho (§3.1: the fence stops at the reader body; the title is chrome), no width/height tween', () => {

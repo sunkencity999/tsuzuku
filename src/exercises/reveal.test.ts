@@ -160,7 +160,10 @@ describe('ui.css drops its duplicates of the canonical classes (design 09 §6.5,
     const ta = read('src/exercises/TextAnswer.css');
     expect(ta).toMatch(/\.text-answer__ink::after \{[^}]*transform: scaleX\(0\)[^}]*transition: transform var\(--dur-2\)/);
     expect(ta).toMatch(/\.text-answer__ink:focus-within::after \{\s*transform: scaleX\(1\)/);
-    expect(ta).toMatch(/\.text-answer__ink\[data-mode='ja'\]::after \{\s*bottom: calc\(/);
+    // d58/d63: the rule lifts --sp-1 off the border; KanaInput owns the ja field's rule, so the frame's is off there
+    expect(ta).toMatch(/\.text-answer__ink::after \{[^}]*bottom: var\(--sp-1\)/);
+    expect(ta).toMatch(/\.text-answer__ink\[data-mode='ja'\]::after \{\s*content: none;/);
+    expect(ta).not.toMatch(/\[data-mode='ja'\]::after \{\s*bottom: calc\(/);
     expect(ta).toMatch(/caret-color: var\(--shu\)/);
     expect(ui).toMatch(/\.kana-input__field \{[^}]*caret-color: var\(--shu\)/);
     expect(read('src/exercises/PitchLine.css')).toMatch(/\.pitch-svg \.pitch-svg__line\.ink-hiku \{\s*animation-duration: var\(--dur-3\)/);

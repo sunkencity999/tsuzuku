@@ -30,7 +30,7 @@ export function Debrief(p: DebriefProps): JSX.Element {
   const ratio = r.total > 0 ? (r.total - slips) / r.total : 1;
   return (
     <>
-      <div class="taiwa__card status-window" role="status">
+      <div class="taiwa__card sheet" role="status">
         <h3 class="taiwa__subtitle">{S.debriefTitle}</h3>
         <p class="taiwa__result-line">{fill(S.bestLine, { best: r.best, total: r.total })}</p>
         <p class="taiwa__result-line">{r.aizuchiTotal > 0 ? fill(S.aizuchiLine, { hit: r.aizuchiHit, total: r.aizuchiTotal }) : S.noAizuchi}</p>

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
@@ -229,6 +231,68 @@ describe('<KanaInput>', () => {
     expect(input.getAttribute('lang')).toBe('ja');
     expect(input.getAttribute('aria-label')).toBe('Answer');
     expect(input.classList.contains('kana-input__field')).toBe(true);
+  });
+});
+
+describe('<KanaInput> hiku underline (design 09 §12.1 d58)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('the field sits in a .kana-input__ink wrapper that takes .ink-hiku[data-axis="x"] on focus and drops it on blur', () => {
+    const { input } = mount();
+    const ink = input.parentElement!;
+    expect(ink.classList.contains('kana-input__ink')).toBe(true);
+    expect(ink.parentElement?.classList.contains('kana-input')).toBe(true);
+    expect(ink.classList.contains('ink-hiku')).toBe(false);
+    expect(ink.hasAttribute('data-axis')).toBe(false);
+    act(() => {
+      input.focus();
+    });
+    expect(document.activeElement).toBe(input);
+    expect(ink.classList.contains('ink-hiku')).toBe(true);
+    expect(ink.getAttribute('data-axis')).toBe('x');
+    // the field itself never carries the verb (the wrapper's pseudo-element draws; the input is not scaled)
+    expect(input.classList.contains('ink-hiku')).toBe(false);
+    act(() => {
+      input.blur();
+    });
+    expect(ink.classList.contains('ink-hiku')).toBe(false);
+    expect(ink.hasAttribute('data-axis')).toBe(false);
+  });
+
+  it('under reduced motion the wrapper stays and the verb class is never set (the line stands through :focus-within)', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: /reduce/.test(q), media: q, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false }));
+    const { input } = mount();
+    act(() => {
+      input.focus();
+    });
+    const ink = input.parentElement!;
+    expect(ink.classList.contains('kana-input__ink')).toBe(true);
+    expect(ink.classList.contains('ink-hiku')).toBe(false);
+    expect(ink.hasAttribute('data-axis')).toBe(false);
+    expect(root.querySelector('.ink-hiku')).toBeNull();
+  });
+
+  it('ui.css: the underline is a scaled pseudo-element (never width) drawn over --dur-2 by the verb and standing on :focus-within; the vermilion caret stays', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/shared/ui/ui.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const after = /\.kana-input__ink::after\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(after).toMatch(/scale:\s*0 1/);
+    expect(after).toMatch(/background:\s*var\(--ai\)/); // the ink rule is indigo like the focus border and TextAnswer's; the caret alone is vermilion
+    expect(after).toMatch(/transform-origin:\s*left/);
+    // the rule sits 4 px above the field's foot, off the border that turns the same indigo on focus, so the draw reads
+    expect(after).toMatch(/inset:\s*auto var\(--sp-3\) var\(--sp-1\)/);
+    // the block names no other group's class (the brief's allowance is the .kana-input* rules alone)
+    expect(css).not.toMatch(/text-answer/);
+    expect(after).not.toMatch(/\bwidth\s*:/);
+    expect(/\.kana-input__ink:focus-within::after\s*\{[^}]*scale:\s*1 1/.test(css)).toBe(true);
+    expect(/\.kana-input__ink\.ink-hiku\[data-axis='x'\]\s*\{[^}]*animation:\s*none/.test(css)).toBe(true);
+    expect(/\.kana-input__ink\.ink-hiku\[data-axis='x'\]::after\s*\{[^}]*animation:\s*hiku var\(--dur-2\) var\(--ease-draw\) both/.test(css)).toBe(true);
+    expect(/\.kana-input__field\s*\{[^}]*caret-color:\s*var\(--shu\)/.test(css)).toBe(true);
+    for (const rule of css.match(/\.kana-input[^{]*\{[^}]*\}/g) ?? []) {
+      expect(rule).not.toMatch(/transition:[^;]*\b(width|height)\b/);
+      expect(rule).not.toMatch(/\b\d+(\.\d+)?m?s\b/);
+    }
   });
 });
 

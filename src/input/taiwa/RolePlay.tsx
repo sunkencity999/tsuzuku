@@ -566,7 +566,7 @@ function Play(p: PlayProps): JSX.Element {
     return (
       <div class="taiwa taiwa--intro" data-feel={feel} data-phase="intro">
         {header}
-        <div class="taiwa__card status-window">
+        <div class="taiwa__card sheet">
           <p class="taiwa__role">
             {fill(S.youPlay, { name: '' })}
             <strong lang="ja">{learner}</strong>
@@ -630,7 +630,7 @@ function Play(p: PlayProps): JSX.Element {
       </p>
 
       {npcLine ? (
-        <div class="taiwa__npc status-window" data-speaking={speaking && phase === 'npc' ? 'true' : undefined} aria-live="polite">
+        <div class="taiwa__npc sheet" data-speaking={speaking && phase === 'npc' ? 'true' : undefined} aria-live="polite">
           <div class="taiwa__npc-head">
             <span class="taiwa__speaker" lang="ja">
               {npcLine.speaker}
@@ -805,7 +805,7 @@ function Play(p: PlayProps): JSX.Element {
       ) : null}
 
       {phase === 'feedback' && last && feedbackLine ? (
-        <div class="taiwa__feedback status-window" data-kind={last.kind} role="group" aria-label={S.yourLine} data-speaking={speaking ? 'true' : undefined}>
+        <div class="taiwa__feedback sheet" data-kind={last.kind} role="group" aria-label={S.yourLine} data-speaking={speaking ? 'true' : undefined}>
           <p class="taiwa__feedback-line">{last.kind === 'best' ? S.best : last.kind === 'ok' ? S.ok : last.kind === 'near' ? S.near : S.wrong}</p>
           {heard ? <p class="taiwa__hint">{fill(S.heard, { text: heard })}</p> : null}
           {hasVoice ? (

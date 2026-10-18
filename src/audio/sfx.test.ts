@@ -5,7 +5,7 @@
  * the tests can measure each recipe's length and its summed envelope peak.
  */
 import { SFX_NAMES, type SfxName } from '../shared/catalog';
-import { GAIN_BUDGET, RECIPES, SFX_DURATION_MS, VIBRATION, createSfx, impulseBuffer, missingRecipes, noiseBuffer } from './sfx';
+import { CEREMONY_TAIKO_AT_MS, GAIN_BUDGET, RECIPES, SFX_DURATION_MS, VIBRATION, createSfx, impulseBuffer, missingRecipes, noiseBuffer } from './sfx';
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Fake Web Audio                                                             */
@@ -343,6 +343,8 @@ describe('recipe lengths and headroom', () => {
     const taiko = oscs.filter((o) => o.frequency.events[0]?.value === 55);
     expect(taiko.length).toBe(3);
     expect(taiko.map((o) => o.startAt)).toEqual([t, t + 0.7, t + 1.4]);
+    // the exported table is what the recipe schedules (design 09 §10 D1: one table owns the hits)
+    expect(CEREMONY_TAIKO_AT_MS.map((at) => t + at / 1000)).toEqual(taiko.map((o) => o.startAt));
     const lfo = oscs.find((o) => o.frequency.events[0]?.value === 5) as FakeOsc;
     expect(lfo.connectedParams.length + lfo.connections.length).toBeGreaterThan(0);
   });

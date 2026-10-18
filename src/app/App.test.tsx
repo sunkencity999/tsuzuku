@@ -514,6 +514,18 @@ describe('arrival — Hiraku (design 09 §7 A)', () => {
     expect(document.documentElement.hasAttribute('data-travel')).toBe(false);
   });
 
+  it('the prefetch starts in the first render, before any effect has run (d62): a save that is ready in a few ms still finds it in flight', async () => {
+    resetStoreForTests();
+    fakeViewTransitions();
+    const pageFor = vi.fn(dojoPages);
+    act(() => render(<App pageFor={pageFor} />, root));
+    // no flush, no frame: the call happened inside the render itself
+    expect(pageFor).toHaveBeenCalledTimes(1);
+    expect(pageFor).toHaveBeenCalledWith({ name: 'dojo' });
+    await flush();
+    expect(pageFor).toHaveBeenCalledTimes(1); // the effect does not start a second one
+  });
+
   it('when the chunk has not resolved at ready, the boot mark holds for it (d35) and the arrival turns once it lands', async () => {
     resetStoreForTests();
     const vt = fakeViewTransitions();

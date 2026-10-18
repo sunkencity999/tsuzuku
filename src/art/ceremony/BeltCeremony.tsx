@@ -9,25 +9,41 @@
  *   thumbnail rises from the ink with the wind chime → the next lantern on
  *   the Road turns vermilion → the Sensei line and a ≤ 80-word vignette.
  *
- * Phase times live in `BELT_PHASE_AT`; reduced motion shows the final frame
- * at once. Audio: `ceremony` at the start, `wallpaper` when the thumbnail
- * rises. `onDone` fires on the Continue button (the host also dismisses on
- * tap / Enter / Esc).
+ * Phase times live in `BELT_PHASE_AT`; the three taiko phases are the
+ * `ceremony` recipe's own hit offsets (`CEREMONY_TAIKO_AT_MS`, src/audio/sfx.ts
+ * — the one table that owns the hits; the art tier may not import the audio
+ * group, so BeltCeremony.test.tsx pins the equality). Reduced motion shows
+ * the final frame at once, with no ink verb on it. Audio: `ceremony` at the
+ * start, `wallpaper` when the thumbnail rises. Continue (and the host's tap /
+ * Enter / Esc) dries the card out (kasure, `useExit`) before `onDone` fires —
+ * or hands over at once when the host owns the exit (`hostExit`).
+ *
+ * Design 09 §7 E / §10 D1: the stage is `--stage-*` sumi in both themes over
+ * a seeded ink wash rendered ONCE as a data URL (`inkWashUrl`); the three
+ * splashes AND the kakejiku thumbnail (placeholder or registry render, text
+ * layers baked in) are `<img>` data URLs, so the only live `<filter>` on the
+ * whole ceremony is the name seal's ink bleed (§6.7 rule 2, def × users); the
+ * knot carries the `belt-chip` hero (static CSS). The vignette's rank title and
+ * next-lantern line show romaji only below Green kana and a kana `<Ruby>` from
+ * Green on (§3.3, `src/art/road/reading`): the Green ceremony is the moment
+ * romaji is removed, not dimmed.
  */
 import type { JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { BELTS, STATIONS, type Belt } from '../../content/types';
 import { beltBadgeId, type WallpaperId } from '../../shared/catalog';
 import { hashSeed } from '../../shared/hash';
+import { Ruby } from '../../shared/ui/Ruby';
 import { store } from '../../store';
 import { dashWrite, inkBleed, sealFrame, splatter } from '../brush';
 import { INK_WASH, PALETTE, STONE, WASHI, beltColor, darken, lighten } from '../color';
 import { FONTS, columnsFor, fitSize, katakanaName, splitColumns, tategaki, textLayersSvg, textWidth } from '../jtext';
-import { circle, el, line, mask, path, pattern, polyPath, rect, roundedRectPath, style, svgDoc, text, uid, url } from '../svg';
+import { romajiAllowed, rubyMarkup, signRubyMode } from '../road/reading';
+import { circle, el, line, mask, path, pattern, polyPath, rect, roundedRectPath, style, svgDataUrl, svgDoc, text, turbulence, uid, url } from '../svg';
 import { WALLPAPER_NAMES, fill } from '../strings';
 import { badgeDefinition, fallbackCrestSvg } from './BadgeSlam';
 import { S } from './strings';
-import { appendToSvg, loadMonCrest, loadWallpapers, playSfx, prefersReducedMotion, useLazy, useTimeline } from './support';
+import { appendToSvg, beltTitleRuby, loadMonCrest, loadWallpapers, playSfx, prefersReducedMotion, useExit, useLazy, useTimeline, verb } from './support';
 import { placeholderWallpaperSvg } from './WallpaperUnlock';
 import './BeltCeremony.css';
 
@@ -38,12 +54,21 @@ export interface BeltCeremonyProps {
   wallpaperId?: WallpaperId;
   onDone(): void;
   reduced?: boolean;
+  /** The host plays the one kasure exit on its overlay: Continue hands over at once. */
+  hostExit?: boolean;
 }
 
 export const BELT_PHASES = ['dim', 'taiko1', 'taiko2', 'taiko3', 'kanji', 'knot', 'seal', 'thumb', 'lantern', 'vignette'] as const;
 export type BeltPhase = (typeof BELT_PHASES)[number];
-/** Start of each phase in ms since mount (≈ 12 s to the vignette). */
-export const BELT_PHASE_AT: readonly number[] = [0, 600, 1200, 1800, 2400, 5000, 7600, 8800, 10600, 11600];
+/**
+ * Start of each phase in ms since mount (≈ 12 s to the vignette, `SFX_DURATION_MS.ceremony`).
+ * The taiko phases are the recipe's hits — 0 / 700 / 1,400 ms, `CEREMONY_TAIKO_AT_MS` in
+ * src/audio/sfx.ts (BeltCeremony.test.tsx asserts the equality by importing it); the kanji
+ * writes at 2,400 ms, where the recipe's shakuhachi enters.
+ */
+export const BELT_PHASE_AT: readonly number[] = [0, 0, 700, 1400, 2400, 5000, 7600, 8800, 10600, 11600];
+/** Indices of the taiko phases in `BELT_PHASES` / `BELT_PHASE_AT`. */
+export const BELT_TAIKO_PHASES: readonly number[] = [1, 2, 3];
 
 /** Ceremony wallpapers by belt (design 02 §2); Yellow and Orange unlock a badge only. */
 export const BELT_WALLPAPER: Partial<Record<Belt, WallpaperId>> = {
@@ -64,6 +89,21 @@ const KIN = PALETTE.light.kin;
 /* ────────────────────────────────────────────────────────────────────────── */
 /* SVG pieces                                                                 */
 /* ────────────────────────────────────────────────────────────────────────── */
+
+/** The seeded ink wash behind the stage (svg.ts turbulence), as a static data URL: rasterised once, never a live filter. */
+export function inkWashUrl(seed: number): string {
+  const id = 'belt-wash';
+  return svgDataUrl(
+    svgDoc({
+      w: 320,
+      h: 224,
+      defs: [turbulence(id, { baseFrequency: [0.012, 0.02], octaves: 3, seed, alpha: 0.9 })],
+      body: [rect(0, 0, 320, 224, { fill: INK_WASH, filter: url(id), opacity: 0.18 })],
+      preserveAspectRatio: 'none',
+      attrs: { 'aria-hidden': 'true' },
+    }),
+  );
+}
 
 /** One taiko splash: a wet centre and flung droplets, 220 × 220. */
 export function splashSvg(seed: number, i: number): string {
@@ -256,6 +296,14 @@ export function BeltCeremony(p: BeltCeremonyProps): JSX.Element {
   const [thumb, setThumb] = useState<string | null>(null);
   const reached = (ph: BeltPhase): boolean => phase >= beltPhaseIndex(ph);
   const reforge = wallpaperId ? (store.collections.value.wallpapers[wallpaperId]?.reforges ?? 0) : 0;
+  const exit = useExit(p.onDone, reduced || p.hostExit === true);
+  // signage (design 09 §3.3): romaji only below Green kana; a kana ruby from Green on (the belt the store holds — this ceremony's)
+  const romaji = romajiAllowed(store.profile.value.belt);
+  const rubyMode = signRubyMode(store.settings.value.furigana);
+  // static images, each encoded once per ceremony, never per phase render
+  const wash = useMemo(() => inkWashUrl(seed), [seed]);
+  const splashes = useMemo(() => [0, 1, 2].map((i) => svgDataUrl(splashSvg(seed, i))), [seed]);
+  const thumbSrc = useMemo(() => (wallpaperId ? svgDataUrl(thumb ?? placeholderWallpaperSvg(wallpaperId, hashSeed(store.seed(), wallpaperId, reforge), 'desktop')) : ''), [thumb, wallpaperId, reforge]);
 
   useEffect(() => {
     playSfx('ceremony');
@@ -286,23 +334,31 @@ export function BeltCeremony(p: BeltCeremonyProps): JSX.Element {
   const badgeDef = badgeId ? badgeDefinition(badgeId) : undefined;
   const Crest = crest.value;
   const next = nextStop(p.belt);
-  const classes = ['belt-ceremony', ...BELT_PHASES.slice(0, phase + 1).map((n) => `is-${n}`)].join(' ');
+  const classes = ['belt-ceremony', verb(reduced, 'ink-nijimi'), ...BELT_PHASES.slice(0, phase + 1).map((n) => `is-${n}`)].filter(Boolean).join(' ');
 
   return (
-    <section class={classes} data-belt={p.belt} data-phase={phase} data-phase-name={BELT_PHASES[phase]}>
+    <section
+      class={classes}
+      data-belt={p.belt}
+      data-phase={phase}
+      data-phase-name={BELT_PHASES[phase]}
+      data-leaving={exit.leaving ? '' : undefined}
+      ref={exit.ref}
+      style={{ '--belt-wash': `url("${wash}")` }}
+    >
       <div class="belt-ceremony__sweep" aria-hidden="true" />
       <div class="belt-ceremony__stage" aria-hidden="true">
-        {[0, 1, 2].map((i) => (reached(BELT_PHASES[i + 1]!) ? <div key={i} class={`belt-splash belt-splash--${i}`} dangerouslySetInnerHTML={{ __html: splashSvg(seed, i) }} /> : null))}
+        {splashes.map((src, i) => (reached(BELT_PHASES[i + 1]!) ? <img key={i} class={`belt-splash belt-splash--${i}`} src={src} alt="" /> : null))}
         {reached('kanji') ? <div class="belt-kanji" dangerouslySetInnerHTML={{ __html: kanjiSvg(def.titleJa, seed, reduced) }} /> : null}
-        {reached('knot') ? <div class="belt-knot" dangerouslySetInnerHTML={{ __html: knotSvg(p.belt, seed, reduced) }} /> : null}
+        {reached('knot') ? <div class={`belt-knot ${verb(reduced, 'ink-nijimi')}`} data-hero="belt-chip" style={{ '--from': '0 24px' }} dangerouslySetInnerHTML={{ __html: knotSvg(p.belt, seed, reduced) }} /> : null}
         {reached('seal') ? <div class="belt-seal" dangerouslySetInnerHTML={{ __html: sealSvg(name, seed) }} /> : null}
       </div>
       <p class="visually-hidden">
         {fill(S.beltKnotAlt, { belt: def.nameEn })} {fill(S.beltSealAlt, { name })}
       </p>
       {wallpaperId && reached('thumb') ? (
-        <figure class="belt-thumb" aria-label={fill(S.beltThumbAlt, { name: WALLPAPER_NAMES[wallpaperId].en })} data-preview={thumb ? 'render' : 'placeholder'}>
-          <div class="belt-thumb__art" dangerouslySetInnerHTML={{ __html: thumb ?? placeholderWallpaperSvg(wallpaperId, hashSeed(store.seed(), wallpaperId, reforge), 'desktop') }} />
+        <figure class={`belt-thumb ${verb(reduced, 'ink-nijimi')}`} aria-label={fill(S.beltThumbAlt, { name: WALLPAPER_NAMES[wallpaperId].en })} data-preview={thumb ? 'render' : 'placeholder'}>
+          <img class={`belt-thumb__art ${verb(reduced, 'ink-hiku')}`} data-axis="y" src={thumbSrc} alt="" decoding="async" />
           <figcaption class="belt-thumb__caption" lang="ja">
             {WALLPAPER_NAMES[wallpaperId].ja}
           </figcaption>
@@ -310,15 +366,15 @@ export function BeltCeremony(p: BeltCeremonyProps): JSX.Element {
       ) : null}
       {reached('lantern') ? <div class="belt-lanterns" role="img" aria-label={S.beltLanternsAlt} dangerouslySetInnerHTML={{ __html: lanternsSvg(p.belt) }} /> : null}
       {reached('vignette') ? (
-        <div class="belt-vignette">
-          <p class="belt-vignette__eyebrow status-window__label">
+        <div class={`belt-vignette ${verb(reduced, 'ink-nijimi')}`}>
+          <p class="eyebrow belt-vignette__eyebrow">
             {fill(S.beltTitle, { belt: def.nameEn })}
             <span lang="ja">{def.nameJa}</span>
           </p>
           <h2 class="belt-vignette__rank brush" lang="ja">
-            {def.titleJa}
+            {romaji ? def.titleJa : <Ruby ja={beltTitleRuby(def)} mode={rubyMode} />}
           </h2>
-          <p class="belt-vignette__romaji">{def.titleRomaji}</p>
+          {romaji ? <p class="belt-vignette__romaji">{def.titleRomaji}</p> : null}
           {badgeId && badgeDef ? (
             <div class="belt-vignette__crest" data-crest={Crest ? 'mon' : 'fallback'}>
               {Crest ? (
@@ -333,9 +389,15 @@ export function BeltCeremony(p: BeltCeremonyProps): JSX.Element {
           <p class="belt-vignette__next">
             {S.beltNextLantern}
             {': '}
-            <span lang="ja">{next.ja}</span> {next.romaji}
+            {romaji ? (
+              <>
+                <span lang="ja">{next.ja}</span> {next.romaji}
+              </>
+            ) : (
+              <Ruby ja={rubyMarkup(next.ja, next.romaji)} mode={rubyMode} />
+            )}
           </p>
-          <button type="button" class="hanko belt-vignette__continue" onClick={() => p.onDone()}>
+          <button type="button" class="hanko belt-vignette__continue" onClick={exit.leave}>
             {S.continue}
           </button>
         </div>

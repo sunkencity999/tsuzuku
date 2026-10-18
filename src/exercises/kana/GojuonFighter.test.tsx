@@ -9,7 +9,10 @@ import { CardFlag, hasFlag } from '@/shared/store-types';
 import { ExerciseFrame } from '@/shared/ui/ExerciseFrame';
 import { store } from '@/store';
 import { captureEvents, card, makeTestStore } from '@/store/testing';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { GLIDE_END_MS, GLIDE_START_MS, GOJUON_ROUND_SIZE, GojuonFighter, buildRound, landMs, meta, rowOf, type GojuonRound } from './GojuonFighter';
+import { S as GS, fill as gfill } from './gojuon-strings';
 import { isDisplayRomaji } from './KanaFlash';
 
 // `content` is a singleton with an empty cache in tests; serve one loaded kana
@@ -193,9 +196,17 @@ describe('<GojuonFighter> round', () => {
     mount(p);
     expect(phase()).toBe('ready');
     expect(root.textContent).toContain('3 are mature kana');
+    // the ready panel is a .sheet under a poster title (design 09 §2.5)
+    expect(root.querySelector('.gojuon .drill')?.classList.contains('sheet')).toBe(true);
+    expect(root.querySelector('.gojuon .drill h3')?.classList.contains('poster-title')).toBe(true);
     key(document.body, 'Enter'); // frame Enter → start
     expect(phase()).toBe('play');
     expect(root.querySelector('.gojuon__opponent [lang="ja"]')?.textContent).toMatch(/行|ん/);
+    // the landing bar is a .meter driven by --value; the miss count rolls
+    const track = root.querySelector('.gojuon__track') as HTMLElement;
+    expect(track.classList.contains('meter')).toBe(true);
+    expect(track.style.getPropertyValue('--value')).toBe('1.000');
+    expect(root.querySelector('.gojuon__lantern .ticker[data-roll]')).not.toBeNull();
 
     const round = buildRound(POOL, { seed: store.seed(), day: store.today(), stepId: 'g1' });
     const kaIdx = round.findIndex((k) => k.id === 'k-h-ka');
@@ -257,10 +268,43 @@ describe('<GojuonFighter> round', () => {
     expect(store.log.forCard('k-h-ki#rec').length).toBe(0);
     expect(store.log.forCard('k-h-ne#rec').length).toBe(0);
 
-    // results panel
+    // results panel: a .sheet, poster title, rolling counts, eyebrow labels (kana.css carries no .drill__label any more)
     expect(root.querySelectorAll('.gojuon__reaction').length).toBe(GOJUON_ROUND_SIZE);
     expect(root.querySelectorAll('.gojuon__reaction[data-hit="false"]').length).toBe(misses);
     expect(root.textContent).toContain('kana come back untimed next session');
+    expect(root.querySelector('.gojuon__over')?.classList.contains('sheet')).toBe(true);
+    expect(root.querySelector('.gojuon__over h3')?.classList.contains('poster-title')).toBe(true);
+    expect(root.querySelectorAll('.gojuon__stats .ticker[data-roll]').length).toBe(2);
+    expect(root.querySelectorAll('.gojuon__stats dt.eyebrow').length).toBe(4);
+    expect(root.querySelector('.drill__label')).toBeNull();
+    const kanaCss = readFileSync(resolve(process.cwd(), 'src/exercises/kana/kana.css'), 'utf8');
+    expect(kanaCss).not.toContain('.drill__label');
+    // the gliding kana never moves by `left` (design 09 §6.7 rule 1): a composited translate in container-query units
+    expect(kanaCss).not.toContain('left: calc(var(--remain)');
+    expect(kanaCss).toMatch(/\.gojuon__kana \{[^}]*translate: calc\(var\(--remain\) \* \(100cqi - 3\.5rem\)\) -50%/);
+    expect(kanaCss).toMatch(/\.gojuon__stage \{[^}]*container-type: inline-size/);
+    // no own best yet (stats.gojuonBest 0): no BEST eyebrow (footnote 5)
+    expect(root.querySelector('.gojuon__best')).toBeNull();
+  });
+
+  it('the BEST eyebrow names the learner’s OWN previous best only when the round’s hits pass it', async () => {
+    await makeTestStore({ now: () => clock, save: { stats: { gojuonBest: 10 } }, cards: { 'k-h-ka#rec': card({ s: 30, reps: 12, state: 2, due: 100 }) } });
+    const p = props({ step: step({ params: { pool: ['k-h-ka#rec' as CardKey] } }) as P['step'] });
+    mount(p, false);
+    act(() => (root.querySelector('.hanko') as HTMLButtonElement).click());
+    const round = buildRound(['k-h-ka#rec'], { seed: store.seed(), day: store.today(), stepId: 'g1' });
+    for (let i = 0; i < round.length; i++) hit(100);
+    expect(phase()).toBe('over');
+    expect(root.querySelector('.gojuon__best')?.textContent).toBe(gfill(GS.bestEyebrow, { n: 10 }));
+    // a round that does not pass the own best: no eyebrow
+    await makeTestStore({ now: () => clock, save: { stats: { gojuonBest: 46 } }, cards: { 'k-h-ka#rec': card({ s: 30, reps: 12, state: 2, due: 100 }) } });
+    mount(props({ step: step({ id: 'g2', params: { pool: ['k-h-ka#rec' as CardKey] } }) as P['step'] }), false);
+    act(() => (root.querySelector('.hanko') as HTMLButtonElement).click());
+    const round2 = buildRound(['k-h-ka#rec'], { seed: store.seed(), day: store.today(), stepId: 'g2' });
+    pass(landMs(0, round2.length) + 60); // one miss
+    for (let i = 1; i < round2.length; i++) hit(100);
+    expect(phase()).toBe('over');
+    expect(root.querySelector('.gojuon__best')).toBeNull();
   });
 
   it('a lone n needs Enter (ん) and a clean round reports no recheck', () => {

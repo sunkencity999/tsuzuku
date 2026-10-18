@@ -17,8 +17,24 @@
  *
  * Every ceremony is dismissed by a tap on the backdrop or card, Enter, Space or
  * Esc; the dialog traps Tab, takes focus on open and gives it back on close; a
- * polite live region announces each ceremony. Reduced motion (store setting or
- * OS) renders the static final frame. Audio goes through `shared/audio`.
+ * polite live region announces each ceremony. The overlay enters as nijimi and
+ * leaves as kasure (design 09 §6.3 — every surface that enters also exits):
+ * the verb rides `.ceremony__dialog` while the backdrop only fades (mat), so
+ * the opaque belt stage is never scaled or translated (§6.7 rule 7 in spirit:
+ * a full-viewport sheet shows a rim of the page when it moves); a dismissal
+ * sets `data-leaving` on the root and the dialog, and the queue moves on at the
+ * dialog's own animationend or after `EXIT_FALLBACK_MS` (`useExit`). The cards
+ * get `hostExit`, so their Continue hands over at once and a dismissal costs
+ * ONE --dur-1 kasure, never the card's and then the overlay's. A belt ceremony
+ * that arrives outside a session waits `BELT_SETTLE_MS` for ShinsaView's 600 ms
+ * sumi beat (+ its kasure) before it opens. Reduced motion (store setting or
+ * OS) renders the static final frame, no ink verb, and dismisses at once.
+ * Audio goes through `shared/audio`.
+ *
+ * The live region's sentence (`announcementFor`) keeps the station's romaji
+ * beside its kanji at every belt: it is SPOKEN, not shown, and a screen reader
+ * needs the Latin spelling to say the name — design 09 §3.3's romaji gate
+ * (d49) is about glyphs the learner sees; `StampPress` gates the visible line.
  *
  * Belt promotions fold in their own Shinsa badge and ceremony wallpaper so the
  * learner is not shown the same reward twice; a burst of more than `MAX_QUEUE`
@@ -37,7 +53,7 @@ import { BadgeSlam, badgeDefinition } from './BadgeSlam';
 import { BELT_WALLPAPER, BeltCeremony } from './BeltCeremony';
 import { StampPress, stationDef } from './StampPress';
 import { S } from './strings';
-import { isInteractive, playSfx, prefersReducedMotion, trapTab } from './support';
+import { isInteractive, playSfx, prefersReducedMotion, trapTab, useExit, verb } from './support';
 import { WallpaperUnlock } from './WallpaperUnlock';
 import './CeremonyHost.css';
 
@@ -57,6 +73,14 @@ export type Ceremony =
 export const CEREMONY_GRACE_MS = 1600;
 /** Outside a session: let the page's own feedback settle. */
 export const CEREMONY_SETTLE_MS = 250;
+/**
+ * A belt ceremony opens no sooner than this after the pass (design 09 §10 D1):
+ * ShinsaView's sumi beat holds 600 ms (`SHINSA_SUMI_MS`) and dries out over
+ * --dur-1 (`SHINSA_SUMI_OUT_MS`, 120) — the art tier may not import the
+ * session group, so the two figures are carried here; ShinsaView.test pins the
+ * sum. Not applied under reduced motion (the beat is absent there).
+ */
+export const BELT_SETTLE_MS = 720;
 /** Beat between two ceremonies. */
 export const CEREMONY_BETWEEN_MS = 350;
 /** The level toast dismisses itself. */
@@ -119,7 +143,11 @@ function show(): void {
   nextDelay = CEREMONY_SETTLE_MS;
   notify();
 }
-function schedule(delay = nextDelay): void {
+/** The settle before the next ceremony: a belt at the head of the queue waits for the Shinsa sumi beat. */
+function settleDelay(): number {
+  return queue[0]?.kind === 'belt' && !prefersReducedMotion() ? Math.max(nextDelay, BELT_SETTLE_MS) : nextDelay;
+}
+function schedule(delay = settleDelay()): void {
   if (hosts === 0 || current || sessionActive || timer !== null || queue.length === 0) return;
   timer = setTimeout(show, delay);
 }
@@ -312,8 +340,8 @@ function SummaryCard(p: { c: Extract<Ceremony, { kind: 'summary' }>; onDone(): v
   if (p.c.stamps > 0) parts.push(fill(S.summaryStamps, { n: p.c.stamps }));
   if (p.c.levels > 0) parts.push(fill(S.summaryLevels, { n: p.c.levels }));
   return (
-    <section class="ceremony-summary">
-      <p class="ceremony-summary__eyebrow status-window__label">{S.summaryTitle}</p>
+    <section class="ceremony-summary sheet">
+      <p class="ceremony-summary__eyebrow eyebrow">{S.summaryTitle}</p>
       <p class="ceremony-summary__line">{S.summaryLine}</p>
       {parts.length > 0 ? <p class="ceremony-summary__counts">{parts.join(' · ')}</p> : null}
       <div class="ceremony-summary__actions">
@@ -328,14 +356,17 @@ function SummaryCard(p: { c: Extract<Ceremony, { kind: 'summary' }>; onDone(): v
   );
 }
 
-function LevelToast(p: { level: number; onDone(): void }): JSX.Element {
+function LevelToast(p: { level: number; onDone(): void; reduced: boolean }): JSX.Element {
+  const exit = useExit(p.onDone, p.reduced);
+  const leave = useRef(exit.leave);
+  leave.current = exit.leave;
   useEffect(() => {
     playSfx('promotion');
-    const t = setTimeout(() => p.onDone(), LEVEL_TOAST_MS);
+    const t = setTimeout(() => leave.current(), LEVEL_TOAST_MS);
     const onKey = (e: KeyboardEvent): void => {
       if (e.key === 'Escape' || e.key === 'Enter') {
         e.preventDefault();
-        p.onDone();
+        leave.current();
       }
     };
     document.addEventListener('keydown', onKey);
@@ -345,7 +376,16 @@ function LevelToast(p: { level: number; onDone(): void }): JSX.Element {
     };
   }, []);
   return (
-    <button type="button" class="ceremony-toast status-window" data-kind="level" onClick={() => p.onDone()} aria-label={fill(S.levelLine, { n: p.level })}>
+    <button
+      type="button"
+      class={`ceremony-toast sheet ${verb(p.reduced, 'ink-nijimi')}`}
+      style={{ '--from': '0 8px' }}
+      data-kind="level"
+      data-leaving={exit.leaving ? '' : undefined}
+      ref={exit.ref}
+      onClick={exit.leave}
+      aria-label={fill(S.levelLine, { n: p.level })}
+    >
       <span class="ceremony-toast__lv pixel" aria-hidden="true">
         {S.levelLabel} {p.level}
       </span>
@@ -383,6 +423,8 @@ export function CeremonyHost(): JSX.Element {
   const c = current;
   const key = c ? ceremonyKey(c) : '';
   const modal = c !== null && c.kind !== 'level';
+  // the overlay's kasure exit: one per ceremony (keyed, so the next ceremony can leave too)
+  const exit = useExit(dismissCeremony, prefersReducedMotion(), key);
 
   // Focus into the dialog, lock page scroll, restore both on close.
   useEffect(() => {
@@ -408,7 +450,7 @@ export function CeremonyHost(): JSX.Element {
     return (
       <>
         {live}
-        <LevelToast key={key} level={c.level} onDone={dismissCeremony} />
+        <LevelToast key={key} level={c.level} onDone={dismissCeremony} reduced={reduced} />
       </>
     );
   }
@@ -416,47 +458,58 @@ export function CeremonyHost(): JSX.Element {
   const onKeyDown = (e: KeyboardEvent): void => {
     if (e.key === 'Escape') {
       e.preventDefault();
-      dismissCeremony();
+      exit.leave();
       return;
     }
     if ((e.key === 'Enter' || e.key === ' ') && !isInteractive(e.target)) {
       e.preventDefault();
-      dismissCeremony();
+      exit.leave();
       return;
     }
     if (e.key === 'Tab' && dialogRef.current) trapTab(e, dialogRef.current);
   };
   const onClick = (e: MouseEvent): void => {
     if (isInteractive(e.target)) return;
-    dismissCeremony();
+    exit.leave();
   };
 
   let body: JSX.Element;
   switch (c.kind) {
     case 'badge':
-      body = <BadgeSlam key={key} id={c.id} onDone={dismissCeremony} reduced={reduced} />;
+      body = <BadgeSlam key={key} id={c.id} onDone={exit.leave} reduced={reduced} hostExit />;
       break;
     case 'belt': {
       const profile = store.profile.value;
-      body = <BeltCeremony key={key} belt={c.belt} nameKana={profile.nameKana || profile.name || S.nameless} wallpaperId={BELT_WALLPAPER[c.belt]} onDone={dismissCeremony} reduced={reduced} />;
+      body = <BeltCeremony key={key} belt={c.belt} nameKana={profile.nameKana || profile.name || S.nameless} wallpaperId={BELT_WALLPAPER[c.belt]} onDone={exit.leave} reduced={reduced} hostExit />;
       break;
     }
     case 'wallpaper':
-      body = <WallpaperUnlock key={key} id={c.id} quadrant={c.quadrant} onDone={dismissCeremony} reduced={reduced} />;
+      body = <WallpaperUnlock key={key} id={c.id} quadrant={c.quadrant} onDone={exit.leave} reduced={reduced} hostExit />;
       break;
     case 'stamp':
-      body = <StampPress key={key} station={c.station} perfect={c.perfect} assisted={c.assisted} onDone={dismissCeremony} reduced={reduced} />;
+      body = <StampPress key={key} station={c.station} perfect={c.perfect} assisted={c.assisted} onDone={exit.leave} reduced={reduced} hostExit />;
       break;
     default:
-      body = <SummaryCard key={key} c={c} onDone={dismissCeremony} />;
+      body = <SummaryCard key={key} c={c} onDone={exit.leave} />;
   }
 
   return (
     <>
       {live}
-      <div class={`ceremony ceremony--${c.kind}${reduced ? ' ceremony--static' : ''}`} data-kind={c.kind} onClick={onClick} onKeyDown={onKeyDown}>
+      <div key={key} class={`ceremony ceremony--${c.kind}`} data-kind={c.kind} data-leaving={exit.leaving ? '' : undefined} onClick={onClick} onKeyDown={onKeyDown}>
         <div class="ceremony__backdrop" aria-hidden="true" />
-        <div ref={dialogRef} class="ceremony__dialog" role="dialog" aria-modal="true" aria-label={labelFor(c)} tabIndex={-1}>
+        <div
+          ref={(el) => {
+            dialogRef.current = el;
+            exit.ref(el);
+          }}
+          class={`ceremony__dialog ${verb(reduced, 'ink-nijimi')}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label={labelFor(c)}
+          tabIndex={-1}
+          data-leaving={exit.leaving ? '' : undefined}
+        >
           {body}
           <p class="ceremony__hint">{S.skipHint}</p>
         </div>

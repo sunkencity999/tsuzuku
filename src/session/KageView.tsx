@@ -11,6 +11,17 @@
  *  The Ghost Set's runner never touches the training snapshot (`persist:
  *  false`) and leaving the room mid-run abandons it.
  *
+ *  Design 09 §2.5 / §5.6–§5.8 / §10 D1: the arcade is a woodblock print — the
+ *  heads are `.poster-title` (Dela, 1 px misregistration, kentō marks), the
+ *  digits are Dela `<Ticker roll>`s (the cabinet roll, d59), the lanes are
+ *  `.meter`s, the hi-score table is arcade.css's `.hiscore`, and the BEST
+ *  eyebrow appears in the result ONLY when the run passed the learner's OWN
+ *  best of four weeks — never another learner, never a global, never on a miss
+ *  (footnote 5). The table's factory initials (katakana, kage.ts) carry their
+ *  romaji while kana are below Green and stand alone from Green on (§3.3).
+ *  Nothing glows. Back is a route turn: the View Transition's kasure is the
+ *  result panel's exit.
+ *
  *  `<KageStrip>` is the compact race strip the Road page shows.
  */
 import type { JSX } from 'preact';
@@ -22,7 +33,10 @@ import { href } from '../shared/routes';
 import type { SessionPlan } from '../shared/session-types';
 import { weekOf } from '../shared/time';
 import type { KageState } from '../shared/store-types';
+import { Ticker } from '../shared/ui/Ticker';
+import { romajiAllowed } from '../art/road/reading';
 import { store } from '../store';
+import { S as AS } from './arcade-strings';
 import { fill } from './engine-strings';
 import { buildKage, finishKage, hiScoreTable, kageResultLine, kageStanding, scoreKage, type HiScoreRow, type KageScore } from './kage';
 import { SessionRunner } from './runner';
@@ -46,18 +60,22 @@ export interface KageViewProps {
 
 export type KageStage = 'standing' | 'building' | 'failed' | 'empty' | 'run' | 'result';
 
-/** DotGothic digits with thin-space grouping, never a countdown. */
+const digits = (n: number): string => Math.round(n).toLocaleString('en-US');
+
+/** Dela digits that roll (the cabinet roll, `data-roll`) with thin-space grouping, never a countdown. */
 export function Digits(p: { value: number; label?: string; size?: 'md' | 'lg' }): JSX.Element {
   return (
     <span class={`kage-digits kage-digits--${p.size ?? 'md'}`} aria-label={p.label ? `${p.label}: ${p.value}` : undefined}>
-      {p.value.toLocaleString('en-US')}
+      <Ticker value={p.value} format={digits} roll />
     </span>
   );
 }
 
 export function HiScoreTable(p: { rows: HiScoreRow[] }): JSX.Element {
+  // design 09 §3.3: the katakana initials read with romaji only below Green kana
+  const romaji = romajiAllowed(store.profile.value.belt);
   return (
-    <table class="kage-table" aria-label={S.kageTableTitle}>
+    <table class="kage-table hiscore" aria-label={S.kageTableTitle}>
       <thead>
         <tr>
           <th scope="col">#</th>
@@ -70,7 +88,16 @@ export function HiScoreTable(p: { rows: HiScoreRow[] }): JSX.Element {
         {p.rows.map((r, i) => (
           <tr key={`${r.initials}-${r.week ?? 'f'}-${i}`} data-factory={r.factory ? 'true' : 'false'}>
             <td>{i + 1}</td>
-            <td lang={r.factory ? 'ja' : undefined}>{r.initials}</td>
+            <td>
+              {r.factory ? (
+                <>
+                  <span lang="ja">{r.initials}</span>
+                  {romaji && AS.kageInitials[r.initials] ? <span class="kage-table__romaji"> {AS.kageInitials[r.initials]}</span> : null}
+                </>
+              ) : (
+                r.initials
+              )}
+            </td>
             <td>
               <Digits value={r.score} />
             </td>
@@ -84,7 +111,7 @@ export function HiScoreTable(p: { rows: HiScoreRow[] }): JSX.Element {
 
 function Versus(p: { name: string; best: number; last: number | null }): JSX.Element {
   return (
-    <div class="kage-versus" aria-label={S.kageTitle}>
+    <div class="kage-versus halftone" aria-label={S.kageTitle}>
       <div class="kage-versus__side kage-versus__side--you">
         <span class="kage-versus__name">{p.name}</span>
         <span class="kage-versus__label">{S.kageLast}</span>
@@ -110,7 +137,7 @@ export function KageView(p: KageViewProps): JSX.Element {
   const [stage, setStage] = useState<KageStage>('standing');
   const [runner, setRunner] = useState<SessionRunner | null>(null);
   const [score, setScore] = useState<KageScore | null>(null);
-  const [outcome, setOutcome] = useState<{ beat: boolean; counted: boolean; firstRun: boolean } | null>(null);
+  const [outcome, setOutcome] = useState<{ beat: boolean; counted: boolean; firstRun: boolean; bestBefore: number } | null>(null);
   const [, setTick] = useState(0);
   const finished = useRef(false);
   const kage: KageState = store.kage.value;
@@ -132,10 +159,12 @@ export function KageView(p: KageViewProps): JSX.Element {
     if (stage !== 'result' || !runner || finished.current) return;
     finished.current = true;
     const firstRun = store.kage.value.history.length === 0;
+    // the learner's OWN best before this run: the only number the BEST eyebrow ever compares with
+    const bestBefore = kageStanding(store.kage.value, store.today()).best;
     const sc = scoreKage(runner.results, store.medianMs.value);
     const out = finishKage(sc.score, weekOf(store.today()));
     setScore(sc);
-    setOutcome({ ...out, firstRun });
+    setOutcome({ ...out, firstRun, bestBefore });
   }, [stage, runner]);
 
   useEffect(
@@ -203,9 +232,12 @@ export function KageView(p: KageViewProps): JSX.Element {
 
   if (stage === 'result' && runner && score) {
     const line = outcome ? kageResultLine(outcome.beat, outcome.firstRun) : '';
+    const best = outcome !== null && outcome.beat && outcome.counted && outcome.bestBefore > 0;
     return (
       <section class="kage-view" aria-label={S.kageAria} data-stage="result" data-beat={outcome?.beat ? 'true' : 'false'}>
-        <h2 class="kage-view__title">{S.kageResultTitle}</h2>
+        <h2 class="kage-view__title poster-title poster-title--m">{AS.kageResultPoster}</h2>
+        <p class="eyebrow kage-view__eyebrow">{S.kageResultTitle}</p>
+        {best ? <p class="eyebrow kage-view__best">{fill(AS.kageBest, { n: outcome.bestBefore })}</p> : null}
         <p class="kage-view__score">
           <Digits value={score.score} size="lg" label={S.kageScore} />
         </p>
@@ -233,7 +265,8 @@ export function KageView(p: KageViewProps): JSX.Element {
 
   return (
     <section class="kage-view" aria-label={S.kageAria} data-stage="standing">
-      <h2 class="kage-view__title">{S.kageTitle}</h2>
+      <h2 class="kage-view__title poster-title">{AS.kagePoster}</h2>
+      <p class="eyebrow kage-view__eyebrow">{S.kageTitle}</p>
       <Versus name={name} best={standing.best} last={standing.lastScore} />
       <p class="kage-view__line">{standing.line}</p>
       <p class="kage-view__sub">{S.kageSetLine}</p>
@@ -263,11 +296,13 @@ export function KageStrip(): JSX.Element {
         <span lang="ja">影</span> {S.kageStripTitle}
       </span>
       <span class="kage-strip__lanes" aria-hidden="true">
-        <span class="kage-strip__lane kage-strip__lane--you">
-          <span class="kage-strip__fill" style={{ width: `${Math.round((you / max) * 100)}%` }} />
+        <span class="eyebrow kage-strip__lane-label">{AS.kageLaneYou}</span>
+        <span class="meter kage-strip__lane kage-strip__lane--you" style={{ '--value': String(you / max) }}>
+          <span class="meter__fill" />
         </span>
-        <span class="kage-strip__lane kage-strip__lane--kage">
-          <span class="kage-strip__fill" style={{ width: `${Math.round((standing.best / max) * 100)}%` }} />
+        <span class="eyebrow kage-strip__lane-label">{AS.kageLaneShadow}</span>
+        <span class="meter kage-strip__lane kage-strip__lane--kage" style={{ '--value': String(standing.best / max) }}>
+          <span class="meter__fill" />
         </span>
       </span>
       <span class="kage-strip__meta">

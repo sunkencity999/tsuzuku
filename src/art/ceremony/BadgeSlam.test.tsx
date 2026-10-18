@@ -3,9 +3,11 @@ import { act } from 'preact/test-utils';
 import { installServices, nullAudio, resetServices } from '../../shared/audio';
 import { BADGE_IDS } from '../../shared/catalog';
 import { makeTestStore } from '../../store/testing';
+import { formatEraDate } from '../../shared/time';
+import { store } from '../../store';
 import { BadgeSlam, SLAM_AT, badgeDefinition, badgeShareCard, fallbackCrestSvg } from './BadgeSlam';
 import { S } from './strings';
-import { setLazyArtForTests, type MonCrestProps } from './support';
+import { EXIT_FALLBACK_MS, eraGloss, setLazyArtForTests, type MonCrestProps, type MonModule } from './support';
 
 let root: HTMLDivElement;
 let sfx: ReturnType<typeof vi.fn>;
@@ -72,12 +74,22 @@ describe('<BadgeSlam>', () => {
     expect(root.querySelector('.badge-slam__tier')?.textContent).toBe(S.tierGold);
   });
 
-  it('slams: ready → slam → settled on the phase table', () => {
+  it('slams: ready → slam → settled on the phase table; stone turns to colour; the era date lands at settled (§7 E)', () => {
     vi.useFakeTimers();
     act(() => render(<BadgeSlam id="first-step" onDone={() => {}} reduced={false} />, root));
     const section = (): Element => root.querySelector('.badge-slam')!;
     expect(section().getAttribute('data-phase')).toBe('0');
     expect(section().classList.contains('badge-slam--ready')).toBe(true);
+    expect(section().classList.contains('sheet')).toBe(true);
+    expect(section().classList.contains('ink-nijimi')).toBe(true);
+    // the unearned crest in grey stone, as a static image (no live filter), under the crest that will slam (the fallback crest until mon.ts resolves)
+    const stone = root.querySelector('.badge-slam__stone')!;
+    expect(stone.getAttribute('data-stone')).toBe('fallback');
+    const img = stone.querySelector('img')!;
+    expect(img.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
+    expect(decodeURIComponent(img.getAttribute('src')!)).toContain('#8A8578');
+    expect(root.querySelectorAll('filter')).toHaveLength(0);
+    expect(root.querySelector('.badge-slam__date')).toBeNull();
     act(() => {
       vi.advanceTimersByTime(SLAM_AT[1]!);
     });
@@ -86,18 +98,73 @@ describe('<BadgeSlam>', () => {
       vi.advanceTimersByTime(SLAM_AT[2]! - SLAM_AT[1]!);
     });
     expect(section().classList.contains('badge-slam--settled')).toBe(true);
+    const date = root.querySelector('.badge-slam__date')!;
+    expect(date.classList.contains('seal-date')).toBe(true);
+    expect(date.querySelector('.ceremony__era')?.textContent).toBe(formatEraDate(store.today()));
+    expect(date.querySelector('.seal-date__label')?.textContent).toBe(eraGloss(store.today()));
   });
 
-  it('reduced motion renders the settled card at once', () => {
+  it('the stone twin is mon.ts’s own stone image when the module is built (§7 E: the same drawing turns from stone to colour), its glyph set over it in the page’s font', async () => {
+    const monStoneImage = vi.fn((_spec: unknown, o: { size: number; seed: number }) => ({
+      url: `data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20data-seed%3D%22${o.seed}%22%2F%3E`,
+      glyph: { text: '京', x: 128, y: 128, size: 120, font: 'serif', fill: '#8A8578', anchor: 'middle' as const },
+      view: 256,
+    }));
+    const monSeed = vi.fn(() => 4242);
+    const mon: MonModule = { monSvg: () => '<svg xmlns="http://www.w3.org/2000/svg"/>', MON_SPECS: { kyoto: { ring: 'gold' } }, monStoneImage, monSeed };
+    setLazyArtForTests({ MonCrest: null, mon });
+    act(() => render(<BadgeSlam id="kyoto" onDone={() => {}} reduced={false} />, root));
+    await settle();
+    const stone = root.querySelector('.badge-slam__stone')!;
+    expect(stone.getAttribute('data-stone')).toBe('mon');
+    expect(monStoneImage).toHaveBeenCalledWith({ ring: 'gold' }, { size: 200, seed: 4242 });
+    expect(stone.querySelector('img')?.getAttribute('src')).toContain('data-seed%3D%224242%22');
+    expect(stone.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 256 256');
+    expect(stone.querySelector('svg text')?.textContent).toBe('京');
+    expect(root.querySelectorAll('filter')).toHaveLength(0);
+  });
+
+  it('when the host owns the exit (hostExit) Continue hands over at once: no second kasure on the card', () => {
+    vi.useFakeTimers();
+    const onDone = vi.fn();
+    act(() => render(<BadgeSlam id="first-step" onDone={onDone} reduced={false} hostExit />, root));
+    expect(root.querySelector('.badge-slam')?.classList.contains('ink-nijimi')).toBe(true);
+    act(() => {
+      (root.querySelector('.badge-slam__continue') as HTMLButtonElement).click();
+    });
+    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('.badge-slam')?.hasAttribute('data-leaving')).toBe(false);
+  });
+
+  it('reduced motion renders the settled card at once: no ink verb, no stone twin, the date already there', () => {
     act(() => render(<BadgeSlam id="first-step" onDone={() => {}} reduced />, root));
     expect(root.querySelector('.badge-slam')?.classList.contains('badge-slam--settled')).toBe(true);
+    expect(root.querySelector('[class*="ink-"]')).toBeNull();
+    expect(root.querySelector('.badge-slam__stone')).toBeNull();
+    expect(root.querySelector('.badge-slam__date')).not.toBeNull();
   });
 
-  it('Continue calls onDone', () => {
+  it('Continue dries the card out (data-leaving) and onDone follows on animationend or the fallback; at once under reduced motion', () => {
+    vi.useFakeTimers();
     const onDone = vi.fn();
-    act(() => render(<BadgeSlam id="first-step" onDone={onDone} reduced />, root));
-    (root.querySelector('.badge-slam__continue') as HTMLButtonElement).click();
+    act(() => render(<BadgeSlam id="first-step" onDone={onDone} reduced={false} />, root));
+    act(() => {
+      (root.querySelector('.badge-slam__continue') as HTMLButtonElement).click();
+    });
+    expect(onDone).not.toHaveBeenCalled();
+    expect(root.querySelector('.badge-slam')?.hasAttribute('data-leaving')).toBe(true);
+    act(() => {
+      vi.advanceTimersByTime(EXIT_FALLBACK_MS);
+    });
     expect(onDone).toHaveBeenCalledTimes(1);
+
+    const atOnce = vi.fn();
+    act(() => render(null, root)); // the host keys its ceremonies: a second one is a new instance with its own exit
+    act(() => render(<BadgeSlam id="first-step" onDone={atOnce} reduced />, root));
+    act(() => {
+      (root.querySelector('.badge-slam__continue') as HTMLButtonElement).click();
+    });
+    expect(atOnce).toHaveBeenCalledTimes(1);
   });
 
   it('Save as image reports honestly when the host cannot rasterise (jsdom)', async () => {

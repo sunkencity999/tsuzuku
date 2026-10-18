@@ -21,12 +21,13 @@
   position: relative;
   display: grid;
 }
-/* the ink rule hiku-draws under the field on focus (scaleX, --dur-2, --ease-draw); the caret is vermilion */
+/* the ink rule hiku-draws under the field on focus (scaleX, --dur-2, --ease-draw), lifted --sp-1 off the
+   border so it reads as a drawn stroke, not a thicker border (design 09 §12.1 d58/d63); the caret is vermilion */
 .text-answer__ink::after {
   content: '';
   position: absolute;
   right: 2px;
-  bottom: 0;
+  bottom: var(--sp-1);
   left: 2px;
   height: 2px;
   pointer-events: none;
@@ -39,9 +40,9 @@
 .text-answer__ink:focus-within::after {
   transform: scaleX(1);
 }
-/* the ja field (KanaInput) carries its meta row below the field: the rule sits above it (1.25em at --fs-1 + the grid gap) */
+/* the ja field: KanaInput draws its own lifted rule (.kana-input__ink::after, d58), so the frame's is off (d63) */
 .text-answer__ink[data-mode='ja']::after {
-  bottom: calc(var(--sp-2) + 1.25 * var(--fs-1));
+  content: none;
 }
 .text-answer__field {
   box-sizing: border-box;

@@ -19,6 +19,13 @@
  * Keys `kana` (the frame forwards Enter; the typed widgets own the field).
  * The Start / Continue buttons are rendered after load and take focus through
  * `useAutoFocus` (a dynamic `autofocus` attribute is ignored).
+ *
+ * Design 09 §2.5 / §5.6–§5.8 / §10 D1: the round is a woodblock print — the
+ * head is a `.poster-title`, the clock has a `.meter`, every count rolls through
+ * `<Ticker roll>`, the card is a `.sheet` that presses (osu) on a hit, the tally
+ * tiles stagger in (`--i`), and the BEST eyebrow compares the round with the
+ * learner's OWN `stats.rapidBest` only, never on a miss (footnote 5). The
+ * frame's step turn is the result panel's exit (C1's ghost, `data-leaving`).
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -31,11 +38,13 @@ import type { ExerciseMeta, ExerciseProps } from '@/shared/exercise-types';
 import { rngFor, shuffle } from '@/shared/hash';
 import { parseCardKey } from '@/shared/ids';
 import type { AttemptResult, Step } from '@/shared/session-types';
+import { Ticker } from '@/shared/ui/Ticker';
 import { useAutoFocus } from '@/shared/ui/use-auto-focus';
 import { useTimer } from '@/shared/ui/use-timer';
 import { store } from '@/store';
 import { attempt } from '../check';
 import { TextAnswer, type TextAnswerResult } from '../TextAnswer';
+import { S as RS } from './rapid-strings';
 import { S, fill } from './strings';
 import './RapidFire.css';
 
@@ -275,19 +284,23 @@ export function RapidFire(p: ExerciseProps): JSX.Element {
 
   const zen = p.feel === 'zen';
   const secondsLeft = Math.ceil(timer.remaining.value / 1000);
+  const timeLeft = Math.max(0, Math.min(1, timer.remaining.value / roundMs));
   const best = store.stats.value.rapidBest;
 
   if (phase === 'intro') {
     return (
       <div class="rapid" data-feel={p.feel} data-phase="intro">
-        <h2 class="rapid__title">
+        <h2 class="rapid__title poster-title">
           <span lang="ja">連続技</span> {S.rapidTitle}
         </h2>
         <p class="rapid__intro">{roundMs === ROUND_MS ? S.rapidIntro : fill(S.rapidIntroSeconds, { n: Math.round(roundMs / 1000) })}</p>
         <p class="rapid__meta">
           <span>{fill(S.cardsInPool, { n: pool.length })}</span>
           <span>
-            {S.personalBest}: <strong class="rapid__num">{best}</strong>
+            {S.personalBest}:{' '}
+            <strong class="rapid__num">
+              <Ticker value={best} />
+            </strong>
           </span>
         </p>
         {pool.length > 0 ? (
@@ -310,30 +323,28 @@ export function RapidFire(p: ExerciseProps): JSX.Element {
 
   if (phase === 'over' && summary) {
     const newBest = summary.correct > summary.bestBefore;
+    // the BEST eyebrow: only against the learner's own previous best, and only once there is one (footnote 5)
+    const bestEyebrow = newBest && summary.bestBefore > 0;
+    const tiles: [string, number, string | undefined][] = [
+      [S.correctLabel, summary.correct, undefined],
+      [S.missesLabel, summary.misses, undefined],
+      ...(!zen ? ([[S.bestCombo, summary.bestCombo, undefined]] as [string, number, string | undefined][]) : []),
+      [S.personalBest, Math.max(summary.bestBefore, summary.correct), newBest ? 'true' : undefined],
+    ];
     return (
       <div class="rapid" data-feel={p.feel} data-phase="over">
-        <h2 class="rapid__title">{S.roundOver}</h2>
-        <dl class="rapid__tally status-window">
-          <div>
-            <dt>{S.correctLabel}</dt>
-            <dd class="rapid__num">{summary.correct}</dd>
-          </div>
-          <div>
-            <dt>{S.missesLabel}</dt>
-            <dd class="rapid__num">{summary.misses}</dd>
-          </div>
-          {!zen ? (
-            <div>
-              <dt>{S.bestCombo}</dt>
-              <dd class="rapid__num">{summary.bestCombo}</dd>
+        <h2 class="rapid__title poster-title poster-title--m">{S.roundOver}</h2>
+        <p class="eyebrow rapid__eyebrow">{RS.tallyEyebrow}</p>
+        {bestEyebrow ? <p class="eyebrow rapid__best-eyebrow">{fill(RS.bestEyebrow, { n: summary.bestBefore })}</p> : null}
+        <dl class="rapid__tally sheet hiscore">
+          {tiles.map(([label, value, isNew], i) => (
+            <div key={label} class="ink-nijimi" style={{ '--i': String(i) }}>
+              <dt class="eyebrow">{label}</dt>
+              <dd class="rapid__num" data-new={isNew}>
+                <Ticker value={value} roll />
+              </dd>
             </div>
-          ) : null}
-          <div>
-            <dt>{S.personalBest}</dt>
-            <dd class="rapid__num" data-new={newBest ? 'true' : undefined}>
-              {Math.max(summary.bestBefore, summary.correct)}
-            </dd>
-          </div>
+          ))}
         </dl>
         {newBest ? <p class="rapid__best">{S.newBest}</p> : null}
         <p class="rapid__note">{S.recheckNote}</p>
@@ -351,8 +362,12 @@ export function RapidFire(p: ExerciseProps): JSX.Element {
         <span class="rapid__clock" role="timer" aria-label={S.timerLabel} data-low={secondsLeft <= 10 ? 'true' : undefined}>
           <span class="rapid__num">{fill(S.secondsLeft, { n: secondsLeft })}</span>
         </span>
+        <span class="meter rapid__time" style={{ '--value': timeLeft.toFixed(3) }} data-low={secondsLeft <= 10 ? 'true' : undefined} aria-hidden="true">
+          <span class="meter__fill" />
+        </span>
+        {/* the press (osu) lands here: the card is replaced by the next prompt at the moment of the hit, so the count — the number that matters — takes the press while its Ticker ticks (RapidFire.css) */}
         <span class="rapid__count" aria-live="polite">
-          {fill(S.correctCount, { n: tally.correct })}
+          <Ticker value={tally.correct} roll format={(n) => fill(S.correctCount, { n: Math.round(n) })} />
         </span>
         {!zen && tally.combo > 1 ? (
           <span class="combo" data-tier={tally.combo >= 50 ? 3 : tally.combo >= 25 ? 2 : tally.combo >= 10 ? 1 : 0} aria-label={`${tally.combo} ${S.combo}`}>
@@ -363,8 +378,8 @@ export function RapidFire(p: ExerciseProps): JSX.Element {
       </div>
 
       {prompt ? (
-        <div class="rapid__card status-window" key={prompt.at}>
-          <p class="rapid__label">{prompt.label}</p>
+        <div class="rapid__card sheet" key={prompt.at}>
+          <p class="eyebrow rapid__label">{prompt.label}</p>
           <p class="rapid__prompt" lang="ja">
             {prompt.promptJa}
           </p>
@@ -394,7 +409,7 @@ export function RapidFire(p: ExerciseProps): JSX.Element {
           </div>
         </div>
       ) : (
-        <div class="rapid__card status-window">
+        <div class="rapid__card sheet">
           <p class="rapid__empty" role="status">
             {S.itemMissing}
           </p>

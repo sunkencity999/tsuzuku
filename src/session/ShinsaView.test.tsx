@@ -14,8 +14,14 @@ import { resetStoreForTests, store } from '../store';
 import { DEFAULT_TEST_NOW, captureEvents, card, makeTestStore } from '../store/testing';
 import type { SessionRunner } from './runner';
 import type { SessionViewComponent } from './ScrollView';
+import { SHINSA_SECTIONS } from '../shared/catalog';
+import { installServices, nullAudio, resetServices } from '../shared/audio';
+import { BELT_SETTLE_MS, CeremonyHost, resetCeremoniesForTests } from '../art/ceremony/CeremonyHost';
+import { setLazyArtForTests } from '../art/ceremony/support';
+import { S as AS } from './arcade-strings';
+import { SHINSA_LABEL } from './engine-strings';
 import { buildShinsa } from './shinsa';
-import { ShinsaView, typedPath } from './ShinsaView';
+import { SHINSA_SUMI_MS, SHINSA_SUMI_OUT_MS, ShinsaView, sectionKanji, typedPath } from './ShinsaView';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const loader = createFakeLoader();
@@ -131,8 +137,23 @@ describe('<ShinsaView> eligibility', () => {
     const bars = root.querySelectorAll('.shinsa-cov');
     expect(bars).toHaveLength(2);
     expect(bars[0]?.getAttribute('aria-valuenow')).toBe('0');
+    // the coverage bars are .meters with a target tick (design 09 §5.7)
+    const track = bars[0]?.querySelector('.meter') as HTMLElement;
+    expect(track.style.getPropertyValue('--value')).toBe('0');
+    expect(track.hasAttribute('data-target')).toBe(true);
+    expect(track.getAttribute('data-met')).toBe('false');
+    expect(root.querySelector('.shinsa-cov .progress')).toBeNull();
     expect(hanko()).toBeNull();
-    expect(root.querySelectorAll('.shinsa-view__sections li')).toHaveLength(5);
+    // the five section sheets: .sheet, the kanji (Mincho by class) never without its English head
+    const sheets = root.querySelectorAll('.shinsa-view__sections li');
+    expect(sheets).toHaveLength(5);
+    SHINSA_SECTIONS.forEach((sec, i) => {
+      const li = sheets[i]!;
+      expect(li.classList.contains('sheet')).toBe(true);
+      expect(li.querySelector('.shinsa-sheet__kanji')?.textContent).toBe(sectionKanji(sec));
+      expect(sectionKanji(sec)).toBe(Array.from(SHINSA_LABEL[sec])[0]);
+      expect(li.querySelector('.shinsa-sheet__en')?.textContent).toBe(AS.shinsaHead[sec]);
+    });
   });
 
   it('white has no exam', async () => {
@@ -140,6 +161,22 @@ describe('<ShinsaView> eligibility', () => {
     await mount('white');
     expect(text()).toContain('The White belt has no exam');
     expect(hanko()).toBeNull();
+  });
+
+  it('the header’s rank title shows romaji below Green kana and a kana <ruby> from Green on (design 09 §3.3)', async () => {
+    await makeTestStore({ save: { progress: { station: 4 } } });
+    await mount('yellow');
+    const sub = (): Element => root.querySelector('.shinsa-view__sub')!;
+    expect(sub().textContent).toContain('入門');
+    expect(sub().textContent).toContain('Nyūmon');
+    expect(sub().querySelector('ruby')).toBeNull();
+    act(() => render(null, root));
+    await makeTestStore({ save: { profile: { belt: 'green' }, progress: { station: 25 }, settings: { furigana: 'tap' } } });
+    await mount('blue');
+    expect(sub().textContent).not.toContain('Shihandai');
+    expect(sub().querySelector('ruby rb')?.textContent).toBe('師範代候補');
+    expect(sub().querySelector('ruby rt')?.textContent).toBe('しはんだいこうほ');
+    expect(sub().querySelector('.ruby__rt--fog')).toBeNull();
   });
 
   it('eligible: bars met, every gate passed, the exam is offered', async () => {
@@ -166,6 +203,9 @@ describe('<ShinsaView> exam', () => {
     await settle(2);
     expect(stage()).toBe('section');
     expect(text()).toContain(`Section 1 of ${plan.blocks.length}`);
+    expect(root.querySelector('.shinsa-section')?.classList.contains('sheet')).toBe(true);
+    expect(root.querySelector('.shinsa-section .shinsa-sheet__kanji')).not.toBeNull();
+    expect(root.querySelector('.shinsa-section .shinsa-sheet__en')).not.toBeNull();
     const r = current();
     expect(r.paused.value).toBe(true);
     click(hanko());
@@ -189,6 +229,8 @@ describe('<ShinsaView> exam', () => {
     await settle(2);
     expect(stage()).toBe('result');
     expect(root.querySelector('.shinsa-view')?.getAttribute('data-passed')).toBe('true');
+    // the sumi beat is up on the pass: one .ink-nijimi wash before the ceremony (design 09 §10 D1)
+    expect(root.querySelector('.shinsa-sumi')?.classList.contains('ink-nijimi')).toBe(true);
     expect(text()).toContain('Passed. The ceremony follows.');
     expect(text()).toContain('+1,000 XP');
     expect(text()).toContain('The Yellow belt is yours.');
@@ -238,6 +280,7 @@ describe('<ShinsaView> exam', () => {
     await settle(2);
     expect(stage()).toBe('result');
     expect(root.querySelector('.shinsa-view')?.getAttribute('data-passed')).toBe('false');
+    expect(root.querySelector('.shinsa-sumi')).toBeNull();
     expect(text()).toContain('Not yet. The gate will still be here.');
     expect(text()).not.toContain('+1,000 XP');
     expect(store.progress.value.shinsaNotes?.belt).toBe('yellow');
@@ -263,6 +306,142 @@ describe('<ShinsaView> exam', () => {
     expect(Array.from(root.querySelectorAll('button')).some((b) => b.textContent === 'Train Sensei’s Notes')).toBe(false);
     expect(text()).not.toContain('Train one Sensei’s Notes session first.');
     expect(root.querySelectorAll('.shinsa-cov')).toHaveLength(2);
+  });
+});
+
+describe('<ShinsaView> the sumi beat (design 09 §10 D1)', () => {
+  async function pass(): Promise<void> {
+    await makeTestStore({ save: { progress: { station: 9, stationsCleared: YELLOW_GATES } }, cards: brownCards() });
+    const plan = await buildShinsa('yellow', 4, { loader, available: all });
+    await mount('yellow', plan);
+    click(hanko());
+    await settle(2);
+    const r = current();
+    let guard = 0;
+    while (!r.done.value && guard++ < 10) {
+      if (stage() === 'section') click(hanko());
+      answerAll(r, true);
+    }
+    await settle(2);
+    expect(stage()).toBe('result');
+  }
+  const sumi = (): Element | null => root.querySelector('.shinsa-sumi');
+
+  it('is present at the result, holds 600 ms, then dries out and is gone', async () => {
+    await pass();
+    expect(sumi()).not.toBeNull();
+    expect(sumi()?.hasAttribute('data-leaving')).toBe(false);
+    expect(SHINSA_SUMI_MS).toBe(600);
+    // an ink wash, not a flat dim: the ceremony's seeded turbulence as a static data URL on the element
+    expect(sumi()?.classList.contains('ink-nijimi')).toBe(true);
+    expect((sumi() as HTMLElement).style.getPropertyValue('--shinsa-wash')).toContain('data:image/svg+xml');
+    expect(sumi()?.hasAttribute('title')).toBe(false);
+    await act(async () => {
+      await new Promise((res) => setTimeout(res, SHINSA_SUMI_MS + 10));
+    });
+    expect(sumi()?.hasAttribute('data-leaving')).toBe(true);
+    await act(async () => {
+      await new Promise((res) => setTimeout(res, SHINSA_SUMI_OUT_MS + 10));
+    });
+    expect(sumi()).toBeNull();
+  });
+
+  it('any tap or key skips it', async () => {
+    await pass();
+    expect(sumi()).not.toBeNull();
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+    expect(sumi()?.hasAttribute('data-leaving')).toBe(true);
+    await act(async () => {
+      await new Promise((res) => setTimeout(res, SHINSA_SUMI_OUT_MS + 10));
+    });
+    expect(sumi()).toBeNull();
+  });
+
+  it('the host holds the belt ceremony for the beat: no overlay while the wash is on screen, the belt ceremony after it dries', async () => {
+    // the art tier cannot import the session group, so the host carries hold + kasure as one figure; pin the sum here
+    expect(BELT_SETTLE_MS).toBeGreaterThanOrEqual(SHINSA_SUMI_MS + SHINSA_SUMI_OUT_MS);
+    resetCeremoniesForTests();
+    setLazyArtForTests({ MonCrest: null, GoshuinStamp: null, mon: null, wallpapers: null });
+    installServices({ audio: { ...nullAudio, sfx: vi.fn() } });
+    // makeTestStore leaves the B reducers off: stand in for unlocks.ts reduceShinsa, which emits belt:promoted synchronously inside shinsa:result
+    const offPromote = bus.on('shinsa:result', (p) => {
+      if (p.passed) bus.emit('belt:promoted', { belt: p.belt });
+    });
+    try {
+      await makeTestStore({ save: { progress: { station: 9, stationsCleared: YELLOW_GATES } }, cards: brownCards() });
+      const plan = await buildShinsa('yellow', 4, { loader, available: all });
+      captured.runner = null;
+      act(() =>
+        render(
+          <>
+            <ShinsaView
+              belt="yellow"
+              onExit={() => {}}
+              loader={loader}
+              available={all}
+              view={Stub}
+              plan={plan}
+              onRunner={(r) => {
+                captured.runner = r;
+              }}
+            />
+            <CeremonyHost />
+          </>,
+          root,
+        ),
+      );
+      await settle();
+      click(hanko());
+      await settle(2);
+      const r = current();
+      let guard = 0;
+      while (!r.done.value && guard++ < 10) {
+        if (stage() === 'section') click(hanko());
+        answerAll(r, true);
+      }
+      await settle(2);
+      expect(stage()).toBe('result');
+      expect(store.profile.value.belt).toBe('yellow');
+      expect(sumi()).not.toBeNull();
+      expect(root.querySelector('.ceremony')).toBeNull();
+      // the plain settle (250 ms) would have opened the overlay over the wash
+      await act(async () => {
+        await new Promise((res) => setTimeout(res, 300));
+      });
+      expect(sumi()).not.toBeNull();
+      expect(root.querySelector('.ceremony')).toBeNull();
+      await act(async () => {
+        await new Promise((res) => setTimeout(res, BELT_SETTLE_MS - 300 + 40));
+      });
+      expect(sumi()).toBeNull();
+      expect(root.querySelector('.ceremony--belt .belt-ceremony')?.getAttribute('data-belt')).toBe('yellow');
+    } finally {
+      offPromote();
+      act(() => render(null, root));
+      resetCeremoniesForTests();
+      setLazyArtForTests(null);
+      resetServices();
+    }
+  });
+
+  it('is absent under reduced motion', async () => {
+    await makeTestStore({ save: { settings: { reducedMotion: true }, progress: { station: 9, stationsCleared: YELLOW_GATES } }, cards: brownCards() });
+    const plan = await buildShinsa('yellow', 5, { loader, available: all });
+    await mount('yellow', plan);
+    click(hanko());
+    await settle(2);
+    const r = current();
+    let guard = 0;
+    while (!r.done.value && guard++ < 10) {
+      if (stage() === 'section') click(hanko());
+      answerAll(r, true);
+    }
+    await settle(2);
+    expect(stage()).toBe('result');
+    expect(root.querySelector('.shinsa-view')?.getAttribute('data-passed')).toBe('true');
+    expect(sumi()).toBeNull();
   });
 });
 

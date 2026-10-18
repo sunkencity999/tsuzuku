@@ -22,9 +22,17 @@
  *
  * Motion is CSS only (transform keyframes in an inline `<style>`; no SMIL),
  * never faster than ~0.7 Hz, and absent altogether when `reducedMotion` is
- * set; the emitted CSS also obeys `prefers-reduced-motion` and the host's
- * `.reduced-motion` body class. Class and keyframe names are prefixed
- * `dj-` because an inline `<style>` is document-global.
+ * set; the emitted CSS also obeys `prefers-reduced-motion`, the host's
+ * `.reduced-motion` body class and `:root[data-reduced-motion]`. The hearth
+ * loops take STEPPED timing (design 09 §12.1 d56/d66): `steps(3, jump-none)`
+ * on the flicker AND on the ember pulse (a timing function runs per keyframe
+ * segment, and the 0/50/100 % loops have two, so steps(3) presents four
+ * changes a cycle), so the compositor presents ≈ 11 frames a second while the
+ * Dojo idles instead of sixty (the stand-in counted 517 frames in 8.6 s
+ * before, 49 after); every loop stays ≥ 1,400 ms (§6.8) and a cycle still
+ * changes brightness direction only twice. Class and
+ * keyframe names are prefixed `dj-` because an inline `<style>` is
+ * document-global.
  */
 import { hashSeed, mulberry32 } from '../../shared/hash';
 import { ITEM_KINDS, type ItemKind } from '../../shared/store-types';
@@ -136,6 +144,7 @@ function driftCss(): string {
   }
   rules.push(`@media (prefers-reduced-motion:reduce){.${KF_ID}{animation:none}}`);
   rules.push(`.reduced-motion .${KF_ID}{animation:none}`);
+  rules.push(`:root[data-reduced-motion] .${KF_ID}{animation:none}`);
   return rules.join('');
 }
 
@@ -242,6 +251,14 @@ export const HF = 'dj-hf';
 const ASH = PALETTE.light.hai;
 /** Tongues drawn (the roaring layout); steady shows the middle two by class. */
 export const HEARTH_TONGUES = 4;
+/**
+ * `steps(n, jump-none)` per loop (design 09 §12.1 d56). A timing function runs per keyframe
+ * SEGMENT and the 0 / 50 / 100 % loops have two, so a cycle presents 2·(n − 1) changes: the
+ * flicker 4 (2.5 Hz at 1.6 s, ≈ 2.8 at 1.45 s), the embers 4 (≈ 1.5 Hz at 2.6 s).
+ */
+export const HEARTH_STEPS = { flicker: 3, ember: 3 } as const;
+/** Loop lengths in seconds: the four tongues (t0…t3) and the ember pulse; every one ≥ 1.4 s (§6.8). */
+export const HEARTH_LOOP_S = { tongues: [1.6, 1.9, 1.45, 1.75], ember: 2.6 } as const;
 
 /** `.dj-hf--<state>` for a state, and the class list the host swaps. */
 export function hearthClass(state: HearthState, crystal = false): string {
@@ -249,18 +266,20 @@ export function hearthClass(state: HearthState, crystal = false): string {
 }
 
 function hearthCss(): string {
+  const [t0, t1, t2, t3] = HEARTH_LOOP_S.tongues;
   return [
-    `.${HF}-tongue{animation:${HF}-flicker 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}`,
-    `.${HF}-t1 .${HF}-tongue{animation-duration:1.9s;animation-delay:-0.7s}`,
-    `.${HF}-t2 .${HF}-tongue{animation-duration:1.45s;animation-delay:-1.1s}`,
-    `.${HF}-t3 .${HF}-tongue{animation-duration:1.75s;animation-delay:-0.4s}`,
-    `.${HF}-ember{animation:${HF}-pulse 2.6s ease-in-out infinite}`,
+    `.${HF}-tongue{animation:${HF}-flicker ${fmt(t0)}s steps(${HEARTH_STEPS.flicker},jump-none) infinite;transform-box:fill-box;transform-origin:50% 100%}`,
+    `.${HF}-t1 .${HF}-tongue{animation-duration:${fmt(t1)}s;animation-delay:-0.7s}`,
+    `.${HF}-t2 .${HF}-tongue{animation-duration:${fmt(t2)}s;animation-delay:-1.1s}`,
+    `.${HF}-t3 .${HF}-tongue{animation-duration:${fmt(t3)}s;animation-delay:-0.4s}`,
+    `.${HF}-ember{animation:${HF}-pulse ${fmt(HEARTH_LOOP_S.ember)}s steps(${HEARTH_STEPS.ember},jump-none) infinite}`,
     `.${HF}-ember-b{animation-delay:-0.9s}`,
     `.${HF}-ember-c{animation-delay:-1.7s}`,
     `@keyframes ${HF}-flicker{0%,100%{transform:scale(1,1)}50%{transform:scale(0.93,1.08)}}`,
     `@keyframes ${HF}-pulse{0%,100%{opacity:0.45}50%{opacity:0.95}}`,
     `@media (prefers-reduced-motion:reduce){.${HF}-tongue,.${HF}-ember{animation:none}}`,
     `.reduced-motion .${HF}-tongue,.reduced-motion .${HF}-ember{animation:none}`,
+    `:root[data-reduced-motion] .${HF}-tongue,:root[data-reduced-motion] .${HF}-ember{animation:none}`,
   ].join('');
 }
 

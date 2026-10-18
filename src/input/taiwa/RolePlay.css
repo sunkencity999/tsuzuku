@@ -89,7 +89,7 @@
   border-left: 4px solid var(--sakura);
 }
 .taiwa__npc[data-speaking='true'] {
-  background: color-mix(in srgb, var(--sakura) 14%, var(--raised));
+  background: color-mix(in srgb, var(--sakura) 14%, var(--surface-paper));
 }
 .taiwa__npc-head {
   display: flex;

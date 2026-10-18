@@ -160,6 +160,8 @@ describe('<RolePlay>', () => {
     const { onDone } = mount('choose');
 
     expect(phase()).toBe('intro');
+    expect(root.querySelector('.taiwa__card')?.classList.contains('sheet')).toBe(true);
+    expect(root.querySelector('.status-window')).toBeNull();
     expect(root.textContent).toContain('You play');
     expect(root.querySelector('.taiwa__role strong')?.textContent).toBe('ハナ');
     clickText(S.begin);
@@ -170,9 +172,12 @@ describe('<RolePlay>', () => {
     expect(root.querySelector('.taiwa__cue')?.textContent).toBe(`Say: ${L(1).en}`);
     expect(root.querySelectorAll('.taiwa__option')).toHaveLength(3);
     expect(root.querySelector('.taiwa__npc-ja')?.textContent).toBe(toPlain(L(0).ja));
+    expect(root.querySelector('.taiwa__npc')?.classList.contains('sheet')).toBe(true);
 
     clickText(optionOfKind(1, 'best'));
     expect(phase()).toBe('feedback');
+    expect(root.querySelector('.taiwa__feedback')?.classList.contains('sheet')).toBe(true);
+    expect(root.querySelector('.status-window')).toBeNull();
     expect(root.querySelector('.taiwa__feedback-line')?.textContent).toBe(S.best);
     expect(root.querySelector('.taiwa__recast')).toBeNull();
     clickText(S.continue);
@@ -725,6 +730,9 @@ describe('<Debrief> register meter (design 09 §5.7) and RolePlay.css', () => {
     act(() => render(<Debrief result={{ best: 2, total: 4, aizuchiHit: 0, aizuchiTotal: 0, registerOk: false }} outcomes={[outcome(1, true), outcome(3, false)]} slots={[]} lines={DIALOGUE.lines} furigana="always" />, root));
     const meter = root.querySelector<HTMLElement>('.meter[role="meter"]');
     expect(meter).not.toBeNull();
+    // the debrief card is paper (design 09 §12.1 d53)
+    expect(root.querySelector('.taiwa__card')?.classList.contains('sheet')).toBe(true);
+    expect(root.querySelector('.status-window')).toBeNull();
     expect(meter!.style.getPropertyValue('--value')).toBe('0.75');
     expect(meter!.style.getPropertyValue('--meter-tone')).toBe('var(--matcha)');
     expect(meter!.getAttribute('aria-valuenow')).toBe('75');
@@ -742,6 +750,10 @@ describe('<Debrief> register meter (design 09 §5.7) and RolePlay.css', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/input/taiwa/RolePlay.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     expect(css).not.toMatch(/transition:[^;]*\b(width|height)\b/);
     expect(css).not.toMatch(/\.taiwa__(label|meter)/);
+    expect(css).not.toMatch(/status-window/);
+    // the three sheets add only their accent rule and grid; the speaking tint mixes into the sheet's own paper
+    for (const cls of ['taiwa__card', 'taiwa__npc', 'taiwa__feedback']) expect(new RegExp(`\\.${cls}\\s*\\{[^}]*\\b(padding|background|border-radius|box-shadow)\\s*:`).test(css), cls).toBe(false);
+    expect(/\.taiwa__npc\[data-speaking='true'\]\s*\{[^}]*var\(--surface-paper\)/.test(css)).toBe(true);
     expect(css).not.toMatch(/@keyframes/);
     expect(css).not.toMatch(/prefers-reduced-motion|\.reduced-motion/);
     expect(css).not.toMatch(/--font-mincho/);

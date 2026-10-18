@@ -4,27 +4,27 @@
  * The arcade is a woodblock PRINT of an arcade (design 09 §1): flat inks,
  * kentō marks, a 1 px misregistration where a lesser design would put a glow.
  * Everything here is gated by the Arcade preset (`:root[data-feel="arcade"]`
- * set by src/app/theme.ts, or `body.feel-arcade`) and the CRT look also by the
- * CRT toggle (`body.crt`). Dojo and Zen never see any of it.
+ * set by src/app/theme.ts, or `body.feel-arcade`); the CRT look is gated
+ * AGAIN by the CRT setting (`html[data-crt]` / `body.crt`, theme.ts) — opt-in,
+ * never a default (design 09 §2.5). Dojo and Zen never see any of it.
  *
- * Classes: .crt .halftone .arcade-head .hiscore
+ * Classes: .crt .halftone .hiscore — D1 mounts .halftone on the Kage versus
+ * panel, .hiscore on the Kage table and the Rapid Fire / Gojūon tallies, and
+ * .crt on Gojūon Fighter; the unmounted .arcade-head was deleted (the
+ * status-window heads keep their pixel face here).
  *
- * Design 09 §10 A1 deleted the unmounted spectacle that did not print — the
- * breathing edge glow, the spinning speed lines, the Ippon scale flash (ippon
- * is now written through a dashWrite mask, §3.4) and the ki-bar glow pulse
- * (an animated box-shadow, forbidden by §1 rule 2). The combo tiers' pop moved
- * to its canonical home in components.css. Nothing here animates; the arcade
- * moves through the ink verbs of motion.css at 40–220 ms. Glows are Night-only
- * light sources through --glow-* (none in Dojo Morning). Tokens only: no
- * color literals; text in the arcade inks uses --neon-c-text / --neon-m-text.
+ * Nothing here animates; the arcade moves through the ink verbs of motion.css
+ * at 40–220 ms. Glows are Night-only light sources through --glow-* (none in
+ * Dojo Morning). Tokens only: no color literals; text in the arcade inks uses
+ * --neon-c-text / --neon-m-text.
  */
 
-/* ── CRT: scanlines + 1 px chromatic offset, opt-in on arcade screens ── */
-:is(:root[data-feel="arcade"], body.feel-arcade) .crt {
+/* ── CRT: scanlines + 1 px chromatic offset, opt-in through the CRT setting ── */
+:is(:root[data-feel="arcade"], body.feel-arcade):is([data-crt], .crt) .crt {
   position: relative;
   isolation: isolate;
 }
-:is(:root[data-feel="arcade"], body.feel-arcade) .crt::after {
+:is(:root[data-feel="arcade"], body.feel-arcade):is([data-crt], .crt) .crt::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -37,7 +37,7 @@
   );
   mix-blend-mode: multiply;
 }
-:is(:root[data-feel="arcade"], body.feel-arcade) .crt::before {
+:is(:root[data-feel="arcade"], body.feel-arcade):is([data-crt], .crt) .crt::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -45,8 +45,7 @@
   pointer-events: none;
   background: radial-gradient(ellipse at center, transparent 60%, color-mix(in srgb, var(--bg) 55%, transparent) 100%);
 }
-:is(:root[data-feel="arcade"], body.feel-arcade) body.crt .crt > *,
-:is(:root[data-feel="arcade"], body.feel-arcade).crt .crt > * {
+:is(:root[data-feel="arcade"], body.feel-arcade):is([data-crt], .crt) .crt > * {
   text-shadow:
     1px 0 0 color-mix(in srgb, var(--neon-c) 45%, transparent),
     -1px 0 0 color-mix(in srgb, var(--neon-m) 45%, transparent);
@@ -67,8 +66,7 @@
   mix-blend-mode: multiply;
 }
 
-/* ── Pixel headers and hi-score tables (D1 mounts .hiscore on the arcade results) ── */
-:is(:root[data-feel="arcade"], body.feel-arcade) .arcade-head,
+/* ── Pixel headers and hi-score tables ── */
 :is(:root[data-feel="arcade"], body.feel-arcade) .status-window > h2,
 :is(:root[data-feel="arcade"], body.feel-arcade) .status-window > h3 {
   font-family: var(--font-pixel);

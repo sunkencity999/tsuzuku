@@ -15,17 +15,24 @@
  * counted from its quota (the page says so). The tiles are .status-window
  * cartouches with Dela <Ticker> values (design 09 §5.5, §5.8, §12.1 d4): the
  * DOM holds the final number from first paint; the roll is a visual twin.
+ * On the month's FIRST Records visit on this device the tiles roll from 0
+ * (§12.1 d50): the ticker is armed at 0 and takes its value before the first
+ * paint (the End Card's idiom, d32), gated by the device-local marker
+ * `tsuzuku:records-rolled:<yyyy-mm>` in localStorage — UI state outside the
+ * save, like `tsuzuku:radar-morphed` (d52), never a Progress field. Later
+ * visits mount with the final value; reduced motion sets it at once.
  */
 import type { JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useState } from 'preact/hooks';
 import { content, type ContentLoader } from '../../content/loader';
 import { BELTS, SANJO_OHASHI, STATIONS, type Belt, type StationBundle } from '../../content/types';
 import { beltBadgeId } from '../../shared/catalog';
 import { href, type Route } from '../../shared/routes';
-import { weekStartDay } from '../../shared/time';
+import { monthKey, weekStartDay } from '../../shared/time';
 import type { EpochDay } from '../../shared/store-types';
 import { TAG_LABEL, fill } from '../../shared/ui/strings';
-import { Ticker } from '../../shared/ui/Ticker';
+import { TICKER_MAX_MS, Ticker } from '../../shared/ui/Ticker';
+import { prefersReducedMotion } from '../../shared/ui/use-reveal';
 import { store } from '../../store';
 import { forecastCounts, isBacklog, reviewCap } from '../../store/derived';
 import { weekProgress } from '../../store/ledger';
@@ -95,14 +102,91 @@ export function nextStepLine(i: NextStepInput): string {
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
+/* The month's first visit (design 09 §12.1 d50)                              */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/** Prefix of the device-local marker; the month key (`yyyy-mm`) follows it. */
+export const RECORDS_ROLL_KEY = 'tsuzuku:records-rolled:';
+/** The month whose tiles have rolled on this device (memory mirror of the stored marker). */
+let rolledMonth: string | null = null;
+
+/** `localStorage` when the host has one (never a throwing private-mode getter). */
+function storage(): Storage | null {
+  try {
+    const ls = (globalThis as { localStorage?: Storage }).localStorage;
+    return ls && typeof ls.getItem === 'function' ? ls : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Drops every roll marker but `keep` (one marker lives at a time). */
+function sweepRollMarkers(ls: Storage, keep?: string): void {
+  for (let i = ls.length - 1; i >= 0; i--) {
+    const k = ls.key(i);
+    if (k && k.startsWith(RECORDS_ROLL_KEY) && k !== keep) ls.removeItem(k);
+  }
+}
+
+/**
+ * Whether this mount is the month's first Records visit on this device. Claims
+ * the month: the marker is written and earlier months' markers dropped, so one
+ * marker lives at a time. Without storage the claim holds for the session.
+ */
+export function claimRecordsRoll(month: string): boolean {
+  if (rolledMonth === month) return false;
+  const ls = storage();
+  const key = RECORDS_ROLL_KEY + month;
+  try {
+    if (ls?.getItem(key) === '1') {
+      rolledMonth = month;
+      return false;
+    }
+  } catch {
+    /* unreadable storage: memory only */
+  }
+  rolledMonth = month;
+  try {
+    if (ls) {
+      sweepRollMarkers(ls, key);
+      ls.setItem(key, '1');
+    }
+  } catch {
+    /* memory only */
+  }
+  return true;
+}
+
+/** Forgets the roll record (tests). */
+export function resetRecordsRollForTests(): void {
+  rolledMonth = null;
+  try {
+    const ls = storage();
+    if (ls) sweepRollMarkers(ls);
+  } catch {
+    /* nothing stored */
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
 /* Blocks                                                                     */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-/** One cartouche: the number that matters in Dela, ticking in from its previous value; `null` prints the dash. */
-function Tile(p: { label: string; value: number | null; format?: (n: number) => string; sub?: string; ja?: string }): JSX.Element {
+/**
+ * One cartouche: the number that matters in Dela, ticking in from its previous
+ * value; `null` prints the dash. `roll` arms the ticker at 0 and hands it the
+ * value before the first paint, so it counts up from 0 (≤ TICKER_MAX_MS) while
+ * the DOM already carries the final number.
+ */
+function Tile(p: { label: string; value: number | null; format?: (n: number) => string; sub?: string; ja?: string; roll?: boolean }): JSX.Element {
+  const [armed, setArmed] = useState(p.roll === true);
+  useLayoutEffect(() => {
+    if (armed) setArmed(false);
+  }, [armed]);
+  const value = armed && p.value !== null ? 0 : p.value;
   return (
     <div class="status-window tile">
-      <span class="tile__value">{p.value === null ? S.unavailable : <Ticker value={p.value} format={p.format ?? fmtNum} />}</span>
+      <span class="tile__value">{value === null ? S.unavailable : <Ticker value={value} format={p.format ?? fmtNum} duration={TICKER_MAX_MS} />}</span>
       <span class="eyebrow">
         {p.ja ? <span lang="ja">{p.ja}</span> : null}
         {p.ja ? ' ' : ''}
@@ -218,6 +302,12 @@ export default function RecordsPage(p: RecordsPageProps): JSX.Element {
   const stats = meta.stats;
   const station = meta.progress.station;
 
+  // the month's first visit on this device rolls the tiles from 0 (d50); reduced motion claims the month and shows the values at once
+  const [roll] = useState(() => {
+    const first = claimRecordsRoll(monthKey(today));
+    return first && !prefersReducedMotion();
+  });
+
   const [bundles, setBundles] = useState<StationBundle[] | null>(null);
   useEffect(() => {
     let alive = true;
@@ -270,12 +360,12 @@ export default function RecordsPage(p: RecordsPageProps): JSX.Element {
       </header>
 
       <section class="records__tiles" aria-label={S.recordsTitle}>
-        <Tile label={S.daysTrained} value={meta.streak.totalDays} />
-        <Tile label={S.minutesTrained} value={stats.minutes} />
-        <Tile label={S.reviews} value={stats.reviews} />
-        <Tile label={S.retention7} value={pctValue(ret7)} format={percentFormat} sub={ret7 === null ? S.noReps : undefined} />
-        <Tile label={S.retention30} value={pctValue(ret30)} format={percentFormat} />
-        <Tile ja={S.honestyJa} label={S.honesty} value={pctValue(hon)} format={percentFormat} sub={hon === null ? S.honestyNone : `${fill(S.honestyLine, { pct: Math.round(hon * 100), n: stats.judgeChecks })}${hon >= 0.95 ? ` ${S.honestyCalibrated}` : ''}`} />
+        <Tile label={S.daysTrained} value={meta.streak.totalDays} roll={roll} />
+        <Tile label={S.minutesTrained} value={stats.minutes} roll={roll} />
+        <Tile label={S.reviews} value={stats.reviews} roll={roll} />
+        <Tile label={S.retention7} value={pctValue(ret7)} format={percentFormat} roll={roll} sub={ret7 === null ? S.noReps : undefined} />
+        <Tile label={S.retention30} value={pctValue(ret30)} format={percentFormat} roll={roll} />
+        <Tile ja={S.honestyJa} label={S.honesty} value={pctValue(hon)} format={percentFormat} roll={roll} sub={hon === null ? S.honestyNone : `${fill(S.honestyLine, { pct: Math.round(hon * 100), n: stats.judgeChecks })}${hon >= 0.95 ? ` ${S.honestyCalibrated}` : ''}`} />
       </section>
 
       <section class="records__block--next status-window" aria-labelledby="next-title">
@@ -324,9 +414,9 @@ export default function RecordsPage(p: RecordsPageProps): JSX.Element {
       {meta.settings.feel === 'zen' ? null : (
         <Block id="kiai" ja={S.kiaiTitleJa} en={S.kiaiTitle} lede={S.kiaiNote}>
           <div class="records__tiles records__tiles--inline">
-            <Tile label={S.ippon} value={stats.ippon} />
-            <Tile label={S.bestCombo} value={stats.bestCombo} />
-            <Tile label={S.recoveries} value={stats.recoveries} />
+            <Tile label={S.ippon} value={stats.ippon} roll={roll} />
+            <Tile label={S.bestCombo} value={stats.bestCombo} roll={roll} />
+            <Tile label={S.recoveries} value={stats.recoveries} roll={roll} />
           </div>
         </Block>
       )}

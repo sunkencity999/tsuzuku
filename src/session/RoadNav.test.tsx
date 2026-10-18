@@ -3,6 +3,8 @@
  * and the Tōchaku arrival (design 09 §7 D): spine hiku, seal osu / kawaku, lantern tomosu, data-arrived, the one
  * stationSeen patch; reduced motion: everything complete, no .ink-* class, the gold hairline attribute.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -373,6 +375,20 @@ describe('<RoadNav> Tōchaku — the arrival (design 09 §7 D)', () => {
     expect(art).not.toBeNull();
     expect(typeof art?.headpiece).toBe('function');
     expect(stations()[35]?.querySelector('.tokaido__art')?.innerHTML).toContain('var(--kin)');
+  });
+});
+
+describe('motion.css sign rules (design 09 §12.1 d65)', () => {
+  it('the ruby inside a sign keeps the brush face: .ruby sets --font-ja, so .sign__ja .ruby inherits', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/styles/motion.css'), 'utf8');
+    expect(css).toMatch(/\.sign__ja \.ruby \{ font-family: inherit; \}/);
+  });
+});
+
+describe('RoadNav.css (design 09 §6.7 rule 6, §12.1 d45)', () => {
+  it('every row but the current one skips layout out of view, sized to the rendered row (125 px: the romaji sign; ≈ 119 px once the reading is ruby, so the taller stands); the current row is exempt below 600 px too, where it has no band', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/session/RoadNav.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).toMatch(/\.tokaido__row:not\(\[data-band\]\):not\(\[data-state="current"\]\)\s*\{\s*content-visibility:\s*auto;\s*contain-intrinsic-size:\s*auto 125px;\s*\}/);
   });
 });
 

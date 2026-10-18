@@ -1,237 +1,57 @@
-/* TSUZUKU — <GateView> (group E). Tokens from tokens.css; .status-window / .seal / .progress / .notice / .hanko / .btn / .chip from components.css. */
-
-.gate-view {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
-  padding: var(--sp-3) var(--gutter) var(--sp-6);
-  color: var(--fg);
-}
-
-.gate-view__keeper {
-  margin-bottom: var(--sp-3);
-}
-
-.gate-view__station {
-  margin: 0;
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
-
-.gate-view__name {
-  margin: var(--sp-1) 0 0;
-  font-family: var(--font-brush);
-  font-size: var(--fs-5);
-  line-height: 1.2;
-}
-
-.gate-view__name-en {
-  font-family: var(--font-ui);
-  font-size: var(--fs-3);
-  font-weight: 400;
-  color: var(--fg-muted);
-}
-
-.gate-view__line,
-.gate-view__note,
-.gate-view__attempts {
-  margin: var(--sp-2) 0;
-}
-
-.gate-view__note,
-.gate-view__attempts {
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
-
-.gate-view__status {
-  margin: var(--sp-3) 0;
-  font-weight: 600;
-}
-
-.gate-view__phases {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  margin: var(--sp-3) 0;
-  padding-left: var(--sp-5);
-}
-
-.gate-view__phases [lang="ja"] {
-  font-family: var(--font-brush);
-  margin-right: var(--sp-1);
-}
-
-.gate-view__banner {
-  margin: var(--sp-3) 0;
-}
-
-.gate-view__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sp-3);
-  margin-top: var(--sp-4);
-}
-
-.gate-view__label {
-  margin: var(--sp-3) 0 var(--sp-1);
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
-
-.gate-view__result {
-  margin: var(--sp-3) 0;
-  font-size: var(--fs-4);
-}
-
-/* ── wall ────────────────────────────────────────────────────────────── */
-
-.gate-wall {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--sp-2);
-  margin: var(--sp-2) 0 var(--sp-3);
-}
-
-.gate-wall__label {
-  font-family: var(--font-brush);
-  font-size: var(--fs-3);
-}
-
-.gate-wall__track {
-  display: block;
-}
-
-.gate-wall__fill {
-  background: var(--hai);
-  transition: width var(--dur-2) var(--ease);
-}
-
-.gate-wall__count {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-  white-space: nowrap;
-}
-
-/* ── phase card ──────────────────────────────────────────────────────── */
-
-.gate-phase {
-  margin-top: var(--sp-3);
-}
-
-.gate-phase__name {
-  margin: var(--sp-1) 0;
-  font-family: var(--font-brush);
-  font-size: var(--fs-6);
-  line-height: 1.1;
-}
-
-.gate-phase__line {
-  margin: var(--sp-2) 0;
-}
-
-.gate-phase__keeper {
-  margin: 0;
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
-
-/* ── grudge list ─────────────────────────────────────────────────────── */
-
-.gate-grudge__line {
-  margin: 0 0 var(--sp-1);
-}
-
-.gate-grudge__items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.gate-grudge__kept {
-  margin: var(--sp-2) 0 0;
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
-
-/* ── result ──────────────────────────────────────────────────────────── */
-
-.gate-stamp {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  margin: var(--sp-3) 0;
-}
-
-.gate-stamp__seal {
-  width: 72px;
-  height: 72px;
-  font-size: var(--fs-4);
-  text-align: center;
-  writing-mode: vertical-rl;
-  transform: rotate(-6deg);
-}
-
-.gate-stamp__seal--assisted {
-  background: linear-gradient(135deg, var(--shu) 0 72%, var(--hai) 72%);
-}
-
-.gate-stamp__line {
-  margin: 0;
-}
-
-.gate-result__table {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
-  margin: var(--sp-3) 0;
-  padding: var(--sp-3);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-}
-
-.gate-result__row {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--sp-2);
-}
-
-.gate-result__row dt {
-  font-weight: 600;
-}
-
-.gate-result__row dd {
-  margin: 0;
-  font-family: var(--font-pixel);
-  text-align: right;
-}
-
-.gate-result__row[data-pass="true"] dd {
-  color: var(--matcha);
-}
-
-.gate-result__row[data-pass="false"] dd {
-  color: var(--shu);
-}
-
-.gate-result__row small {
-  color: var(--fg-muted);
-  font-family: var(--font-ui);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .gate-wall__fill {
-    transition: none;
-  }
-}
+/* TSUZUKU — <GateView> (design 09 §9, §10 D1). Tokens from tokens.css; .sheet / .meter / .eyebrow from motion.css;
+   .seal / .notice / .hanko / .btn / .chip from components.css. The wall is a .meter of STONE: --value is what still
+   stands; --wall-stone (gate-wall.ts's dither tile) textures the UNSCALED track (on the scaleX'd fill it would
+   squash), the fill is a flat --hai veil, the shatter pieces fall one per clean rep (translate + opacity, non-scaling
+   stroke). Doors part on a pass (translate). Tokens only (reduced form = zeroed tokens); nothing here glows. */
+.gate-view { box-sizing: border-box; width: 100%; max-width: 720px; margin: 0 auto; padding: var(--sp-3) var(--gutter) var(--sp-6); color: var(--fg); }
+.gate-view__keeper { margin-bottom: var(--sp-3); }
+.gate-view__station { margin: 0; font-size: var(--fs-2); color: var(--fg-muted); }
+.gate-view__name { margin: var(--sp-1) 0 0; font-family: var(--font-brush); font-size: var(--fs-5); line-height: 1.2; }
+.gate-view__name-en { font-family: var(--font-ui); font-size: var(--fs-3); font-weight: 400; color: var(--fg-muted); }
+.gate-view__line, .gate-view__note, .gate-view__attempts { margin: var(--sp-2) 0; }
+.gate-view__note, .gate-view__attempts { font-size: var(--fs-2); color: var(--fg-muted); }
+.gate-view__status { margin: var(--sp-3) 0; font-weight: 600; }
+.gate-view__phases { display: flex; flex-direction: column; gap: var(--sp-2); margin: var(--sp-3) 0; padding-left: var(--sp-5); }
+.gate-view__phases [lang="ja"] { font-family: var(--font-brush); margin-right: var(--sp-1); }
+.gate-view__banner { margin: var(--sp-3) 0; }
+.gate-view__ahead .eyebrow { margin: 0 0 var(--sp-1); }
+.gate-view__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin-top: var(--sp-4); }
+.gate-view__result { margin: var(--sp-3) 0; font-size: var(--fs-4); }
+.gate-view__wall-down { margin: var(--sp-3) 0 0; }
+/* ── the stone wall ── */
+.gate-wall { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--sp-2); margin: var(--sp-2) 0 var(--sp-3); }
+.gate-wall__label { font-family: var(--font-brush); font-size: var(--fs-3); }
+.gate-wall__track { --meter-tone: color-mix(in srgb, var(--hai) 55%, transparent); height: 12px; border-radius: 3px; }
+.gate-wall[data-wall="stone"] .gate-wall__track { background: var(--wall-stone) 0 0 / 16px 16px, var(--raised); }
+.gate-wall__shards { position: absolute; inset: 0; width: 100%; height: 100%; }
+.gate-wall__piece { fill: var(--hai); fill-opacity: 0.55; stroke: var(--stage-bg); stroke-width: 1px; vector-effect: non-scaling-stroke; transition: translate var(--dur-3) var(--ease-in), opacity var(--dur-3) var(--ease-in); }
+.gate-wall__piece[data-chipped] { translate: 0 14px; opacity: 0; }
+.gate-wall__count { font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--fg-muted); white-space: nowrap; }
+/* ── phase card (a .sheet) ── */
+.gate-phase { margin-top: var(--sp-3); }
+.gate-phase__name { margin: var(--sp-1) 0; font-family: var(--font-brush); font-size: var(--fs-6); line-height: 1.1; }
+.gate-phase__line { margin: var(--sp-2) 0; }
+.gate-phase__keeper { margin: 0; font-size: var(--fs-2); color: var(--fg-muted); }
+/* ── grudge list ── */
+.gate-grudge__title { margin: var(--sp-3) 0 var(--sp-1); }
+.gate-grudge__line { margin: 0 0 var(--sp-1); }
+.gate-grudge__items { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; }
+.gate-grudge__kept { margin: var(--sp-2) 0 0; font-size: var(--fs-2); color: var(--fg-muted); }
+/* ── result: the doors part on a pass (translate), the seal behind them ── */
+.gate-stamp { position: relative; display: flex; align-items: center; gap: var(--sp-4); margin: var(--sp-3) 0; padding: var(--sp-3); overflow: hidden; border-radius: var(--radius); }
+.gate-doors { position: absolute; inset: 0; pointer-events: none; }
+.gate-doors::before, .gate-doors::after { content: ""; position: absolute; top: 0; bottom: 0; width: 50%; background: repeating-linear-gradient(90deg, var(--wood) 0 2px, transparent 2px 24px), var(--wood-light); transition: translate var(--dur-4) var(--ease); }
+.gate-doors::before { left: 0; border-right: 2px solid var(--wood); }
+.gate-doors::after { right: 0; border-left: 2px solid var(--wood); }
+.gate-doors--open::before { translate: -100% 0; }
+.gate-doors--open::after { translate: 100% 0; }
+.gate-stamp__seal { width: 72px; height: 72px; font-size: var(--fs-4); text-align: center; writing-mode: vertical-rl; transform: rotate(-6deg); }
+.gate-stamp__seal--assisted { background: linear-gradient(135deg, var(--shu) 0 72%, var(--hai) 72%); }
+.gate-stamp__line { margin: 0; }
+.gate-result__table { display: flex; flex-direction: column; gap: var(--sp-1); margin: var(--sp-3) 0; padding: var(--sp-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.gate-result__row { display: flex; justify-content: space-between; gap: var(--sp-2); }
+.gate-result__row dt { font-weight: 600; }
+.gate-result__row dd { margin: 0; font-family: var(--font-pixel); text-align: right; }
+.gate-result__row[data-pass="true"] dd { color: var(--matcha); }
+.gate-result__row[data-pass="false"] dd { color: var(--shu-text); }
+.gate-result__row small { color: var(--fg-muted); font-family: var(--font-ui); }

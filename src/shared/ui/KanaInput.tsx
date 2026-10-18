@@ -21,12 +21,19 @@
  *                 is then dropped), which is why the native `maxlength`
  *                 attribute is deliberately NOT set: it counts UTF-16 units of
  *                 kana + pending letters and would block `shi` at the boundary.
+ *  · Focus        → the field's wrapper (`.kana-input__ink`) takes `.ink-hiku`
+ *                 `[data-axis="x"]` and an indigo rule (the focus border's ink,
+ *                 lifted 4 px above it so the draw reads) draws under the kana
+ *                 over `--dur-2` (design 09 §12.1 d58; a scaled pseudo-element,
+ *                 never width); under reduced motion the class is never set and
+ *                 the line simply stands. The caret stays vermilion either way.
  */
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { clampGlyphs } from '../jp';
 import { finalizeIme, imeStep } from '../kana-ime';
 import { S } from './strings';
+import { prefersReducedMotion } from './use-reveal';
 import './ui.css';
 
 export interface KanaInputProps {
@@ -60,6 +67,7 @@ export function KanaInput(p: KanaInputProps): JSX.Element {
   const cycle = useRef<{ base: string; idx: number } | null>(null);
   const [kata, setKata] = useState<boolean>(Boolean(p.katakana));
   const [pending, setPending] = useState<string>('');
+  const [focused, setFocused] = useState(false);
   const kataRef = useRef(kata);
   kataRef.current = kata;
 
@@ -198,27 +206,33 @@ export function KanaInput(p: KanaInputProps): JSX.Element {
   };
 
   const hasCandidates = (p.candidates?.length ?? 0) > 0;
+  // the hiku underline draws on focus; reduced motion shows it standing (CSS :focus-within), no verb class
+  const hiku = focused && !prefersReducedMotion();
 
   return (
     <div class="kana-input" data-katakana={kata ? 'true' : 'false'} data-pending={pending || undefined}>
-      <input
-        ref={ref}
-        id={p.id}
-        class="kana-input__field"
-        type="text"
-        lang="ja"
-        value={p.value}
-        placeholder={p.placeholder}
-        disabled={p.disabled}
-        aria-label={p.label ?? S.answerField}
-        autoComplete="off"
-        autoCapitalize="off"
-        autocorrect="off"
-        spellcheck={false}
-        enterKeyHint="done"
-        onInput={onInput}
-        onKeyDown={onKeyDown}
-      />
+      <span class={hiku ? 'kana-input__ink ink-hiku' : 'kana-input__ink'} data-axis={hiku ? 'x' : undefined}>
+        <input
+          ref={ref}
+          id={p.id}
+          class="kana-input__field"
+          type="text"
+          lang="ja"
+          value={p.value}
+          placeholder={p.placeholder}
+          disabled={p.disabled}
+          aria-label={p.label ?? S.answerField}
+          autoComplete="off"
+          autoCapitalize="off"
+          autocorrect="off"
+          spellcheck={false}
+          enterKeyHint="done"
+          onInput={onInput}
+          onKeyDown={onKeyDown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+      </span>
       <button
         type="button"
         class="kana-input__kata"

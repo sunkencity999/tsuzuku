@@ -7,6 +7,14 @@
  * The stamp is `<GoshuinStamp>` (sibling G module) when built; otherwise the
  * fallback here: seeded square/round seal frame with eroded edges, the station
  * name in 1–3 tategaki columns, the era date in small sumi type.
+ *
+ * Design 09 §7 E / §10 D1: the card and the book page are `.sheet`s; the press
+ * is a --spring transition, the wet ink dries (kawaku, opacity only); at `set`
+ * the era date lands exactly as `formatEraDate` prints it with its Latin gloss
+ * beneath (`.seal-date`); the station line shows romaji only below Green kana
+ * and a kana `<Ruby>` from Green on (d49, `src/art/road/reading`); Continue
+ * and the auto-complete dry the card out (kasure, `useExit`) before `onDone`,
+ * or hand over at once when the host owns the exit (`hostExit`).
  */
 import type { JSX } from 'preact';
 import { useEffect } from 'preact/hooks';
@@ -14,14 +22,16 @@ import { STATIONS, type StationDef } from '../../content/types';
 import { hashSeed, mulberry32 } from '../../shared/hash';
 import type { EpochDay } from '../../shared/store-types';
 import { formatEraDate } from '../../shared/time';
+import { Ruby } from '../../shared/ui/Ruby';
 import { store } from '../../store';
 import { inkBleed, sealFrame } from '../brush';
 import { INK, PALETTE, STONE } from '../color';
 import { FONTS, columnsFor, fitSize, splitColumns, tategaki } from '../jtext';
+import { romajiAllowed, rubyMarkup, signRubyMode } from '../road/reading';
 import { path, polygon, svgDoc, text, uid, url } from '../svg';
 import { fill } from '../strings';
 import { S } from './strings';
-import { loadGoshuinStamp, playSfx, prefersReducedMotion, useLazy, useTimeline } from './support';
+import { eraDateNodes, eraGloss, loadGoshuinStamp, playSfx, prefersReducedMotion, useExit, useLazy, useTimeline, verb } from './support';
 import './StampPress.css';
 
 export interface StampPressProps {
@@ -30,6 +40,8 @@ export interface StampPressProps {
   assisted: boolean;
   onDone(): void;
   reduced?: boolean;
+  /** The host plays the one kasure exit on its overlay: Continue / the auto-complete hand over at once. */
+  hostExit?: boolean;
 }
 
 /** Phase start times: hover → press (thump, ink spread) → set (copy appears). */
@@ -129,8 +141,11 @@ export function fallbackStampSvg(o: FallbackStampOptions): string {
 
 export function StampPress(p: StampPressProps): JSX.Element {
   const reduced = p.reduced ?? prefersReducedMotion();
-  const phase = useTimeline(PRESS_AT, { reduced, endAt: PRESS_DONE_MS, onEnd: p.onDone });
+  const exit = useExit(p.onDone, reduced || p.hostExit === true);
+  const phase = useTimeline(PRESS_AT, { reduced, endAt: PRESS_DONE_MS, onEnd: exit.leave });
   const stamp = useLazy(loadGoshuinStamp);
+  const romaji = romajiAllowed(store.profile.value.belt);
+  const rubyMode = signRubyMode(store.settings.value.furigana);
   const def = stationDef(p.station);
   const at: EpochDay = store.collections.value.stamps[p.station]?.at ?? store.today();
   const seed = hashSeed(store.seed(), 'goshuin', p.station);
@@ -145,14 +160,22 @@ export function StampPress(p: StampPressProps): JSX.Element {
   const svg = fallbackStampSvg({ station: def, number: p.station, at, perfect: p.perfect, assisted: p.assisted, seed, size: 240 });
 
   return (
-    <section class={`stamp-press stamp-press--${phaseName}`} data-phase={phase} data-perfect={p.perfect} data-assisted={p.assisted} data-station={p.station}>
-      <p class="stamp-press__eyebrow status-window__label">
+    <section
+      class={`stamp-press sheet stamp-press--${phaseName} ${verb(reduced, 'ink-nijimi')}`}
+      data-phase={phase}
+      data-perfect={p.perfect}
+      data-assisted={p.assisted}
+      data-station={p.station}
+      data-leaving={exit.leaving ? '' : undefined}
+      ref={exit.ref}
+    >
+      <p class="stamp-press__eyebrow eyebrow">
         {S.stampTitle}
         <span class="stamp-press__eyebrow-ja" lang="ja">
           {S.stampTitleJa}
         </span>
       </p>
-      <div class="stamp-press__page">
+      <div class="stamp-press__page sheet sheet--gutter">
         <div class="stamp-press__stamp" data-stamp={Stamp ? 'goshuin' : 'fallback'}>
           {Stamp ? <Stamp station={p.station} at={at} perfect={p.perfect} assisted={p.assisted} size={240} /> : <div class="stamp-press__fallback" dangerouslySetInnerHTML={{ __html: svg }} />}
         </div>
@@ -162,16 +185,30 @@ export function StampPress(p: StampPressProps): JSX.Element {
         {def ? (
           <>
             {', '}
-            <span lang="ja">{def.nameJa}</span> {def.nameRomaji}
+            {romaji ? (
+              <>
+                <span lang="ja">{def.nameJa}</span> {def.nameRomaji}
+              </>
+            ) : (
+              <Ruby ja={rubyMarkup(def.nameJa, def.nameRomaji)} mode={rubyMode} />
+            )}
           </>
         ) : null}
         {'. '}
         {S.stampBehind}
       </p>
+      {phase >= 2 ? (
+        <p class={`seal-date ceremony__date stamp-press__date ${verb(reduced, 'ink-nijimi')}`}>
+          <span class="ceremony__era" lang="ja">
+            {eraDateNodes(at)}
+          </span>
+          <span class="seal-date__label">{eraGloss(at)}</span>
+        </p>
+      ) : null}
       {p.perfect ? <p class="stamp-press__note stamp-press__note--gold">{S.stampPerfect}</p> : null}
       {p.assisted ? <p class="stamp-press__note muted">{S.stampAssisted}</p> : null}
       <div class="stamp-press__actions">
-        <button type="button" class="hanko stamp-press__continue" onClick={() => p.onDone()}>
+        <button type="button" class="hanko stamp-press__continue" onClick={exit.leave}>
           {S.continue}
         </button>
       </div>

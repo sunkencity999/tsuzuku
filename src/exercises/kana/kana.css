@@ -48,12 +48,6 @@
   font-family: var(--font-ja);
   line-height: var(--lh-ja);
 }
-.drill__label {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
 .drill__hint {
   margin: 0;
   font-size: var(--fs-2);
@@ -245,10 +239,10 @@
   background: var(--kin);
   border: 2px solid var(--fg-muted);
   opacity: calc(1 - var(--dim) * 0.085);
-  box-shadow: 0 0 calc(12px - var(--dim) * 1px) color-mix(in srgb, var(--kin) 55%, transparent);
 }
 .gojuon__stage {
   position: relative;
+  container-type: inline-size;
   box-sizing: border-box;
   height: 5.5rem;
   overflow: hidden;
@@ -262,13 +256,14 @@
   width: 3.5rem;
   border-right: 2px dashed var(--line);
 }
+/* the kana glides on a composited translate in container units (100cqi = the stage); `left` never moves (§6.7 rule 1) */
 .gojuon__kana {
   --remain: 1;
   position: absolute;
   top: 50%;
-  left: calc(var(--remain) * (100% - 3.5rem));
+  left: 0;
   margin: 0;
-  transform: translateY(-50%);
+  translate: calc(var(--remain) * (100cqi - 3.5rem)) -50%;
   font-family: var(--font-ja);
   font-size: var(--fs-6);
   line-height: 1;
@@ -280,19 +275,15 @@
 .gojuon__kana[data-state='miss'] {
   color: var(--shu);
 }
+/* the landing bar is a .meter (motion.css); the 50 ms tick needs a micro smoothing, not the content beat */
 .gojuon__track {
-  height: 6px;
-  overflow: hidden;
-  border-radius: 3px;
-  background: var(--line);
+  --meter-tone: var(--neon-c);
 }
-.gojuon__bar {
-  --remain: 1;
-  height: 100%;
-  width: 100%;
-  transform-origin: left center;
-  transform: scaleX(var(--remain));
-  background: var(--neon-c);
+.gojuon__track .meter__fill {
+  transition-duration: var(--dur-1);
+}
+.gojuon__best {
+  color: var(--kin-text);
 }
 .gojuon__field {
   font-family: var(--font-ui);
@@ -317,12 +308,6 @@
   .gojuon__stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-}
-.gojuon__stats dt {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .gojuon__stats dd {
   margin: 0;
@@ -360,22 +345,13 @@
   opacity: 0.7;
 }
 
-/* reduced motion: the kana stays put, the bar does the counting */
+/* reduced motion: the kana stays put, the bar does the counting (a changed form, so the block stays; design 09 §6.6) */
 @media (prefers-reduced-motion: reduce) {
   .gojuon__kana {
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-  .drill__field,
-  .kana-ear__speaker {
-    transition: none;
+    translate: calc(50cqi - 50%) -50%;
   }
 }
+:root[data-reduced-motion] .gojuon__kana,
 .reduced-motion .gojuon__kana {
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-.reduced-motion .drill__field,
-.reduced-motion .kana-ear__speaker {
-  transition: none;
+  translate: calc(50cqi - 50%) -50%;
 }

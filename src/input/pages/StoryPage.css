@@ -46,6 +46,10 @@
 .story-page__chips a.chip:focus-visible {
   border-color: var(--ai);
 }
+/* JA at --fs-2 so a reading's rt (0.5em) lands at 7 px (§3.3) */
+.story-page__chips a.chip [lang="ja"] {
+  font-size: var(--fs-2);
+}
 .story-page__note {
   margin: 0;
   font-size: var(--fs-2);

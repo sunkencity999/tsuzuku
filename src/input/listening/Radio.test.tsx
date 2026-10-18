@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
@@ -1081,6 +1081,29 @@ describe('design 09 (C4): the indigo band on <Radio>', () => {
     expect(bands[0]!.getAttribute('title')).toBe(S.chipDevice);
   });
 
+  it('the track, gist and done panels are .sheet paper, never the cartouche; no .status-window remains under src/input (design 09 §2.5, §12.1 d53)', () => {
+    mount(inputsOf([PIECE]), { clips: fakeClips({ texts: [PIECE] }), nav: fakeNav() });
+    const track = root.querySelector('.radio__track')!;
+    expect(track.classList.contains('sheet')).toBe(true);
+    expect(track.classList.contains('status-window')).toBe(false);
+    // (the TeachOnce card is contract-tier chrome, not one of the ten; the panels themselves carry no cartouche)
+    expect(root.querySelector('.radio__track.status-window, .radio__gist.status-window, .radio__done.status-window')).toBeNull();
+    // the cartouche is reserved for character-sheet surfaces: every .tsx under src/input is clean
+    const walk = (dir: string, out: string[] = []): string[] => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name);
+        if (statSync(p).isDirectory()) walk(p, out);
+        else if (p.endsWith('.tsx') && !p.endsWith('.test.tsx')) out.push(p);
+      }
+      return out;
+    };
+    const offenders = walk(resolve(process.cwd(), 'src/input')).filter((p) => /status-window/.test(readFileSync(p, 'utf8')));
+    expect(offenders).toEqual([]);
+    for (const cls of ['radio__track', 'radio__gist', 'radio__done']) {
+      expect(readFileSync(resolve(process.cwd(), 'src/input/listening/Radio.tsx'), 'utf8')).toContain(`class="${cls} sheet"`);
+    }
+  });
+
   it('Radio.css: the band is --ai-dye and static; the file tweens nothing and keeps no reduced-motion block', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/input/listening/Radio.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     const band = /\.radio__band\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
@@ -1088,5 +1111,9 @@ describe('design 09 (C4): the indigo band on <Radio>', () => {
     expect(band).not.toMatch(/transition|animation/);
     expect(css).not.toMatch(/transition|@keyframes|prefers-reduced-motion|\.reduced-motion/);
     expect(/\.radio__title-ja\s*\{[^}]*line-height:\s*1\.1/.test(css)).toBe(true);
+    // the sheets carry their own paper, padding and shading: no local padding on the three panels, the playing ring is an outline (the box-shadow is the sheet's)
+    for (const cls of ['radio__track', 'radio__gist', 'radio__done']) expect(new RegExp(`\\.${cls}\\s*\\{[^}]*\\b(padding|background|border|box-shadow)\\s*:`).test(css), cls).toBe(false);
+    expect(css).not.toMatch(/status-window/);
+    expect(/\.radio\[data-status='playing'\] \.radio__track\s*\{[^}]*outline:/.test(css)).toBe(true);
   });
 });

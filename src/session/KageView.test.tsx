@@ -14,6 +14,8 @@ import { resetStoreForTests, store } from '../store';
 import { DEFAULT_TEST_NOW, captureEvents, card, makeTestStore } from '../store/testing';
 import type { SessionRunner } from './runner';
 import type { SessionViewComponent } from './ScrollView';
+import { S as AS } from './arcade-strings';
+import { fill } from './engine-strings';
 import { HiScoreTable, KageStrip, KageView } from './KageView';
 import { factoryRows, hiScoreTable } from './kage';
 
@@ -125,6 +127,15 @@ describe('<KageView> standing', () => {
     await makeTestStore({ save: { profile: { name: 'Hana' }, kage: { week: WEEK - 1, best4: [800, 950], wins: 1, history: [[WEEK - 2, 800], [WEEK - 1, 950]] } } });
     await mount();
     expect(root.querySelector('.kage-view')?.getAttribute('data-stage')).toBe('standing');
+    // the poster (design 09 §5.6): a .poster-title head with the old title as its eyebrow; the digits roll (<Ticker roll>)
+    const head = root.querySelector('.kage-view__title')!;
+    expect(head.classList.contains('poster-title')).toBe(true);
+    expect(head.textContent).toBe(AS.kagePoster);
+    expect(root.querySelector('.kage-view__eyebrow')?.textContent).toBe('Versus your shadow');
+    expect(root.querySelector('.kage-versus')?.classList.contains('halftone')).toBe(true);
+    expect(root.querySelectorAll('.kage-digits .ticker[data-roll]').length).toBeGreaterThanOrEqual(2);
+    expect(root.querySelector('.kage-table')?.classList.contains('hiscore')).toBe(true);
+    expect(root.querySelector('.kage-view__best')).toBeNull();
     expect(root.querySelector('.kage-versus__side--you .kage-versus__name')?.textContent).toBe('Hana');
     expect(root.querySelector('.kage-versus__side--kage .kage-digits--lg')?.textContent).toBe('950');
     expect(root.querySelector('.kage-versus__side--you .kage-digits--lg')?.textContent).toBe('950');
@@ -177,6 +188,10 @@ describe('<KageView> run', () => {
     expect(root.querySelector('.kage-view')?.getAttribute('data-stage')).toBe('result');
     // 4/4 correct, mature median 4000 / observed 4000 → speed index 1 → 1000 points
     expect(root.querySelector('.kage-view__score .kage-digits')?.textContent).toBe('1,000');
+    expect(root.querySelector('.kage-view__score .ticker[data-roll]')).not.toBeNull();
+    expect(root.querySelector('.kage-view__title')?.classList.contains('poster-title')).toBe(true);
+    // a first run has no own best to pass: no BEST eyebrow
+    expect(root.querySelector('.kage-view__best')).toBeNull();
     expect(text()).toContain('Accuracy');
     expect(text()).toContain('100 percent');
     expect(text()).toContain('First run. From here, the shadow is you.');
@@ -190,6 +205,31 @@ describe('<KageView> run', () => {
     click(root.querySelector('.kage-view__actions .btn'));
     expect(onExit).toHaveBeenCalledTimes(1);
     cap.stop();
+  });
+
+  it('the BEST eyebrow names the learner’s OWN previous best when the run passes it, and never otherwise (footnote 5)', async () => {
+    const { plan, cards } = ghostPlan();
+    // own best of four weeks 600; a clean run scores 1000 → BEST · past your own 600
+    await makeTestStore({ save: { progress: { station: 4 }, medianMs: { 'meaning-recall': 4000 }, kage: { week: WEEK - 1, best4: [600], wins: 0, history: [[WEEK - 1, 600]] } }, cards });
+    await mount(plan);
+    click(root.querySelector('.hanko'));
+    await settle(2);
+    answerAll(captured.runner as SessionRunner, true);
+    await settle(2);
+    expect(root.querySelector('.kage-view')?.getAttribute('data-beat')).toBe('true');
+    expect(root.querySelector('.kage-view__best')?.textContent).toBe(fill(AS.kageBest, { n: 600 }));
+    expect(text()).not.toContain('950');
+    // a run below the own best: no eyebrow (never on a miss)
+    act(() => render(null, root));
+    await makeTestStore({ save: { progress: { station: 4 }, medianMs: { 'meaning-recall': 4000 }, kage: { week: WEEK - 1, best4: [900], wins: 0, history: [[WEEK - 1, 900]] } }, cards });
+    await mount(plan);
+    click(root.querySelector('.hanko'));
+    await settle(2);
+    answerAll(captured.runner as SessionRunner, false);
+    await settle(2);
+    expect(root.querySelector('.kage-view')?.getAttribute('data-stage')).toBe('result');
+    expect(root.querySelector('.kage-view')?.getAttribute('data-beat')).toBe('false');
+    expect(root.querySelector('.kage-view__best')).toBeNull();
   });
 
   it('a same-week second run is free play: nothing written, no event', async () => {
@@ -217,6 +257,18 @@ describe('<HiScoreTable> / <KageStrip>', () => {
     expect(first?.querySelectorAll('td')[0]?.textContent).toBe('1');
     expect(first?.textContent).toContain('550');
     expect(first?.textContent).toContain('カゲ');
+    // below Green kana the katakana initials carry their romaji (design 09 §3.3)
+    expect(first?.querySelector('.kage-table__romaji')?.textContent).toContain(AS.kageInitials['カゲ']);
+    expect(first?.querySelector('[lang="ja"]')?.textContent).toBe('カゲ');
+  });
+
+  it('from Green kana the factory initials stand alone: no romaji in the table (design 09 §3.3)', async () => {
+    await makeTestStore({ save: { profile: { belt: 'green' } } });
+    const k = { week: WEEK - 1, best4: [500], wins: 0, history: [[WEEK - 1, 500] as [number, number]] };
+    act(() => render(<HiScoreTable rows={hiScoreTable(k)} />, root));
+    expect(root.querySelector('.kage-table__romaji')).toBeNull();
+    expect(root.textContent).toContain('カゲ');
+    expect(root.textContent).not.toContain('Kage ');
   });
 
   it('the strip links to the kage session and shows due / best / last', async () => {
@@ -227,6 +279,12 @@ describe('<HiScoreTable> / <KageStrip>', () => {
     expect(a.getAttribute('data-due')).toBe('true');
     expect(a.textContent).toContain('best 900');
     expect(a.textContent).toContain('last 900');
-    expect((a.querySelector('.kage-strip__lane--kage .kage-strip__fill') as HTMLElement).style.width).toBe('100%');
+    // the lanes are .meters (design 09 §5.7): --value drives the fill, no width style
+    const kage = a.querySelector('.kage-strip__lane--kage') as HTMLElement;
+    expect(kage.classList.contains('meter')).toBe(true);
+    expect(kage.style.getPropertyValue('--value')).toBe('1');
+    expect(kage.querySelector('.meter__fill')).not.toBeNull();
+    expect(a.querySelector('[style*="width"]')).toBeNull();
+    expect(a.querySelectorAll('.kage-strip__lane-label')).toHaveLength(2);
   });
 });

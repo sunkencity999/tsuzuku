@@ -13,9 +13,20 @@
  *  leaving the room mid-exam abandons the run; a Notes plan with nothing to
  *  drill (stale notes whose cards are gone) completes the Notes session on the
  *  spot so the retake can never be locked.
+ *
+ *  Design 09 §3.1 / §10 D1: the five section sheets are `.sheet`s whose heads
+ *  set in Mincho (the one surface outside the Dojo column the fence allows) —
+ *  SHINSA_LABEL's kanji never without its English (arcade-strings' heads);
+ *  the coverage bars are `.meter`s with a target tick; a pass opens with the
+ *  600 ms sumi beat (`SHINSA_SUMI_MS`): one seeded ink wash (the ceremony's
+ *  own `inkWashUrl`, a static data URL) nijimi over --dur-3, a hold, then
+ *  kasure — skippable by any tap or key, absent under reduced motion — and the
+ *  host holds the belt ceremony for it (CeremonyHost `BELT_SETTLE_MS` = hold +
+ *  kasure; the test here pins the sum). The header's rank title shows romaji
+ *  only below Green kana and a kana `<Ruby>` from Green on (§3.3).
  */
 import type { JSX } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { content as appContent, type ContentLoader } from '../content/loader';
 import { BELTS, type Belt, type DrillId } from '../content/types';
@@ -24,9 +35,15 @@ import { hashSeed } from '../shared/hash';
 import { parseCardKey } from '../shared/ids';
 import type { SessionPlan } from '../shared/session-types';
 import type { Stats } from '../shared/store-types';
+import { Ruby } from '../shared/ui/Ruby';
 import { TAG_LABEL } from '../shared/ui/strings';
+import { prefersReducedMotion } from '../shared/ui/use-reveal';
+import { inkWashUrl } from '../art/ceremony/BeltCeremony';
+import { beltTitleRuby } from '../art/ceremony/support';
+import { romajiAllowed, signRubyMode } from '../art/road/reading';
 import { store } from '../store';
 import { beltStations } from '../store/derived';
+import { S as AS } from './arcade-strings';
 import { BELT_NAME, SHINSA_LABEL, fill } from './engine-strings';
 import { itemHead } from './GateView';
 import { SessionRunner } from './runner';
@@ -52,6 +69,16 @@ export interface ShinsaViewProps {
 
 export type ShinsaStage = 'loading' | 'eligibility' | 'building' | 'failed' | 'empty' | 'exam' | 'notes' | 'result';
 
+/** The sumi beat before the belt ceremony (design 09 §10 D1): the wash is in over --dur-3 and the whole beat holds 600 ms. */
+export const SHINSA_SUMI_MS = 600;
+/** The wash's kasure after the hold (--dur-1), as a timer fallback. */
+export const SHINSA_SUMI_OUT_MS = 120;
+
+/** The section kanji (耳 読 形 口 書) of a SHINSA_LABEL, shown in Mincho beside its English head. */
+export function sectionKanji(sec: ShinsaSection): string {
+  return Array.from(SHINSA_LABEL[sec])[0] ?? '';
+}
+
 /**
  * Speaking passed on the typed path: no role-play was spoken in this exam and
  * the learner has never shadowed or delivered a monologue (Speak or
@@ -66,15 +93,27 @@ export function typedPath(plan: SessionPlan, stats: Pick<Stats, 'shadowLines' | 
 function Coverage(p: { label: string; now: number; target: number }): JSX.Element {
   const pct = Math.round(p.now * 100);
   const target = Math.round(p.target * 100);
+  const met = pct >= target ? 'true' : 'false';
   return (
-    <div class="shinsa-cov" role="progressbar" aria-label={p.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} data-met={pct >= target ? 'true' : 'false'}>
+    <div class="shinsa-cov" role="progressbar" aria-label={p.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} data-met={met}>
       <span class="shinsa-cov__label">{p.label}</span>
-      <span class="progress progress--matcha shinsa-cov__track">
-        <span class="progress__fill" style={{ width: `${Math.min(100, pct)}%` }} />
-        <span class="shinsa-cov__mark" style={{ left: `${target}%` }} aria-hidden="true" />
+      <span class="meter shinsa-cov__track" data-target="" data-met={met} style={{ '--value': String(Math.min(1, p.now)), '--target': String(p.target), '--meter-tone': 'var(--matcha)' }}>
+        <span class="meter__fill" />
       </span>
       <span class="shinsa-cov__count">{fill(S.coverageOf, { now: pct, target })}</span>
     </div>
+  );
+}
+
+/** A section's head: its kanji in Mincho, its English beside it (zero-Japanese rule). */
+function SheetHead(p: { sec: ShinsaSection }): JSX.Element {
+  return (
+    <span class="shinsa-sheet__head">
+      <span class="shinsa-sheet__kanji" lang="ja">
+        {sectionKanji(p.sec)}
+      </span>{' '}
+      <span class="shinsa-sheet__en">{AS.shinsaHead[p.sec]}</span>
+    </span>
   );
 }
 
@@ -89,9 +128,15 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
   const [score, setScore] = useState<ShinsaScore | null>(null);
   const [notesDone, setNotesDone] = useState(false);
   const [, setTick] = useState(0);
+  const [sumi, setSumi] = useState<'in' | 'leaving' | null>(null);
   const finished = useRef(false);
   const cardsVersion = store.cards.version.value;
   const progress = store.progress.value;
+  // signage (design 09 §3.3): romaji only below Green kana; a kana ruby from Green on
+  const romaji = romajiAllowed(store.profile.value.belt);
+  const rubyMode = signRubyMode(store.settings.value.furigana);
+  // the sumi beat's wash: the ceremony's seeded ink, encoded once (never a live filter)
+  const wash = useMemo(() => inkWashUrl(hashSeed(store.seed(), 'shinsa', belt)), [belt]);
 
   useEffect(() => {
     if (stage !== 'loading') return;
@@ -149,6 +194,29 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
     finishShinsa(belt, sc);
     setScore(sc);
   }, [stage, runner, belt]);
+
+  // the sumi beat on a pass: the wash is in at once (nijimi, --dur-3), holds to SHINSA_SUMI_MS, then dries out; any tap or key ends it
+  useEffect(() => {
+    if (stage !== 'result' || !score?.passed || prefersReducedMotion()) {
+      setSumi(null);
+      return;
+    }
+    setSumi('in');
+    let out: ReturnType<typeof setTimeout> | null = null;
+    const dry = (): void => {
+      setSumi((s) => (s === 'in' ? 'leaving' : s));
+      if (out === null) out = setTimeout(() => setSumi(null), SHINSA_SUMI_OUT_MS);
+    };
+    const hold = setTimeout(dry, SHINSA_SUMI_MS);
+    document.addEventListener('pointerdown', dry, true);
+    document.addEventListener('keydown', dry, true);
+    return () => {
+      clearTimeout(hold);
+      if (out !== null) clearTimeout(out);
+      document.removeEventListener('pointerdown', dry, true);
+      document.removeEventListener('keydown', dry, true);
+    };
+  }, [stage, score]);
 
   // No retreat: leaving the room (browser Back, route change) mid-run abandons the fight honestly.
   useEffect(
@@ -223,7 +291,13 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
           <span class={`belt belt--${belt}`}>
             <span lang="ja">{beltDef.nameJa}</span> {beltDef.nameEn}
           </span>{' '}
-          <span lang="ja">{beltDef.titleJa}</span> {beltDef.titleRomaji}
+          {romaji ? (
+            <>
+              <span lang="ja">{beltDef.titleJa}</span> {beltDef.titleRomaji}
+            </>
+          ) : (
+            <Ruby ja={beltTitleRuby(beltDef)} mode={rubyMode} />
+          )}
         </p>
       ) : null}
     </header>
@@ -272,7 +346,7 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
     return (
       <section class="shinsa-view" aria-label={S.shinsaAria} data-stage="eligibility" data-eligible={elig.eligible ? 'true' : 'false'}>
         {header}
-        <h3 class="shinsa-view__label">{S.eligibilityTitle}</h3>
+        <h3 class="eyebrow shinsa-view__label">{S.eligibilityTitle}</h3>
         {notesDone ? <p class="notice">{S.notesDone}</p> : null}
         {elig.passed ? <p class="shinsa-view__status">{fill(S.shinsaEarnedLine, { belt: beltName })}</p> : null}
         <p class="shinsa-view__line">{gatesLeft === 0 ? S.gatesDoneLine : fill(S.gatesMissingLine, { n: gatesLeft })}</p>
@@ -293,7 +367,7 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
         )}
         {notes ? (
           <section class="shinsa-notes" aria-label={S.notesTitle2}>
-            <h4 class="shinsa-view__label">{S.notesTitle2}</h4>
+            <h4 class="eyebrow shinsa-view__label">{S.notesTitle2}</h4>
             <p>{S.notesLine}</p>
             <p>{notes.items.length === 1 ? S.notesItem : fill(S.notesItems, { n: notes.items.length })}</p>
             {notes.tags.length > 0 ? <p>{fill(S.notesTags, { tags: notes.tags.map((t) => TAG_LABEL[t]).join(', ') })}</p> : null}
@@ -311,12 +385,13 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
             </button>
           </section>
         ) : null}
-        <h3 class="shinsa-view__label">{S.sectionsTitle}</h3>
+        <h3 class="eyebrow shinsa-view__label">{S.sectionsTitle}</h3>
         <p class="shinsa-view__line">{sectionsLine}</p>
         <ol class="shinsa-view__sections">
           {SHINSA_SECTIONS.map((sec) => (
-            <li key={sec}>
-              <span lang="ja">{SHINSA_LABEL[sec]}</span> {S.sectionLine[sec]}
+            <li key={sec} class="sheet shinsa-sheet" aria-label={fill(AS.shinsaSheetAria, { head: AS.shinsaHead[sec] })}>
+              <SheetHead sec={sec} />
+              <span class="shinsa-sheet__line">{S.sectionLine[sec]}</span>
             </li>
           ))}
         </ol>
@@ -338,7 +413,7 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
     return (
       <section class="shinsa-view" aria-label={S.shinsaAria} data-stage="notes">
         {header}
-        <h3 class="shinsa-view__label">{S.notesTitle2}</h3>
+        <h3 class="eyebrow shinsa-view__label">{S.notesTitle2}</h3>
         <SessionHost runner={runner} onExit={leave} view={p.view} />
       </section>
     );
@@ -353,11 +428,9 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
       return (
         <section class="shinsa-view" aria-label={S.shinsaAria} data-stage="section">
           {header}
-          <article class="status-window shinsa-section" aria-label={fill(S.sectionIntro, { n: sectionIntro + 1, total: plan.blocks.length })}>
-            <h3 class="status-window__label">{fill(S.sectionIntro, { n: sectionIntro + 1, total: plan.blocks.length })}</h3>
-            <p class="shinsa-section__name" lang="ja">
-              {block?.label ?? ''}
-            </p>
+          <article class="sheet shinsa-sheet shinsa-section" aria-label={fill(S.sectionIntro, { n: sectionIntro + 1, total: plan.blocks.length })}>
+            <h3 class="eyebrow">{fill(S.sectionIntro, { n: sectionIntro + 1, total: plan.blocks.length })}</h3>
+            <p class="shinsa-section__name">{sec ? <SheetHead sec={sec} /> : <span lang="ja">{block?.label ?? ''}</span>}</p>
             <p class="shinsa-section__line">{sec ? S.sectionLine[sec] : ''}</p>
             <p class="shinsa-view__line">{sectionsLine}</p>
             <div class="shinsa-view__actions">
@@ -394,6 +467,7 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
     const notesNow = store.progress.value.shinsaNotes?.belt === belt ? store.progress.value.shinsaNotes : undefined;
     return (
       <section class="shinsa-view" aria-label={S.shinsaAria} data-stage="result" data-passed={sc.passed ? 'true' : 'false'}>
+        {sumi ? <div class="shinsa-sumi ink-nijimi" data-leaving={sumi === 'leaving' ? '' : undefined} aria-hidden="true" style={{ '--shinsa-wash': `url("${wash}")` }} /> : null}
         {header}
         <h3 class="shinsa-view__result">{sc.passed ? S.shinsaPassed : S.shinsaNotYet}</h3>
         {sc.passed ? (
@@ -420,7 +494,7 @@ export function ShinsaView(p: ShinsaViewProps): JSX.Element {
         ) : null}
         {!sc.passed && notesNow ? (
           <section class="shinsa-notes" aria-label={S.notesTitle2}>
-            <h4 class="shinsa-view__label">{S.notesTitle2}</h4>
+            <h4 class="eyebrow shinsa-view__label">{S.notesTitle2}</h4>
             <p>{S.notesLine}</p>
             <p>{notesNow.items.length === 1 ? S.notesItem : fill(S.notesItems, { n: notesNow.items.length })}</p>
             {notesNow.tags.length > 0 ? <p>{fill(S.notesTags, { tags: notesNow.tags.map((t) => TAG_LABEL[t]).join(', ') })}</p> : null}

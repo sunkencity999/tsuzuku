@@ -3,7 +3,7 @@ import { act } from 'preact/test-utils';
 import { STATIONS } from '../content/types';
 import { hashSeed } from '../shared/hash';
 import { civilToDay, formatEraDate } from '../shared/time';
-import { store } from '../store';
+import { resetStoreForTests, store } from '../store';
 import { TEST_SEED, makeTestStore } from '../store/testing';
 import { PALETTE } from './color';
 import { goshuinSvg } from './goshuin';
@@ -115,6 +115,41 @@ describe('<GoshuinStamp>', () => {
     expect(time.getAttribute('dateTime')).toBe('2026-10-17');
     expect(time.textContent).toBe(formatEraDate(DAY));
     expect(cap.querySelectorAll('.goshuin__note').length).toBe(2);
+  });
+
+  it('the caption follows the kana rule (design 09 §3.3, §12.1 d49): number · romaji below Green, the kana <ruby> and the number (or the host\'s numberLabel) from Green on; the aria-label keeps the romaji for AT, the hover tooltip takes the kana', async () => {
+    resetStoreForTests();
+    await makeTestStore({ save: { profile: { belt: 'orange' }, settings: { furigana: 'always' } } });
+    act(() => render(<GoshuinStamp station={7} at={DAY} perfect={false} assisted={false} caption />, root));
+    expect(figure().querySelector('.goshuin__romaji')?.textContent).toBe('7 · Hiratsuka');
+    expect(figure().querySelector('.goshuin__name ruby')).toBeNull();
+    act(() => render(null, root));
+    resetStoreForTests();
+    await makeTestStore({ save: { profile: { belt: 'green' }, settings: { furigana: 'always' } } });
+    act(() => render(<GoshuinStamp station={7} at={DAY} perfect={false} assisted={false} caption />, root));
+    const cap = figure().querySelector('figcaption')!;
+    expect(cap.querySelector('.goshuin__romaji')?.textContent).toBe('7');
+    expect(cap.querySelector('.goshuin__name ruby rt')?.textContent).toBe('ひらつか');
+    expect(cap.querySelector('.goshuin__name')?.getAttribute('lang')).toBe('ja');
+    expect(cap.textContent).not.toContain('Hiratsuka');
+    expect(host().getAttribute('aria-label')).toContain('Hiratsuka');
+    expect(figure().getAttribute('title')).toBe(`Station 7 · ひらつか · ${formatEraDate(DAY)}`);
+    expect(figure().getAttribute('title')).not.toContain('Hiratsuka');
+    // the host names the number from Green on (the book's 'Station {n}'); below Green the romaji line stands regardless
+    act(() => render(<GoshuinStamp station={7} at={DAY} perfect={false} assisted={false} caption numberLabel="Station 7" />, root));
+    expect(figure().querySelector('.goshuin__romaji')?.textContent).toBe('Station 7');
+    // furigana off from Green on: the plain name, no romaji either (the learner reads kanji)
+    act(() => render(null, root));
+    resetStoreForTests();
+    await makeTestStore({ save: { profile: { belt: 'green' }, settings: { furigana: 'off' } } });
+    act(() => render(<GoshuinStamp station={7} at={DAY} perfect={false} assisted={false} caption />, root));
+    expect(figure().querySelector('.goshuin__name')?.textContent).toBe('平塚');
+    expect(figure().querySelector('.goshuin__name ruby')).toBeNull();
+    expect(figure().querySelector('.goshuin__romaji')?.textContent).toBe('7');
+    // the default store again for the tests that follow
+    act(() => render(null, root));
+    resetStoreForTests();
+    await makeTestStore();
   });
 
   it('an unknown station renders an honest note instead of a stamp', () => {

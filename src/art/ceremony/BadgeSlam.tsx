@@ -8,9 +8,20 @@
  * fallback crest drawn here from the badge definition (ring · field · glyph)
  * keeps the ceremony honest. `fallbackCrestSvg` is also what the share card
  * uses when `mon.ts` is unavailable.
+ *
+ * Design 09 §7 E / §10 D1: the card is a `.sheet`; before the slam the crest
+ * stands as grey STONE — mon.ts's own stone treatment (`monStoneImage`: the
+ * emboss rasterised once as an `<img>` data URL, the glyph set over it in the
+ * page's brush face, exactly as `<MonCrest>` draws a locked crest), so the
+ * slam reads as THE SAME drawing turning from stone to colour; the unearned
+ * fallback crest stands in only while mon.ts is not built. No live filter
+ * either way. The ink ring dries (kawaku); at `settled` the era date lands
+ * with its Latin gloss (`.seal-date`); Continue dries the card out (kasure,
+ * `useExit`) first — or hands over at once when the host owns the exit
+ * (`hostExit`: one kasure on the overlay, never two in a row).
  */
 import type { JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { BadgeId } from '../../shared/catalog';
 import { hashSeed, mulberry32 } from '../../shared/hash';
 import type { EpochDay } from '../../shared/store-types';
@@ -18,12 +29,12 @@ import { formatEraDate, isoDate } from '../../shared/time';
 import { BADGE_DEFS, store } from '../../store';
 import { INK, INK_WASH, PALETTE, STONE, WASHI, ringHex } from '../color';
 import { TAU, polar, rays, regularPolygon } from '../geom';
-import { FONTS, fitSize, type TextLayer } from '../jtext';
+import { FONTS, fitSize, textEl, type TextLayer } from '../jtext';
 import { download, exportPng } from '../png';
-import { circle, g, innerOf, path, polygon, rect, roundedRectPath, svgDoc, text, uid, viewBoxOf } from '../svg';
+import { circle, g, innerOf, path, polygon, rect, roundedRectPath, svgDataUrl, svgDoc, text, uid, viewBoxOf } from '../svg';
 import { fill } from '../strings';
 import { S } from './strings';
-import { loadMon, loadMonCrest, playSfx, prefersReducedMotion, useLazy, useTimeline } from './support';
+import { eraDateNodes, eraGloss, loadMon, loadMonCrest, playSfx, prefersReducedMotion, useExit, useLazy, useTimeline, verb } from './support';
 import './BadgeSlam.css';
 
 export interface BadgeSlamProps {
@@ -31,6 +42,8 @@ export interface BadgeSlamProps {
   onDone(): void;
   /** Static card (default: the store setting or the OS preference). */
   reduced?: boolean;
+  /** The host plays the one kasure exit on its overlay: Continue hands over at once instead of drying the card first. */
+  hostExit?: boolean;
 }
 
 export type BadgeDefinition = (typeof BADGE_DEFS)[number];
@@ -169,9 +182,12 @@ export function BadgeSlam(p: BadgeSlamProps): JSX.Element {
   const def = badgeDefinition(p.id);
   const reduced = p.reduced ?? prefersReducedMotion();
   const phase = useTimeline(SLAM_AT, { reduced });
+  const exit = useExit(p.onDone, reduced || p.hostExit === true);
   const crest = useLazy(loadMonCrest);
+  const mon = useLazy(loadMon);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const today = store.today();
 
   useEffect(() => {
     playSfx('badge');
@@ -223,12 +239,34 @@ export function BadgeSlam(p: BadgeSlamProps): JSX.Element {
   const Crest = crest.value;
   const phaseName = SLAM_PHASES[Math.min(phase, SLAM_PHASES.length - 1)];
   const inkId = uid('slam-ink', p.id);
+  // the crest in grey stone before it is earned (§7 E): mon.ts's stone image with the glyph over it in the page's brush face —
+  // the real crest's own locked drawing — or the unearned fallback crest while mon.ts is not built; a static image either way
+  const monMod = mon.value;
+  const stone = useMemo(() => {
+    if (reduced) return null;
+    const spec = monMod?.MON_SPECS[p.id];
+    if (monMod?.monStoneImage && spec !== undefined) {
+      try {
+        const img = monMod.monStoneImage(spec, { size: 200, seed: monMod.monSeed ? monMod.monSeed(p.id) : seed });
+        return { kind: 'mon' as const, url: img.url, glyph: textEl(img.glyph), view: img.view };
+      } catch (err) {
+        console.warn('[ceremony] monStoneImage failed', err);
+      }
+    }
+    return { kind: 'fallback' as const, url: svgDataUrl(fallbackCrestSvg({ glyph, tier, field, size: 200, seed, earned: false })), glyph: null, view: 0 };
+  }, [reduced, monMod, p.id, glyph, tier, field, seed]);
 
   return (
-    <section class={`badge-slam badge-slam--${phaseName}`} data-phase={phase} data-tier={tier} data-badge={p.id}>
-      <p class="badge-slam__eyebrow status-window__label">{S.badgeEarned}</p>
+    <section class={`badge-slam sheet badge-slam--${phaseName} ${verb(reduced, 'ink-nijimi')}`} data-phase={phase} data-tier={tier} data-badge={p.id} data-leaving={exit.leaving ? '' : undefined} ref={exit.ref}>
+      <p class="badge-slam__eyebrow eyebrow">{S.badgeEarned}</p>
       <div class="badge-slam__stage">
         <span class="badge-slam__ink" id={inkId} aria-hidden="true" />
+        {stone ? (
+          <div class="badge-slam__stone" data-stone={stone.kind} aria-hidden="true">
+            <img src={stone.url} alt="" decoding="async" />
+            {stone.glyph ? <svg viewBox={`0 0 ${stone.view} ${stone.view}`} focusable="false" dangerouslySetInnerHTML={{ __html: stone.glyph }} /> : null}
+          </div>
+        ) : null}
         <div class="badge-slam__crest" data-crest={Crest ? 'mon' : 'fallback'}>
           {Crest ? <Crest id={p.id} earned size={200} describe={describe} caption={false} /> : <div class="badge-slam__fallback" dangerouslySetInnerHTML={{ __html: fallback(200) }} />}
         </div>
@@ -244,11 +282,19 @@ export function BadgeSlam(p: BadgeSlamProps): JSX.Element {
         {def ? <span class="chip chip--tag badge-slam__strand">{STRAND_LABEL[def.category]}</span> : null}
       </p>
       {describe ? <p class="badge-slam__describe muted">{describe}</p> : null}
+      {phase >= 2 ? (
+        <p class={`seal-date ceremony__date badge-slam__date ${verb(reduced, 'ink-nijimi')}`}>
+          <span class="ceremony__era" lang="ja">
+            {eraDateNodes(today)}
+          </span>
+          <span class="seal-date__label">{eraGloss(today)}</span>
+        </p>
+      ) : null}
       <div class="badge-slam__actions">
         <button type="button" class="btn badge-slam__save" onClick={() => void save()} disabled={busy} aria-busy={busy}>
           {S.saveImage}
         </button>
-        <button type="button" class="hanko badge-slam__continue" onClick={() => p.onDone()}>
+        <button type="button" class="hanko badge-slam__continue" onClick={exit.leave}>
           {S.continue}
         </button>
       </div>

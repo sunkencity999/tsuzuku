@@ -342,12 +342,10 @@ interface Offender {
 /**
  * Pre-existing offenders, by owner. Each owner deletes its lines in the same
  * change that fixes the CSS; the match is exact, so a stale line fails too.
+ * Empty since D1 landed (GateView's wall is a .meter, WallpaperUnlock's silk a
+ * clip-path reveal): the whole tree tweens no width or height.
  */
-const ALLOW_LIST: Offender[] = [
-  // until D1 lands (GateView.css:113; WallpaperUnlock's height tween → scaleY, §6.7)
-  { file: 'src/session/GateView.css', kind: 'transition', property: 'width', owner: 'D1' },
-  { file: 'src/art/ceremony/WallpaperUnlock.css', kind: 'transition', property: 'height', owner: 'D1' },
-];
+const ALLOW_LIST: Offender[] = [];
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const f of readdirSync(dir)) {
@@ -418,11 +416,20 @@ describe('src/**/*.css: width and height never tween (design 09 §6.7 rule 1)', 
    reduced-motion blocks and the __label clones deleted), so the phase ceiling is 413,000 — again
    the smallest multiple of 1,000 at or above the measured tree. The lead's Phase C fixes (d36 omikuji
    readings and 次回予告 gloss faces in EndCard.css, the proverb gloss in pages.css) landed the tree at
-   413,399 B, so the ceiling is 414,000. Phase D has 11,601 B net left. */
+   413,399 B, so the ceiling is 414,000. Phase D has 11,601 B net left.
+   Phase D landed at 413,408 B (net +9: D1 ceremonies/arcade −1,218 — BeltCeremony −755,
+   StampPress −419, KageView −338, kana.css −283, RapidFire −191, arcade.css −127,
+   WallpaperUnlock −32, BadgeSlam +41, ShinsaView +126, CeremonyHost +156, GateView +604;
+   D2 follow-ups/perf +1,227 — ui.css +692, RoadNav +365, StoryPage +135, GoshuinBook +134,
+   RolePlay +7, Radio −106); the lead's Phase D fixes (d63 TextAnswer.css +79, d65 motion.css
+   .sign__ja .ruby +114) landed the tree at 413,601 B (Phase D net +202), so the phase ceiling
+   stays 414,000 — still the smallest multiple of 1,000 at or above the measured tree. The
+   ALLOW_LIST is empty (both D1 tweens deleted). The programme has 11,399 B net left under
+   CSS_CEILING_PROGRAMME. */
 const CSS_CEILING_PHASE = 414_000;
 export const CSS_CEILING_PROGRAMME = 425_000;
 describe('CSS budget', () => {
-  it(`total src CSS ≤ ${CSS_CEILING_PHASE.toLocaleString('en-US')} bytes (phase ceiling, Phase C; the programme ends ≤ ${CSS_CEILING_PROGRAMME.toLocaleString('en-US')})`, () => {
+  it(`total src CSS ≤ ${CSS_CEILING_PHASE.toLocaleString('en-US')} bytes (phase ceiling, Phase D; the programme ends ≤ ${CSS_CEILING_PROGRAMME.toLocaleString('en-US')})`, () => {
     expect(CSS_CEILING_PHASE).toBeLessThanOrEqual(CSS_CEILING_PROGRAMME);
     const files = walk(resolve(ROOT, 'src'));
     const total = files.reduce((n, f) => n + statSync(f).size, 0);

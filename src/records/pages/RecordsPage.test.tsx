@@ -7,13 +7,14 @@ import type { CardKey } from '../../content/types';
 import { findBanned } from '../../i18n/banned-phrases';
 import { bus } from '../../shared/events';
 import type { CardTuple, DailyRow, EpochDay } from '../../shared/store-types';
-import { epochDay } from '../../shared/time';
+import { epochDay, monthKey } from '../../shared/time';
 import { resetStoreForTests } from '../../store/store';
 import { resetFrameSchedulerForTests } from '../../shared/ui/Ticker';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../../store/testing';
+import { store } from '../../store';
 import { RADAR_MORPH_CLASS } from '../charts';
 import { resetRadarMorphForTests } from '../PeraperaRadar';
-import RecordsPage, { beltTargetLabel, nextStepLine } from './RecordsPage';
+import RecordsPage, { RECORDS_ROLL_KEY, beltTargetLabel, claimRecordsRoll, nextStepLine, resetRecordsRollForTests } from './RecordsPage';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const ROUTE = { name: 'records' } as const;
@@ -28,10 +29,28 @@ afterEach(() => {
   root.remove();
   resetStoreForTests();
   resetRadarMorphForTests();
+  resetRecordsRollForTests();
   resetFrameSchedulerForTests();
   bus.reset();
   vi.unstubAllGlobals();
 });
+
+/** An in-memory Storage (the device-local marker's home), installed with `vi.stubGlobal('localStorage', …)`. */
+function fakeStorage(init: Record<string, string> = {}): Storage {
+  const m = new Map(Object.entries(init));
+  return {
+    get length() {
+      return m.size;
+    },
+    key: (i: number) => Array.from(m.keys())[i] ?? null,
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => void m.set(k, String(v)),
+    removeItem: (k: string) => void m.delete(k),
+    clear: () => m.clear(),
+  } as Storage;
+}
+const tickers = (): HTMLElement[] => Array.from(root.querySelectorAll<HTMLElement>('.records__tiles .tile .ticker'));
+const STATS = { minutes: 240, reviews: 1234, judgeChecks: 50, honesty: 0.96, ippon: 7, bestCombo: 31, recoveries: 3 };
 
 const MONTHS = { '2025-12': [30, 40, 20, 10, 0] as [number, number, number, number, number] };
 
@@ -175,6 +194,8 @@ describe('<RecordsPage>', () => {
 
   it('tiles are .status-window cartouches whose Dela tickers hold the final value in the DOM from first paint (design 09 §5.5, §5.8)', async () => {
     await makeTestStore({ save: { daily: activeRows(20), streak: { totalDays: 20 }, stats: { minutes: 240, reviews: 1234 } } });
+    // a later visit this month (the roll is d50's first-visit moment, tested below)
+    expect(claimRecordsRoll(monthKey(store.today()))).toBe(true);
     await mount();
     const tiles = Array.from(root.querySelectorAll<HTMLElement>('.records__tiles .tile'));
     expect(tiles.length).toBeGreaterThanOrEqual(6);
@@ -200,6 +221,76 @@ describe('<RecordsPage>', () => {
       expect(track.classList.contains('meter')).toBe(true);
       expect(track.querySelector('.meter__fill')).not.toBeNull();
     }
+  });
+
+  it("the month's first Records visit rolls every tile from 0 within TICKER_MAX_MS and writes the device-local marker; the DOM carries the final value; the next visit mounts still (design 09 §12.1 d50)", async () => {
+    const ls = fakeStorage();
+    vi.stubGlobal('localStorage', ls);
+    const raf = vi.fn(() => 1);
+    vi.stubGlobal('requestAnimationFrame', raf);
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    await makeTestStore({ save: { daily: activeRows(20), streak: { totalDays: 20 }, stats: STATS } });
+    const month = monthKey(store.today());
+    expect(month).toMatch(/^\d{4}-\d{2}$/);
+    expect(ls.getItem(RECORDS_ROLL_KEY + month)).toBeNull();
+    await mount();
+    const rolling = tickers();
+    expect(rolling.length).toBeGreaterThanOrEqual(9); // six tiles + the three Kiai tiles
+    for (const t of rolling) {
+      expect(t.hasAttribute('data-ticking')).toBe(true);
+      expect(t.querySelector('.ticker__roll')).not.toBeNull();
+    }
+    // the DOM already holds the final number (readers and tests see it); the roll is the visual twin
+    const reviews = rolling.find((t) => t.closest('.tile')?.querySelector('.eyebrow')?.textContent === 'Graded reviews')!;
+    expect(reviews.querySelector('.ticker__value')?.textContent).toBe('1,234');
+    expect(raf).toHaveBeenCalled();
+    expect(ls.getItem(RECORDS_ROLL_KEY + month)).toBe('1');
+    // the second visit: still
+    render(null, root);
+    resetFrameSchedulerForTests();
+    await mount();
+    for (const t of tickers()) expect(t.hasAttribute('data-ticking')).toBe(false);
+    expect(tickers().find((t) => t.closest('.tile')?.querySelector('.eyebrow')?.textContent === 'Graded reviews')?.querySelector('.ticker__value')?.textContent).toBe('1,234');
+  });
+
+  it('a marker already in localStorage means a later visit: no roll, no frame requested; the marker is the only one kept', async () => {
+    const stale = `${RECORDS_ROLL_KEY}2001-01`;
+    await makeTestStore({ save: { daily: activeRows(20), streak: { totalDays: 20 }, stats: STATS } });
+    const month = monthKey(store.today());
+    const ls = fakeStorage({ [RECORDS_ROLL_KEY + month]: '1', [stale]: '1' });
+    vi.stubGlobal('localStorage', ls);
+    const raf = vi.fn(() => 1);
+    vi.stubGlobal('requestAnimationFrame', raf);
+    await mount();
+    expect(tickers().length).toBeGreaterThanOrEqual(9);
+    for (const t of tickers()) expect(t.hasAttribute('data-ticking')).toBe(false);
+    expect(raf).not.toHaveBeenCalled();
+    expect(ls.getItem(RECORDS_ROLL_KEY + month)).toBe('1');
+    // a fresh month claims and sweeps the old marker
+    resetRecordsRollForTests();
+    expect(claimRecordsRoll('2099-12')).toBe(true);
+    expect(ls.getItem(`${RECORDS_ROLL_KEY}2099-12`)).toBe('1');
+    expect(ls.getItem(stale)).toBeNull();
+    expect(ls.length).toBe(1);
+    expect(claimRecordsRoll('2099-12')).toBe(false);
+  });
+
+  it('under settings.reducedMotion the first visit sets the final values at once (no roll) and still claims the month; without localStorage the claim holds for the session', async () => {
+    const ls = fakeStorage();
+    vi.stubGlobal('localStorage', ls);
+    const raf = vi.fn(() => 1);
+    vi.stubGlobal('requestAnimationFrame', raf);
+    await makeTestStore({ save: { settings: { reducedMotion: true }, daily: activeRows(20), streak: { totalDays: 20 }, stats: STATS } });
+    const month = monthKey(store.today());
+    await mount();
+    for (const t of tickers()) expect(t.hasAttribute('data-ticking')).toBe(false);
+    expect(raf).not.toHaveBeenCalled();
+    expect(ls.getItem(RECORDS_ROLL_KEY + month)).toBe('1');
+    // no storage at all: memory only, once per session
+    resetRecordsRollForTests();
+    vi.stubGlobal('localStorage', undefined);
+    expect(claimRecordsRoll(month)).toBe(true);
+    expect(claimRecordsRoll(month)).toBe(false);
   });
 
   it('the radar renders both polygons when a previous month exists and morphs the now-polygon once on the frame scheduler', async () => {

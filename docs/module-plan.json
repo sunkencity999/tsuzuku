@@ -2531,7 +2531,7 @@
  {
   "path": "src/art/index.ts",
   "kind": "lib",
-  "responsibility": "[P1] Boot barrel for A: DojoScene, CeremonyHost, MonCrest, GoshuinStamp only (review round 2 #12: the wallpaper generators and png.ts moved to the studio-only barrel src/art/studio.ts so they are not pulled at boot).",
+  "responsibility": "[P1] Boot barrel for A: DojoScene, CeremonyHost, MonCrest, GoshuinStamp only (review round 2 #12: the wallpaper generators and png.ts moved to the studio-only barrel src/art/studio.ts so they are not pulled at boot). The art tier (src/art/**) is importable from every group and itself imports only the contract tier (design 09 §12.1 d44/d64; lint.test.ts OPEN_PATHS).",
   "api": "export { DojoScene } from './dojo/DojoScene'; export { CeremonyHost } from './ceremony/CeremonyHost'; export { MonCrest } from './MonCrest'; export { GoshuinStamp } from './GoshuinStamp'",
   "depends_on": [
    "src/art/dojo/DojoScene.tsx",

@@ -16,6 +16,9 @@
  * art box for the press / wet-ink verbs, `printClass` the print inside it
  * (image + text) for an entrance. `dateGloss` is the Latin reading of the
  * era date (`Reiwa 8 · Oct 18`, §3.3): under the date, in the label and tooltip.
+ * The caption's name follows the kana rule (§3.3, §12.1 d49): `number ·
+ * romaji` while the learner's belt is below Green, the kana `<Ruby>` reading
+ * in the furigana mode from Green on (the number stays).
  *
  *  <GoshuinStamp station={7} at={day} perfect={false} assisted={false} />
  *  <GoshuinStamp station={7} at={day} perfect assisted={false} pressed size={240} />
@@ -25,11 +28,13 @@ import { useMemo } from 'preact/hooks';
 import { hashSeed } from '../shared/hash';
 import type { EpochDay } from '../shared/store-types';
 import { formatEraDate, isoDate } from '../shared/time';
+import { Ruby } from '../shared/ui/Ruby';
 import { store } from '../store';
 import type { Theme } from './color';
 import { GOSHUIN_VIEW, clampGoshuinSize, goshuinImage, goshuinLabel, goshuinSvg, stationByNumber } from './goshuin';
 import { textLayersSvg } from './jtext';
 import { S } from './mon-strings';
+import { kanaReading, romajiAllowed, rubyMarkup } from './road/reading';
 import { fill } from './strings';
 import './GoshuinStamp.css';
 
@@ -60,6 +65,8 @@ export interface GoshuinStampProps {
   printClass?: string;
   /** Latin reading of the era date (`Reiwa 8 · Oct 18`), shown under `.goshuin__date` and in the label / tooltip. */
   dateGloss?: string;
+  /** The caption's Latin line from Green on (the host's `Station {n}`; the stamp's strings carry no bare number label). Default: the number alone. */
+  numberLabel?: string;
   class?: string;
 }
 
@@ -92,8 +99,12 @@ export function GoshuinStamp(p: GoshuinStampProps): JSX.Element {
     );
   }
   const date = formatEraDate(p.at);
+  // the caption's reading: romaji below Green kana, the kana ruby after; the aria-label keeps the romaji (AT), the
+  // hover tooltip is sighted signage and takes the kana reading with it (design 09 §3.3, §12.1 d49)
+  const romaji = p.caption ? romajiAllowed(store.profile.value.belt) : true;
+  const furigana = p.caption ? store.settings.value.furigana : 'off';
   const label = goshuinLabel(st, p.at, p.perfect, p.assisted) + (p.dateGloss ? ` ${p.dateGloss}.` : '');
-  const tooltip = fill(S.stampTooltip, { n: st.number, romaji: st.nameRomaji, date: p.dateGloss ? `${date} · ${p.dateGloss}` : date });
+  const tooltip = fill(S.stampTooltip, { n: st.number, romaji: romaji ? st.nameRomaji : kanaReading(st.nameRomaji) || st.nameJa, date: p.dateGloss ? `${date} · ${p.dateGloss}` : date });
   const classes = ['goshuin', p.perfect ? 'goshuin--perfect' : '', p.assisted ? 'goshuin--assisted' : '', p.pressed ? GOSHUIN_PRESS_CLASS : '', p.class ?? ''].filter(Boolean).join(' ');
   const svgClasses = ['goshuin__svg', p.svgClass ?? ''].filter(Boolean).join(' ');
   const printClasses = ['goshuin__print', p.printClass ?? ''].filter(Boolean).join(' ');
@@ -113,11 +124,9 @@ export function GoshuinStamp(p: GoshuinStampProps): JSX.Element {
       {p.caption && (
         <figcaption class="goshuin__caption">
           <span class="goshuin__name" lang="ja">
-            {st.nameJa}
+            {romaji ? st.nameJa : <Ruby ja={rubyMarkup(st.nameJa, st.nameRomaji)} mode={furigana} />}
           </span>
-          <span class="goshuin__romaji">
-            {st.number} · {st.nameRomaji}
-          </span>
+          <span class="goshuin__romaji">{romaji ? `${st.number} · ${st.nameRomaji}` : (p.numberLabel ?? st.number)}</span>
           <time class="goshuin__date" lang="ja" dateTime={isoDate(p.at)}>
             {date}
           </time>

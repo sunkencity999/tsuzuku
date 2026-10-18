@@ -10,7 +10,14 @@
  *  4. Import rule: a module imports only its own group's folder or the
  *     contract tier (docs/module-plan.json owners + [CONTRACT] entries +
  *     ARCHITECTURE §0 paths). Exceptions: src/main.tsx, src/app/pages.ts.
- *     Type-only imports are erased at build and are allowed.
+ *     Type-only imports are erased at build and are allowed. The string
+ *     literals of `import.meta.glob('<path>')` / `import.meta.glob<T>([…])`
+ *     are imports too (design 09 §12.1 d44: a lazy chunk is still a
+ *     dependency). The art tier `src/art/**` is importable from every group
+ *     (d44 / d49: the three sanctioned road globs in RoadNav, DojoPage and
+ *     end-card, and `art/road/reading.ts`'s kana rule on the input, session
+ *     and collections surfaces) — it is a leaf that imports only the contract
+ *     tier itself.
  *  5. Focus: no `autoFocus` attribute on an intrinsic element (`<button>`,
  *     `<input>`, `<textarea>`, `<select>`, `<a>`) in a `.tsx`, multi-line JSX
  *     included — Chrome ignores it once anything on the page was focused.
@@ -243,6 +250,8 @@ const CONTRACT_PATHS: RegExp[] = [
   /^src\/learn\/(index|apply)\.ts$/,
 ];
 const IMPORT_EXCEPTIONS = new Set(['src/main.tsx', 'src/app/pages.ts']);
+/** Importable from every group without being contract tier (design 09 §12.1 d44 / d49): the art tier. */
+const OPEN_PATHS: RegExp[] = [/^src\/art\//];
 
 export interface Ownership {
   ownerOf(path: string): string | null;
@@ -289,10 +298,14 @@ export function buildOwnership(plan: PlanEntry[]): Ownership {
 
 const IMPORT_RE = /\b(import|export)\s+(type\s+)?(?:[\w*$]+\s*,?\s*)?(?:\{[^}]*\}\s*)?(?:\*\s+as\s+\w+\s*)?(?:from\s*)?['"]([^'"]+)['"]/g;
 const DYNAMIC_RE = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+/** `import.meta.glob('/src/…')`, `import.meta.glob<T>('…')` (the generic may span lines) and the array form; group 1 holds the literal(s). */
+const GLOB_RE = /\bimport\s*\.\s*meta\s*\.\s*glob\s*(?:<[\s\S]*?>)?\s*\(\s*(\[[^\]]*\]|['"][^'"]+['"])/g;
+const STRING_LITERAL_RE = /['"]([^'"]+)['"]/g;
 
 function resolveSpecifier(from: string, spec: string): string | null {
   let p: string;
   if (spec.startsWith('@/')) p = `src/${spec.slice(2)}`;
+  else if (spec.startsWith('/src/')) p = spec.slice(1); // a Vite glob is rooted at the project
   else if (spec.startsWith('.')) p = posix.normalize(posix.join(posix.dirname(from), spec));
   else return null; // package
   if (/\.(css|json|svg|png|woff2?)$/.test(p)) return null;
@@ -308,16 +321,19 @@ export function importViolations(file: SourceFile, own: Ownership): string[] {
   if (!importer) return [];
   const code = stripCommentsAndStrings(file.text, true);
   const hits: string[] = [];
-  const check = (spec: string, index: number, typeOnly: boolean): void => {
+  const check = (spec: string, index: number, typeOnly: boolean, how = 'imports'): void => {
     if (typeOnly) return;
     const target = resolveSpecifier(file.path, spec);
-    if (!target || own.isContract(target)) return;
+    if (!target || own.isContract(target) || OPEN_PATHS.some((re) => re.test(target))) return;
     const owner = own.ownerOf(target);
     if (!owner || owner === importer) return;
-    hits.push(`${file.path}:${lineAt(code, index)}  imports ${spec} (group ${owner}) from group ${importer}`);
+    hits.push(`${file.path}:${lineAt(code, index)}  ${how} ${spec} (group ${owner}) from group ${importer}`);
   };
   for (const m of code.matchAll(IMPORT_RE)) check(m[3]!, m.index ?? 0, m[2] !== undefined);
   for (const m of code.matchAll(DYNAMIC_RE)) check(m[1]!, m.index ?? 0, false);
+  for (const m of code.matchAll(GLOB_RE)) {
+    for (const lit of m[1]!.matchAll(STRING_LITERAL_RE)) check(lit[1]!, m.index ?? 0, false, 'globs');
+  }
   return hits;
 }
 
@@ -368,6 +384,7 @@ const BAD: SourceFile = {
     "import { store } from '@/store';",
     "import { Hud } from '@/session/Hud';",
     "import type { Step } from '@/session/runner';",
+    "const pages = import.meta.glob<Record<string, unknown>>('/src/session/pages/*.tsx');",
     "const label = 'Rest. Reload.'; // Hurry is only in a comment",
     'export default function Bad(): JSX.Element {',
     '  const seed = Math.random();',
@@ -393,6 +410,8 @@ const GOOD: SourceFile = {
     "import { TextAnswer } from '../TextAnswer';",
     "import { KanaInput } from '@/shared/ui/KanaInput';",
     "import { useAutoFocus } from '@/shared/ui/use-auto-focus';",
+    "import { romajiAllowed } from '@/art/road/reading';",
+    "const ROAD_ART = import.meta.glob<RoadArtModule>('/src/art/road/index.ts');",
     'export function Good(p: { n: number }): JSX.Element {',
     '  const rows = useMemo<Array<string | null>>(() => [], []);',
     '  const t = p.n > 3 ? S.a : S.b;',
@@ -431,8 +450,9 @@ describe('lint fixtures', () => {
     expect(clockUse(BAD)).toHaveLength(1);
     expect(defaultExport(BAD)).toHaveLength(1);
     const imports = importViolations(BAD, OWN);
-    expect(imports).toHaveLength(1);
+    expect(imports).toHaveLength(2);
     expect(imports[0]).toContain('@/session/Hud');
+    expect(imports[1]).toContain('globs /src/session/pages/*.tsx');
     const focus = intrinsicAutoFocus(BAD);
     expect(focus).toHaveLength(1);
     expect(focus[0]).toContain('<button> autoFocus');
@@ -444,6 +464,26 @@ describe('lint fixtures', () => {
     expect(defaultExport(GOOD)).toEqual([]);
     expect(importViolations(GOOD, OWN)).toEqual([]);
     expect(intrinsicAutoFocus(GOOD)).toEqual([]);
+  });
+
+  it('import.meta.glob literals are imports (design 09 §12.1 d44): a cross-group glob fails, the sanctioned art globs and a static art import pass', () => {
+    const file = (path: string, text: string): SourceFile => ({ path, text });
+    // the session group reaching the shell through a glob is a cross-group import, generic or not, single or array form
+    expect(importViolations(file('src/session/X.ts', "const P = import.meta.glob('/src/app/pages/*Page.tsx');"), OWN)).toHaveLength(1);
+    expect(importViolations(file('src/session/X.ts', "const P = import.meta.glob<Record<string, () => Promise<unknown>>>('/src/app/pages/DojoPage.tsx');"), OWN)).toHaveLength(1);
+    expect(importViolations(file('src/session/X.ts', "const P = import.meta.glob(['/src/art/road/vistas.ts', '/src/exercises/kana/KanaFlash.tsx']);"), OWN)).toHaveLength(1);
+    // a generic written over several lines is still read
+    expect(importViolations(file('src/session/X.ts', "const P = import.meta.glob<\n  Record<string, () => Promise<unknown>>\n>('/src/app/pages/DojoPage.tsx');"), OWN)).toHaveLength(1);
+    // the three sanctioned road globs (RoadNav E, DojoPage A, end-card E): the art tier is open to every group
+    expect(importViolations(file('src/session/RoadNavFixture.tsx', "const ROAD_ART = import.meta.glob<RoadArtModule>('/src/art/road/index.ts');"), OWN)).toEqual([]);
+    expect(importViolations(file('src/app/pages/DojoFixture.tsx', "const ROAD_ART = import.meta.glob<RoadArtModule>('/src/art/road/index.ts');"), OWN)).toEqual([]);
+    expect(importViolations(file('src/session/end-card-fixture.ts', "const VISTAS_GLOB = import.meta.glob<VistasModule>('/src/art/road/vistas.ts');"), OWN)).toEqual([]);
+    // d49: the kana rule imported statically from the input group
+    expect(importViolations(file('src/input/pages/StoryFixture.tsx', "import { romajiAllowed, rubyMarkup } from '@/art/road/reading';"), OWN)).toEqual([]);
+    // the art tier itself never reaches another group
+    expect(importViolations(file('src/art/road/x.ts', "import { S } from '@/session/strings';"), OWN)).toHaveLength(1);
+    // a glob in a comment or a type-only import is not an import
+    expect(importViolations(file('src/session/X.ts', "// import.meta.glob('/src/app/pages/*Page.tsx')\nimport type { Foo } from '@/app/pages/DojoPage';"), OWN)).toEqual([]);
   });
 
   it('intrinsicAutoFocus reads multi-line tags and arrow props, and ignores component autoFocus props', () => {

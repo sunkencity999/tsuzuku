@@ -7,6 +7,7 @@ import { href } from '../../shared/routes';
 import type { SessionResult } from '../../shared/session-types';
 import { makeTestStore } from '../../store/testing';
 import {
+  BELT_SETTLE_MS,
   CEREMONY_BETWEEN_MS,
   CEREMONY_GRACE_MS,
   CEREMONY_SETTLE_MS,
@@ -23,7 +24,7 @@ import {
   resetCeremoniesForTests,
 } from './CeremonyHost';
 import { S } from './strings';
-import { setLazyArtForTests } from './support';
+import { EXIT_FALLBACK_MS, setLazyArtForTests } from './support';
 
 let root: HTMLDivElement;
 let sfx: ReturnType<typeof vi.fn>;
@@ -125,24 +126,68 @@ describe('<CeremonyHost> queue', () => {
     expect(root.querySelector('.badge-slam')?.getAttribute('data-badge')).toBe('seven');
 
     key('Escape');
+    // the overlay leaves as kasure (design 09 §6.3): data-leaving on the root, gone on the ≤ 200 ms fallback
+    expect(dialog()).not.toBeNull();
+    expect(root.querySelector('.ceremony')?.hasAttribute('data-leaving')).toBe(true);
+    tick(EXIT_FALLBACK_MS);
     expect(dialog()).toBeNull();
     expect(live()).toBe('');
     tick(CEREMONY_BETWEEN_MS);
     expect(root.querySelector('.stamp-press')).not.toBeNull();
+    expect(root.querySelector('.ceremony')?.hasAttribute('data-leaving')).toBe(false);
 
     act(() => {
       (root.querySelector('.ceremony__backdrop') as HTMLElement).click();
     });
-    tick(CEREMONY_BETWEEN_MS);
+    tick(EXIT_FALLBACK_MS + CEREMONY_BETWEEN_MS);
     expect(root.querySelector('.kakejiku-unlock')?.getAttribute('data-wallpaper')).toBe('okaeri');
 
     key('Enter');
-    tick(CEREMONY_BETWEEN_MS);
+    tick(EXIT_FALLBACK_MS + CEREMONY_BETWEEN_MS);
     expect(root.querySelector('.badge-slam')?.getAttribute('data-badge')).toBe('ippon');
 
     key(' ');
+    tick(EXIT_FALLBACK_MS);
     expect(dialog()).toBeNull();
     expect(pendingCeremonies()).toHaveLength(0);
+  });
+
+  it('the dialog carries the verb and the exit (the full-viewport backdrop only fades): kasure ends early on the dialog’s own animationend, never on a child’s', () => {
+    mount();
+    badge('seven');
+    tick(CEREMONY_SETTLE_MS);
+    const overlay = root.querySelector('.ceremony')!;
+    expect(overlay.classList.contains('ink-nijimi')).toBe(false);
+    expect(dialog()?.classList.contains('ink-nijimi')).toBe(true);
+    key('Escape');
+    expect(overlay.hasAttribute('data-leaving')).toBe(true);
+    expect(dialog()?.hasAttribute('data-leaving')).toBe(true);
+    act(() => {
+      root.querySelector('.badge-slam')!.dispatchEvent(new Event('animationend', { bubbles: true }));
+    });
+    expect(dialog()).not.toBeNull();
+    act(() => {
+      dialog()!.dispatchEvent(new Event('animationend', { bubbles: true }));
+    });
+    expect(dialog()).toBeNull();
+  });
+
+  it('a belt ceremony arriving outside a session waits for the Shinsa sumi beat (BELT_SETTLE_MS) before it opens', () => {
+    mount();
+    emit('belt:promoted', { belt: 'green' });
+    tick(CEREMONY_SETTLE_MS);
+    expect(dialog()).toBeNull();
+    tick(BELT_SETTLE_MS - CEREMONY_SETTLE_MS - 1);
+    expect(dialog()).toBeNull();
+    tick(1);
+    expect(root.querySelector('.belt-ceremony')?.getAttribute('data-belt')).toBe('green');
+    expect(BELT_SETTLE_MS).toBeGreaterThanOrEqual(600 + 120);
+    // other ceremonies keep the plain settle
+    key('Escape');
+    tick(EXIT_FALLBACK_MS + CEREMONY_BETWEEN_MS);
+    badge('seven');
+    tick(CEREMONY_SETTLE_MS);
+    expect(root.querySelector('.badge-slam')).not.toBeNull();
   });
 
   it('a tap on the card text dismisses; a tap on a control inside does not', async () => {
@@ -158,6 +203,7 @@ describe('<CeremonyHost> queue', () => {
     act(() => {
       (root.querySelector('.badge-slam__describe') as HTMLElement).click();
     });
+    tick(EXIT_FALLBACK_MS);
     expect(dialog()).toBeNull();
   });
 
@@ -169,6 +215,10 @@ describe('<CeremonyHost> queue', () => {
     key('Enter', btn);
     expect(dialog()).not.toBeNull();
     act(() => btn.click());
+    // ONE kasure beat: the card hands over at once (hostExit) and the overlay dries out
+    expect(root.querySelector('.badge-slam')?.hasAttribute('data-leaving')).toBe(false);
+    expect(root.querySelector('.ceremony')?.hasAttribute('data-leaving')).toBe(true);
+    tick(EXIT_FALLBACK_MS);
     expect(dialog()).toBeNull();
   });
 
@@ -196,7 +246,7 @@ describe('<CeremonyHost> queue', () => {
     finished();
     tick(CEREMONY_GRACE_MS);
     key('Escape');
-    tick(CEREMONY_BETWEEN_MS);
+    tick(EXIT_FALLBACK_MS + CEREMONY_BETWEEN_MS);
     const belt = root.querySelector('.belt-ceremony')!;
     expect(belt.getAttribute('data-belt')).toBe('green');
     expect(dialog()?.getAttribute('aria-label')).toBe('Green belt');
@@ -231,10 +281,16 @@ describe('<CeremonyHost> queue', () => {
     const toast = root.querySelector('.ceremony-toast')!;
     expect(toast).not.toBeNull();
     expect(dialog()).toBeNull();
+    // a .sheet, not the reserved cartouche (§2.5): no clip-path under the verb (§6.7 rule 7)
+    expect(toast.classList.contains('sheet')).toBe(true);
+    expect(toast.classList.contains('status-window')).toBe(false);
+    expect(toast.classList.contains('ink-nijimi')).toBe(true);
     expect(toast.textContent).toContain('Lv 5');
     expect(sfx).toHaveBeenCalledWith('promotion');
     expect(live()).toBe(announcementFor({ kind: 'level', level: 5 }));
     tick(LEVEL_TOAST_MS);
+    expect(root.querySelector('.ceremony-toast')?.hasAttribute('data-leaving')).toBe(true);
+    tick(EXIT_FALLBACK_MS);
     expect(root.querySelector('.ceremony-toast')).toBeNull();
   });
 
@@ -245,7 +301,7 @@ describe('<CeremonyHost> queue', () => {
     expect(root.querySelector('.ceremony-toast')?.textContent).toContain('Lv 7');
     emit('level:up', { level: 8 });
     expect(pendingCeremonies().map(ceremonyKey)).toEqual(['level']);
-    tick(LEVEL_TOAST_MS + CEREMONY_BETWEEN_MS);
+    tick(LEVEL_TOAST_MS + EXIT_FALLBACK_MS + CEREMONY_BETWEEN_MS);
     expect(root.querySelector('.ceremony-toast')?.textContent).toContain('Lv 8');
   });
 
@@ -264,26 +320,32 @@ describe('<CeremonyHost> queue', () => {
     for (let i = 0; i < MAX_QUEUE + 1; i++) {
       expect(dialog()).not.toBeNull();
       key('Escape');
-      tick(CEREMONY_BETWEEN_MS);
+      tick(EXIT_FALLBACK_MS + CEREMONY_BETWEEN_MS);
     }
     const summary = root.querySelector('.ceremony-summary')!;
     expect(summary).not.toBeNull();
     expect(summary.querySelector('.ceremony-summary__counts')?.textContent).toBe('4 Mon');
     expect(summary.querySelector('.ceremony-summary__link')?.getAttribute('href')).toBe(href({ name: 'collections', tab: 'mon' }));
+    expect(summary.classList.contains('sheet')).toBe(true);
     key('Escape');
+    tick(EXIT_FALLBACK_MS);
     expect(dialog()).toBeNull();
     expect(pendingCeremonies()).toHaveLength(0);
   });
 
-  it('reduced motion renders the static variant: no entrance animation class, final frame of the belt', async () => {
+  it('reduced motion renders the static variant: no ink verb anywhere, final frame of the belt, an immediate dismissal', async () => {
     await makeTestStore({ save: { settings: { reducedMotion: true }, profile: { nameKana: 'ハナ' } } });
     mount();
     emit('belt:promoted', { belt: 'blue' });
     tick(CEREMONY_SETTLE_MS);
-    expect(root.querySelector('.ceremony')?.classList.contains('ceremony--static')).toBe(true);
+    expect(root.querySelector('.ceremony')?.classList.contains('ink-nijimi')).toBe(false);
+    expect(root.querySelector('[class*="ink-"]')).toBeNull();
+    // the belt hold is for the sumi beat, which is absent under reduced motion: the plain settle applies
     expect(root.querySelector('.belt-ceremony')?.getAttribute('data-phase-name')).toBe('vignette');
     expect(root.querySelector('.belt-vignette__continue')).not.toBeNull();
     expect(root.querySelector('.belt-seal svg')?.innerHTML).toContain('ハ');
+    key('Escape');
+    expect(dialog()).toBeNull();
   });
 
   it('moves focus into the dialog, locks page scroll, and restores both on close', () => {
@@ -298,6 +360,7 @@ describe('<CeremonyHost> queue', () => {
     expect(document.body.style.overflow).toBe('hidden');
     key('Tab');
     key('Escape');
+    tick(EXIT_FALLBACK_MS);
     expect(document.body.style.overflow).toBe('');
     expect(document.activeElement).toBe(outside);
     outside.remove();

@@ -17,20 +17,24 @@
  * dries, the era date with its Latin gloss, then kasure; the book records it
  * as shown only then (`markSeen`). The book exports through `art/png.ts`: one
  * 6480 × 720 strip (desktop) or a six-image phone set, both from
- * `goshuin.bookStripImages`.
+ * `goshuin.bookStripImages`. Station names follow the kana rule (design 09
+ * §3.3, §12.1 d49): the romaji line while the belt is below Green, a kana
+ * `<Ruby>` reading in the learner's furigana mode from Green on.
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { GoshuinStamp } from '../art/GoshuinStamp';
 import { MonCrest } from '../art/MonCrest';
 import type { Theme } from '../art/color';
+import { romajiAllowed, rubyMarkup } from '../art/road/reading';
 import { PHONE_SET, bookStripImages, kanjiNumber, type BookStamp } from '../art/goshuin';
 import { download, exportPng, filenameFor, type DownloadOutcome, type ExportOptions } from '../art/png';
 import { BELTS, STATIONS, type Belt, type BeltDef, type StationDef } from '../content/types';
 import { BELT_BADGE, type BadgeId } from '../shared/catalog';
 import { hashSeed } from '../shared/hash';
-import type { EpochDay, StampEntry } from '../shared/store-types';
+import type { EpochDay, FuriganaMode, StampEntry } from '../shared/store-types';
 import { formatEraDate, isoDate } from '../shared/time';
+import { Ruby } from '../shared/ui/Ruby';
 import { prefersReducedMotion } from '../shared/ui/use-reveal';
 import { store } from '../store';
 import { eraGloss, markOpened, markSeen, newSince, useColorScheme, useMomentE } from './reveal';
@@ -112,7 +116,13 @@ export function bookFilename(layout: 'desktop' | 'phone', index: number, total: 
 /* Pages                                                                      */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function StationPage(p: { page: Extract<BookPage, { kind: 'station' }>; theme: Theme; fresh: boolean; turn: boolean; onSeen(n: number): void }): JSX.Element {
+interface Reading {
+  /** Romaji on the signage: only while the belt is below Green (design 09 §3.3). */
+  romaji: boolean;
+  furigana: FuriganaMode;
+}
+
+function StationPage(p: { page: Extract<BookPage, { kind: 'station' }>; theme: Theme; reading: Reading; fresh: boolean; turn: boolean; onSeen(n: number): void }): JSX.Element {
   const st = p.page.station;
   const stamp = p.page.stamp;
   // the stamp slot is what must be half seen (the whole page may never reach the threshold on a short viewport)
@@ -125,15 +135,13 @@ function StationPage(p: { page: Extract<BookPage, { kind: 'station' }>; theme: T
           {fill(S.stationOrdinal, { n: kanjiNumber(st.number) })}
         </span>
         <h3 class="goshuin-book__name">
-          <span lang="ja">{st.nameJa}</span>
-          <span class="goshuin-book__romaji">
-            {st.number} · {st.nameRomaji}
-          </span>
+          <span lang="ja">{p.reading.romaji ? st.nameJa : <Ruby ja={rubyMarkup(st.nameJa, st.nameRomaji)} mode={p.reading.furigana} />}</span>
+          <span class="goshuin-book__romaji">{p.reading.romaji ? `${st.number} · ${st.nameRomaji}` : fill(S.stationNumber, { n: st.number })}</span>
         </h3>
       </header>
       {stamp ? (
         <div ref={ref} class="goshuin-book__stamp">
-          <GoshuinStamp station={st.number} at={stamp.at} perfect={stamp.perfect} assisted={stamp.assisted} size={200} caption img theme={p.theme} dateGloss={eraGloss(stamp.at)} printClass={m.reveal ? 'ink-nijimi' : undefined} svgClass={m.artClass} />
+          <GoshuinStamp station={st.number} at={stamp.at} perfect={stamp.perfect} assisted={stamp.assisted} size={200} caption img theme={p.theme} dateGloss={eraGloss(stamp.at)} numberLabel={fill(S.stationNumber, { n: st.number })} printClass={m.reveal ? 'ink-nijimi' : undefined} svgClass={m.artClass} />
           {m.reveal ? (
             <span class="seal-date collections__seal ink-nijimi" data-leaving={m.phase === 'leaving' ? '' : undefined} onAnimationEnd={m.onLeaveEnd}>
               <span class="collections__era" lang="ja">
@@ -214,6 +222,7 @@ export function GoshuinBook(p: GoshuinBookProps = {}): JSX.Element {
   const [turning, setTurning] = useState(() => !prefersReducedMotion());
   const newest = useRef(spread);
   const theme = useColorScheme();
+  const reading: Reading = { romaji: romajiAllowed(store.profile.value.belt), furigana: store.settings.value.furigana };
   // stamps earned since the book was last opened — read once at mount; a page leaves the set the moment its reveal plays
   const fresh = useRef<Set<string> | null>(null);
   if (fresh.current === null) {
@@ -358,6 +367,7 @@ export function GoshuinBook(p: GoshuinBookProps = {}): JSX.Element {
               key={pg.index}
               page={pg}
               theme={theme}
+              reading={reading}
               turn={turn}
               fresh={fresh.current?.has(String(pg.station.number)) ?? false}
               onSeen={(n) => {

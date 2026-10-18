@@ -108,6 +108,13 @@ export const S = {
   stampAlt: 'Goshuin stamp for station {n}, {name}',
   stampUnknownStation: 'the road',
 
+  // The era date under a seal (design 09 §7 E): 令和8年10月18日 with its Latin gloss beneath
+  eraGloss: '{era}{y} · {mon} {d}',
+  eraNames: { 令和: 'Reiwa', 平成: 'Heisei', 昭和: 'Shōwa' } as Record<string, string>,
+  months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+  /** Kana readings of BELTS[*].titleJa for the `<Ruby>` line from Green kana on (design 09 §3.3; romaji below Green). */
+  beltTitleKana: { white: 'みならい', yellow: 'にゅうもん', orange: 'もんかせい', green: 'ちゅうけん', blue: 'しはんだいこうほ', purple: 'しはんだい', brown: 'しはん', black: 'たつじん' } as Record<Belt, string>,
+
   // Shared
   nameless: '無名',
 } as const;

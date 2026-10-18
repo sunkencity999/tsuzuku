@@ -34,13 +34,20 @@
  *    a pack the learner switched off cannot make `speak()` audible.
  *  - Queue with cancel: `interrupt` (default) cancels everything first;
  *    `cancel()` also runs on `hashchange` (navigation).
- *  - Chrome quirks: a warm-up utterance on the first gesture (first-utterance
- *    delay) — the same gesture calls `clips.unlock()` so the pack's media pool
- *    is built inside it (WebKit); the gesture listeners stay until the player
- *    reports the pool accepted (`unlocked()`), since a touch's `pointerdown`
- *    is not an activation gesture on every engine and a refused pool is
- *    rebuilt on the next one; a 4 s keep-alive tick calls `resume()`
- *    whenever the engine reports `paused` mid-utterance.
+ *  - Chrome quirks: a silent warm-up utterance after the first gesture
+ *    (first-utterance delay) — the gesture itself calls `sfxEngine.unlock()`
+ *    and `clips.unlock()` synchronously so the pack's media pool is built
+ *    inside it (WebKit unlocks media per element), while the warm-up leaves
+ *    the gesture for `requestIdleCallback` (`setTimeout 0` without it): speech
+ *    activation is sticky once a gesture has happened, and the tap's frame
+ *    no longer pays for it (design 09 §12.1 d57). Each part is wrapped in
+ *    `performance.mark` / `measure` (`audio:unlock:sfx` · `:clips` · `:synth`)
+ *    so the frame protocol can attribute the first-tap cost. The gesture
+ *    listeners stay until the player reports the pool accepted
+ *    (`unlocked()`), since a touch's `pointerdown` is not an activation
+ *    gesture on every engine and a refused pool is rebuilt on the next one;
+ *    a 4 s keep-alive tick calls `resume()` whenever the engine reports
+ *    `paused` mid-utterance.
  *  - Two dialogue voice slots (`pickPair`): with a single Japanese voice slot
  *    B reuses it with a rate / pitch offset. The pack ignores the slots and
  *    plays the cast voice of `speaker`.
@@ -89,6 +96,49 @@ export const VOICE_POLL_TOTAL_MS = 3000;
 export const SPEAK_TIMEOUT_GRACE_MS = 2000;
 /** Keep-alive tick: Chrome sometimes sits in `paused` after `cancel()`. */
 export const KEEPALIVE_MS = 4000;
+/** `requestIdleCallback` ceiling for the deferred synth warm-up (design 09 §12.1 d57). */
+export const WARMUP_IDLE_TIMEOUT_MS = 1000;
+/** The `performance.measure` names of the first-gesture unlock, one per part. */
+export const UNLOCK_MARKS = { sfx: 'audio:unlock:sfx', clips: 'audio:unlock:clips', synth: 'audio:unlock:synth' } as const;
+
+/**
+ * Runs `fn` between `performance.mark(name + ':start' | ':end')` and a
+ * `performance.measure(name)`, so DevTools and the frame-protocol stand-in
+ * attribute the cost; silent wherever the User Timing API is missing (jsdom
+ * carries `now` only) or throws. The buffer stays bounded: `warmUp` re-runs
+ * the unlocks on every Radio play, so the marks are cleared once measured and
+ * one measure per name lives (the latest; a trace keeps every event anyway).
+ */
+export function measured(name: string, fn: () => void): void {
+  const perf = (globalThis as { performance?: Partial<Performance> }).performance;
+  const mark = perf?.mark;
+  const measure = perf?.measure;
+  const timing = perf && typeof mark === 'function' && typeof measure === 'function' ? { perf, mark, measure } : null;
+  const start = `${name}:start`;
+  const end = `${name}:end`;
+  if (timing) {
+    try {
+      timing.mark.call(timing.perf, start);
+    } catch {
+      /* ignore */
+    }
+  }
+  try {
+    fn();
+  } finally {
+    if (timing) {
+      try {
+        timing.mark.call(timing.perf, end);
+        timing.perf.clearMeasures?.(name);
+        timing.measure.call(timing.perf, name, start, end);
+        timing.perf.clearMarks?.(start);
+        timing.perf.clearMarks?.(end);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+}
 /** Japanese TTS at rate 1 ≈ 7 morae/s; a char is ≈ one mora, kanji ≈ two. */
 export const MS_PER_CHAR = 150;
 export const MS_PER_KANJI = 300;
@@ -505,26 +555,50 @@ export function createWebAudio(o: WebAudioOptions = {}): WebAudioService {
 
   /* ── gesture unlock ─────────────────────────────────────────────────── */
 
-  const warmUp = (): void => {
-    sfxEngine.unlock();
-    // WebKit unlocks media per element: the pack's pool is built inside this gesture (design 08 §8).
-    try {
-      clips?.unlock();
-    } catch {
-      /* the pack never blocks the device voice */
+  /** Runs `fn` once the browser is idle (`requestIdleCallback`, `WARMUP_IDLE_TIMEOUT_MS` ceiling), else on the next macrotask; never after dispose. */
+  const whenIdle = (fn: () => void): void => {
+    const g = globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    if (typeof g.requestIdleCallback === 'function') {
+      const id = g.requestIdleCallback(() => {
+        if (!disposed) fn();
+      }, { timeout: WARMUP_IDLE_TIMEOUT_MS });
+      cleanups.push(() => g.cancelIdleCallback?.(id));
+      return;
     }
+    later(fn, 0);
+  };
+
+  /** The silent utterance that primes Chrome's engine: あ at volume 0. */
+  const primeSynth = (): void => {
+    if (!synth || !Utterance) return;
+    measured(UNLOCK_MARKS.synth, () => {
+      try {
+        const u = new Utterance('あ');
+        u.lang = 'ja-JP';
+        u.volume = 0;
+        u.rate = 1;
+        u.pitch = 1;
+        synth.speak(u);
+      } catch {
+        /* ignore */
+      }
+    });
+  };
+
+  const warmUp = (): void => {
+    // the two unlocks stay synchronous inside the gesture (WebKit unlocks media per element, design 08 §8)
+    measured(UNLOCK_MARKS.sfx, () => sfxEngine.unlock());
+    measured(UNLOCK_MARKS.clips, () => {
+      try {
+        clips?.unlock();
+      } catch {
+        /* the pack never blocks the device voice */
+      }
+    });
     if (warmed || !synth || !Utterance) return;
     warmed = true;
-    try {
-      const u = new Utterance('あ'); // あ, inaudible at volume 0, primes Chrome's engine
-      u.lang = 'ja-JP';
-      u.volume = 0;
-      u.rate = 1;
-      u.pitch = 1;
-      synth.speak(u);
-    } catch {
-      /* ignore */
-    }
+    // the warm-up utterance leaves the gesture (d57): speech activation is sticky once a gesture has happened
+    whenIdle(primeSynth);
   };
 
   /** The pack's pool is built but not yet accepted by the engine (or the pack is still loading): keep listening for a gesture. */

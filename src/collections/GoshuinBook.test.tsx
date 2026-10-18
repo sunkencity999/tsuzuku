@@ -271,6 +271,33 @@ describe('<GoshuinBook>', () => {
     expect(root.querySelector(`.${PAGE_TURN_CLASS}`)).toBeNull();
   });
 
+  it('station names follow the kana rule (design 09 §3.3, §12.1 d49): romaji below Green; a kana <ruby> in the page head and the stamp caption from Green on, "Station n" beside it; the caption keeps its brush face under the ruby', async () => {
+    await mount(recorder(), { profile: { belt: 'yellow' }, settings: { furigana: 'always' } });
+    const four = spreadEl().querySelector('[data-station="4"]')!;
+    expect(four.querySelector('.goshuin-book__romaji')?.textContent).toBe('4 · Hodogaya');
+    expect(four.querySelector('.goshuin-book__name ruby')).toBeNull();
+    expect(four.querySelector('.goshuin__romaji')?.textContent).toBe('4 · Hodogaya');
+    expect(four.querySelector('.goshuin__caption ruby')).toBeNull();
+    render(null, root);
+    resetStoreForTests();
+    resetOpenedForTests();
+    await mount(recorder(), { profile: { belt: 'green' }, settings: { furigana: 'always' } });
+    const g4 = spreadEl().querySelector('[data-station="4"]')!;
+    expect(g4.querySelector('.goshuin-book__romaji')?.textContent).toBe('Station 4');
+    expect(g4.querySelector('.goshuin-book__name ruby rt')?.textContent).toBe('ほどがや');
+    expect(g4.querySelector('.goshuin-book__name [lang="ja"] ruby')).not.toBeNull();
+    expect(g4.querySelector('.goshuin__romaji')?.textContent).toBe('Station 4');
+    expect(g4.querySelector('.goshuin__caption ruby rt')?.textContent).toBe('ほどがや');
+    expect(g4.textContent).not.toContain('Hodogaya');
+    // the Ruby's own span would set --font-ja (ui.css .ruby, base.css [lang="ja"]): the caption's name inherits the brush back
+    const css = readFileSync(resolve(process.cwd(), 'src/collections/GoshuinBook.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).toMatch(/\.goshuin-book__page \.goshuin__name \.ruby\s*\{\s*font-family:\s*inherit;\s*\}/);
+    // the uncleared page's stone name keeps its reading in the head too
+    const three = spreadEl().querySelector('[data-station="3"]')!;
+    expect(three.querySelector('.goshuin-book__name ruby rt')?.textContent).toBe('かながわ');
+    expect(three.textContent).not.toContain('Kanagawa');
+  });
+
   it('moment E inline: a stamp earned since the last open is pressed when its stamp slot is seen (at once without an observer), the print bleeding in while the caption stands, with the era date and its Latin gloss; the export bar is a .meter', async () => {
     const rec = recorder();
     // the book was opened before with stations 1 and 2 only: 4 is new since, whatever the clock says

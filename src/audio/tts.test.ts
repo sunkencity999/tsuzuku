@@ -11,11 +11,14 @@ import { PAIR_OFFSET, type VoiceLike } from './voices';
 import {
   MAX_UTTERANCE_CHARS,
   SPEAK_TIMEOUT_GRACE_MS,
+  UNLOCK_MARKS,
   VOICE_POLL_MS,
   VOICE_POLL_TOTAL_MS,
+  WARMUP_IDLE_TIMEOUT_MS,
   createWebAudio,
   estimateMs,
   installAdvice,
+  measured,
   packChosenIn,
   splitUtterance,
   stripDisplayMarks,
@@ -537,24 +540,121 @@ describe('volume and mute', () => {
     expect(ctxCalls.length).toBe(1);
   });
 
-  it('warmUp speaks one silent ja utterance once', () => {
+  it('warmUp speaks one silent ja utterance once — after the gesture tick, not inside it (design 09 §12.1 d57)', () => {
     const synth = new FakeSynth([ja('Kyoko')]);
     const svc = make(synth);
     svc.warmUp();
     svc.warmUp();
+    expect(synth.spoken.length).toBe(0); // the gesture's own frame carries only the unlocks
+    vi.advanceTimersByTime(0); // jsdom has no requestIdleCallback: the fallback is the next macrotask
     expect(synth.spoken.length).toBe(1);
     expect(synth.spoken[0]?.volume).toBe(0);
     expect(synth.spoken[0]?.lang).toBe('ja-JP');
+    svc.warmUp();
+    vi.advanceTimersByTime(0);
+    expect(synth.spoken.length).toBe(1);
   });
 
   it('the first gesture on the document warms up and the listener is removed', () => {
     const synth = new FakeSynth([ja('Kyoko')]);
     const svc = make(synth, signal(baseSettings()), { doc: document });
     document.dispatchEvent(new Event('pointerdown'));
+    vi.advanceTimersByTime(0);
     expect(synth.spoken.length).toBe(1);
     document.dispatchEvent(new Event('keydown'));
+    vi.advanceTimersByTime(0);
     expect(synth.spoken.length).toBe(1);
     svc.dispose();
+  });
+
+  it('the unlocks run inside the gesture handler, each between performance marks; the warm-up utterance follows on requestIdleCallback with its own marks (d57)', () => {
+    const perf = { now: () => 0, mark: vi.fn(), measure: vi.fn() };
+    vi.stubGlobal('performance', perf);
+    let idle: (() => void) | null = null;
+    const ric = vi.fn((cb: () => void, o?: { timeout: number }) => {
+      idle = cb;
+      expect(o?.timeout).toBe(WARMUP_IDLE_TIMEOUT_MS);
+      return 7;
+    });
+    const cic = vi.fn();
+    vi.stubGlobal('requestIdleCallback', ric);
+    vi.stubGlobal('cancelIdleCallback', cic);
+    try {
+      const synth = new FakeSynth([ja('Kyoko')]);
+      const clips = new FakeClips();
+      const svc = make(synth, signal(packSettings()), { clips, doc: document });
+      perf.mark.mockClear();
+      perf.measure.mockClear();
+      let unlocksInsideGesture = -1;
+      let spokenInsideGesture = -1;
+      const probe = (): void => {
+        unlocksInsideGesture = clips.unlocks;
+        spokenInsideGesture = synth.spoken.length;
+      };
+      // the service's listener was added first, so a probe added now observes the handler's synchronous work
+      document.addEventListener('pointerdown', probe);
+      document.dispatchEvent(new Event('pointerdown'));
+      document.removeEventListener('pointerdown', probe);
+      expect(unlocksInsideGesture).toBe(1); // clips.unlock() ran synchronously inside the gesture
+      expect(spokenInsideGesture).toBe(0); // the warm-up did not
+      expect(ric).toHaveBeenCalledTimes(1);
+      const marks = perf.mark.mock.calls.map((c) => c[0]);
+      expect(marks).toEqual([`${UNLOCK_MARKS.sfx}:start`, `${UNLOCK_MARKS.sfx}:end`, `${UNLOCK_MARKS.clips}:start`, `${UNLOCK_MARKS.clips}:end`]);
+      expect(perf.measure.mock.calls.map((c) => c[0])).toEqual([UNLOCK_MARKS.sfx, UNLOCK_MARKS.clips]);
+      expect(perf.measure.mock.calls[1]).toEqual([UNLOCK_MARKS.clips, `${UNLOCK_MARKS.clips}:start`, `${UNLOCK_MARKS.clips}:end`]);
+      // the idle tick: the silent utterance, marked as the third part
+      expect(idle).not.toBeNull();
+      idle!();
+      expect(synth.spoken).toHaveLength(1);
+      expect(synth.spoken[0]?.volume).toBe(0);
+      expect(perf.mark.mock.calls.slice(4).map((c) => c[0])).toEqual([`${UNLOCK_MARKS.synth}:start`, `${UNLOCK_MARKS.synth}:end`]);
+      expect(perf.measure.mock.calls[2]?.[0]).toBe(UNLOCK_MARKS.synth);
+      // a second warm-up re-runs the unlocks only (the warm-up is one-shot); no idle callback is queued again
+      // (the gesture listeners went with the first gesture: this fake pack reports its pool accepted)
+      svc.warmUp();
+      expect(clips.unlocks).toBe(2);
+      expect(ric).toHaveBeenCalledTimes(1);
+      expect(synth.spoken).toHaveLength(1);
+      svc.dispose();
+      // a pending idle warm-up is cancelled by dispose and never speaks
+      const synth2 = new FakeSynth([ja('Kyoko')]);
+      const svc2 = make(synth2);
+      svc2.warmUp();
+      expect(ric).toHaveBeenCalledTimes(2);
+      svc2.dispose();
+      expect(cic).toHaveBeenCalledWith(7);
+      idle!();
+      expect(synth2.spoken).toHaveLength(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('measured() is silent without the User Timing API and still runs the body; a throwing mark never blocks it', () => {
+    vi.stubGlobal('performance', { now: () => 0 });
+    try {
+      const ran = vi.fn();
+      expect(() => measured('audio:unlock:sfx', ran)).not.toThrow();
+      expect(ran).toHaveBeenCalledTimes(1);
+      vi.stubGlobal('performance', {
+        now: () => 0,
+        mark: () => {
+          throw new Error('no marks');
+        },
+        measure: vi.fn(),
+      });
+      expect(() => measured('audio:unlock:sfx', ran)).not.toThrow();
+      expect(ran).toHaveBeenCalledTimes(2);
+      // the body's own error propagates after the end mark
+      vi.stubGlobal('performance', { now: () => 0, mark: vi.fn(), measure: vi.fn() });
+      expect(() =>
+        measured('audio:unlock:sfx', () => {
+          throw new Error('boom');
+        }),
+      ).toThrow('boom');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('a hashchange (navigation) cancels speech', () => {
@@ -899,7 +999,9 @@ describe('speak() with a voice pack', () => {
     expect(svc.packReady.value).toBe(true);
     document.dispatchEvent(new Event('pointerdown'));
     expect(clips.unlocks).toBe(1);
-    expect(synth.spoken).toHaveLength(1); // the warm-up utterance
+    expect(synth.spoken).toHaveLength(0); // the warm-up utterance follows the gesture tick (d57)
+    vi.advanceTimersByTime(0);
+    expect(synth.spoken).toHaveLength(1);
     svc.warmUp();
     expect(clips.unlocks).toBe(2); // unlock is idempotent in the real player
     svc.dispose();
@@ -957,9 +1059,11 @@ describe('speak() with a voice pack', () => {
     const svc = make(synth, signal(packSettings()), { clips, doc: document });
     document.dispatchEvent(new Event('pointerdown'));
     expect(clips.unlocks).toBe(1);
+    vi.advanceTimersByTime(0);
     expect(synth.spoken).toHaveLength(1);
     document.dispatchEvent(new Event('touchend'));
     expect(clips.unlocks).toBe(2);
+    vi.advanceTimersByTime(0);
     expect(synth.spoken).toHaveLength(1);
     accepted = true;
     document.dispatchEvent(new Event('keydown'));

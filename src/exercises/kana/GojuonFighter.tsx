@@ -18,6 +18,13 @@
  *     (B reduces XP, stats, badges), then calls `onResult` with the round's
  *     ms, `score` = hits / total and `correct` = no misses.
  * Reduced motion: the kana stays put and the countdown bar does the moving.
+ *
+ * Design 09 §2.5 / §5.6–§5.8 / §10 D1: the round is a woodblock print — the
+ * heads are `.poster-title`s on `.sheet` panels, the landing bar is a `.meter`,
+ * the counts roll through `<Ticker roll>`, labels are `.eyebrow`s, and the BEST
+ * eyebrow compares the round's hits with the learner's OWN `stats.gojuonBest`
+ * only, never on a miss (footnote 5). `.crt` stays opt-in (arcade.css gates it
+ * on the CRT setting). The frame's step turn is the result panel's exit.
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -32,9 +39,11 @@ import { containsKatakana, equivalentJa, moraSplit, toHiragana } from '@/shared/
 import { finalizeIme, imeStep } from '@/shared/kana-ime';
 import { CardFlag, hasFlag, withFlag, type CardTuple, type LogEntry } from '@/shared/store-types';
 import { useExerciseKeys } from '@/shared/ui/ExerciseFrame';
+import { Ticker } from '@/shared/ui/Ticker';
 import { store } from '@/store';
 import { attempt } from '../check';
 import { S as X } from '../strings';
+import { S as GS } from './gojuon-strings';
 import { isDisplayRomaji, isKanaItem, kanaFromId } from './KanaFlash';
 import { ROW_JA, S, fill } from './strings';
 import './kana.css';
@@ -209,6 +218,8 @@ function GojuonFighterBody(p: GojuonFighterProps): JSX.Element {
   const startedAt = useRef(0);
   const reactions = useRef<GojuonReaction[]>([]);
   const fired = useRef(false);
+  /** The learner's OWN best before this round: the only number the BEST eyebrow compares with. */
+  const bestBefore = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const phaseRef = useRef<Phase>('ready');
   phaseRef.current = phase;
@@ -232,6 +243,7 @@ function GojuonFighterBody(p: GojuonFighterProps): JSX.Element {
     const hits = list.filter((r) => r.hit).length;
     const recheck = list.filter((r) => !r.hit && r.graded && r.cardKey).map((r) => r.cardKey as CardKey);
     const r: GojuonRound = { total: list.length, hits, misses: list.length - hits, ms: Math.max(0, store.now() - startedAt.current), reactions: list.slice(), recheck };
+    bestBefore.current = store.stats.value.gojuonBest;
     setResult(r);
     setPhase('over');
     commitRound(r);
@@ -348,7 +360,7 @@ function GojuonFighterBody(p: GojuonFighterProps): JSX.Element {
           ) : null}
         </span>
         <span class="gojuon__lantern" style={{ '--dim': String(lanternDim) }} role="img" aria-label={fill(S.lanternLabel, { n: misses })} data-dim={lanternDim}>
-          {misses}
+          <Ticker value={misses} roll />
         </span>
         <span class="gojuon__status" aria-live="polite">
           {phase === 'play' ? fill(S.gojuonProgress, { i: idx + 1, n }) : phase === 'over' ? X.roundOver : ''}
@@ -356,8 +368,8 @@ function GojuonFighterBody(p: GojuonFighterProps): JSX.Element {
       </div>
 
       {phase === 'ready' ? (
-        <div class="drill status-window">
-          <h3>{S.gojuonTitle}</h3>
+        <div class="drill sheet">
+          <h3 class="poster-title">{S.gojuonTitle}</h3>
           <p class="drill__prompt">{fill(S.gojuonIntro, { n })}</p>
           <p class="drill__hint">{gradedCount > 0 ? fill(S.gojuonGraded, { n: gradedCount }) : S.gojuonEmpty}</p>
           {n - gradedCount > 0 ? <p class="drill__hint">{fill(S.gojuonPractice, { n: n - gradedCount })}</p> : null}
@@ -379,9 +391,9 @@ function GojuonFighterBody(p: GojuonFighterProps): JSX.Element {
               {current.glyph}
             </p>
           </div>
-          <div class="gojuon__track" aria-hidden="true">
-            <div class="gojuon__bar" style={{ '--remain': remain.toFixed(3) }} />
-          </div>
+          <span class="meter gojuon__track" style={{ '--value': remain.toFixed(3) }} aria-hidden="true">
+            <span class="meter__fill" />
+          </span>
           <input
             ref={inputRef}
             class="drill__field gojuon__field"
@@ -404,25 +416,29 @@ function GojuonFighterBody(p: GojuonFighterProps): JSX.Element {
       ) : null}
 
       {phase === 'over' && result ? (
-        <div class="drill status-window gojuon__over">
-          <h3>{X.roundOver}</h3>
-          <dl class="gojuon__stats">
+        <div class="drill sheet gojuon__over">
+          <h3 class="poster-title poster-title--m">{X.roundOver}</h3>
+          <p class="eyebrow">{GS.resultEyebrow}</p>
+          {result.hits > bestBefore.current && bestBefore.current > 0 ? <p class="eyebrow gojuon__best">{fill(GS.bestEyebrow, { n: bestBefore.current })}</p> : null}
+          <dl class="gojuon__stats hiscore">
             <div>
-              <dt>{S.hits}</dt>
+              <dt class="eyebrow">{S.hits}</dt>
               <dd>
-                {result.hits} / {result.total}
+                <Ticker value={result.hits} roll /> / {result.total}
               </dd>
             </div>
             <div>
-              <dt>{S.misses}</dt>
-              <dd>{result.misses}</dd>
+              <dt class="eyebrow">{S.misses}</dt>
+              <dd>
+                <Ticker value={result.misses} roll />
+              </dd>
             </div>
             <div>
-              <dt>{S.fastest}</dt>
+              <dt class="eyebrow">{S.fastest}</dt>
               <dd>{fill(S.seconds, { s: fmt(fastest) })}</dd>
             </div>
             <div>
-              <dt>{S.median}</dt>
+              <dt class="eyebrow">{S.median}</dt>
               <dd>{fill(S.seconds, { s: fmt(median(hitMs)) })}</dd>
             </div>
           </dl>
@@ -431,7 +447,7 @@ function GojuonFighterBody(p: GojuonFighterProps): JSX.Element {
           </p>
           <p class="drill__prompt">{result.recheck.length > 0 ? fill(S.recheckCount, { n: result.recheck.length }) : S.cleanRound}</p>
           <p class="drill__hint">{X.recheckNote}</p>
-          <p class="drill__label">{S.reactionList}</p>
+          <p class="eyebrow">{S.reactionList}</p>
           <ul class="gojuon__reactions">
             {result.reactions.map((r, i) => (
               <li key={`${r.id}:${i}`} class="gojuon__reaction" data-hit={r.hit ? 'true' : 'false'} data-graded={r.graded ? 'true' : 'false'} data-ms={Math.round(r.ms)}>

@@ -82,18 +82,23 @@ describe('arcade.css', () => {
     }
   });
 
-  it('ships the documented classes: .crt .halftone .arcade-head .hiscore, and nothing that was deleted', () => {
-    for (const c of ['crt', 'halftone', 'hiscore', 'arcade-head']) {
+  it('ships the documented classes: .crt .halftone .hiscore (D1 mounts them), and nothing that was deleted', () => {
+    for (const c of ['crt', 'halftone', 'hiscore']) {
       expect(styleRules.some((r) => new RegExp(`\\.${c}(?![\\w-])`).test(r.selector)), c).toBe(true);
     }
-    for (const c of ['glow-edge', 'speed-lines', 'ippon-flash', 'combo-pop', 'ki-glow']) {
+    for (const c of ['glow-edge', 'speed-lines', 'ippon-flash', 'combo-pop', 'ki-glow', 'arcade-head']) {
       expect(styleRules.some((r) => new RegExp(`\\.${c}(?![\\w-])`).test(r.selector)), `${c} deleted`).toBe(false);
     }
     // the combo tiers have one canonical home (components.css); no tier rule here
     expect(styleRules.some((r) => /\.combo\[data-tier/.test(r.selector))).toBe(false);
-    const crt = styleRules.find((r) => r.selector === `${GATE} .crt::after`);
+    // CRT stays opt-in (design 09 §2.5): every .crt rule is gated by the arcade feel AND the CRT setting
+    const CRT_GATE = `${GATE}:is([data-crt], .crt)`;
+    const crtRules = styleRules.filter((r) => /\.crt(?![\w-])/.test(r.selector));
+    expect(crtRules.length).toBeGreaterThanOrEqual(4);
+    for (const r of crtRules) for (const sel of selectors(r)) expect(sel.startsWith(CRT_GATE), sel).toBe(true);
+    const crt = styleRules.find((r) => r.selector === `${CRT_GATE} .crt::after`);
     expect(crt?.body).toMatch(/repeating-linear-gradient/);
-    const offset = styleRules.find((r) => r.selector.includes('.crt .crt > *') || r.selector.includes('body.crt .crt > *'));
+    const offset = styleRules.find((r) => r.selector === `${CRT_GATE} .crt > *`);
     expect(offset?.body).toMatch(/text-shadow:\s*\n?\s*1px 0 0/);
   });
 

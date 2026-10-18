@@ -4,19 +4,29 @@
  * (design 06 §3). The artwork is rendered through the kakejiku registry
  * (sibling G module `wallpapers/index.ts`) when it is available; otherwise a
  * seeded sumi placeholder carries the piece's name and the Studio link.
+ *
+ * Design 09 §6.7 / §10 D1: the card is a `.sheet`; the silk unrolls by a
+ * clip-path reveal while the bottom roller rides down on `translate` (never a
+ * height tween). The silk itself is an `<img>` data URL — the placeholder's
+ * mist blur (one def, four users) and whatever filters the registry's piece
+ * carries are rasterised once by the image decoder, so the unroll holds no
+ * live filter (§6.7 rule 2; the Library's kakejiku cards use the same idiom,
+ * text layers baked in, system fonts standing in inside an image). Continue
+ * and the Studio link dry the card out (kasure, `useExit`) before `onDone`,
+ * or hand over at once when the host owns the exit (`hostExit`).
  */
 import type { JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { WallpaperId } from '../../shared/catalog';
 import { hashSeed, mulberry32, uniform } from '../../shared/hash';
 import { href } from '../../shared/routes';
 import { store } from '../../store';
 import { INK_WASH, NIGHT, PALETTE, SUMI, WASHI, alpha } from '../color';
 import { FONTS, fitSize, tategaki, textLayersSvg } from '../jtext';
-import { blur, circle, linearGradient, rect, safeRect, sizeOf, svgDoc, text, uid, url, type SizeKey } from '../svg';
+import { blur, circle, linearGradient, rect, safeRect, sizeOf, svgDataUrl, svgDoc, text, uid, url, type SizeKey } from '../svg';
 import { WALLPAPER_NAMES, fill } from '../strings';
 import { S } from './strings';
-import { appendToSvg, loadWallpapers, playSfx, prefersReducedMotion, useLazy, useTimeline } from './support';
+import { appendToSvg, loadWallpapers, playSfx, prefersReducedMotion, useExit, useLazy, useTimeline, verb } from './support';
 import './WallpaperUnlock.css';
 
 export interface WallpaperUnlockProps {
@@ -25,6 +35,8 @@ export interface WallpaperUnlockProps {
   quadrant?: 1 | 2 | 3 | 4;
   onDone(): void;
   reduced?: boolean;
+  /** The host plays the one kasure exit on its overlay: Continue hands over at once. */
+  hostExit?: boolean;
 }
 
 /** Phase start times: rolled → unrolling (1.4 s clip reveal) → open (copy and buttons). */
@@ -88,6 +100,7 @@ export function placeholderWallpaperSvg(id: WallpaperId, seed: number, size: Siz
 export function WallpaperUnlock(p: WallpaperUnlockProps): JSX.Element {
   const reduced = p.reduced ?? prefersReducedMotion();
   const phase = useTimeline(UNROLL_AT, { reduced });
+  const exit = useExit(p.onDone, reduced || p.hostExit === true);
   const names = WALLPAPER_NAMES[p.id];
   const wallpapers = useLazy(loadWallpapers);
   const [art, setArt] = useState<string | null>(null);
@@ -118,20 +131,21 @@ export function WallpaperUnlock(p: WallpaperUnlockProps): JSX.Element {
     };
   }, [wallpapers.settled]);
 
-  const svg = art ?? placeholderWallpaperSvg(p.id, seed, 'phone');
+  // rasterised once as an image: no live filter during the unroll (the placeholder's mist, the piece's own effects)
+  const src = useMemo(() => svgDataUrl(art ?? placeholderWallpaperSvg(p.id, seed, 'phone')), [art, p.id, seed]);
   const phaseName = UNROLL_PHASES[Math.min(phase, UNROLL_PHASES.length - 1)];
   const studio = href({ name: 'studio', wallpaperId: p.id });
 
   return (
-    <section class={`kakejiku-unlock kakejiku-unlock--${phaseName}`} data-phase={phase} data-wallpaper={p.id} data-preview={art ? 'render' : 'placeholder'}>
-      <p class="kakejiku-unlock__eyebrow status-window__label">
+    <section class={`kakejiku-unlock sheet kakejiku-unlock--${phaseName} ${verb(reduced, 'ink-nijimi')}`} data-phase={phase} data-wallpaper={p.id} data-preview={art ? 'render' : 'placeholder'} data-leaving={exit.leaving ? '' : undefined} ref={exit.ref}>
+      <p class="kakejiku-unlock__eyebrow eyebrow">
         {quadrant ? S.wallpaperRevealed : S.wallpaperUnlocked}
         {quadrant ? <span class="chip kakejiku-unlock__quadrant">{fill(S.revealCount, { q: quadrant })}</span> : null}
       </p>
       <figure class="kakejiku" aria-label={fill(S.scrollAlt, { name: names.en })}>
         <div class="kakejiku__jiku kakejiku__jiku--top" aria-hidden="true" />
         <div class="kakejiku__silk">
-          <div class="kakejiku__art" dangerouslySetInnerHTML={{ __html: svg }} />
+          <img class="kakejiku__art" src={src} alt="" decoding="async" />
         </div>
         <div class="kakejiku__jiku kakejiku__jiku--bottom" aria-hidden="true" />
       </figure>
@@ -141,10 +155,10 @@ export function WallpaperUnlock(p: WallpaperUnlockProps): JSX.Element {
       <p class="kakejiku-unlock__name-en">{names.en}</p>
       {!art ? <p class="kakejiku-unlock__pending muted">{wallpapers.settled && !wallpapers.value ? S.previewPending : S.previewLoading}</p> : null}
       <div class="kakejiku-unlock__actions">
-        <a class="hanko kakejiku-unlock__studio" href={studio} onClick={() => p.onDone()}>
+        <a class="hanko kakejiku-unlock__studio" href={studio} onClick={exit.leave}>
           {S.openStudio}
         </a>
-        <button type="button" class="btn btn--ghost kakejiku-unlock__continue" onClick={() => p.onDone()}>
+        <button type="button" class="btn btn--ghost kakejiku-unlock__continue" onClick={exit.leave}>
           {S.continue}
         </button>
       </div>

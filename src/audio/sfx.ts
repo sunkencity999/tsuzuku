@@ -332,11 +332,20 @@ const stamp: Recipe = (ctx, t, out) => {
   noise(ctx, out, t + 0.12, end, GAIN_BUDGET.ink, { filter: { type: 'bandpass', freq: 4000, q: 2 }, attack: 0.03 });
 };
 
+/**
+ * The three taiko hits of `ceremony`, in ms from its start (design 09 §7 E,
+ * §10 D1): the ONE table the sound schedules its hits from. The belt ceremony's
+ * `BELT_PHASE_AT` (src/art/ceremony/BeltCeremony.tsx) carries the same three
+ * figures — the art tier may not import the audio group — and
+ * BeltCeremony.test.tsx pins the equality by importing this export.
+ */
+export const CEREMONY_TAIKO_AT_MS: readonly number[] = [0, 700, 1400];
+
 const ceremony: Recipe = (ctx, t, out) => {
   const end = t + ms(SFX_DURATION_MS.ceremony);
-  // taiko ×3 (55 Hz sine pitch-drop + brown noise) …
-  for (let i = 0; i < 3; i++) {
-    const hit = t + i * 0.7;
+  // taiko ×3 (55 Hz sine pitch-drop + brown noise) at CEREMONY_TAIKO_AT_MS …
+  for (const at of CEREMONY_TAIKO_AT_MS) {
+    const hit = t + at / 1000;
     const hitEnd = hit + 0.6;
     const o = osc(ctx, 'sine', 55, hit);
     o.frequency.exponentialRampToValueAtTime(32, hitEnd);

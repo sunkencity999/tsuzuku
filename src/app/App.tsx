@@ -319,25 +319,36 @@ export function App(p: AppProps): JSX.Element {
   const arrivalGate = useRef<CommitGate | null>(null);
   useEffect(() => startThemeSync(), []);
 
-  // Hiraku (design 09 §7 A): the Dojo chunk loads beside initStore, so the arrival has something to turn to.
-  useEffect(() => {
-    if (store.ready.peek()) return;
-    const r = route.peek();
-    if (r.name !== 'dojo') return;
-    let alive = true;
-    const loading = pageFor(r);
-    prefetching.current = loading;
-    loading.then(
-      (mod) => {
-        if (alive) prefetched.current = { route: r, mod };
-      },
-      () => undefined, // PageHost reports the failure when it loads the page itself
-    );
-    return () => {
-      alive = false;
+  // Hiraku (design 09 §7 A, §12.1 d62): the Dojo chunk starts loading in the FIRST render, beside initStore —
+  // not in an effect. Preact flushes effects on the next animation frame and a localStorage save is ready in
+  // a few ms, so an effect-started prefetch always lost the race: `prefetching.current` was still null at the
+  // ready render and d35's hold was never reached (the headless frame-protocol stand-in saw the plain arrival
+  // on every load, A–C and D rows; boot mark → shell 11–12 ms with zero animation frames between).
+  const prefetchStarted = useRef(false);
+  const prefetchAlive = useRef(true);
+  if (!prefetchStarted.current) {
+    prefetchStarted.current = true;
+    if (!store.ready.peek()) {
+      const r = route.peek();
+      if (r.name === 'dojo') {
+        const loading = pageFor(r);
+        prefetching.current = loading;
+        loading.then(
+          (mod) => {
+            if (prefetchAlive.current) prefetched.current = { route: r, mod };
+          },
+          () => undefined, // PageHost reports the failure when it loads the page itself
+        );
+      }
+    }
+  }
+  useEffect(
+    () => () => {
+      prefetchAlive.current = false;
       prefetching.current = null;
-    };
-  }, []);
+    },
+    [],
+  );
 
   if (!ready) {
     arrival.current = 'idle';

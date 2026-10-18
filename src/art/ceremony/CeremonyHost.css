@@ -1,144 +1,29 @@
-/* TSUZUKU — CeremonyHost overlay (group G). Dims to sumi in both themes. */
-.ceremony {
-  --sumi: #0b0b10;
-  --washi: #f4ede0;
-  position: fixed;
-  inset: 0;
-  z-index: 120;
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  padding: var(--gutter);
-}
-
-.ceremony__backdrop {
-  position: absolute;
-  inset: 0;
-  background: color-mix(in srgb, var(--sumi) 82%, transparent);
-  animation: ceremony-fade 220ms var(--ease) both;
-}
-.ceremony--belt .ceremony__backdrop {
-  background: var(--sumi);
-}
-
-.ceremony__dialog {
-  position: relative;
-  width: min(100%, 560px);
-  max-height: calc(100dvh - 2 * var(--gutter));
-  overflow: auto;
-  border-radius: var(--radius);
-  outline: none;
-  animation: ceremony-rise 220ms var(--ease) both;
-  -webkit-overflow-scrolling: touch;
-}
-.ceremony__dialog:focus-visible {
-  outline: var(--focus-ring) solid var(--focus);
-  outline-offset: var(--focus-offset);
-}
-
-.ceremony__hint {
-  margin: var(--sp-2) 0 0;
-  font-size: var(--fs-1);
-  text-align: center;
-  color: color-mix(in srgb, var(--washi) 70%, transparent);
-}
-
-.ceremony--static .ceremony__backdrop,
-.ceremony--static .ceremony__dialog {
-  animation: none;
-}
-
-@keyframes ceremony-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@keyframes ceremony-rise {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* level toast: a status window at the bottom, tap to dismiss */
-.ceremony-toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(var(--nav-height, 64px) + env(safe-area-inset-bottom, 0px) + var(--sp-3));
-  z-index: 120;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--sp-1) var(--sp-3);
-  width: min(calc(100% - 2 * var(--gutter)), 420px);
-  transform: translateX(-50%);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  animation: ceremony-toast-in 220ms var(--ease) both;
-}
-.ceremony-toast__lv {
-  font-size: var(--fs-4);
-  color: var(--kin);
-}
-.ceremony-toast__text {
-  flex: 1 1 160px;
-}
-.ceremony-toast__note {
-  flex-basis: 100%;
-  font-size: var(--fs-1);
-}
-@keyframes ceremony-toast-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 8px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-
-/* overflow summary */
-.ceremony-summary {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-5) var(--sp-4) var(--sp-4);
-  color: var(--fg);
-  background: var(--surface);
-  border: 2px solid var(--line);
-  border-radius: var(--radius);
-  text-align: center;
-}
-.ceremony-summary__eyebrow,
-.ceremony-summary__line,
-.ceremony-summary__counts {
-  margin: 0;
-}
-.ceremony-summary__counts {
-  font-weight: 600;
-}
-.ceremony-summary__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--sp-3);
-  margin-top: var(--sp-3);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ceremony__backdrop,
-  .ceremony__dialog,
-  .ceremony-toast {
-    animation: none;
-  }
-}
+/* TSUZUKU — CeremonyHost overlay (design 09 §6.3, §7 E, §10 D1). Dims to the sumi stage (--stage-*) in both
+   themes; the DIALOG enters as nijimi and leaves as kasure (motion.css; the host sets .ink-nijimi + data-leaving
+   on it, useExit) while the full-viewport backdrop only fades (mat / mat-out: an opaque stage is never scaled or
+   moved); tokens only, so the reduced form is the zeroed tokens + motion.css. .ceremony__era is
+   the era date every seal ceremony lands (§7 E beat 1,300): the kanji in Mincho — the Shippori shell carries the
+   era glyphs (reiwa, gannen, nen, gatsu, nichi) — the digits in the pixel face (d23), "Reiwa 8 · Oct 18" beneath in
+   .seal-date__label (motion.css). */
+.ceremony { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; box-sizing: border-box; padding: var(--gutter); }
+.ceremony__backdrop { position: absolute; inset: 0; background: color-mix(in srgb, var(--stage-bg) 82%, transparent); animation: mat var(--dur-2) var(--ease) both; }
+.ceremony[data-leaving] .ceremony__backdrop { animation: mat-out var(--dur-1) var(--ease-in) both; pointer-events: none; }
+.ceremony--belt .ceremony__backdrop { background: var(--stage-bg); }
+.ceremony__dialog { position: relative; width: min(100%, 560px); max-height: calc(100dvh - 2 * var(--gutter)); overflow: auto; border-radius: var(--radius); outline: none; -webkit-overflow-scrolling: touch; }
+.ceremony__dialog:focus-visible { outline: var(--focus-ring) solid var(--focus); outline-offset: var(--focus-offset); }
+.ceremony__hint { margin: var(--sp-2) 0 0; font-size: var(--fs-1); text-align: center; color: var(--stage-muted); }
+/* the era date under a seal */
+.ceremony__date { margin: 0; }
+.ceremony__era { font-family: var(--font-mincho); font-size: var(--fs-3); line-height: var(--lh-mincho); color: var(--fg); }
+.ceremony__era-num { font-family: var(--font-pixel); font-size: var(--fs-2); }
+/* level toast: a .sheet at the bottom (§2.5 reserves the cartouche; no clip-path under the verb, §6.7 rule 7), tap to
+   dismiss (nijimi in from --from: 0 8px, kasure out); .sheet.ceremony-toast outranks .sheet by specificity, not order */
+.sheet.ceremony-toast { position: fixed; left: 50%; bottom: calc(var(--nav-height, 64px) + env(safe-area-inset-bottom, 0px) + var(--sp-3)); z-index: 120; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); width: min(calc(100% - 2 * var(--gutter)), 420px); transform: translateX(-50%); font: inherit; text-align: left; cursor: pointer; }
+.ceremony-toast__lv { font-size: var(--fs-4); color: var(--kin-text); }
+.ceremony-toast__text { flex: 1 1 160px; }
+.ceremony-toast__note { flex-basis: 100%; font-size: var(--fs-1); }
+/* overflow summary: a .sheet */
+.ceremony-summary { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); text-align: center; }
+.ceremony-summary__eyebrow, .ceremony-summary__line, .ceremony-summary__counts { margin: 0; }
+.ceremony-summary__counts { font-weight: 600; }
+.ceremony-summary__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-3); margin-top: var(--sp-3); }

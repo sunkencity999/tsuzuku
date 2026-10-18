@@ -19,10 +19,13 @@
  * self-check and the minutes the reducer logs (`playedMinutes`, the
  * reducer's own rounding), and offers the plain reader ("Read it as an
  * episode" is a first read as before). A missing id shows a calm empty state
- * with ways back.
+ * with ways back. The station chip follows the kana rule (design 09 §3.3,
+ * §12.1 d49): romaji beside the name while the belt is below Green, the kana
+ * `<Ruby>` reading from Green on (`tap` reads as `always` inside the link).
  */
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
+import { romajiAllowed, rubyMarkup, signRubyMode } from '@/art/road/reading';
 import { content, type ContentLoader } from '@/content/loader';
 import { STATIONS, type StoryItem } from '@/content/types';
 import { href, type Route } from '@/shared/routes';
@@ -86,6 +89,7 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
   const listen = p.route.name === 'story' && p.route.mode === 'listen';
   const settings = store.settings.value;
   const learnerStation = store.progress.value.station;
+  const romaji = romajiAllowed(store.profile.value.belt);
 
   const [loaded, setLoaded] = useState<Loaded>(() => {
     const it = id ? loader.get(id) : undefined;
@@ -228,7 +232,15 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
               {stationDef ? (
                 <>
                   {' · '}
-                  <span lang="ja">{stationDef.nameJa}</span> {stationDef.nameRomaji}
+                  {romaji ? (
+                    <>
+                      <span lang="ja">{stationDef.nameJa}</span> {stationDef.nameRomaji}
+                    </>
+                  ) : (
+                    <span lang="ja">
+                      <Ruby ja={rubyMarkup(stationDef.nameJa, stationDef.nameRomaji)} mode={signRubyMode(settings.furigana)} />
+                    </span>
+                  )}
                 </>
               ) : null}
             </a>

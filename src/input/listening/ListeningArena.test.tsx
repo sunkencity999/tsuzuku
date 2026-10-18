@@ -371,6 +371,9 @@ describe('<ListeningArena>', () => {
     expect(finish.disabled).toBe(false);
     act(() => finish.click());
     expect(root.querySelector('.arena__result')).not.toBeNull();
+    // paper, not the cartouche (design 09 §2.5, §12.1 d53)
+    expect(root.querySelector('.arena__result')?.classList.contains('sheet')).toBe(true);
+    expect(root.querySelector('.arena__result')?.classList.contains('status-window')).toBe(false);
   });
 
   it('with a voice but the master volume at 0 (canSpeak false) it shows the lines as text with the volume notice instead of a silent Play', async () => {
@@ -1292,6 +1295,9 @@ describe('design 09 (C4): the indigo band and ListeningArena.css', () => {
     // the "synthetic" word stays where it was: in the chip, not duplicated as text
     expect(root.querySelector('.arena__speakers .eyebrow')?.textContent).toBe(S.speakersLabel);
     expect(root.querySelector('[class*="__label"]')).toBeNull();
+    // the listen stage is a .sheet (design 09 §12.1 d53): no cartouche on an input surface
+    expect(root.querySelector('.arena__stage')?.classList.contains('sheet')).toBe(true);
+    expect(root.querySelector('.arena__stage.status-window, .arena__result.status-window')).toBeNull();
   });
 
   it('ListeningArena.css: the band is --ai-dye and static; no width/height tween, bands ride scaleY, no glow, no local reduced-motion block', () => {
@@ -1307,6 +1313,8 @@ describe('design 09 (C4): the indigo band and ListeningArena.css', () => {
     expect(/\.arena__wave\[data-on='true'\]\s*\{[^}]*transform:\s*scaleY\(1\)/.test(css)).toBe(true);
     expect(css).not.toMatch(/box-shadow:\s*0 0 8px/);
     expect(css).not.toMatch(/__label|__eyebrow/);
+    expect(css).not.toMatch(/status-window/);
+    for (const cls of ['arena__stage', 'arena__result']) expect(new RegExp(`\\.${cls}\\s*\\{[^}]*\\b(padding|background|border|box-shadow)\\s*:`).test(css), cls).toBe(false);
     expect(css).not.toMatch(/prefers-reduced-motion|\.reduced-motion/);
   });
 });

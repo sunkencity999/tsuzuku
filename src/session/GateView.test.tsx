@@ -1,6 +1,8 @@
 /**
  * GateView.tsx — intro readiness, four phases advancing with paused phase cards, wall bar, result + rematch rules, no lives.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -17,7 +19,9 @@ import { S as ES } from './engine-strings';
 import { SessionRunner as Runner } from './runner';
 import type { SessionRunner } from './runner';
 import type { SessionViewComponent } from './ScrollView';
-import { GateView, grudgeRepsSince, itemHead, missesIn, phaseIndexOf } from './GateView';
+import { WALL_MAX_PIECES, WALL_H, WALL_W } from '../art/ceremony/gate-wall';
+import { S as AS } from './arcade-strings';
+import { GateView, chippedPieces, grudgeRepsSince, itemHead, missesIn, phaseIndexOf, wallPieceCount } from './GateView';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const loader = createFakeLoader();
@@ -133,24 +137,45 @@ async function mountReady(plan: SessionPlan, save: Record<string, unknown> = {})
 }
 
 describe('<GateView> intro', () => {
-  it('names the keeper, lists four phases and offers the fight when the station is ready', async () => {
+  it('names the keeper, lists four phases and offers the fight when the station is ready; romaji beside the name below Green kana', async () => {
     await makeTestStore({ save: { progress: { station: 4 } }, cards: stationCards({ mature: true }) });
     const plan = await buildGate(4, { assisted: false, revenge: false, seed: 1, loader, available: all });
     await mountReady(plan);
     expect(root.querySelector('.gate-view')?.getAttribute('data-stage')).toBe('intro');
     expect(text()).toContain('坂の関守');
     expect(text()).toContain('Hill Keeper');
+    const station = root.querySelector('.gate-view__station')!;
+    expect(station.textContent).toContain('保土ヶ谷');
+    expect(station.textContent).toContain('Hodogaya');
+    expect(station.querySelector('ruby')).toBeNull();
     expect(root.querySelectorAll('.gate-view__phases li')).toHaveLength(4);
     expect(hanko()?.textContent).toBe('Face the Gatekeeper');
     expect(text()).not.toMatch(/\blives?\b|\bhearts?\b|♥|❤/i);
+    expect(text()).not.toMatch(/locked/i);
   });
 
-  it('is honest when the station is not ready: reason shown, no fight button', async () => {
+  it('from Green kana the station name is a kana <ruby> and the romaji is gone (design 09 §3.3, d49)', async () => {
+    await makeTestStore({ save: { profile: { belt: 'green' }, progress: { station: 4 }, settings: { furigana: 'tap' } }, cards: stationCards({ mature: true }) });
+    const plan = await buildGate(4, { assisted: false, revenge: false, seed: 1, loader, available: all });
+    await mountReady(plan);
+    const station = root.querySelector('.gate-view__station')!;
+    expect(station.textContent).not.toContain('Hodogaya');
+    const ruby = station.querySelector('ruby');
+    expect(ruby).not.toBeNull();
+    expect(ruby?.textContent).toContain('保土ヶ谷');
+    expect(ruby?.textContent).toContain('ほどがや');
+    expect(station.querySelector('.ruby__rt--fog')).toBeNull();
+  });
+
+  it('is honest when the station is not ready: the gate lies AHEAD (never "locked"), reason shown, no fight button', async () => {
     await makeTestStore({ save: { progress: { station: 4 } }, cards: stationCards({ greenCount: 8 }) });
     const plan = await buildGate(4, { assisted: false, revenge: false, seed: 1, loader, available: all });
     await mountReady(plan);
     expect(text()).toContain('The gate is not open yet.');
     expect(text()).toContain('14 of 14 introduced, 8 Green');
+    expect(root.querySelector('.gate-view__ahead .eyebrow')?.textContent).toBe(AS.ahead);
+    expect(text()).toContain(AS.gateAheadLine);
+    expect(text()).not.toMatch(/locked/i);
     expect(hanko()).toBeNull();
     expect(root.querySelector('.btn--ghost')?.textContent).toBe('Back to the station');
   });
@@ -180,18 +205,35 @@ describe('<GateView> fight', () => {
     expect(r.paused.value).toBe(true);
     const wall = root.querySelector('.gate-wall') as HTMLElement;
     expect(wall.getAttribute('aria-valuenow')).toBe(String(plan.steps.length));
+    // the wall is a .meter of stone from its first frame (design 09 §10 D1, static art import): --value = what still stands, one shard per piece
+    const total = plan.steps.length;
+    const track = (): HTMLElement => root.querySelector('.gate-wall .meter') as HTMLElement;
+    expect(track().style.getPropertyValue('--value')).toBe('1');
+    expect(wall.getAttribute('data-wall')).toBe('stone');
+    expect(wall.style.getPropertyValue('--wall-stone')).toContain('data:image/svg+xml');
+    expect(root.querySelector('.gate-wall__shards')?.getAttribute('viewBox')).toBe(`0 0 ${WALL_W} ${WALL_H}`);
+    expect(root.querySelectorAll('.gate-wall__piece')).toHaveLength(wallPieceCount(total));
+    expect(root.querySelectorAll('.gate-wall__piece[data-chipped]')).toHaveLength(0);
+    expect(root.querySelector('.gate-wall__shards')!.childElementCount + 1).toBeLessThanOrEqual(12);
+    expect(root.querySelectorAll('.gate-wall filter, .gate-wall pattern, .gate-wall image')).toHaveLength(0);
+    expect(text()).toContain(AS.wallStone);
+    expect(root.querySelector('.gate-phase')?.classList.contains('sheet')).toBe(true);
     expect(root.querySelector('[data-stub="view"]')).toBeNull();
     click(hanko());
     expect(r.paused.value).toBe(false);
     expect(root.querySelector('.gate-view')?.getAttribute('data-stage')).toBe('fight');
     expect(root.querySelector('[data-stub="view"]')).not.toBeNull();
-    // phase 1 answered → phase 2 card with the grudge reveal
+    // phase 1 answered → phase 2 card with the grudge reveal; N hits chipped chippedPieces(N) shards
     answerBlock(r, plan, 0, true);
     expect(root.querySelector('.gate-view')?.getAttribute('data-stage')).toBe('phase');
     expect(text()).toContain(`Phase 2 of ${plan.blocks.length}`);
     expect(text()).toContain('Nothing slipped.');
     expect(r.paused.value).toBe(true);
-    expect(Number((root.querySelector('.gate-wall') as HTMLElement).getAttribute('aria-valuenow'))).toBe(plan.steps.length - (plan.blocks[0]?.stepIds.length ?? 0));
+    const hits1 = plan.blocks[0]?.stepIds.length ?? 0;
+    expect(Number((root.querySelector('.gate-wall') as HTMLElement).getAttribute('aria-valuenow'))).toBe(total - hits1);
+    expect(Number(track().style.getPropertyValue('--value'))).toBeCloseTo((total - hits1) / total, 6);
+    expect(root.querySelectorAll('.gate-wall__piece[data-chipped]')).toHaveLength(chippedPieces(hits1, total));
+    expect(chippedPieces(hits1, total)).toBeGreaterThan(0);
     for (let bi = 1; bi < plan.blocks.length; bi++) {
       click(hanko());
       answerBlock(r, plan, bi, true);
@@ -202,6 +244,11 @@ describe('<GateView> fight', () => {
     expect(root.querySelector('.gate-view')?.getAttribute('data-outcome')).toBe('perfect');
     expect(text()).toContain('bows');
     expect(root.querySelector('.gate-stamp .seal--perfect')).not.toBeNull();
+    // the doors part on a pass (translate), the wall-down caption, never "locked"
+    expect(root.querySelector('.gate-doors')?.classList.contains('gate-doors--open')).toBe(true);
+    expect(root.querySelector('.gate-stamp')?.getAttribute('data-doors')).toBe('open');
+    expect(text()).toContain(AS.wallDown);
+    expect(text()).not.toMatch(/locked/i);
     expect(root.querySelectorAll('.gate-result__row')).toHaveLength(plan.blocks.length + 1);
     expect(store.progress.value.stationsCleared).toContain(4);
     expect(store.progress.value.station).toBe(5);
@@ -239,6 +286,9 @@ describe('<GateView> fight', () => {
     expect(Array.from(root.querySelectorAll('button')).some((b) => b.textContent === 'Assisted Gate')).toBe(true);
     expect(text()).toContain('threshold 80 percent');
     expect(text()).not.toMatch(/\blives?\b|\bhearts?\b|♥|❤/i);
+    // no doors part on a loss, and nothing is "locked"
+    expect(root.querySelector('.gate-doors')).toBeNull();
+    expect(text()).not.toMatch(/locked/i);
   });
 
   it('leaving mid-fight abandons the run and keeps the station unchanged', async () => {
@@ -256,6 +306,31 @@ describe('<GateView> fight', () => {
     expect(onExit).toHaveBeenCalled();
     expect(r.abandoned.value).toBe(true);
     expect(store.progress.value.stationsCleared).not.toContain(4);
+  });
+});
+
+describe('the stone wall’s arithmetic (design 09 §10 D1)', () => {
+  it('one piece per hit while the wall has a piece per rep; monotone and complete beyond the cap; the cap is the art’s', () => {
+    expect(wallPieceCount(4)).toBe(4);
+    expect(wallPieceCount(20)).toBe(WALL_MAX_PIECES);
+    expect(wallPieceCount(0)).toBe(1);
+    for (let h = 0; h <= 4; h++) expect(chippedPieces(h, 4)).toBe(h);
+    expect(chippedPieces(0, 20)).toBe(0);
+    expect(chippedPieces(20, 20)).toBe(WALL_MAX_PIECES);
+    let prev = 0;
+    for (let h = 1; h <= 20; h++) {
+      const c = chippedPieces(h, 20);
+      expect(c).toBeGreaterThanOrEqual(prev);
+      expect(c).toBeLessThanOrEqual(WALL_MAX_PIECES);
+      prev = c;
+    }
+    expect(chippedPieces(3, 0)).toBe(0);
+    // the stone tile is a CSS background on the unscaled track, never on the scaleX'd fill (it would squash as the wall falls)
+    const css = readFileSync(resolve(process.cwd(), 'src/session/GateView.css'), 'utf8');
+    expect(css).toMatch(/\.gate-wall\[data-wall="stone"\] \.gate-wall__track \{[^}]*var\(--wall-stone\)/);
+    expect(css).not.toMatch(/\.meter__fill \{[^}]*--wall-stone/);
+    expect(css).toMatch(/\.gate-wall__piece \{[^}]*vector-effect: non-scaling-stroke/);
+    expect(css).not.toMatch(/\.gate-wall__piece\[data-chipped\] \{[^}]*rotate/);
   });
 });
 
