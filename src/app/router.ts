@@ -5,7 +5,11 @@
  * `navigate` and the hashchange listener. This module adds what the shell
  * needs around it:
  *   - its own hashchange listener feeding `route` (belt and braces; removed on stop)
- *   - scroll restoration per route (positions keyed by `href(route)`)
+ *   - scroll positions per route (saved here at the hash change, keyed by
+ *     `href(route)`); the RESTORE is PageHost's (`restoreScroll(r)` in its
+ *     post-commit layout effect, design 09 §6.7 rule 6) — never at the hash
+ *     change, when the old page is still on screen and would jump — always
+ *     `behavior: 'instant'` (design 09 §6.4)
  *   - `document.title = titleFor(route)`
  *   - `services.audio.cancel()` on every navigation so no utterance outlives its screen
  *
@@ -18,22 +22,24 @@ import { href, route, sameRoute, syncRouteFromLocation, titleFor, type Route } f
 
 const positions = new Map<string, number>();
 
-function nextFrame(fn: () => void): void {
-  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(fn);
-  else setTimeout(fn, 0);
-}
-
 function currentScrollY(): number {
   if (typeof window === 'undefined') return 0;
   const y = window.scrollY ?? window.pageYOffset ?? 0;
   return Number.isFinite(y) ? y : 0;
 }
 
+/**
+ * Always `behavior: 'instant'` (design 09 §6.4): `html { scroll-behavior: smooth }`
+ * must never turn a restored position into a glide between pages — the page
+ * turn is the View Transition's job, and under reduced motion there is none.
+ */
+export const SCROLL_OPTIONS: Pick<ScrollToOptions, 'behavior'> = { behavior: 'instant' };
+
 function scrollToY(y: number): void {
   if (typeof window === 'undefined') return;
   if (currentScrollY() === y) return;
   try {
-    window.scrollTo(0, y);
+    window.scrollTo({ top: y, ...SCROLL_OPTIONS });
   } catch {
     /* jsdom: not implemented */
   }
@@ -87,14 +93,7 @@ export function startRouter(): () => void {
     }
     prev = r;
     if (typeof document !== 'undefined') document.title = titleFor(r);
-    const target = positions.get(href(r)) ?? 0;
-    // Twice: once on the next frame, once more after lazy pages have had a chance to mount.
-    nextFrame(() => {
-      scrollToY(target);
-      nextFrame(() => {
-        if (sameRoute(route.peek(), r)) scrollToY(positions.get(href(r)) ?? 0);
-      });
-    });
+    // No scroll here: PageHost restores once the new page is committed (an old page must not jump while its successor loads).
   });
 
   return () => {

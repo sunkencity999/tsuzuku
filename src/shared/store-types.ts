@@ -7,6 +7,7 @@
  *
  * Imports: `content/types` (values + types) and type-only imports from
  * `./catalog` (id unions) and `./session-types` (the opaque session slot).
+ * Never the art tier: `Progress.sceneSeen` is the structural `SceneSeen` below.
  */
 import type { Signal } from '@preact/signals';
 import type { Belt, CardKey, DrillId, ErrorTag, Facet, Level } from '../content/types';
@@ -111,7 +112,8 @@ export interface Profile {
 
 export type Intensity = 'casual' | 'standard' | 'intense' | 'custom';
 export type Feel = 'zen' | 'dojo' | 'arcade';
-export type Theme = 'auto' | 'light' | 'dark';
+/** `'sky'` = Follow the sky (design 09 §8): Dojo Morning from dawn to dusk in `profile.tz`, Arcade Night after; opt-in only, explained once in Settings. */
+export type Theme = 'auto' | 'light' | 'dark' | 'sky';
 export type FuriganaMode = 'always' | 'fog' | 'tap' | 'off';
 export type SpeakingMode = 'auto' | 'recognition' | 'self' | 'off';
 export type SpeedTier = 1 | 2 | 3 | 4 | 5;
@@ -184,6 +186,31 @@ export interface ShinsaNotes {
   tags: ErrorTag[];
 }
 
+/**
+ * The Dojo picture as last seen (design 09 §8 "since yesterday"): the durable
+ * fields of `art/dojo/DojoScene`'s `SceneInputs` that B1 diffs against today's.
+ * Structural on purpose (§12.1 decision 17) — the contract tier never imports
+ * the art tier; a `SceneInputs` value is assignable to it, and the render-only
+ * inputs (w, h, hour, month, seed, today, reducedMotion, feel, flamesMax) are
+ * not kept. `flame` is the `FlameState` word (`store/streak.ts`).
+ */
+export interface SceneSeen {
+  belt: Belt;
+  level: number;
+  dan: number;
+  chosenKanji?: string;
+  badgeCategories: number;
+  latestStamp?: string;
+  kageBeaten: boolean;
+  totalDays: number;
+  streak: number;
+  blooming: boolean;
+  pruned: boolean;
+  counts: Partial<Record<ItemKind, number>>;
+  station: number;
+  flame?: string;
+}
+
 export interface Progress {
   /** Current station 0–53. */
   station: number;
@@ -223,6 +250,13 @@ export interface Progress {
   arenaAt?: Record<string, EpochDay>;
   /** Ids of first-contact teach cards the learner dismissed (`shared/ui/TeachOnce`, design 08 §11). */
   teachSeen?: string[];
+  /* design 09 (A3; written by B1 and C2) — optional, absent on a fresh save, kept by `migrations.checkSeen` when valid */
+  /** The learner day the arrival moment (Hiraku, design 09 §7 A) last played: once a day. */
+  arrivedDay?: EpochDay;
+  /** The Dojo picture as last seen (design 09 §8 "since yesterday"): the durable scene inputs, `SceneSeen`. */
+  sceneSeen?: SceneSeen;
+  /** Highest station whose arrival (Tōchaku, design 09 §7 D) has been shown: once per station. */
+  stationSeen?: number;
 }
 
 export interface Quests {

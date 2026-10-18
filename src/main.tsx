@@ -15,7 +15,8 @@
  *     first speak() hits the pack) and its sprites prefetch at the next idle moment
  *     (`whenIdle`) unless the learner's `settings.dataSaver` or
  *     `navigator.connection.saveData` says not to
- *   loadOverlays() → overlays.value   CeremonyHost from @/art (G), fire-and-forget
+ *   loadOverlays() → overlays.value   CeremonyHost from @/art (G), fire-and-forget; it also hands
+ *     `isCeremonyOpen` to app/transitions.ts (design 09 §6.4) so no page turn starts under a ceremony
  *
  * Nothing but the store blocks first paint (design 07 §9 budgets): audio, the
  * ceremony overlay and the exercise registry load behind it (`pages.ts`
@@ -35,10 +36,12 @@ import '@/styles/tokens.css';
 import '@/styles/base.css';
 import '@/styles/components.css';
 import '@/styles/arcade.css';
+import '@/styles/motion.css';
 import { App } from './app/App';
 import { isFirstRun } from './app/first-run';
 import { startRouter } from './app/router';
 import { registerSw } from './app/sw-register';
+import { setCeremonyProbe } from './app/transitions';
 import type { FunctionComponent } from 'preact';
 
 export interface BootOptions {
@@ -80,9 +83,11 @@ type AnyModule = Record<string, unknown>;
  * over their exact paths: Vite code-splits them like a literal `import()`, but a
  * barrel that is not built yet is simply absent instead of a build error.
  */
-const OPTIONAL = import.meta.glob<AnyModule>(['/src/audio/index.ts', '/src/art/index.ts']);
+const OPTIONAL = import.meta.glob<AnyModule>(['/src/audio/index.ts', '/src/art/index.ts', '/src/art/ceremony/CeremonyHost.tsx']);
 export const AUDIO_BARREL = 'src/audio/index.ts';
 export const ART_BARREL = 'src/art/index.ts';
+/** `isCeremonyOpen()` for the shell's page turns (design 09 §6.4); the shell may not import the art tier itself. */
+export const CEREMONY_HOST = 'src/art/ceremony/CeremonyHost.tsx';
 
 async function optional(file: string, what: string): Promise<AnyModule | null> {
   const loader = OPTIONAL[`/${file}`];
@@ -171,7 +176,13 @@ async function installAudio(o: BootOptions): Promise<void> {
 
 async function loadOverlays(): Promise<FunctionComponent[]> {
   const m = await optional(ART_BARREL, 'ceremonies');
-  return m && typeof m.CeremonyHost === 'function' ? [m.CeremonyHost as FunctionComponent] : [];
+  if (m && typeof m.CeremonyHost === 'function') {
+    // Same module graph as the barrel (Vite dedupes): the probe keeps a page turn from starting under a ceremony.
+    const host = await optional(CEREMONY_HOST, 'ceremony probe');
+    if (host && typeof host.isCeremonyOpen === 'function') setCeremonyProbe(host.isCeremonyOpen as () => boolean);
+    return [m.CeremonyHost as FunctionComponent];
+  }
+  return [];
 }
 
 export { isFirstRun };

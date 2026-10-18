@@ -9,6 +9,7 @@ import type { Settings } from '@/shared/store-types';
 import { INTENSITY_PRESETS, newPerDayFor, resetStoreForTests, store } from '@/store';
 import { DEFAULT_TEST_NOW, makeTestStore, card } from '@/store/testing';
 import SettingsPage, { applyFeel, dataSaverEffective, formatBytes, japaneseVoices, kbOf, packInfo, packSpeaks, parseTime, resetDataSaverAutoForTests, saveDataRequested } from './SettingsPage';
+import { S as SS } from './settings-strings';
 import { S, fmt } from './strings';
 
 /** Counts the store's `resetSave` calls: the danger zone must delegate to it, not run a wipe of its own. */
@@ -140,6 +141,33 @@ describe('<SettingsPage>', () => {
     expect(settings().maxReviews).toBe(220);
     numberInput('maxReviews', '3');
     expect(settings().maxReviews).toBe(220);
+  });
+
+  it('theme radios (design 09 §7 G, §8): four options each with a live swatch holding a tiny status window, washi and lacquer among them; Follow the sky patches theme: sky and is explained once', async () => {
+    await makeTestStore();
+    mount();
+    const swatches = root.querySelectorAll('.theme-swatch');
+    expect(swatches.length).toBe(4);
+    expect(Array.from(swatches, (el) => el.getAttribute('data-swatch'))).toEqual(['auto', 'light', 'dark', 'sky']);
+    for (const el of Array.from(swatches)) {
+      expect(el.getAttribute('aria-hidden')).toBe('true');
+      expect(el.querySelector('.status-window.theme-swatch__frame')).not.toBeNull();
+    }
+    expect(q('.theme-swatch[data-swatch="light"]').closest('label')?.querySelector('input')?.value).toBe('light');
+    expect(q('.theme-swatch[data-swatch="dark"]').closest('label')?.querySelector('input')?.value).toBe('dark');
+    expect(q<HTMLInputElement>('input[data-setting="theme"][value="sky"]').checked).toBe(false);
+    expect(q('[data-theme-hint]').textContent).toBe(SS.setThemeSkyHint);
+    expect(root.querySelectorAll('[data-theme-hint]').length).toBe(1);
+    // the hint is read to the radiogroup, not only shown beside it
+    expect(q('#theme-hint').hasAttribute('data-theme-hint')).toBe(true);
+    expect(q('[role="radiogroup"][aria-label="' + S.setTheme + '"]').getAttribute('aria-describedby')).toBe('theme-hint');
+    expect(q('[role="radiogroup"][aria-label="' + S.setFeel + '"]').hasAttribute('aria-describedby')).toBe(false);
+    expect(SS.setThemeSkyHint.split(/[.!?](\s|$)/).filter((x) => x.trim()).length).toBe(1); // one sentence (09 §8: explained once, one line)
+    radio('theme', 'sky');
+    expect(settings().theme).toBe('sky');
+    expect(q<HTMLInputElement>('input[data-setting="theme"][value="sky"]').checked).toBe(true);
+    radio('theme', 'auto');
+    expect(settings().theme).toBe('auto');
   });
 
   it('CRT is disabled outside the Arcade feel', async () => {

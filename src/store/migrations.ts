@@ -38,7 +38,9 @@
  * keeps id-like keys whose value is a non-negative integer EpochDay, drops the
  * rest, is capped at `ARENA_AT_MAX` entries keeping the NEWEST days, and is
  * left absent on a save that never had it — a non-object, or an object with
- * nothing valid left, is removed rather than kept as `{}`;
+ * nothing valid left, is removed rather than kept as `{}`; design 09's optional
+ * `progress.arrivedDay` / `sceneSeen` / `stationSeen` are kept when valid and
+ * dropped (reported) otherwise (`checkSeen`);
  * a save from before the listening counters is seeded with
  * `stats.bestCleanTier = settings.speedTier` so no 耳 radar drops on upgrade
  * (a new save starts at `FRESH_BEST_CLEAN_TIER`). Additive fields need no
@@ -299,7 +301,7 @@ function coerce(def: unknown, have: unknown, path: string, coerced: string[]): u
 
 const INTENSITIES: ReadonlySet<string> = new Set<Intensity>(['casual', 'standard', 'intense', 'custom']);
 const FEELS: ReadonlySet<string> = new Set<Feel>(['zen', 'dojo', 'arcade']);
-const THEMES: ReadonlySet<string> = new Set<Theme>(['auto', 'light', 'dark']);
+const THEMES: ReadonlySet<string> = new Set<Theme>(['auto', 'light', 'dark', 'sky']);
 const FURIGANA: ReadonlySet<string> = new Set<FuriganaMode>(['always', 'fog', 'tap', 'off']);
 const SPEAKING: ReadonlySet<string> = new Set<SpeakingMode>(['auto', 'recognition', 'self', 'off']);
 const RETENTIONS: ReadonlySet<number> = new Set<Retention>([0.85, 0.9, 0.95]);
@@ -409,6 +411,27 @@ function checkArenaAt(pr: Progress, coerced: string[]): Progress {
 }
 
 /**
+ * Design 09's optional `progress` fields (A3; B1 writes `arrivedDay` and
+ * `sceneSeen`, C2 writes `stationSeen`). None is in the `freshSave` template,
+ * so `coerce` passes them through; this keeps a valid value byte for byte,
+ * drops a wrong shape (reported), and leaves absent absent: `arrivedDay` a
+ * non-negative integer day, `stationSeen` an integer 0–53, `sceneSeen` a plain
+ * object (the JSON snapshot of the Dojo picture).
+ */
+function checkSeen(pr: Progress, coerced: string[]): Progress {
+  let out: Progress | null = null;
+  const drop = (k: 'arrivedDay' | 'sceneSeen' | 'stationSeen'): void => {
+    if (out === null) out = { ...pr };
+    delete out[k];
+    coerced.push(`progress.${k}`);
+  };
+  if (pr.arrivedDay !== undefined && !isInt(pr.arrivedDay, 0, Number.MAX_SAFE_INTEGER)) drop('arrivedDay');
+  if (pr.stationSeen !== undefined && !isInt(pr.stationSeen, 0, 53)) drop('stationSeen');
+  if (pr.sceneSeen !== undefined && !isObject(pr.sceneSeen)) drop('sceneSeen');
+  return out ?? pr;
+}
+
+/**
  * Fill every slice with defaults for keys the document lacks (additive fields
  * of newer builds) and repair fields of the wrong type or value (see the module header).
  */
@@ -429,7 +452,7 @@ function fillMeta(raw: Raw, coerced: string[]): SaveMeta {
   const meta = out as unknown as SaveMeta;
   meta.profile = checkProfile(meta.profile, d.profile, tz, coerced);
   meta.settings = checkSettings(meta.settings, d.settings, coerced);
-  meta.progress = checkArenaAt(meta.progress, coerced);
+  meta.progress = checkSeen(checkArenaAt(meta.progress, coerced), coerced);
   // design 08 §12: a save from before the listening counters keeps the radar it had — `bestCleanTier` is
   // seeded from the chosen speed tier (a NEW save starts at FRESH_BEST_CLEAN_TIER through freshStats).
   // Additive, not a repair: nothing is pushed to `coerced`.

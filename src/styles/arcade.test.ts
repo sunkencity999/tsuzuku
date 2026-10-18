@@ -52,56 +52,25 @@ function selectors(r: Rule): string[] {
   if (cur.trim()) out.push(cur.trim());
   return out;
 }
-/** Strips the arcade gate / reduced-motion prefix so overrides can be matched to their targets. */
-const core = (sel: string): string => sel.replace(new RegExp(`^${GATE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`), '').replace(/^body\.reduced-motion\s+/, '');
-
 const animatedRules = styleRules.filter((r) => r.media === null && !r.selector.startsWith('body.reduced-motion') && /animation(-name)?:\s*(?!none)[a-z-]/.test(r.body));
 
 describe('arcade.css', () => {
   it('parses and defines keyframes for every animation it uses', () => {
     expect((noComments.match(/\{/g) ?? []).length).toBe((noComments.match(/\}/g) ?? []).length);
-    expect(keyframes.length).toBeGreaterThan(3);
     for (const r of animatedRules) {
       const name = /animation:\s*([a-z-]+)/.exec(r.body)?.[1];
       expect(keyframes, `keyframes for ${r.selector}`).toContain(name);
     }
   });
 
-  it('every animation declares a duration ≥ 334 ms (nothing flashes above 3 Hz)', () => {
-    expect(animatedRules.length).toBeGreaterThan(3);
-    for (const r of animatedRules) {
-      const ms = Array.from(r.body.matchAll(/animation[^;]*?(\d+)ms/g), (m) => Number(m[1]));
-      expect(ms.length, `duration in ${r.selector}`).toBeGreaterThan(0);
-      for (const d of ms) expect(d, r.selector).toBeGreaterThanOrEqual(334);
-    }
-    // alternating animations: a full on/off cycle is two iterations, still ≤ 3 Hz
-    for (const r of animatedRules) {
-      if (/alternate/.test(r.body)) {
-        const d = Number(/(\d+)ms/.exec(r.body)?.[1]);
-        expect(d * 2).toBeGreaterThanOrEqual(668);
-      }
-    }
-  });
-
-  it('every animated selector has a reduced-motion override via the media query AND body.reduced-motion', () => {
-    const mediaOverrides = new Set(
-      styleRules
-        .filter((r) => r.media?.includes('prefers-reduced-motion: reduce') && /animation:\s*none/.test(r.body))
-        .flatMap((r) => selectors(r).map(core)),
-    );
-    const classOverrides = new Set(
-      styleRules
-        .filter((r) => r.media === null && r.selector.startsWith('body.reduced-motion') && /animation:\s*none/.test(r.body))
-        .flatMap((r) => selectors(r).map(core)),
-    );
-    expect(mediaOverrides.size).toBeGreaterThan(0);
-    expect(classOverrides.size).toBeGreaterThan(0);
-    for (const r of animatedRules) {
-      for (const sel of selectors(r).map(core)) {
-        expect(mediaOverrides, `media override for ${sel}`).toContain(sel);
-        expect(classOverrides, `body.reduced-motion override for ${sel}`).toContain(sel);
-      }
-    }
+  it('the arcade is a print (design 09 §2.5): nothing here animates — the arcade moves through motion.css verbs', () => {
+    // The unmounted spectacle (edge glow, speed lines, Ippon flash, ki pulse) and the combo pop
+    // left this file (A1). If an animation ever returns here, restore the rules this file carried
+    // before: every duration ≥ 334 ms (the 3 Hz rule) and a reduced-motion override under BOTH
+    // the media query and body.reduced-motion — motion.test.ts shows the shape.
+    expect(animatedRules).toEqual([]);
+    expect(keyframes).toEqual([]);
+    expect(noComments).not.toMatch(/animation(-name)?:\s*(?!none)[a-z-]/);
   });
 
   it('everything is gated by the arcade feel (or is a reduced-motion override)', () => {
@@ -113,14 +82,36 @@ describe('arcade.css', () => {
     }
   });
 
-  it('ships the documented classes: .crt .glow-edge .speed-lines .halftone and the Kiai / Ippon / combo effects', () => {
-    for (const c of ['crt', 'glow-edge', 'speed-lines', 'halftone', 'ippon-flash', 'combo-pop', 'ki-glow', 'hiscore', 'arcade-head']) {
+  it('ships the documented classes: .crt .halftone .arcade-head .hiscore, and nothing that was deleted', () => {
+    for (const c of ['crt', 'halftone', 'hiscore', 'arcade-head']) {
       expect(styleRules.some((r) => new RegExp(`\\.${c}(?![\\w-])`).test(r.selector)), c).toBe(true);
     }
+    for (const c of ['glow-edge', 'speed-lines', 'ippon-flash', 'combo-pop', 'ki-glow']) {
+      expect(styleRules.some((r) => new RegExp(`\\.${c}(?![\\w-])`).test(r.selector)), `${c} deleted`).toBe(false);
+    }
+    // the combo tiers have one canonical home (components.css); no tier rule here
+    expect(styleRules.some((r) => /\.combo\[data-tier/.test(r.selector))).toBe(false);
     const crt = styleRules.find((r) => r.selector === `${GATE} .crt::after`);
     expect(crt?.body).toMatch(/repeating-linear-gradient/);
     const offset = styleRules.find((r) => r.selector.includes('.crt .crt > *') || r.selector.includes('body.crt .crt > *'));
     expect(offset?.body).toMatch(/text-shadow:\s*\n?\s*1px 0 0/);
+  });
+
+  it('nothing glows in Dojo Morning (design 09 §1 rule 2): glows come only from --glow-* tokens, and never from a literal blur', () => {
+    for (const r of styleRules) {
+      for (const m of r.body.matchAll(/box-shadow:\s*([^;]+)/g)) {
+        // an outer blur is a glow; inset shading and 1 px rules are not
+        for (const layer of m[1]!.split(/,(?![^(]*\))/)) {
+          const l = layer.trim();
+          if (l.startsWith('inset') || l.startsWith('var(--glow-')) continue;
+          const blur = /^-?\d+px\s+-?\d+px\s+(\d+)px/.exec(l);
+          expect(blur ? Number(blur[1]) : 0, `${r.selector}: ${l}`).toBe(0);
+        }
+      }
+    }
+    // text in the arcade inks uses the text-safe tokens (--neon-c measures 3.41:1 on washi)
+    expect(noComments).not.toMatch(/color:\s*var\(--neon-c\)/);
+    expect(noComments).not.toMatch(/color:\s*var\(--neon-m\)/);
   });
 
   it('uses no color literals (tokens only)', () => {

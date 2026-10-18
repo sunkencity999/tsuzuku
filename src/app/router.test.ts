@@ -1,6 +1,6 @@
 import { installServices, nullAudio, resetServices, type AudioService } from '@/shared/audio';
 import { navigate, route, syncRouteFromLocation, titleFor } from '@/shared/routes';
-import { resetScrollPositions, restoreScroll, savedScroll, startRouter } from './router';
+import { SCROLL_OPTIONS, resetScrollPositions, restoreScroll, savedScroll, startRouter } from './router';
 
 let scrollY = 0;
 let scrollTo: ReturnType<typeof vi.fn>;
@@ -17,8 +17,8 @@ async function frames(n = 3): Promise<void> {
 beforeEach(() => {
   scrollY = 0;
   Object.defineProperty(window, 'scrollY', { configurable: true, get: () => scrollY });
-  scrollTo = vi.fn((_x: number, y: number) => {
-    scrollY = y;
+  scrollTo = vi.fn((o: ScrollToOptions) => {
+    scrollY = o.top ?? 0;
   });
   Object.defineProperty(window, 'scrollTo', { configurable: true, writable: true, value: scrollTo });
   resetScrollPositions();
@@ -73,19 +73,23 @@ describe('startRouter', () => {
     expect(route.value.name).toBe('library');
   });
 
-  it('remembers scrollY per route and restores it when returning', async () => {
+  it('remembers scrollY per route at the hash change and never scrolls on its own: the old page must not jump while the next loads', async () => {
     stop = startRouter();
     scrollY = 420; // scrolled down the dojo
     navigate({ name: 'road' });
     expect(savedScroll({ name: 'dojo' })).toBe(420);
     await frames();
-    // a fresh route lands at the top
-    expect(scrollTo).toHaveBeenLastCalledWith(0, 0);
+    expect(scrollTo).not.toHaveBeenCalled(); // the restore is PageHost's, after the commit
+    expect(scrollY).toBe(420);
+    // PageHost: a fresh route lands at the top
+    restoreScroll({ name: 'road' });
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
     scrollY = 77;
     navigate({ name: 'dojo' });
     expect(savedScroll({ name: 'road' })).toBe(77);
     await frames();
-    expect(scrollTo).toHaveBeenLastCalledWith(0, 420);
+    restoreScroll({ name: 'dojo' });
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 420, behavior: 'instant' });
     expect(scrollY).toBe(420);
   });
 
@@ -96,12 +100,29 @@ describe('startRouter', () => {
     scrollTo.mockClear();
     scrollY = 0; // the new page rendered at the top
     restoreScroll({ name: 'dojo' });
-    expect(scrollTo).toHaveBeenCalledWith(0, 300);
+    expect(scrollTo).toHaveBeenCalledWith({ top: 300, behavior: 'instant' });
     restoreScroll({ name: 'about' });
-    expect(scrollTo).toHaveBeenLastCalledWith(0, 0);
+    expect(scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
     scrollTo.mockClear();
     restoreScroll({ name: 'about' }); // already at the top: no redundant call
     expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it("every scroll is `behavior: 'instant'` (design 09 §6.4): the smooth-scroll glide never runs between pages", async () => {
+    expect(SCROLL_OPTIONS).toEqual({ behavior: 'instant' });
+    stop = startRouter();
+    scrollY = 250;
+    navigate({ name: 'records' });
+    await frames();
+    restoreScroll({ name: 'records' });
+    scrollY = 0;
+    restoreScroll({ name: 'dojo' });
+    for (const call of scrollTo.mock.calls) {
+      expect(call.length).toBe(1);
+      expect(call[0]).toMatchObject({ behavior: 'instant' });
+      expect(typeof call[0].top).toBe('number');
+    }
+    expect(scrollTo).toHaveBeenCalled();
   });
 
   it('the disposer removes the hashchange listener', () => {

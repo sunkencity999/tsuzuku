@@ -207,6 +207,8 @@ export function freshSave(now: number, tz: string): SaveMeta {
       // design 08 §10–§11: text ids heard in the Arena, Radio or Read-along; teach cards dismissed.
       listened: [],
       teachSeen: [],
+      // design 09 (A3): `arrivedDay`, `sceneSeen`, `stationSeen` are optional and absent here, like `arenaAt`;
+      // `migrations.checkSeen` keeps them when valid and drops a wrong shape.
     },
     quests: { day: 0, ids: [], done: [] },
     collections: { badges: {}, wallpapers: {}, stamps: {}, michikusa: [] },

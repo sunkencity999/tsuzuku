@@ -17,7 +17,7 @@
  * Scope is wherever this file is served from, so it works at
  * https://<user>.github.io/<repo>/ and at a custom root alike.
  *
- *   install   precache the shell (./, index.html, manifest, favicon) into the
+ *   install   precache the shell (./, index.html, manifest, favicon, calendar/koyomi.json) into the
  *             shell cache and the build's assets/** into the runtime cache
  *   activate  drop our shell/runtime caches from other builds, claim clients
  *   fetch     navigations / index.html     → network-first; only an HTML
@@ -37,6 +37,8 @@
  *                                            `tsuzuku-audio-v1` bucket (never cleared here)
  *             assets/**                    → cache-first (hashed, immutable per release)
  *             fonts/**                     → cache-first in the stable fonts cache
+ *             calendar/**                  → stale-while-revalidate in the shell cache (design 09 §4.3:
+ *                                            the 72 kō names the Dojo column shows, 8 KB, offline from day one)
  *             (a cache-first miss while offline answers 504, never a rejected promise)
  *             manifest / favicon / sw.js   → stale-while-revalidate
  *   message   {type:'SKIP_WAITING'} → skipWaiting (the page asks after the learner taps Reload)
@@ -53,7 +55,7 @@ const FONTS_CACHE = 'tsuzuku-fonts-v1';
 const AUDIO_CACHE = 'tsuzuku-audio-v1';
 const OWN_PREFIXES = ['tsuzuku-shell-', 'tsuzuku-runtime-'];
 const BASE = new URL('./', self.location.href);
-const SHELL_URLS = ['./', './index.html', './manifest.webmanifest', './favicon.svg'].map(function (p) {
+const SHELL_URLS = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './calendar/koyomi.json'].map(function (p) {
   return new URL(p, BASE).href;
 });
 const INDEX_URL = new URL('./index.html', BASE).href;
@@ -219,6 +221,10 @@ self.addEventListener('fetch', function (event) {
   }
   if (rel === 'audio/manifest.json' || (rel.startsWith('audio/') && rel.endsWith('.json'))) {
     event.respondWith(staleWhileRevalidate(request, AUDIO_CACHE));
+    return;
+  }
+  if (rel.startsWith('calendar/')) {
+    event.respondWith(staleWhileRevalidate(request, SHELL_CACHE));
     return;
   }
   if (rel.startsWith('assets/')) {

@@ -1,8 +1,10 @@
 /**
- * TSUZUKU — shell chrome (group A, design 01 §4, 03 §7).
+ * TSUZUKU — shell chrome (group A, design 01 §4, 03 §7, 09 §5.10 / §6.4 / §6.5).
  *
- * Skip link · header (belt chip, Tsuzuku Flame, "412 days trained · 3-day
- * streak" in one type size, Lv / XP, with a visually-hidden "Level 7, 80 XP
+ * Skip link · header (belt chip, the Tsuzuku Flame as one drawn `<Lantern>`
+ * with its visible English state word and the forgiveness chips the streak
+ * machine already grants, "412 days trained · 3-day streak" in one type size,
+ * Lv as a `<Ticker>` / XP as a `.meter`, with a visually-hidden "Level 7, 80 XP
  * to the next level" instead of an aria-label on a generic span) · notices ·
  * nav (Dojo, Road, Library, Collections, Records, Settings) with the active
  * route · <main id="main"> · ARIA live regions (#live polite, #live-alert
@@ -12,23 +14,34 @@
  * (order irrelevant), from 900 px it is a sticky strip that must follow the
  * header in flow, not trail the page. Safe-area insets live in Layout.css.
  *
+ * Chrome holds still across page turns: header, nav, brand and main carry
+ * fixed `view-transition-name`s (Layout.css); `focusMain()` is what PageHost
+ * calls on `finished`. The brand ignites (tomosu) once a day — the day is kept
+ * in memory and sessionStorage, never in the save. Toasts and notices leave
+ * the way they arrived: `useLeaving()` holds the element through a
+ * `data-leaving` kasure (instant under reduced motion) before it unmounts.
+ *
  * Storage notice: Dismiss hides it for the level it was shown at; a change
  * of level brings it back. At `ceiling` (the store also reports this while
  * a write keeps failing, so progress may not be saving) the dismissal lasts
  * only until the next `store.storage` update, so a repeated failure is never
  * silent.
  */
-import type { ComponentChildren, JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import type { ComponentChildren, JSX, RefObject } from 'preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { BELTS } from '@/content/types';
 import { bus } from '@/shared/events';
 import { href, route, type Route, type RouteName } from '@/shared/routes';
-import type { StorageState } from '@/shared/store-types';
+import type { EpochDay, StorageState } from '@/shared/store-types';
 import { weekdayOf } from '@/shared/time';
+import { Lantern, lanternChips, repairOpen, type LanternChip, type LanternState } from '@/shared/ui/Lantern';
+import { Ticker } from '@/shared/ui/Ticker';
+import { prefersReducedMotion } from '@/shared/ui/use-reveal';
 import { BADGE_DEFS, WALLPAPER_DEFS, store } from '@/store';
 import { streakState, xpToNextLevel, type FlameState } from '@/store/derived';
 import { BELT_NAME, S, fmt } from '@/i18n/strings';
 import { applySwUpdate, dismissSwUpdate, swUpdate } from './sw-register';
+import { shownRoute } from './transitions';
 import './Layout.css';
 
 /* ── live region ─────────────────────────────────────────────────────── */
@@ -47,7 +60,30 @@ export function announce(text: string, politeness: Politeness = 'polite'): void 
   }, 0);
 }
 
-const FLAME_TEXT: Record<FlameState, string> = {
+/**
+ * Moves focus to `<main>` without scrolling. `ifIdle`: only when the page
+ * placed no focus of its own (`document.activeElement` is the body or null) —
+ * what PageHost asks on a finished page turn (design 09 §6.4). Returns whether
+ * focus moved.
+ */
+export function focusMain(o: { ifIdle?: boolean } = {}): boolean {
+  if (typeof document === 'undefined') return false;
+  if (o.ifIdle) {
+    const active = document.activeElement;
+    if (active && active !== document.body) return false;
+  }
+  const main = document.getElementById('main');
+  if (!main) return false;
+  try {
+    main.focus({ preventScroll: true });
+  } catch {
+    main.focus();
+  }
+  return true;
+}
+
+/** The long flame sentence (aria / the Dojo), design 03 §7. */
+export const FLAME_TEXT: Record<FlameState, string> = {
   lit: S.flameLit,
   gold: S.flameGold,
   ember: S.flameEmber,
@@ -56,13 +92,14 @@ const FLAME_TEXT: Record<FlameState, string> = {
   broken: S.flameBroken,
 };
 
-const FLAME_GLYPH: Record<FlameState, string> = {
-  lit: '火',
-  gold: '炎',
-  ember: '残',
-  frozen: '氷',
-  rest: '休',
-  broken: '灰',
+/** The visible state word beside the drawn tongue (design 09 §5.10). */
+export const FLAME_WORD: Record<FlameState, string> = {
+  lit: S.flameWordLit,
+  gold: S.flameWordGold,
+  ember: S.flameWordEmber,
+  frozen: S.flameWordFrozen,
+  rest: S.flameWordRest,
+  broken: S.flameWordBroken,
 };
 
 /* ── bottom nav ──────────────────────────────────────────────────────── */
@@ -110,10 +147,199 @@ export function navTargetFor(r: Route): NavKey | null {
 
 /* ── header lines ────────────────────────────────────────────────────── */
 
-export function daysLine(totalDays: number, current: number): string {
+/**
+ * "412 days trained · 3-day streak". While a repair window is open (`repairDone`
+ * is the days done so far) the second half reads "Streak paused · repair open:
+ * 1 of 3 days" instead of "No streak yet" (design 09 §8).
+ */
+export function daysLine(totalDays: number, current: number, repairDone: number | null = null): string {
   const days = totalDays === 1 ? S.dayTrained : fmt(S.daysTrained, { n: totalDays });
-  const streak = current <= 0 ? S.streakNone : current === 1 ? S.streakDay : fmt(S.streakDays, { n: current });
+  const streak =
+    current <= 0
+      ? repairDone === null
+        ? S.streakNone
+        : fmt(S.streakPaused, { done: repairDone })
+      : current === 1
+        ? S.streakDay
+        : fmt(S.streakDays, { n: current });
   return `${days}${S.separator}${streak}`;
+}
+
+/** Copy for one forgiveness chip (design 09 §5.10). */
+export function chipText(c: LanternChip): string {
+  switch (c.kind) {
+    case 'freeze':
+      return c.n === 1 ? S.chipFreeze : fmt(S.chipFreezes, { n: c.n });
+    case 'rest':
+      return c.set ? S.chipRestSet : c.n === 1 ? S.chipRestTakenOne : fmt(S.chipRestTaken, { n: c.n });
+    case 'weekly':
+      return c.n === 1 ? S.chipWeeklyOne : fmt(S.chipWeekly, { n: c.n });
+    default:
+      return fmt(S.chipRepair, { done: c.n });
+  }
+}
+
+/** Decorative glyph per chip (labelled by the chip's English text; base-slice glyphs only). */
+const CHIP_GLYPH: Partial<Record<LanternChip['kind'], string>> = { freeze: '氷', rest: '休' };
+
+/**
+ * The forgiveness chips: 氷 tokens held, planned rest, weekly flames, and the
+ * open repair window with the kintsugi seam — only while the window is open,
+ * so a repaired flame is indistinguishable from one that never dimmed.
+ */
+export function FlameChips(p: { chips: LanternChip[]; class?: string }): JSX.Element | null {
+  if (p.chips.length === 0) return null;
+  return (
+    <ul class={`flame-chips${p.class ? ` ${p.class}` : ''}`} aria-label={S.chipsLabel}>
+      {p.chips.map((c) => (
+        <li key={c.kind} class={`chip flame-chip${c.kintsugi ? ' kintsugi' : ''}`} data-chip={c.kind}>
+          {CHIP_GLYPH[c.kind] ? (
+            <span class="flame-chip__glyph" lang="ja" aria-hidden="true">
+              {CHIP_GLYPH[c.kind]}
+            </span>
+          ) : null}
+          <span class="flame-chip__text">{chipText(c)}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ── brand ignition (tomosu, once a day) ─────────────────────────────── */
+
+const IGNITION_KEY = 'tsuzuku.ignited';
+let ignitedDay: EpochDay | null = null;
+
+/**
+ * Whether the brand ignites for `day`: once per day, remembered in memory and
+ * sessionStorage (a reload does not relight it; a new day does). Never a save field.
+ */
+export function shouldIgnite(day: EpochDay): boolean {
+  if (ignitedDay === null) {
+    try {
+      const v = sessionStorage.getItem(IGNITION_KEY);
+      if (v !== null && /^-?\d+$/.test(v)) ignitedDay = Number(v);
+    } catch {
+      /* no sessionStorage: memory only */
+    }
+  }
+  if (ignitedDay === day) return false;
+  ignitedDay = day;
+  try {
+    sessionStorage.setItem(IGNITION_KEY, String(day));
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
+export function resetIgnitionForTests(): void {
+  ignitedDay = null;
+  try {
+    sessionStorage.removeItem(IGNITION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/* ── the flame tomosu when it improves (§6.3) ───────────────────────── */
+
+/** States in rising order; `frozen` / `rest` hold, `lit` / `gold` glow. */
+const FLAME_RANK: Record<LanternState, number> = { unlit: 0, broken: 0, ember: 1, frozen: 2, rest: 2, lit: 3, gold: 4 };
+const GLOWING: ReadonlySet<LanternState> = new Set<LanternState>(['lit', 'gold']);
+
+/**
+ * Whether a change `prev → next` lights the lantern: a rise INTO a glowing
+ * state (ember → lit, broken → lit, lit → gold, frozen → lit …). A rise into a
+ * held state (ember → frozen) is not lit: motion.css keeps the twin at 0 there.
+ */
+export function flameImproved(prev: LanternState | null, next: LanternState): boolean {
+  return prev !== null && GLOWING.has(next) && FLAME_RANK[next] > FLAME_RANK[prev];
+}
+
+/** Safety net when no `animationend` arrives (longer than `--dur-4`). */
+export const TOMOSU_FALLBACK_MS = 1200;
+
+/**
+ * `.ink-tomosu` on the lantern for one rise (motion.css lights the glow twin
+ * over --dur-4), dropped on the twin's `animationend` or after the fallback.
+ * Nothing under reduced motion (the twin sits at its final state).
+ */
+export function useFlameTomosu(state: LanternState): { tomosu: boolean; onEnd: (e: AnimationEvent) => void } {
+  const prev = useRef<LanternState | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tomosu, setTomosu] = useState(false);
+  useEffect(() => {
+    const was = prev.current;
+    prev.current = state;
+    if (!flameImproved(was, state) || prefersReducedMotion()) return;
+    setTomosu(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setTomosu(false), TOMOSU_FALLBACK_MS);
+  }, [state]);
+  useEffect(
+    () => () => {
+      if (timer.current) clearTimeout(timer.current);
+    },
+    [],
+  );
+  const onEnd = (e: AnimationEvent): void => {
+    // the twin's event targets the lantern itself; a child's animation ending is not ours
+    if (e.target !== e.currentTarget) return;
+    if (timer.current) clearTimeout(timer.current);
+    setTomosu(false);
+  };
+  return { tomosu, onEnd };
+}
+
+/* ── leaving (kasure before unmount) ─────────────────────────────────── */
+
+/** Safety net when no `transitionend` arrives (longer than `--dur-1`, shorter than a blink of doubt). */
+export const EXIT_FALLBACK_MS = 400;
+
+/**
+ * Keeps an element mounted through its exit: when `open` turns false the
+ * element gets `data-leaving` (Layout.css fades and nudges it, `@starting-style`
+ * + `allow-discrete` where the browser has them) and unmounts on
+ * `transitionend` or after `EXIT_FALLBACK_MS`. Reduced motion: instant.
+ */
+export function useLeaving(open: boolean): { mounted: boolean; leaving: boolean; ref: RefObject<HTMLDivElement> } {
+  const [mounted, setMounted] = useState(open);
+  const [leaving, setLeaving] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      setLeaving(false);
+      return;
+    }
+    if (!mounted) return;
+    const el = ref.current;
+    if (!el || prefersReducedMotion()) {
+      setLeaving(false);
+      setMounted(false);
+      return;
+    }
+    setLeaving(true);
+    let done = false;
+    const finish = (): void => {
+      if (done) return;
+      done = true;
+      setLeaving(false);
+      setMounted(false);
+    };
+    // `transitionend` bubbles: the Dismiss button's own 60 ms press transition must not end the notice's kasure.
+    const onEnd = (e: Event): void => {
+      if (e.target === el) finish();
+    };
+    el.addEventListener('transitionend', onEnd);
+    const timer = setTimeout(finish, EXIT_FALLBACK_MS);
+    return () => {
+      clearTimeout(timer);
+      el.removeEventListener('transitionend', onEnd);
+    };
+  }, [open]);
+  return { mounted, leaving, ref };
 }
 
 /* ── bus → live region ───────────────────────────────────────────────── */
@@ -156,12 +382,20 @@ export function storageNoticeDismissed(current: StorageState, dismissed: Storage
 /* ── component ───────────────────────────────────────────────────────── */
 
 export function Layout(p: { children: ComponentChildren }): JSX.Element {
-  const r = route.value;
+  // the page on screen (PageHost's commit), falling back to the hash before the first page
+  const r = shownRoute.value ?? route.value;
   const profile = store.profile.value;
   const streak = store.streak.value;
+  const settings = store.settings.value;
   const storage = store.storage.value;
   const stats = store.stats.value;
+  const today = store.today();
   const flame = streakState();
+  const unlit = streak.totalDays === 0;
+  const lanternState: LanternState = unlit ? 'unlit' : flame;
+  const flameTomosu = useFlameTomosu(lanternState);
+  const repair = repairOpen(streak, today) ? (streak.repairWindow?.done ?? 0) : null;
+  const chips = lanternChips({ streak, today, restDay: settings.restDay });
   const xp = xpToNextLevel(profile.xp);
   const beltDef = BELTS.find((b) => b.id === profile.belt);
   const active = navTargetFor(r);
@@ -169,9 +403,17 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
 
   const [storageDismissed, setStorageDismissed] = useState<StorageState | null>(null);
   const [reminderDismissed, setReminderDismissed] = useState(false);
+  const [ignition, setIgnition] = useState(() => (shouldIgnite(today) ? 1 : 0));
 
   useEffect(() => wireAnnouncements(), []);
   useEffect(() => bus.on('backup:exported', () => setReminderDismissed(true)), []);
+  useEffect(
+    () =>
+      bus.on('day:rolled', (e) => {
+        if (shouldIgnite(e.day)) setIgnition((n) => n + 1);
+      }),
+    [],
+  );
   useEffect(() => {
     if (updateReady) announce(S.swUpdateReady);
   }, [updateReady]);
@@ -182,27 +424,26 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
     r.name !== 'backup' &&
     r.name !== 'onboarding' &&
     streak.totalDays >= 7 &&
-    weekdayOf(store.today()) === 1 &&
+    weekdayOf(today) === 1 &&
     stats.sessions > 0;
+  const storageNotice = useLeaving(showStorage);
+  const reminderNotice = useLeaving(showReminder);
+  const toast = useLeaving(Boolean(updateReady));
 
-  const focusMain = (e: Event): void => {
+  const skipToMain = (e: Event): void => {
     e.preventDefault();
-    const main = document.getElementById('main');
-    if (main) {
-      main.focus();
-      main.scrollIntoView?.();
-    }
+    if (focusMain()) document.getElementById('main')?.scrollIntoView?.();
   };
 
   return (
     <div class="layout" data-route={r.name}>
-      <button type="button" class="skip-link visually-hidden focusable" onClick={focusMain}>
+      <button type="button" class="skip-link visually-hidden focusable" onClick={skipToMain}>
         {S.skipToContent}
       </button>
 
-      <header class="layout__header" aria-label={S.headerLabel}>
-        <a class="layout__brand" href={href({ name: 'dojo' })} aria-label={S.appName}>
-          <span class="layout__brand-ja brush" lang="ja" aria-hidden="true">
+      <header class="layout__header hairline" aria-label={S.headerLabel}>
+        <a class="layout__brand" href={href({ name: 'dojo' })} aria-label={S.appName} data-ignite={ignition > 0 ? '' : undefined}>
+          <span key={ignition} class="layout__brand-ja brush" lang="ja" aria-hidden="true">
             {S.appNameJa}
           </span>
           <span class="layout__brand-en pixel">{S.appName}</span>
@@ -214,37 +455,47 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
             {profile.dan > 0 ? <span class="layout__dan">{fmt(S.danLabel, { n: profile.dan })}</span> : null}
           </span>
 
-          <span class="flame" data-state={flame} role="img" aria-label={`${S.flame}: ${FLAME_TEXT[flame]}`}>
-            <span class="flame__glyph" lang="ja" aria-hidden="true">
-              {FLAME_GLYPH[flame]}
-            </span>
-          </span>
+          <Lantern
+            class={`layout__flame${flameTomosu.tomosu ? ' ink-tomosu' : ''}`}
+            state={lanternState}
+            title={S.flame}
+            label={unlit ? S.flameWordUnlit : FLAME_WORD[flame]}
+            detail={unlit ? S.flameUnlit : FLAME_TEXT[flame]}
+            onAnimationEnd={flameTomosu.onEnd}
+          />
+          <FlameChips chips={chips} class="layout__chips" />
 
-          <span class="layout__days">{daysLine(streak.totalDays, streak.current)}</span>
+          <span class="layout__days">{daysLine(streak.totalDays, streak.current, repair)}</span>
 
           <span class="layout__level pixel">
             <span aria-hidden="true">
-              {S.level} {profile.level}
+              {S.level} <Ticker value={profile.level} />
             </span>
             <span class="visually-hidden">
               {fmt(S.levelLong, { n: profile.level })}, {fmt(S.xpToNext, { n: xp.remaining })}
             </span>
             <span
-              class="progress layout__xp"
+              class="meter layout__xp"
               role="progressbar"
               aria-valuemin={0}
               aria-valuemax={xp.needed || 1}
               aria-valuenow={xp.into}
               aria-label={S.xp}
+              style={{ '--value': String(Math.round(xp.progress * 1000) / 1000) }}
             >
-              <span class="progress__fill" style={{ width: `${Math.round(xp.progress * 100)}%` }} />
+              <span class="meter__fill" />
             </span>
           </span>
         </div>
       </header>
 
-      {showStorage ? (
-        <div class={`notice notice--warn layout__notice${storage.level === 'ceiling' ? ' notice--shu' : ''}`} role="status">
+      {storageNotice.mounted ? (
+        <div
+          ref={storageNotice.ref}
+          class={`notice notice--warn layout__notice${storage.level === 'ceiling' ? ' notice--shu' : ''}`}
+          role="status"
+          data-leaving={storageNotice.leaving ? '' : undefined}
+        >
           <span class="layout__notice-text">{storage.level === 'ceiling' ? S.storageCeiling : S.storageWarn}</span>
           <a class="btn btn--sm" href={href({ name: 'backup' })}>
             {S.backupLink}
@@ -255,8 +506,8 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
         </div>
       ) : null}
 
-      {showReminder ? (
-        <div class="notice layout__notice" role="status">
+      {reminderNotice.mounted ? (
+        <div ref={reminderNotice.ref} class="notice layout__notice" role="status" data-leaving={reminderNotice.leaving ? '' : undefined}>
           <span class="layout__notice-text">{S.backupReminder}</span>
           <a class="btn btn--sm" href={href({ name: 'backup' })}>
             {S.backupLink}
@@ -282,8 +533,8 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
         {p.children}
       </main>
 
-      {updateReady ? (
-        <div class="toast layout__toast" role="status">
+      {toast.mounted ? (
+        <div ref={toast.ref} class="toast layout__toast" role="status" data-leaving={toast.leaving ? '' : undefined}>
           <span class="toast__text">{S.swUpdateReady}</span>
           <button type="button" class="btn btn--sm" onClick={() => applySwUpdate()}>
             {S.swUpdateAction}

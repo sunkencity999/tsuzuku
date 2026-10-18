@@ -213,6 +213,7 @@ describe('public/sw.js', () => {
     const shell = sw.caches.caches.get(SHELL)!;
     expect(shell.store.has(`${BASE}index.html`)).toBe(true);
     expect(shell.store.has(`${BASE}manifest.webmanifest`)).toBe(true);
+    expect(shell.store.has(`${BASE}calendar/koyomi.json`)).toBe(true);
     expect(shell.store.has(BASE)).toBe(true);
   });
 
@@ -289,6 +290,30 @@ describe('public/sw.js', () => {
     sw.dispatch('activate', act);
     await act.done;
     expect(await sw.caches.keys()).toContain(FONTS);
+  });
+
+  it('calendar/koyomi.json is precached with the shell and stale-while-revalidate after it (design 09 §4.3: the kō names work on the first offline morning)', async () => {
+    const sw = load(async (req) => (urlOf(req).endsWith('koyomi.json') ? ok('{"ko":1}') : ok(`<!doctype html>${urlOf(req)}`, 'text/html')));
+    const install = extendable();
+    sw.dispatch('install', install);
+    await install.done;
+    const url = `${BASE}calendar/koyomi.json`;
+    expect(sw.caches.caches.get(SHELL)!.store.has(url)).toBe(true);
+    sw.fetch.mockImplementation(async () => {
+      throw new TypeError('offline');
+    });
+    const offline = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', offline);
+    expect(await (await offline.response!).text()).toBe('{"ko":1}');
+    sw.fetch.mockImplementation(async () => ok('{"ko":2}'));
+    const online = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', online);
+    expect(await (await online.response!).text()).toBe('{"ko":1}');
+    await new Promise((r) => setTimeout(r, 0));
+    const next = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', next);
+    expect(await (await next.response!).text()).toBe('{"ko":2}');
+    expect(sw.caches.caches.has(RUNTIME)).toBe(false);
   });
 
   it('navigations are network-first and fall back to the cached index.html offline', async () => {

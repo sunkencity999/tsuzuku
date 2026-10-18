@@ -28,8 +28,10 @@ import { useAudioService, useClipPlayer } from '../hooks';
 import { ICS_FILENAME, buildIcs, downloadIcs } from '../ics';
 import { useDialogFocus } from '../use-dialog-focus';
 import { steadyReviewsInAYear } from './OnboardingPage';
+import { S as SS } from './settings-strings';
 import { BELT_NAME, S, WEEKDAYS, fmt, num } from './strings';
 import './pages.css';
+import './settings.css';
 
 export interface SettingsPageProps {
   route: Route;
@@ -47,10 +49,13 @@ const FEELS: readonly { id: Feel; name: string; ja: string; desc: string }[] = [
   { id: 'dojo', name: S.setFeelDojo, ja: S.setFeelDojoJa, desc: S.setFeelDojoDesc },
   { id: 'arcade', name: S.setFeelArcade, ja: S.setFeelArcadeJa, desc: S.setFeelArcadeDesc },
 ];
-const THEMES: readonly { id: Theme; name: string }[] = [
-  { id: 'auto', name: S.setThemeAuto },
-  { id: 'light', name: S.setThemeLight },
-  { id: 'dark', name: S.setThemeDark },
+/** Each theme radio carries a live 48 px swatch (design 09 §7 G): washi, lacquer, both halves, or the sky painted from `--sky-*`. */
+export type SwatchKind = 'auto' | 'light' | 'dark' | 'sky';
+const THEMES: readonly { id: Theme; name: string; swatch: SwatchKind }[] = [
+  { id: 'auto', name: S.setThemeAuto, swatch: 'auto' },
+  { id: 'light', name: S.setThemeLight, swatch: 'light' },
+  { id: 'dark', name: S.setThemeDark, swatch: 'dark' },
+  { id: 'sky', name: SS.setThemeSky, swatch: 'sky' },
 ];
 const FURIGANA: readonly { id: FuriganaMode; name: string }[] = [
   { id: 'always', name: S.setFuriganaAlways },
@@ -167,12 +172,22 @@ export function resetDataSaverAutoForTests(): void {
 /* Small controls                                                             */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function Radios<T extends string>(p: { name: string; value: T; options: readonly { id: T; name: string; ja?: string }[]; onChange(v: T): void; label: string }): JSX.Element {
+/** Decorative (the radio's text names the theme); the sky swatch is live because theme.ts writes `--sky-*` on `<html>`. */
+export function ThemeSwatch(p: { kind: SwatchKind }): JSX.Element {
   return (
-    <div class="set__radios" role="radiogroup" aria-label={p.label}>
+    <span class="theme-swatch" data-swatch={p.kind} aria-hidden="true">
+      <span class="theme-swatch__frame status-window" />
+    </span>
+  );
+}
+
+function Radios<T extends string>(p: { name: string; value: T; options: readonly { id: T; name: string; ja?: string; swatch?: SwatchKind }[]; onChange(v: T): void; label: string; describedBy?: string }): JSX.Element {
+  return (
+    <div class="set__radios" role="radiogroup" aria-label={p.label} aria-describedby={p.describedBy}>
       {p.options.map((o) => (
         <label key={o.id} class="set__radio">
           <input type="radio" name={p.name} value={o.id} checked={p.value === o.id} onChange={() => p.onChange(o.id)} data-setting={p.name} />
+          {o.swatch ? <ThemeSwatch kind={o.swatch} /> : null}
           <span>{o.name}</span>
           {o.ja ? (
             <span class="set__radio-ja" lang="ja">
@@ -562,7 +577,11 @@ export default function SettingsPage(p: SettingsPageProps): JSX.Element {
         <h2 id="set-display">{S.setDisplay}</h2>
         <div class="field">
           <span class="field__label">{S.setTheme}</span>
-          <Radios name="theme" label={S.setTheme} value={s.theme} options={THEMES} onChange={(v) => setField('theme', v)} />
+          <Radios name="theme" label={S.setTheme} value={s.theme} options={THEMES} onChange={(v) => setField('theme', v)} describedBy="theme-hint" />
+          {/* the one-line Follow-the-sky explanation (09 §8), read to the radiogroup as well as shown */}
+          <span class="field__hint" id="theme-hint" data-theme-hint>
+            {SS.setThemeSkyHint}
+          </span>
         </div>
         <div class="field">
           <span class="field__label">{S.setFeel}</span>

@@ -12,10 +12,17 @@
  *          .empty .notice .notice--warn .list .list__item .field .field__label
  *          .input .select .switch
  *
- * Motion 120–220 ms on --ease; every transform/animation is removed under
- * prefers-reduced-motion and body.reduced-motion. Sumi + neon: paper surfaces
- * (--surface / --raised), hanko red (--shu) for the one primary action, gold
- * (--kin) for XP. No color literals: tokens only.
+ * The Washi & Sumi classes and the ink verbs of design 09 live in motion.css.
+ * CANONICAL here (09 §10 A1): the combo tiers (.combo[data-tier], with the
+ * arcade-feel pop) and @keyframes belt-flip — the copies in ui.css and
+ * EndCard.css are deleted by C1 and B2.
+ *
+ * Motion 60–240 ms on --ease, composited only (opacity / transform; colour may
+ * transition on small text and fills); every transform/animation is removed
+ * under prefers-reduced-motion and body.reduced-motion. Sumi + neon: paper
+ * surfaces (--surface / --raised), hanko red (--shu) for the one primary action,
+ * gold (--kin) for XP — as fills; text uses --kin-text / --shu-text. No color
+ * literals: tokens only.
  */
 
 /* ── Status Window: JRPG frame, 2 px double border, notched corners ──── */
@@ -31,6 +38,10 @@
     100% calc(100% - 6px), calc(100% - 6px) 100%,
     6px 100%, 0 calc(100% - 6px), 0 6px
   );
+}
+/* Arcade Night: a 1 px inner hairline of lacquer and gold (09 §5.5), never neon */
+:root[data-color-scheme="dark"] .status-window {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kin) 35%, var(--line));
 }
 .status-window__label,
 .status-window > h2,
@@ -91,6 +102,7 @@
    allowed on hanko text (01 §7 asks ≥ 4.5:1); de-emphasise with weight only. */
 .hanko {
   --hanko-size: 56px;
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -113,7 +125,6 @@
   cursor: pointer;
   transition:
     transform 60ms var(--ease),
-    box-shadow 220ms var(--ease),
     background 120ms var(--ease);
   -webkit-tap-highlight-color: transparent;
 }
@@ -149,16 +160,29 @@
   font-weight: 400;
   font-size: var(--fs-2);
 }
-.hanko--pressed,
-.hanko.is-pressed {
-  animation: ink-bleed 220ms var(--ease);
+/* the ink-bleed (09 §5.3): a vermilion ring scaling 1 → 1.25 and fading .45 → 0 —
+   never box-shadow; .is-pressed is toggled on pointerdown / pointerup (C1) */
+.hanko::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  pointer-events: none;
+  border: 2px solid var(--shu);
+  border-radius: inherit;
+  opacity: 0;
+}
+.hanko--pressed::after,
+.hanko.is-pressed::after {
+  animation: ink-bleed 220ms var(--ease-out) both;
 }
 @keyframes ink-bleed {
   0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--shu) 45%, transparent);
+    opacity: 0.45;
+    transform: scale(1);
   }
   100% {
-    box-shadow: 0 0 0 14px color-mix(in srgb, var(--shu) 0%, transparent);
+    opacity: 0;
+    transform: scale(1.25);
   }
 }
 
@@ -394,7 +418,9 @@ textarea.input {
 .forge-bar__fill {
   height: 100%;
   background: linear-gradient(to right, var(--shu), var(--kin));
-  transition: width 220ms var(--ease);
+  /* width never tweens (09 §6.7); the fill steps until C1 moves it to .meter */
+  transform-origin: left center;
+  transition: transform 220ms var(--ease-out);
 }
 .forge-bar__count {
   font-family: var(--font-pixel);
@@ -414,7 +440,8 @@ textarea.input {
   height: 100%;
   background: var(--kin);
   border-radius: inherit;
-  transition: width 220ms var(--ease);
+  transform-origin: left center;
+  transition: transform 220ms var(--ease-out);
 }
 .progress--ai .progress__fill {
   background: var(--ai);
@@ -424,6 +451,8 @@ textarea.input {
 }
 
 /* ── Combo Counter: arcade, pixel, scales by tier (hidden in Zen) ────── */
+/* THE canonical tier rules (09 §6.5): scale + text-safe colour, and the one-bounce
+   pop under the Arcade feel only; nothing else declares a tier */
 .combo {
   display: inline-flex;
   align-items: baseline;
@@ -444,11 +473,28 @@ textarea.input {
 }
 .combo[data-tier="2"] {
   transform: scale(1.2);
-  color: var(--kin);
+  color: var(--kin-text);
 }
 .combo[data-tier="3"] {
   transform: scale(1.3);
-  color: var(--shu);
+  color: var(--shu-text);
+}
+/* Arcade feel: one bounce per tier change (transform only; no glow — the arcade is a print);
+   --dur-2 keeps it inside the arcade's 40–220 ms tempo (09 §2.5) */
+:is(:root[data-feel="arcade"], body.feel-arcade) .combo[data-tier="2"],
+:is(:root[data-feel="arcade"], body.feel-arcade) .combo[data-tier="3"] {
+  animation: combo-pop var(--dur-2) var(--ease) both;
+}
+@keyframes combo-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.45);
+  }
+  100% {
+    transform: scale(1.3);
+  }
 }
 .feel-zen .combo,
 .feel-zen .forge-bar__fill {
@@ -614,10 +660,10 @@ textarea.input {
   line-height: 1;
 }
 .flame[data-state="lit"] {
-  color: var(--shu);
+  color: var(--shu-text);
 }
 .flame[data-state="gold"] {
-  color: var(--kin);
+  color: var(--kin-text);
 }
 .flame[data-state="ember"] {
   color: color-mix(in srgb, var(--shu) 55%, var(--hai));
@@ -752,6 +798,15 @@ textarea.input {
     transform: translate(-50%, 0);
   }
 }
+/* the item-belt flip — ONE definition (09 §7 B); EndCard.css and ui.css drop theirs */
+@keyframes belt-flip {
+  from {
+    transform: rotateX(90deg);
+  }
+  to {
+    transform: none;
+  }
+}
 
 /* ── reduced motion: keep opacity fades, drop transforms ─────────────── */
 @media (prefers-reduced-motion: reduce) {
@@ -760,8 +815,10 @@ textarea.input {
   .toast {
     animation: fade-in var(--dur-2) linear both;
   }
-  .hanko--pressed,
-  .hanko.is-pressed {
+  .hanko--pressed::after,
+  .hanko.is-pressed::after,
+  :is(:root[data-feel="arcade"], body.feel-arcade) .combo[data-tier="2"],
+  :is(:root[data-feel="arcade"], body.feel-arcade) .combo[data-tier="3"] {
     animation: none;
   }
   .hanko:active,
@@ -778,8 +835,12 @@ textarea.input {
 .reduced-motion .toast {
   animation: fade-in var(--dur-2) linear both;
 }
-.reduced-motion .hanko--pressed,
-.reduced-motion .hanko.is-pressed {
+.reduced-motion .hanko--pressed::after,
+.reduced-motion .hanko.is-pressed::after,
+body.reduced-motion.feel-arcade .combo[data-tier="2"],
+body.reduced-motion.feel-arcade .combo[data-tier="3"],
+:root[data-reduced-motion] .combo[data-tier="2"],
+:root[data-reduced-motion] .combo[data-tier="3"] {
   animation: none;
 }
 .reduced-motion .hanko:active,

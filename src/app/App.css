@@ -1,6 +1,12 @@
 /*
  * TSUZUKU — root states (group A): boot loading, error boundary, page host.
- * Tokens only.
+ * Tokens only. Durations through --dur-* (design 09 §6.1); reduced motion is
+ * handled by the zeroed tokens and base.css's `*:not(.rm-fade)` rule — no
+ * per-file reduced-motion block here (design 09 §6.6).
+ *
+ * Page turns live in src/app/transitions.ts + motion.css (the wipe). The
+ * fallback entrance (`fallbackEnter()`) adds `.page-enter` beside motion.css's
+ * `.ink-nijimi` verb: the marker names the moment, the verb moves it.
  */
 .app-loading {
   display: grid;
@@ -12,22 +18,18 @@
   color: var(--fg-muted);
   background: var(--bg);
 }
+/* The boot mark: an ensō ring drawing itself — motion.css's `.ink-hiku[data-axis="stroke"]` on the
+   circle (stroke-dashoffset 1 → 0 over --dur-4 --ease-draw; complete at once under reduced motion, a
+   static mark, not a hold). Carried onto `.dojo-scene__art` as `enso` by the arrival (design 09 §7 A). */
 .app-loading__mark {
-  font-size: var(--fs-7);
-  line-height: 1;
+  display: block;
+  width: 48px;
+  height: 48px;
   color: var(--shu);
-  animation: app-breathe 1600ms var(--ease) infinite alternate;
+  overflow: visible;
 }
 .app-loading__text {
   font-size: var(--fs-2);
-}
-@keyframes app-breathe {
-  from {
-    opacity: 0.55;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .app-error,
@@ -77,17 +79,4 @@
   padding: var(--sp-6) 0;
   text-align: center;
 }
-.page-stale {
-  opacity: 0.6;
-  transition: opacity var(--dur-2) var(--ease);
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .app-loading__mark {
-    animation: none;
-  }
-}
-.reduced-motion .app-loading__mark {
-  animation: none;
-}
+/* `.page-enter` is a marker only (fallbackEnter adds it beside the verb); it needs no rule. */

@@ -332,6 +332,53 @@ describe('migrateMeta', () => {
     expect(out.profile.onboardedAt).toBe(77);
   });
 
+  it('design 09 optional progress fields: arrivedDay / sceneSeen / stationSeen are kept when valid, dropped and reported when not, and absent stays absent', () => {
+    const s = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    const scene = { w: 960, h: 540, belt: 'green', level: 13, counts: { kana: 1, vocab: 2 }, flame: 'lit' };
+    s.progress.arrivedDay = 20_500;
+    s.progress.sceneSeen = scene;
+    s.progress.stationSeen = 12;
+    const { meta, coerced } = migrateMetaChecked(s);
+    expect(meta.progress.arrivedDay).toBe(20_500);
+    expect(meta.progress.sceneSeen).toEqual(scene);
+    expect(meta.progress.stationSeen).toBe(12);
+    expect(coerced).toEqual([]);
+    expect(migrateMetaChecked(meta)).toEqual({ meta, coerced: [] });
+
+    const bad = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    bad.progress.arrivedDay = -1;
+    bad.progress.sceneSeen = 'yesterday';
+    bad.progress.stationSeen = 54;
+    const fixed = migrateMetaChecked(bad);
+    expect('arrivedDay' in fixed.meta.progress).toBe(false);
+    expect('sceneSeen' in fixed.meta.progress).toBe(false);
+    expect('stationSeen' in fixed.meta.progress).toBe(false);
+    expect(fixed.coerced.sort()).toEqual(['progress.arrivedDay', 'progress.sceneSeen', 'progress.stationSeen']);
+
+    const nulls = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    nulls.progress.arrivedDay = null;
+    nulls.progress.stationSeen = 3.5;
+    nulls.progress.sceneSeen = [1, 2];
+    expect(migrateMetaChecked(nulls).coerced.sort()).toEqual(['progress.arrivedDay', 'progress.sceneSeen', 'progress.stationSeen']);
+
+    const fresh = migrateMetaChecked(freshSave(NOW, 'UTC'));
+    expect('arrivedDay' in fresh.meta.progress).toBe(false);
+    expect('sceneSeen' in fresh.meta.progress).toBe(false);
+    expect('stationSeen' in fresh.meta.progress).toBe(false);
+    expect(fresh.coerced).toEqual([]);
+  });
+
+  it('settings.theme accepts sky (Follow the sky, design 09 §8) and still repairs an unknown theme to the default', () => {
+    const s = freshSave(NOW, 'UTC');
+    s.settings = { ...s.settings, theme: 'sky' };
+    expect(migrateMetaChecked(s)).toEqual({ meta: s, coerced: [] });
+    const bad = freshSave(NOW, 'UTC') as unknown as Record<string, Record<string, unknown>>;
+    bad.settings.theme = 'skye';
+    const { meta, coerced } = migrateMetaChecked(bad);
+    expect(meta.settings.theme).toBe('auto');
+    expect(coerced).toEqual(['settings.theme']);
+  });
+
   it('lifts a save that finished onboarding at station 0 to the first uncleared station', () => {
     const fresh = freshSave(NOW, 'UTC');
     expect(migrateMeta(fresh).progress.station).toBe(0);

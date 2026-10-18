@@ -63,6 +63,7 @@ import { INTENSITY_PRESETS, INTENSITY_SCALE, NAME_MAX_GLYPHS, newPerDayFor, stor
 import { onboardingEstimate, type OnboardingEstimate } from '@/store/derived';
 import { useAudioService } from '../hooks';
 import { EMPTY_NAME_DRAFT, NameField, isKanaName, resolveName, type NameDraft } from '../names/NameField';
+import { S as SS } from './settings-strings';
 import { S, fmt, num } from './strings';
 import './pages.css';
 
@@ -242,7 +243,7 @@ const PACE_COPY: Record<Preset, { name: string; ja: string; desc: string }> = {
   standard: { name: S.onbPaceStandard, ja: S.onbPaceStandardJa, desc: S.onbPaceStandardDesc },
   intense: { name: S.onbPaceIntense, ja: S.onbPaceIntenseJa, desc: S.onbPaceIntenseDesc },
 };
-const THEME_COPY: Record<Theme, string> = { auto: S.onbThemeAuto, light: S.onbThemeLight, dark: S.onbThemeDark };
+const THEME_COPY: Record<Theme, string> = { auto: S.onbThemeAuto, light: S.onbThemeLight, dark: S.onbThemeDark, sky: SS.setThemeSky };
 const SPEECH_COPY: Record<'self' | 'recognition', string> = { self: S.onbSpeechSelf, recognition: S.onbSpeechRecognition };
 const VOICE_GUIDE = [S.onbVoiceGuideWindows, S.onbVoiceGuideMac, S.onbVoiceGuideAndroid, S.onbVoiceGuideIos];
 

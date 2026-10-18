@@ -9,9 +9,14 @@
  *          .container .stack .row .grid .muted .center .right .truncate
  *          .fs-1 … .fs-8 .mt-1 … .mt-4 .mb-1 … .mb-4 .gap-1 … .gap-4 .hidden
  * No color literals: every color is a token from tokens.css.
+ *
+ * .sr-only here is the ONE canonical definition (design 09 §10 A1; ui.css and
+ * RoadNav.css drop theirs). The paper grain is painted once on body::before
+ * (09 §2.3). Reduced motion is the `*:not(.rm-fade)` rule below plus the zeroed
+ * --dur-* tokens; .rm-fade (motion.css) keeps --dur-fade for opacity-only fades.
  */
 
-/* ── webfonts: 23 unicode-range slices of the four OFL faces (no brush rest face), generated into fonts.css ─ */
+/* ── webfonts: the unicode-range slices of the four OFL faces (no brush rest face; first-paint shell slices after base), generated into fonts.css ─ */
 @import "./fonts.css";
 
 /* ── reset ───────────────────────────────────────────────────────────── */
@@ -32,8 +37,19 @@ html {
   --safe-right: env(safe-area-inset-right, 0px);
 }
 body {
+  position: relative;
   min-width: 320px;
   text-rendering: optimizeLegibility;
+}
+/* washi: the grain tile behind all content, under the ink (text contrast untouched) */
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--paper);
+  opacity: var(--paper-opacity);
 }
 h1,
 h2,
@@ -333,14 +349,16 @@ button.touch {
   background: transparent;
 }
 
-/* ── motion ──────────────────────────────────────────────────────────── */
+/* ── motion (design 09 §6.6) ─────────────────────────────────────────── */
+/* everything stops except .rm-fade (opacity-only fades at --dur-fade, motion.css);
+   ::view-transition pseudos are not reached by `*` — motion.css overrides them */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-  *,
-  *::before,
-  *::after {
+  *:not(.rm-fade),
+  *:not(.rm-fade)::before,
+  *:not(.rm-fade)::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -348,9 +366,9 @@ button.touch {
   }
 }
 .reduced-motion,
-.reduced-motion *,
-.reduced-motion *::before,
-.reduced-motion *::after {
+.reduced-motion *:not(.rm-fade),
+.reduced-motion *:not(.rm-fade)::before,
+.reduced-motion *:not(.rm-fade)::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;

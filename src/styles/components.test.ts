@@ -84,7 +84,10 @@ describe('components.css', () => {
       expect(d).toBeLessThanOrEqual(240);
     }
     const reducedMedia = rules.filter((r) => r.media?.includes('prefers-reduced-motion: reduce'));
-    const reducedClass = rules.filter((r) => r.selector.startsWith('.reduced-motion'));
+    // the class path is `.reduced-motion …`, or — for the arcade-gated pop, whose gate sits on <html>/<body>
+    // themselves — `body.reduced-motion.feel-arcade …` / `:root[data-reduced-motion] …`
+    const CLASS_PREFIX = /^(\.reduced-motion|body\.reduced-motion\.feel-arcade|:root\[data-reduced-motion\])\s+/;
+    const reducedClass = rules.filter((r) => CLASS_PREFIX.test(r.selector));
     expect(reducedMedia.length).toBeGreaterThan(0);
     expect(reducedClass.length).toBeGreaterThan(0);
     // every animated selector is covered by both override paths, except opacity-only fades,
@@ -97,18 +100,41 @@ describe('components.css', () => {
       const props = keyframeProps(name);
       return props.size > 0 && [...props].every((p) => p === 'opacity');
     };
+    /** Splits a selector list on top-level commas only (`:is(a, b) .x, .y` → 2 selectors). */
+    const split = (sel: string): string[] => {
+      const out: string[] = [];
+      let depth = 0;
+      let cur = '';
+      for (const ch of sel) {
+        if (ch === '(' || ch === '[') depth++;
+        else if (ch === ')' || ch === ']') depth--;
+        if (ch === ',' && depth === 0) {
+          out.push(cur.trim());
+          cur = '';
+        } else cur += ch;
+      }
+      if (cur.trim()) out.push(cur.trim());
+      return out;
+    };
+    const GATE = ':is(:root[data-feel="arcade"], body.feel-arcade) ';
+    /** The target without its arcade gate or reduced-motion prefix. */
+    const core = (sel: string): string => sel.replace(CLASS_PREFIX, '').replace(GATE, '');
     const animated = rules
-      .filter((r) => r.media === null && !r.selector.startsWith('.reduced-motion') && /animation:\s*[a-z-]+\s/.test(r.body))
+      .filter((r) => r.media === null && !CLASS_PREFIX.test(r.selector) && /animation:\s*[a-z-]+\s/.test(r.body))
       .filter((r) => !opacityOnly(/animation:\s*([a-z-]+)/.exec(r.body)![1]!))
-      .flatMap((r) => r.selector.split(',').map((s) => s.trim()));
+      .flatMap((r) => split(r.selector).map(core));
     expect(animated.length).toBeGreaterThan(0);
     expect(opacityOnly('fade-in')).toBe(true);
-    const mediaSel = reducedMedia.flatMap((r) => r.selector.split(',').map((s) => s.trim()));
-    const classSel = reducedClass.flatMap((r) => r.selector.split(',').map((s) => s.trim().replace(/^\.reduced-motion\s+/, '')));
+    const mediaSel = reducedMedia.flatMap((r) => split(r.selector).map(core));
+    const classSel = reducedClass.flatMap((r) => split(r.selector).map(core));
     for (const sel of animated) {
       expect(mediaSel, `media override for ${sel}`).toContain(sel);
       expect(classSel, `.reduced-motion override for ${sel}`).toContain(sel);
     }
+    // the class-path pop override can match: it never nests <html>/<body> under body.reduced-motion
+    for (const r of reducedClass) expect(r.selector, 'dead `.reduced-motion :is(:root…, body…)` selector').not.toMatch(/\.reduced-motion\s+:is\(:root/);
+    expect(classSel).toContain('.combo[data-tier="2"]');
+    expect(classSel.filter((s) => s === '.combo[data-tier="3"]').length).toBe(2);
   });
 
   it('small text on accent colours uses the text-safe tokens (design 01 §7 AA)', () => {
@@ -119,22 +145,43 @@ describe('components.css', () => {
     expect(bodyOf('.nav__item[aria-current="page"]')).toMatch(/border-top-color:\s*var\(--shu\)/);
   });
 
-  it('Status Window: double border, notched corners, 92% raised', () => {
+  it('Status Window: double border, notched corners, 92% raised; Night adds the lacquer-and-gold hairline (design 09 §5.5)', () => {
     const b = bodyOf('.status-window');
     expect(b).toMatch(/border:\s*2px double/);
     expect(b).toMatch(/clip-path:\s*polygon/);
     expect(b).toMatch(/color-mix\(in srgb, var\(--raised\) 92%/);
+    expect(bodyOf(':root[data-color-scheme="dark"] .status-window')).toMatch(/inset 0 0 0 1px color-mix\(in srgb, var\(--kin\) 35%, var\(--line\)\)/);
   });
 
-  it('Hanko Button: vermilion, press scale 0.96, ink-bleed keyframes', () => {
+  it('Hanko Button: vermilion, press scale 0.96, ink-bleed keyframes as a ring (transform + opacity, never box-shadow)', () => {
     expect(bodyOf('.hanko')).toMatch(/background:\s*var\(--shu\)/);
+    expect(bodyOf('.hanko')).not.toMatch(/transition:[^;]*box-shadow/);
     expect(bodyOf('.hanko:active')).toMatch(/scale\(0\.96\)/);
-    expect(rules.some((r) => r.selector === '@keyframes ink-bleed')).toBe(true);
+    const bleed = rules.find((r) => r.selector === '@keyframes ink-bleed');
+    expect(bleed).toBeTruthy();
+    expect(bleed!.body).not.toMatch(/box-shadow/);
+    expect(bleed!.body).toMatch(/scale\(1\.25\)/);
+    expect(bodyOf('.hanko.is-pressed::after')).toMatch(/animation:\s*ink-bleed/);
   });
 
-  it('Combo scales by tier; Zen hides it', () => {
+  it('Combo scales by tier in text-safe colour (the one canonical definition); the arcade pop rides a token; Zen hides it', () => {
+    expect(bodyOf('.combo[data-tier="2"]')).toMatch(/color:\s*var\(--kin-text\)/);
     expect(bodyOf('.combo[data-tier="3"]')).toMatch(/scale\(1\.3\)/);
+    expect(bodyOf('.combo[data-tier="3"]')).toMatch(/color:\s*var\(--shu-text\)/);
+    const pop = rules.find((r) => r.media === null && r.selector.includes('data-feel="arcade"') && r.selector.includes('.combo[data-tier="3"]') && /animation:/.test(r.body));
+    expect(pop?.body).toMatch(/combo-pop var\(--dur-2\)/);
+    expect(rules.some((r) => r.selector === '@keyframes combo-pop')).toBe(true);
+    expect(rules.some((r) => r.selector === '@keyframes belt-flip')).toBe(true);
     expect(rules.some((r) => r.selector.includes('.feel-zen .combo'))).toBe(true);
+  });
+
+  it('bars never tween width (design 09 §6.7); --kin / --shu are fills, text uses the text-safe tokens', () => {
+    expect(noComments).not.toMatch(/transition:[^;]*\bwidth\b/);
+    expect(bodyOf('.flame[data-state="gold"]')).toMatch(/color:\s*var\(--kin-text\)/);
+    expect(bodyOf('.flame[data-state="lit"]')).toMatch(/color:\s*var\(--shu-text\)/);
+    // `color:` the text property, not border-color / border-left-color (fills may use the accents)
+    expect(noComments).not.toMatch(/(?<![\w-])color:\s*var\(--kin\)/);
+    expect(noComments).not.toMatch(/(?<![\w-])color:\s*var\(--shu\)/);
   });
 
   it('Tategaki is vertical; belts cover all eight colors; nav marks aria-current', () => {

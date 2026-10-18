@@ -1,15 +1,21 @@
 /*
  * TSUZUKU — shell layout (group A). Header, notices, nav, main (that DOM
  * order: the nav is fixed to the bottom on phones and a sticky strip under
- * the header from 900 px, so it must precede main in flow).
- * Mobile-first (works at 320 px), safe-area aware, tokens only.
- * The header is sticky only from 900 px up (phones already have the fixed
- * bottom nav, so it scrolls away with the page) and collapses to the brand
- * row during drills (train / gate / shinsa) so the exercise has the viewport.
- * Bottom inset: `.layout__nav` carries `--safe-bottom` on ordinary pages;
- * during drills the sticky `.exercise-frame__controls` (shared/ui) carries it,
- * so the drill `.layout__main` adds none (otherwise the home indicator is
- * padded twice at rest). Onboarding has neither and keeps its own inset.
+ * the header from 900 px, so it must precede main in flow). Mobile-first
+ * (320 px), safe-area aware, tokens only. The header is sticky only from
+ * 900 px and collapses to the brand row during drills. Bottom inset: the nav
+ * carries --safe-bottom; during drills the sticky .exercise-frame__controls
+ * carry it; onboarding keeps its own.
+ *
+ * Design 09 §6.4: fixed view-transition-names on header/nav/brand/main
+ * (suspended under html[data-vt="theme"]; motion.css repeats both lines for
+ * its own test — this file is their home); drill chrome leaves by kasure /
+ * a slide, `display` flipping when the transition ends (allow-discrete), its
+ * return gated on html[data-travel="out"] so a first mount never slides;
+ * toasts and notices leave the way they arrived (data-leaving). Durations
+ * only through tokens; reduced motion comes from the zeroed tokens and
+ * base.css's `*:not(.rm-fade)` rule (§6.6); animated properties are
+ * opacity / transform / translate only (§6.7).
  */
 .layout {
   --nav-height: 60px;
@@ -19,6 +25,22 @@
   flex-direction: column;
   min-height: 100dvh;
 }
+
+/* ── fixed names: chrome holds still, only main turns ── */
+.layout__header {
+  view-transition-name: header;
+}
+.layout__nav {
+  view-transition-name: nav;
+}
+.layout__brand {
+  view-transition-name: brand;
+}
+.layout__main {
+  view-transition-name: main;
+}
+/* dusk (moment G): the `html[data-vt="theme"]` suspension of these names and
+   `html:active-view-transition { scroll-behavior: auto }` live in motion.css (§6.4 contract, one home). */
 
 /* ── header ─────────────────────────────────────────────────────────── */
 .layout__header {
@@ -32,8 +54,14 @@
   min-height: var(--header-height);
   padding: calc(var(--sp-2) + var(--safe-top)) max(var(--gutter), var(--safe-right)) var(--sp-2) max(var(--gutter), var(--safe-left));
   background: color-mix(in srgb, var(--bg) 92%, transparent);
-  border-bottom: 1px solid var(--line);
+  /* the rule is .hairline (motion.css); the transparent border keeps --header-height honest */
+  border-bottom: 1px solid transparent;
   backdrop-filter: blur(6px);
+  /* §6.7 rule 4 */
+  contain: paint;
+}
+html:active-view-transition .layout__header {
+  backdrop-filter: none;
 }
 .layout__brand {
   display: inline-flex;
@@ -46,6 +74,19 @@
 .layout__brand-ja {
   font-size: var(--fs-4);
   color: var(--shu);
+}
+/* tomosu once a day (§6.2): one rise, no dip; the Night glow is a static text-shadow (none in Morning) */
+.layout__brand[data-ignite] .layout__brand-ja {
+  animation: brand-tomosu var(--dur-4, 900ms) var(--ease-draw, var(--ease)) both;
+  text-shadow: var(--glow-shu, none);
+}
+@keyframes brand-tomosu {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .layout__brand-en {
   font-size: var(--fs-2);
@@ -80,17 +121,121 @@
   width: 56px;
   height: 6px;
 }
-.layout .flame {
-  min-width: var(--touch);
+
+/* ── the lantern (§5.10): motion.css draws it; the header gives it a touch target ── */
+.layout .lantern {
   min-height: var(--touch);
-  justify-content: center;
+  white-space: nowrap;
 }
 
-/* drills: only the brand link stays; SessionView has its own Leave button */
+/* ── forgiveness chips (§5.10) ── */
+.flame-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.flame-chip {
+  position: relative;
+  overflow: hidden;
+  gap: var(--sp-1);
+}
+.flame-chip__glyph {
+  font-size: var(--fs-1);
+  line-height: 1;
+}
+/* the kintsugi seam, only while the repair window is open (§8 ³) */
+.flame-chip.kintsugi {
+  color: var(--kin-text);
+  border-color: color-mix(in srgb, var(--kin) 50%, var(--line));
+}
+.flame-chip.kintsugi::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -10%;
+  right: -10%;
+  height: 1px;
+  background: var(--kintsugi, var(--kin));
+  transform: rotate(-6deg);
+  pointer-events: none;
+}
+
+/* ── drill chrome: kasure out, slide back (§6.4) ── */
+/* the way back (out): --dur-3 --ease-out, the after-change style of the return */
+.layout__status,
+.layout__nav {
+  transition-property: opacity, translate, display;
+  transition-duration: var(--dur-3, 400ms);
+  transition-timing-function: var(--ease-out, var(--ease));
+  transition-behavior: allow-discrete;
+}
+/* only when leaving a drill (PageHost sets html[data-travel] for the turn) — never on a first mount */
+@starting-style {
+  html[data-travel="out"] .layout__status {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+  html[data-travel="out"] .layout__nav {
+    opacity: 0;
+    translate: 0 100%;
+  }
+}
+/* drills: only the brand link stays (SessionView has its own Leave); display: none is the END state,
+   reached after a --dur-1 kasure (exit before enter, §6.3) during which the chrome takes no input */
 .layout[data-route="train"] .layout__status,
 .layout[data-route="gate"] .layout__status,
 .layout[data-route="shinsa"] .layout__status {
   display: none;
+  opacity: 0;
+  translate: 0 -6px;
+  transition-duration: var(--dur-1, 120ms);
+  transition-timing-function: var(--ease-in, var(--ease));
+  pointer-events: none;
+}
+.layout[data-route="train"] .layout__nav,
+.layout[data-route="gate"] .layout__nav,
+.layout[data-route="shinsa"] .layout__nav,
+.layout[data-route="onboarding"] .layout__nav {
+  display: none;
+  opacity: 0;
+  translate: 0 100%;
+  transition-duration: var(--dur-1, 120ms);
+  transition-timing-function: var(--ease-in, var(--ease));
+  pointer-events: none;
+}
+/* under a View Transition the snapshots move instead: in = with main's 300 ms dim, out = the 400 ms return */
+html:active-view-transition :is(.layout__status, .layout__nav) {
+  transition: none;
+}
+html[data-travel="in"]::view-transition-old(nav) {
+  animation: layout-nav-out calc(var(--dur-3, 400ms) * 0.75) var(--ease-in, var(--ease)) both;
+}
+html[data-travel="out"]::view-transition-new(nav) {
+  animation: layout-nav-in var(--dur-3, 400ms) var(--ease-out, var(--ease)) both;
+}
+@keyframes layout-nav-out {
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+@keyframes layout-nav-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+/* ── the plain arrival (§7 A): the shell fades, opacity only — a nijimi scale/translate on `.layout`
+   would make it the containing block of the fixed nav and toast for the entrance ── */
+.layout.ink-nijimi {
+  animation-name: mat;
+  animation-duration: var(--dur-fade);
+  animation-timing-function: linear;
 }
 
 @media (max-width: 899px) {
@@ -109,12 +254,39 @@
   }
 }
 
-/* ── notices ────────────────────────────────────────────────────────── */
+/* ── notices and the toast leave the way they arrived (§6.3) ── */
 .layout__notice {
   margin: var(--sp-3) max(var(--gutter), var(--safe-right)) 0 max(var(--gutter), var(--safe-left));
 }
 .layout__notice-text {
   flex: 1 1 200px;
+}
+.layout__notice,
+.layout__toast {
+  transition-property: opacity, translate, display;
+  transition-duration: var(--dur-2);
+  transition-timing-function: var(--ease);
+  transition-behavior: allow-discrete;
+}
+/* the entrance is the @starting-style transition, so the toast's own keyframe rests */
+.layout__toast {
+  animation: none;
+}
+@starting-style {
+  .layout__notice,
+  .layout__toast {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+/* kasure: useLeaving() sets data-leaving, unmounts on transitionend */
+.layout__notice[data-leaving],
+.layout__toast[data-leaving] {
+  opacity: 0;
+  translate: 0 6px;
+  transition-duration: var(--dur-1);
+  transition-timing-function: var(--ease-out, var(--ease));
+  pointer-events: none;
 }
 
 /* ── main ───────────────────────────────────────────────────────────── */
@@ -144,12 +316,6 @@
   padding-bottom: var(--safe-bottom);
   padding-left: var(--safe-left);
   padding-right: var(--safe-right);
-}
-.layout[data-route="train"] .layout__nav,
-.layout[data-route="gate"] .layout__nav,
-.layout[data-route="shinsa"] .layout__nav,
-.layout[data-route="onboarding"] .layout__nav {
-  display: none;
 }
 .layout[data-route="onboarding"] .layout__main {
   padding-bottom: calc(var(--safe-bottom) + var(--sp-5));

@@ -1,0 +1,75 @@
+/*
+ * TSUZUKU — Settings page looks added by design 09 (A3 · calendar-theme):
+ * the theme radios' live 48 px swatches (09 §7 G). Tokens only; no motion of
+ * its own — a theme change moves through the View Transition theme.ts starts.
+ *
+ *  .theme-swatch[data-swatch]   washi (Dojo Morning), lacquer (Arcade Night),
+ *                               the two halves (Auto), the live sky (Follow the
+ *                               sky, painted from --sky-* that theme.ts writes)
+ *  .theme-swatch__frame         a tiny .status-window held inside the swatch
+ *
+ * The invariant stage tokens (--stage-fg / --stage-bg, design 09 §4.1) are
+ * the washi and the lacquer; until A1's tokens land, the belt white and the
+ * belt black carry the same two values as fallbacks.
+ */
+
+.theme-swatch {
+  --swatch-washi: var(--stage-fg, var(--belt-white));
+  --swatch-lacquer: var(--stage-bg, var(--belt-black));
+  --swatch-paper: var(--swatch-washi);
+  --swatch-ink: var(--ink);
+
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 48px;
+  block-size: 48px;
+  overflow: hidden;
+  color: var(--swatch-ink);
+  background: var(--swatch-paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.theme-swatch[data-swatch="light"] {
+  --swatch-paper: var(--swatch-washi);
+  --swatch-ink: var(--ink);
+}
+.theme-swatch[data-swatch="dark"] {
+  --swatch-paper: var(--swatch-lacquer);
+  --swatch-ink: var(--swatch-washi);
+}
+.theme-swatch[data-swatch="auto"] {
+  --swatch-paper: linear-gradient(135deg, var(--swatch-washi) 50%, var(--swatch-lacquer) 50%);
+  --swatch-ink: var(--hai);
+}
+.theme-swatch[data-swatch="sky"] {
+  --swatch-paper: linear-gradient(180deg, var(--sky-top, var(--kon)), var(--sky-mid, var(--ai)) 55%, var(--sky-horizon, var(--swatch-washi)));
+  --swatch-ink: var(--swatch-washi);
+}
+/* The cartouche, tiny: inherits the swatch's ink, no fill, 3 px notches in place
+   of the 6 px ones (which would eat 12 of its 16 px), and no Night hairline — the
+   swatch previews *its* theme, not the document's. components.css sets that
+   hairline at :root[data-color-scheme="dark"] .status-window (0,3,0), so the
+   frame opts out at (0,4,0). */
+:root .theme-swatch .theme-swatch__frame.status-window {
+  inline-size: 26px;
+  block-size: 16px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 2px double currentColor;
+  box-shadow: none;
+  clip-path: polygon(
+    3px 0, calc(100% - 3px) 0, 100% 3px,
+    100% calc(100% - 3px), calc(100% - 3px) 100%,
+    3px 100%, 0 calc(100% - 3px), 0 3px
+  );
+}
+/* .set__radio (pages.css) is 44 px tall with no block padding; the 48 px swatch needs breathing room. */
+.set__radio:has(.theme-swatch) {
+  padding-block: var(--sp-1);
+}
+.set__radio:has(input:checked) .theme-swatch {
+  border-color: var(--shu);
+}

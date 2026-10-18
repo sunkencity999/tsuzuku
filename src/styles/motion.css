@@ -1,0 +1,240 @@
+/*
+ * TSUZUKU — motion system and the Washi & Sumi classes (design 09 §5–§6,
+ * ARCHITECTURE §7). Imported by src/main.tsx after arcade.css (A2 wires it; the
+ * order matters — the reduced rules below outrank base.css's *:not(.rm-fade)
+ * by source order). Composited only (opacity / translate / scale / clip-path /
+ * stroke-dashoffset), durations only through --dur-* tokens, nothing loops.
+ * Reduced motion — keep opacity, drop travel, nothing longer than --dur-fade —
+ * under BOTH the media query and :root[data-reduced-motion] (§6.6). Deviation
+ * from Appendix A: the verbs' reduced forms carry `animation-duration:
+ * var(--dur-fade) !important` themselves (nijimi / meku / tomosu become a mat
+ * fade) because verbs are consumer-applied and the fade must not depend on the
+ * consumer also adding .rm-fade. Night keys off html[data-color-scheme]
+ * (theme.ts). Tokens only. Dense on purpose (26 KB budget).
+ *
+ * VERBS (the only animation classes; --from / --to carry a translate, --i the
+ * stagger index — never extra classes, §5.13): .ink-nijimi bleed in ·
+ * .ink-kasure dry out — exits ride [data-leaving] (the host sets it, unmounts on
+ * animationend; also .ink-nijimi[data-leaving]) · .ink-hiku draw ([data-axis="y"
+ * | "stroke"]; a stroke target <path> carries pathLength="1" or sets --dash to
+ * its length) · .ink-osu press (--dur-2: §6.2's 180 ms has no token) · .ink-wet
+ * wet ink (dries on .is-dry; shared #ink-bleed-8 def) · .ink-meku turn ·
+ * .ink-tomosu light (--from-alpha → --to-alpha) · .rm-fade reduced-motion
+ * opt-in (keeps --dur-fade)
+ *
+ * CLASSES: .sheet .sheet--gutter .hairline .eyebrow .title-lockup ([data-write]:
+ *          the host appends brush.ts's underline as .ink-hiku[data-axis="stroke"])
+ *          .sign (children in order: __number __ordinal __ja __reading __en)
+ *          .meter .meter__fill .poster-title .tanzaku (+ __backdrop; both take
+ *          [data-leaving]) .shoji .lantern[data-state] .seal-date .tategaki-column
+ */
+
+/* ── keyframes ─────────────────────────────────────────────────────── */
+@keyframes nijimi { from { opacity: 0; translate: var(--from, 0 0); scale: 0.985; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes kasure { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: var(--to, -6px 0); } }
+@keyframes hiku { from { scale: 0 1; } to { scale: 1 1; } }
+@keyframes hiku-y { from { scale: 1 0; } to { scale: 1 1; } }
+@keyframes hiku-stroke { from { stroke-dashoffset: var(--dash, 1); } to { stroke-dashoffset: 0; } }
+@keyframes osu { 0% { scale: 1; } 40% { scale: 1.12; } 75% { scale: 0.98; } 100% { scale: 1; } }
+@keyframes kawaku { from { opacity: 0.3; } to { opacity: 0; } }
+@keyframes tomosu { from { opacity: var(--from-alpha, 0); } to { opacity: var(--to-alpha, 1); } }
+@keyframes meku { from { clip-path: inset(0 100% 0 0); opacity: 0.6; } to { clip-path: inset(0); opacity: 1; } }
+@keyframes meku-back { from { clip-path: inset(0 0 0 100%); opacity: 0.6; } to { clip-path: inset(0); opacity: 1; } }
+@keyframes meku-down { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+@keyframes mat { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mat-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes sign-settle { from { scale: 1.43; } to { scale: 1; } }
+@keyframes tanzaku-in { from { opacity: 0; translate: 0 -100%; } to { opacity: 1; translate: 0 0; } }
+@keyframes tanzaku-out { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -100%; } }
+
+/* ── the seven verbs (§6.2); the stagger caps at eight items (§6.3) ── */
+.ink-nijimi { animation: nijimi var(--dur-2) var(--ease) both; animation-delay: calc(min(var(--i, 0), 7) * var(--stagger)); }
+.ink-kasure,
+.ink-nijimi[data-leaving] { animation: kasure var(--dur-1) var(--ease-out) both; pointer-events: none; }
+.ink-hiku { transform-origin: left center; animation: hiku var(--dur-3) var(--ease-draw) both; }
+.ink-hiku[data-axis="y"] { transform-origin: top center; animation-name: hiku-y; }
+.ink-hiku[data-axis="stroke"] { stroke-dasharray: 1; animation-name: hiku-stroke; animation-duration: var(--dur-4); }
+.ink-osu { animation: osu var(--dur-2) var(--spring) both; }
+.ink-wet { position: relative; }
+.ink-wet::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: currentColor; opacity: 0.3; filter: url(#ink-bleed-8); }
+.ink-wet.is-dry::after { animation: kawaku var(--dur-4) var(--ease) both; }
+.ink-meku { animation: meku var(--dur-3) var(--ease) both; }
+.ink-tomosu { animation: tomosu var(--dur-4) var(--ease-draw) both; }
+
+/* ── route transitions (§6.4, §7 G): main and root are wipes under normal blending; the heroes
+   (enso, station-seal, tsuzuku-mark, belt-chip, mon) keep the UA plus-lighter crossfade ── */
+::view-transition-image-pair(main),
+::view-transition-image-pair(root) { isolation: auto; }
+::view-transition-old(main),
+::view-transition-new(main),
+::view-transition-old(root),
+::view-transition-new(root) { mix-blend-mode: normal; }
+::view-transition-group(*) { animation-duration: var(--dur-3); animation-timing-function: var(--ease); }
+::view-transition-old(main) { animation: kasure var(--dur-1) var(--ease-out) both; }
+::view-transition-new(main) { animation: meku var(--dur-3) var(--ease) both; }
+html[data-travel="back"]::view-transition-old(main) { --to: 6px 0; }
+html[data-travel="back"]::view-transition-new(main) { animation-name: meku-back; }
+/* in / out: the mat — main dims to sumi and the new page fades up over it */
+html[data-travel="in"]::view-transition,
+html[data-travel="out"]::view-transition { background: var(--stage-bg); }
+html[data-travel="in"]::view-transition-old(main),
+html[data-travel="out"]::view-transition-old(main) { animation: mat-out calc(var(--dur-3) * 0.75) var(--ease-in) both; }
+html[data-travel="in"]::view-transition-new(main) { animation: mat calc(var(--dur-3) * 0.75) var(--ease-in) both; }
+html[data-travel="out"]::view-transition-new(main) { animation: mat var(--dur-3) var(--ease-out) both; }
+html[data-travel="home"]::view-transition-new(main) { animation-name: nijimi; }
+/* dusk falls: the fixed names are suspended so the whole page falls into root, revealed top-down */
+html[data-vt="theme"] :is(.layout__header, .layout__nav, .layout__brand, .layout__main) { view-transition-name: none; }
+html[data-vt="theme"]::view-transition-old(root) { animation: none; }
+html[data-vt="theme"]::view-transition-new(root) { animation: meku-down var(--dur-3) var(--ease) both; }
+html:active-view-transition { scroll-behavior: auto; }
+
+/* ── .sheet (§5.1): inset shading, grain under the ink; Night = gold dust at 4 % ── */
+.sheet { position: relative; isolation: isolate; padding: var(--sp-4); color: var(--fg); background: var(--surface-paper); border-radius: var(--radius-paper); box-shadow: inset 0 0 36px color-mix(in srgb, var(--stage-bg) 6%, transparent), 0 1px 0 color-mix(in srgb, var(--stage-bg) 14%, transparent); }
+.sheet::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; border-radius: inherit; background: var(--paper); opacity: var(--paper-opacity); }
+.sheet--gutter::after { content: ""; position: absolute; inset: var(--sp-2) auto var(--sp-2) 50%; width: 1px; background: var(--line); }
+:root[data-color-scheme="dark"] .sheet::before { background: var(--kin); mask-image: var(--paper); mix-blend-mode: soft-light; }
+
+/* ── .hairline (§5.2): the grain knocks specks out of a solid rule ── */
+.hairline { position: relative; }
+.hairline::after { content: ""; position: absolute; inset: auto 0 0 0; height: 0; pointer-events: none; border-bottom: 1px solid var(--line); mask-image: linear-gradient(var(--fg), var(--fg)), var(--paper); mask-composite: exclude; }
+@media (forced-colors: active) {
+  .hairline::after { mask-image: none; }
+}
+
+/* ── .eyebrow (§3.1): the carved pixel label, never below --fs-1 ── */
+.eyebrow { font-family: var(--font-pixel); font-size: var(--fs-1); font-weight: 400; line-height: 1.4; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg-muted); }
+
+/* ── .title-lockup (§3.3): brush JA + English ── */
+.title-lockup { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-3); }
+.title-lockup__ja { position: relative; top: -0.08em; font-family: var(--font-brush); font-size: var(--fs-5); font-weight: 400; line-height: 1.1; white-space: nowrap; }
+.title-lockup__en { font-family: var(--font-ui); font-size: var(--fs-2); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-muted); }
+
+/* ── .sign (§3.3): brush JA · the reading (romaji before Green kana, ruby after) · English;
+   the plate is paper — --road runs behind it, never under the text ── */
+.sign { display: grid; grid-template-columns: auto 1fr; column-gap: var(--sp-3); align-items: baseline; padding: var(--sp-2) var(--sp-3); color: var(--fg); background: var(--surface-paper); border-radius: var(--radius-paper); }
+.sign__number { grid-column: 1; grid-row: 1 / span 4; align-self: start; font-family: var(--font-pixel); font-size: var(--fs-1); font-variant-numeric: tabular-nums; color: var(--fg-muted); }
+.sign__ordinal,
+.sign__ja,
+.sign__reading,
+.sign__en { grid-column: 2; }
+.sign__ordinal { font-family: var(--font-mincho); font-size: var(--fs-3); line-height: var(--lh-mincho); color: var(--fg-muted); }
+.sign__ja { display: inline-block; position: relative; top: -0.08em; font-family: var(--font-brush); font-size: var(--fs-4); font-weight: 400; line-height: 1.1; white-space: nowrap; transform-origin: left center; }
+.sign--head .sign__ja { font-size: var(--fs-5); }
+.sign__reading { font-family: var(--font-ui); font-size: var(--fs-2); letter-spacing: 0.04em; color: var(--fg-muted); }
+.sign__en { font-size: var(--fs-1); color: var(--fg-muted); }
+/* station arrival (§3.4): the JA wrapper settles from 1.43 to 1; type size never animates */
+[data-arrived] .sign__ja { animation: sign-settle var(--dur-3) var(--ease-press) both; }
+
+/* ── .meter (§5.7): one bar, composited; --meter-tone recolours it ── */
+.meter { --value: 0; --target: 0; position: relative; height: 6px; overflow: hidden; background: var(--raised); border-radius: 999px; }
+.meter__fill { position: absolute; inset: 0; background: var(--meter-tone, var(--kin)); transform: scaleX(var(--value)); transform-origin: left center; transition: transform var(--dur-3) var(--ease-out); }
+.meter[data-target]::after { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; left: calc(var(--target) * 100%); background: var(--fg-muted); }
+.meter[data-met="true"]::after { background: var(--kin); animation: osu var(--dur-2) var(--spring) both; }
+.meter.forge-bar { display: block; min-height: 0; height: 10px; background: var(--line); border: 1px solid var(--fg-muted); border-radius: 3px; }
+.meter.forge-bar .meter__fill { background: linear-gradient(to right, var(--shu), var(--kin)); }
+
+/* ── .poster-title (§5.6): Dela, a static 1 px misregistration, a bokashi band, two kentō marks ── */
+.poster-title { position: relative; display: inline-block; padding: var(--sp-1) var(--sp-3); font-family: var(--font-neon); font-weight: 400; line-height: 1; letter-spacing: 0.02em; color: var(--neon-c-text); text-shadow: 1px 0 0 var(--shu); background: linear-gradient(180deg, color-mix(in srgb, var(--kon) 24%, transparent), transparent 42%); }
+.poster-title--m { color: var(--neon-m-text); }
+.poster-title::before,
+.poster-title::after { content: ""; position: absolute; width: 8px; height: 8px; pointer-events: none; border: 0 solid var(--fg-muted); }
+.poster-title::before { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+.poster-title::after { right: 0; bottom: 0; border-right-width: 1px; border-bottom-width: 1px; }
+
+/* ── .tanzaku (§5.12, §7 F): a paper slip laid in from the top edge over a sumi backdrop ── */
+.tanzaku { position: fixed; top: 0; left: 0; right: 0; z-index: 101; width: min(100% - 2 * var(--gutter), 360px); margin-inline: auto; padding: var(--sp-5) var(--sp-4) var(--sp-4); color: var(--fg); background: var(--surface-paper); border-radius: 0 0 var(--radius-paper) var(--radius-paper); box-shadow: 0 1px 0 color-mix(in srgb, var(--stage-bg) 14%, transparent); animation: tanzaku-in calc(var(--dur-3) * 0.75) var(--ease-out) both; }
+.tanzaku::before { content: ""; position: absolute; top: var(--sp-2); left: 50%; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+.tanzaku[data-leaving] { animation: tanzaku-out var(--dur-1) var(--ease-in) both; pointer-events: none; }
+.tanzaku__backdrop { position: fixed; inset: 0; z-index: 100; background: color-mix(in srgb, var(--stage-bg) 60%, transparent); animation: mat var(--dur-2) var(--ease) both; }
+.tanzaku__backdrop[data-leaving] { animation-name: mat-out; animation-duration: var(--dur-1); animation-timing-function: var(--ease-in); pointer-events: none; }
+
+/* ── .shoji (§5.11): two kumiko panels; never block input; the host flips data-state: open | closing ── */
+.shoji { position: fixed; inset: 0; z-index: 120; pointer-events: none; }
+.shoji::before,
+.shoji::after { content: ""; position: absolute; top: 0; bottom: 0; width: 50%; background: repeating-linear-gradient(90deg, var(--wood) 0 2px, transparent 2px 48px), repeating-linear-gradient(180deg, var(--wood) 0 2px, transparent 2px 64px), var(--surface-paper); transition: translate calc(var(--dur-4) * 2 / 3) var(--ease); }
+.shoji::before { left: 0; border-right: 2px solid var(--wood); }
+.shoji::after { right: 0; border-left: 2px solid var(--wood); }
+.shoji[data-state="open"]::before { translate: -100% 0; }
+.shoji[data-state="open"]::after { translate: 100% 0; }
+.shoji[data-state="closing"]::before,
+.shoji[data-state="closing"]::after { transition-duration: var(--dur-3); transition-timing-function: var(--ease-in); }
+
+/* ── .lantern[data-state] (§5.10): a 20 px tongue (fill = currentColor) with its English word;
+   static — the glow twin is a ::before whose opacity follows --lamp-alpha ── */
+.lantern { --lantern-tone: var(--hai); position: relative; display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--fg-muted); isolation: isolate; }
+.lantern::before { content: ""; position: absolute; top: 50%; left: 0; z-index: -1; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%; pointer-events: none; box-shadow: var(--glow-kin); opacity: var(--lamp-alpha); }
+.lantern__tongue { flex: none; width: 20px; height: 20px; color: var(--lantern-tone); transition: color var(--dur-2) var(--ease); }
+.lantern__word { font-size: var(--fs-1); }
+.lantern[data-state="lit"] { --lantern-tone: var(--shu); }
+.lantern[data-state="lit"]::before { box-shadow: var(--glow-shu); }
+.lantern[data-state="gold"] { --lantern-tone: var(--kin); }
+.lantern[data-state="ember"] { --lantern-tone: color-mix(in srgb, var(--shu) 55%, var(--hai)); }
+.lantern[data-state="frozen"] { --lantern-tone: var(--ai); }
+.lantern[data-state="rest"] { --lantern-tone: var(--matcha); }
+.lantern:is([data-state="frozen"], [data-state="rest"], [data-state="broken"], [data-state="unlit"])::before { opacity: 0; }
+/* tomosu on a lantern lights the twin, not the word */
+.lantern.ink-tomosu { animation: none; }
+.lantern.ink-tomosu::before { --to-alpha: var(--lamp-alpha); animation: tomosu var(--dur-4) var(--ease-draw) both; }
+
+/* ── .seal-date (§5.3): kanji numerals in the column's face, with the visible pixel label ── */
+.seal-date { display: inline-flex; flex-direction: column; align-items: center; gap: var(--sp-1); color: var(--fg-muted); }
+.seal-date__day { display: inline-grid; place-items: center; width: 28px; min-height: 28px; padding: 3px 0; font-family: inherit; font-size: var(--fs-1); line-height: 1; writing-mode: vertical-rl; color: var(--bg); background: var(--shu); border-radius: 14px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bg) 35%, transparent); rotate: -6deg; }
+.seal-date__label { font-family: var(--font-pixel); font-size: var(--fs-1); writing-mode: horizontal-tb; }
+
+/* ── .tategaki-column (§5.9): vertical-rl reads top to bottom, so `row` stacks items downward;
+   Mincho — the Shippori `shell` slice landed at 15 KB (≤ 40 KB, §12.1 decision 9/18); [data-face="ja"] opts a column out;
+   a line under the scene below 640 px ── */
+.tategaki-column { display: flex; flex-direction: row; align-items: center; gap: var(--sp-3); writing-mode: vertical-rl; text-orientation: mixed; font-family: var(--font-mincho); font-feature-settings: "palt", "vert"; font-size: var(--fs-4); line-height: var(--lh-mincho); letter-spacing: 0.08em; color: var(--fg); }
+.tategaki-column[data-face="ja"] { font-family: var(--font-ja); }
+.tategaki-column > * { --from: 0 -8px; animation: nijimi var(--dur-3) var(--ease) both; animation-delay: calc(min(var(--i, 0), 7) * var(--stagger)); }
+.tategaki-column__gloss { font-family: var(--font-ui); font-size: var(--fs-1); letter-spacing: 0.02em; color: var(--fg-muted); }
+.tategaki-column__foot { margin-inline-start: auto; font-size: var(--fs-2); color: var(--fg-muted); }
+@media (max-width: 639.98px) {
+  .tategaki-column { flex-wrap: wrap; justify-content: center; gap: var(--sp-2) var(--sp-4); writing-mode: horizontal-tb; font-size: var(--fs-3); line-height: var(--lh-ja); }
+  .tategaki-column > * { --from: -8px 0; }
+}
+
+/* ── reduced motion (§6.6), each verb's form from §6.2: entrances and turns fade at --dur-fade;
+   exits are instant; strokes complete, presses still, wet ink dry, lamps at their final state.
+   base.css's `*:not(.rm-fade)` stops the rest; ::view-transition pseudos are not reached by `*`, and the
+   media-path overrides are `:root:root` (0,2,1) so they outrank `html[data-travel] …(main)` (0,1,2). ── */
+@media (prefers-reduced-motion: reduce) {
+  .rm-fade,
+  .rm-fade::before,
+  .rm-fade::after { animation-duration: var(--dur-fade) !important; transition-duration: var(--dur-fade) !important; }
+  :is(.ink-nijimi, .ink-meku, .ink-tomosu, .tanzaku, .tanzaku__backdrop, .tategaki-column > *) { animation-name: mat; animation-duration: var(--dur-fade) !important; animation-timing-function: linear; filter: none; }
+  :is(.tanzaku, .tanzaku__backdrop)[data-leaving] { animation-name: mat-out; animation-duration: var(--dur-fade) !important; animation-timing-function: linear; }
+  :is(.ink-kasure, .ink-nijimi[data-leaving]),
+  .ink-wet::after,
+  .ink-wet.is-dry::after { animation: none; opacity: 0; }
+  :is(.ink-hiku, .ink-hiku[data-axis="y"], .ink-hiku[data-axis="stroke"], .ink-osu, [data-arrived] .sign__ja),
+  .meter[data-met="true"]::after,
+  .lantern.ink-tomosu::before { animation: none; }
+  .meter__fill,
+  .shoji::before,
+  .shoji::after { transition: none; translate: none; }
+  .shoji { transition: opacity var(--dur-fade) linear; transition-duration: var(--dur-fade) !important; }
+  .shoji[data-state="open"] { opacity: 0; }
+  :root:root::view-transition-group(*) { animation: none; }
+  :root:root::view-transition-old(*) { animation: mat-out var(--dur-fade) linear both; clip-path: none; }
+  :root:root::view-transition-new(*) { animation: mat var(--dur-fade) linear both; clip-path: none; }
+}
+:root[data-reduced-motion] .rm-fade,
+:root[data-reduced-motion] .rm-fade::before,
+:root[data-reduced-motion] .rm-fade::after { animation-duration: var(--dur-fade) !important; transition-duration: var(--dur-fade) !important; }
+:root[data-reduced-motion] :is(.ink-nijimi, .ink-meku, .ink-tomosu, .tanzaku, .tanzaku__backdrop, .tategaki-column > *) { animation-name: mat; animation-duration: var(--dur-fade) !important; animation-timing-function: linear; filter: none; }
+:root[data-reduced-motion] :is(.tanzaku, .tanzaku__backdrop)[data-leaving] { animation-name: mat-out; animation-duration: var(--dur-fade) !important; animation-timing-function: linear; }
+:root[data-reduced-motion] :is(.ink-kasure, .ink-nijimi[data-leaving]),
+:root[data-reduced-motion] .ink-wet::after,
+:root[data-reduced-motion] .ink-wet.is-dry::after { animation: none; opacity: 0; }
+:root[data-reduced-motion] :is(.ink-hiku, .ink-hiku[data-axis="y"], .ink-hiku[data-axis="stroke"], .ink-osu, [data-arrived] .sign__ja),
+:root[data-reduced-motion] .meter[data-met="true"]::after,
+:root[data-reduced-motion] .lantern.ink-tomosu::before { animation: none; }
+:root[data-reduced-motion] .meter__fill,
+:root[data-reduced-motion] .shoji::before,
+:root[data-reduced-motion] .shoji::after { transition: none; translate: none; }
+:root[data-reduced-motion] .shoji { transition: opacity var(--dur-fade) linear; transition-duration: var(--dur-fade) !important; }
+:root[data-reduced-motion] .shoji[data-state="open"] { opacity: 0; }
+:root[data-reduced-motion]::view-transition-group(*) { animation: none; }
+:root[data-reduced-motion]::view-transition-old(*) { animation: mat-out var(--dur-fade) linear both; clip-path: none; }
+:root[data-reduced-motion]::view-transition-new(*) { animation: mat var(--dur-fade) linear both; clip-path: none; }

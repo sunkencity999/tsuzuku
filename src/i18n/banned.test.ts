@@ -7,10 +7,11 @@
  * strings module that can be imported, plus the learner-facing copy that lives
  * in data tables outside strings files (quest and mission text in
  * `shared/catalog`, station gate names and belt titles in `content/types`, the
- * `.ics` reminder text). Files that do not exist yet are simply not scanned;
- * the report names file:line and the offending phrase.
+ * `.ics` reminder text, and the sekki / kō glosses in `public/calendar/koyomi.json`,
+ * design 09 §4.3). Files that do not exist yet are simply not scanned; the
+ * report names file:line and the offending phrase.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { BANNED, findBanned, lineOf } from './banned-phrases';
 
@@ -89,6 +90,10 @@ describe('banned phrases: the list itself', () => {
     "Don't know",
     'The gatekeeper holds the line. 120 of your 310 reviews today; the rest wait without penalty.',
     'Good training. Rest. つづく',
+    'Unlit. Your first session lights it.',
+    'Streak paused · repair open: 1 of 3 days',
+    'repair open · 0 of 3 days',
+    'Since yesterday: a lantern lit.',
     'Ippon',
     'Only mature items are timed.',
     'A new version of the dojo is ready.',
@@ -195,6 +200,32 @@ describe('banned phrases: the codebase', () => {
       if (value.includes('!')) problems.push(`${p} = ${JSON.stringify(value)}  (exclamation mark)`);
     }
     expect(problems, `banned copy outside strings files:\n${problems.join('\n')}`).toEqual([]);
+  });
+
+  /**
+   * Design 09 §4.3 / §7 H: the 24 sekki and 72 kō carry Japanese names and
+   * English glosses as DATA (the kanji never enter `src`). The glosses are
+   * learner-facing copy in the Sensei voice: dates, never "in N days"; no
+   * countdown, no exclamation. The file lands with A3; until then the scan
+   * reports it as absent instead of failing.
+   */
+  it('the calendar data table (public/calendar/koyomi.json) is clean, never shouts and never counts down', () => {
+    const path = join(ROOT, 'public', 'calendar', 'koyomi.json');
+    if (!existsSync(path)) {
+      console.info('[banned] public/calendar/koyomi.json not landed yet: skipped');
+      return;
+    }
+    const data = JSON.parse(readFileSync(path, 'utf8')) as unknown;
+    const values: { path: string; value: string }[] = [];
+    collectStrings(data, 'public/calendar/koyomi.json', values);
+    expect(values.length).toBeGreaterThan(24);
+    const problems: string[] = [];
+    for (const { path: p, value } of values) {
+      for (const hit of findBanned(value)) problems.push(`${p} = ${JSON.stringify(value)}  (rule ${hit.rule.source})`);
+      if (value.includes('!')) problems.push(`${p} = ${JSON.stringify(value)}  (exclamation mark)`);
+      if (/\bin \d+ days?\b/i.test(value)) problems.push(`${p} = ${JSON.stringify(value)}  (countdown: a date, never "in N days")`);
+    }
+    expect(problems, `banned copy in the calendar table:\n${problems.join('\n')}`).toEqual([]);
   });
 });
 

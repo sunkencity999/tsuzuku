@@ -86,6 +86,10 @@ const zero = (): Overflow => ({ badges: 0, wallpapers: 0, stamps: 0, levels: 0 }
 
 let queue: Ceremony[] = [];
 let current: Ceremony | null = null;
+/** Design 09 §6.4: the shell's `canTransition()` skips a page turn while a ceremony is on screen (A2's one permitted edit here). */
+export function isCeremonyOpen(): boolean {
+  return current !== null;
+}
 let sessionActive = false;
 let nextDelay = CEREMONY_SETTLE_MS;
 let timer: ReturnType<typeof setTimeout> | null = null;

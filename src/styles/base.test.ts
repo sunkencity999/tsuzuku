@@ -56,12 +56,15 @@ describe('base.css', () => {
     const families = [...new Set(faces.map((f) => /font-family:\s*"([^"]+)"/.exec(f.body)?.[1]))];
     expect(families).toEqual(['DotGothic16', 'Yuji Syuku', 'Shippori Mincho B1', 'Dela Gothic One']);
     // six slices per family: rest (declared first, lowest precedence), n2, n3, n4, n5, base —
-    // except the brush family, whose catch-all `rest` face is dropped (fonts.test.ts has the reason)
-    expect(faces).toHaveLength(families.length * 6 - 1);
+    // except the brush family, whose catch-all `rest` face is dropped (fonts.test.ts has the reason) —
+    // plus up to two first-paint `shell` slices (Yuji, Shippori; design 09 §3.5, A4) declared after base
+    const shells = faces.filter((f) => /-shell\.woff2/.test(f.body)).length;
+    expect(shells).toBeLessThanOrEqual(2);
+    expect(faces).toHaveLength(families.length * 6 - 1 + shells);
     for (const f of faces) {
       expect(f.body).toMatch(/font-display:\s*swap/);
       expect(f.body).toMatch(/local\(/);
-      expect(f.body).toMatch(/url\("\/fonts\/[A-Za-z0-9]+-(rest|n2|n3|n4|n5|base)\.woff2"\)\s*format\("woff2"\)/);
+      expect(f.body).toMatch(/url\("\/fonts\/[A-Za-z0-9]+-(rest|n2|n3|n4|n5|base|shell)\.woff2"\)\s*format\("woff2"\)/);
       expect(f.body).toMatch(/unicode-range:\s*U\+[0-9A-F]/);
     }
     // every referenced slice file ships in public/fonts/
@@ -125,6 +128,38 @@ describe('base.css', () => {
     expect(rules.some((r) => r.media?.includes('prefers-reduced-motion: reduce') && /animation-duration/.test(r.body))).toBe(true);
     expect(rules.some((r) => r.selector.startsWith('.reduced-motion') && /animation-duration/.test(r.body))).toBe(true);
     expect(rules.some((r) => r.media === '@media print')).toBe(true);
+  });
+
+  it('the global stop spares .rm-fade under both selectors (design 09 §6.6) and never zeroes the tokens itself', () => {
+    const media = rules.filter((r) => r.media?.includes('prefers-reduced-motion: reduce') && /animation-duration/.test(r.body));
+    const cls = rules.filter((r) => r.selector.startsWith('.reduced-motion') && /animation-duration/.test(r.body));
+    expect(media).toHaveLength(1);
+    expect(cls).toHaveLength(1);
+    for (const r of [...media, ...cls]) {
+      const sels = r.selector.split(',').map((s) => s.trim());
+      expect(sels.filter((s) => s.includes('*'))).toHaveLength(3);
+      for (const s of sels.filter((x) => x.includes('*'))) expect(s).toMatch(/\*:not\(\.rm-fade\)/);
+      expect(r.body).not.toMatch(/--dur-/);
+    }
+    // the reduced-motion tokens are zeroed in tokens.css, where --dur-fade is left alone
+    const tokens = readFileSync(resolve(process.cwd(), 'src/styles/tokens.css'), 'utf8');
+    for (const sel of ['@media (prefers-reduced-motion: reduce)', ':root[data-reduced-motion]']) {
+      const i = tokens.indexOf(sel);
+      expect(i, sel).toBeGreaterThan(0);
+      const block = tokens.slice(i, tokens.indexOf('}', tokens.indexOf('--stagger', i)));
+      for (const t of ['--dur-1', '--dur-2', '--dur-3', '--dur-4', '--dur-5', '--stagger']) expect(block).toMatch(new RegExp(`${t}:\\s*0ms`));
+      expect(block).not.toMatch(/--dur-fade/);
+    }
+  });
+
+  it('paints the paper once on body::before, behind the ink (design 09 §2.3)', () => {
+    const paper = bodyOf('body::before');
+    expect(paper).toMatch(/background:\s*var\(--paper\)/);
+    expect(paper).toMatch(/opacity:\s*var\(--paper-opacity\)/);
+    expect(paper).toMatch(/z-index:\s*-1/);
+    expect(paper).toMatch(/pointer-events:\s*none/);
+    expect(bodyOf('body')).toMatch(/position:\s*relative/);
+    expect(noComments).not.toMatch(/mix-blend-mode/);
   });
 
   it('exposes safe-area variables for the shell', () => {

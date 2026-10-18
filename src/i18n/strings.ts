@@ -51,6 +51,30 @@ export const S = {
   flameFrozen: 'The flame is frozen for a while. Rest is training.',
   flameRest: 'Planned rest. Even samurai rest.',
   flameBroken: 'The flame is out. Light it with any session.',
+  /* design 09 §7 A: the never-lit hearth (streak.totalDays === 0) says "Unlit", never "out" */
+  flameUnlit: 'Unlit. Your first session lights it.',
+  /* the visible state word beside the drawn tongue (design 09 §5.10) */
+  flameWordLit: 'Lit',
+  flameWordGold: 'Gold',
+  flameWordEmber: 'Embers',
+  flameWordFrozen: 'Frozen',
+  flameWordRest: 'Rest',
+  flameWordBroken: 'Out',
+  flameWordUnlit: 'Unlit',
+  /* forgiveness chips (design 09 §5.10): what the streak machine holds and never showed */
+  chipsLabel: 'Forgiveness held',
+  chipFreeze: '1 freeze held',
+  chipFreezes: '{n} freezes held',
+  chipRestSet: 'rest day set',
+  chipRestTaken: '{n} rest days taken',
+  chipRestTakenOne: '1 rest day taken',
+  chipWeekly: '{n} weekly flames',
+  chipWeeklyOne: 'weekly flame',
+  chipRepair: 'repair open · {done} of 3 days',
+  /* design 09 §8: "No streak yet" after a break, while the repair window is open */
+  streakPaused: 'Streak paused · repair open: {done} of 3 days',
+  /* design 09 §7 A: the caption prefix for the Dojo's since-yesterday pulse */
+  sinceYesterday: 'Since yesterday:',
 
   /* ── nav ──────────────────────────────────────────────────────────── */
   navLabel: 'Main',
