@@ -134,6 +134,7 @@ Belt colors (same in both themes): white `#F4EDE0` · yellow `#F2D54A` · orange
 
 UI transitions 120–220 ms, `cubic-bezier(.2,.8,.2,1)`. Ceremonies 6–12 s, always skippable with any key or tap. `prefers-reduced-motion` disables particles, speed lines and shake; keeps opacity fades. Nothing flashes above 3 Hz.
 
+> **Superseded (2026-10-18):** the motion system now lives in `09-design-language-and-motion.md` §6 (tokens, the seven ink verbs, route transitions, reduced motion, performance and flashing rules); 09 §2–§5 extend §4.1–§4.4 above. This paragraph is kept for history.
 ---
 
 ## 5. Sound and haptics (Web Audio, zero samples)

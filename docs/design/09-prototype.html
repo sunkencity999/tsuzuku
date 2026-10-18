@@ -1,0 +1,1487 @@
+<title>TSUZUKU Design Language</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=DotGothic16&family=Noto+Sans+JP:wght@400;600&family=Shippori+Mincho+B1&family=Yuji+Syuku&display=swap">
+<style>
+/* Layout: a sticky control bar (theme, reduced motion, slow motion, arcade feel, repair window, fps),
+   then one column of chapters on paper. Each chapter = eyebrow + title lockup + live demos.
+   Tokens pasted from src/styles/tokens.css and extended per design 09 §4.1. Light values on :root,
+   dark values in both dark blocks (media-query guarded and data-theme). Invariant tokens on :root only. */
+:root {
+  color-scheme: light;
+  /* pigments — Dojo Morning */
+  --bg: #F4EDE0; --surface: #FFFBF3; --raised: #EADFCB; --fg: #1A1A1F; --fg-muted: #5E5A52; --line: #D9CDB6;
+  --shu: #C9302C; --kin: #B8860B; --ai: #1F2A6B; --sakura: #C9718A; --matcha: #4E8A3C;
+  --neon-c: #0E8F86; --neon-m: #B8257A; --kon: #1F3A93; --hai: #8A8578; --focus: #1F2A6B;
+  --kin-text: #7A5A05; --shu-text: #B0241F; --ink: #1A1A1F;
+  /* 09 §4.1 themed additions */
+  --neon-c-text: #0B6660; --neon-m-text: #A8206F;
+  --glow-kin: none; --glow-shu: none; --glow-alpha: 0;
+  --paper-opacity: .055; --paper-blend: multiply; --paper-tint: transparent;
+  --cartouche-inner: transparent;
+  /* belts (theme-invariant) */
+  --belt-white: #F4EDE0; --belt-yellow: #F2D54A; --belt-orange: #F08A24; --belt-green: #3E9B4F;
+  --belt-blue: #2F6FD6; --belt-purple: #7A3FB5; --belt-brown: #6B3F23; --belt-black: #0B0B10;
+  --bronze: #B87333; --silver: #C9CED6;
+  /* the always-sumi stage (invariant) */
+  --stage-bg: #0B0B10; --stage-fg: #F4EDE0; --stage-muted: #A9A49A; --stage-line: #2C2C3A; --stage-raised: #1F1F2A;
+  --wood: #5C3A21; --wood-light: #8B5A2B;
+  /* runtime: sky, lamp, sekki, belt */
+  --sky-top: #4F6FD6; --sky-mid: #9FC4F0; --sky-horizon: #F4EDE0; --lamp-alpha: 0;
+  --sekki-pigment: var(--bg); --sekki-mix: 0%;
+  --bg-paper: color-mix(in srgb, var(--bg) calc(100% - var(--sekki-mix)), var(--sekki-pigment));
+  --surface-paper: color-mix(in srgb, var(--surface) calc(100% - var(--sekki-mix)), var(--sekki-pigment));
+  --raised-paper: color-mix(in srgb, var(--raised) calc(100% - var(--sekki-mix)), var(--sekki-pigment));
+  --belt-color: var(--belt-orange);
+  --road: color-mix(in oklab, var(--belt-color) 35%, var(--bg));
+  --ai-dye: linear-gradient(180deg, var(--kon), var(--ai));
+  --kintsugi: linear-gradient(90deg, var(--kin), #F2DC8A 50%, var(--kin));
+  /* the paper: one static 128 px feTurbulence tile (pixel.ts grainFilter), never a live filter */
+  --paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='7' stitchTiles='stitch' result='n'/%3E%3CfeColorMatrix in='n' type='matrix' values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='128' height='128' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* fibre mask for .hairline (svg.ts turbulence) */
+  --fibre: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='8'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.08 .9' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 4 0 0 0 -1.1'/%3E%3C/filter%3E%3Crect width='256' height='8' filter='url(%23f)'/%3E%3C/svg%3E");
+  /* fonts (self-hosted subsets in the app; Google Fonts here, same fallback stacks) */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-ja: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", YuGothic, Meiryo, "Noto Sans CJK JP", "Noto Sans JP", "BIZ UDPGothic", sans-serif;
+  --font-pixel: "DotGothic16", "Hiragino Sans", "Yu Gothic UI", "Noto Sans CJK JP", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-brush: "Yuji Syuku", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif;
+  --font-mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", YuMincho, "Noto Serif CJK JP", "Noto Serif JP", "MS PMincho", serif;
+  --font-neon: "Dela Gothic One", "Hiragino Sans", "Yu Gothic UI", "Arial Black", Impact, "Noto Sans CJK JP", sans-serif;
+  /* scale */
+  --fs-1: .75rem; --fs-2: .875rem; --fs-3: 1rem; --fs-4: 1.25rem; --fs-5: 1.75rem; --fs-6: 2.5rem; --fs-7: 4rem; --fs-8: 7.5rem;
+  --lh-ja: 1.8; --lh-latin: 1.5; --lh-mincho: 2; --measure-ja: 36em;
+  /* motion (09 §6.1). --slow is the inspection multiplier (0.25× = 4). */
+  --slow: 1;
+  --ease: cubic-bezier(.2,.8,.2,1); --ease-out: cubic-bezier(0,0,.2,1); --ease-in: cubic-bezier(.7,0,.84,0);
+  --ease-draw: cubic-bezier(.3,0,.1,1); --ease-press: cubic-bezier(.2,.9,.2,1.15);
+  --spring: linear(0, .006, .025 2.8%, .101 6.1%, .539 18.9%, .721 25.3%, .849 31.5%, .937 38.1%, .968 41.8%, .991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);
+  --dur-1: calc(120ms * var(--slow)); --dur-2: calc(220ms * var(--slow)); --dur-3: calc(400ms * var(--slow));
+  --dur-4: calc(900ms * var(--slow)); --dur-5: calc(2400ms * var(--slow)); --dur-fade: 150ms; --stagger: calc(40ms * var(--slow));
+  /* layout */
+  --radius: 10px; --radius-sm: 6px; --radius-paper: 2px; --radius-seal: 4px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px; --touch: 44px;
+  --focus-ring: 3px; --focus-offset: 2px;
+}
+@supports not (animation-timing-function: linear(0, 1)) { :root { --spring: var(--ease-press); } }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0B0B10; --surface: #15151D; --raised: #1F1F2A; --fg: #F4EDE0; --fg-muted: #A9A49A; --line: #2C2C3A;
+    --shu: #E63B2E; --kin: #E0B341; --ai: #6C7BD9; --sakura: #F7B2C4; --matcha: #7BB661;
+    --neon-c: #2EE6D6; --neon-m: #FF3DA6; --kon: #4F6FD6; --hai: #6E6A61; --focus: #2EE6D6;
+    --kin-text: #E0B341; --shu-text: #FF6A5E;
+    --neon-c-text: #2EE6D6; --neon-m-text: #FF3DA6;
+    --glow-kin: 0 0 6px color-mix(in srgb, var(--kin) 55%, transparent), 0 0 18px color-mix(in srgb, var(--kin) 22%, transparent);
+    --glow-shu: 0 0 6px color-mix(in srgb, var(--shu) 55%, transparent), 0 0 18px color-mix(in srgb, var(--shu) 22%, transparent);
+    --glow-alpha: max(.35, var(--lamp-alpha));
+    --paper-opacity: .04; --paper-blend: soft-light; --paper-tint: color-mix(in srgb, var(--kin) 35%, transparent);
+    --cartouche-inner: color-mix(in srgb, var(--kin) 35%, var(--line));
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0B0B10; --surface: #15151D; --raised: #1F1F2A; --fg: #F4EDE0; --fg-muted: #A9A49A; --line: #2C2C3A;
+  --shu: #E63B2E; --kin: #E0B341; --ai: #6C7BD9; --sakura: #F7B2C4; --matcha: #7BB661;
+  --neon-c: #2EE6D6; --neon-m: #FF3DA6; --kon: #4F6FD6; --hai: #6E6A61; --focus: #2EE6D6;
+  --kin-text: #E0B341; --shu-text: #FF6A5E;
+  --neon-c-text: #2EE6D6; --neon-m-text: #FF3DA6;
+  --glow-kin: 0 0 6px color-mix(in srgb, var(--kin) 55%, transparent), 0 0 18px color-mix(in srgb, var(--kin) 22%, transparent);
+  --glow-shu: 0 0 6px color-mix(in srgb, var(--shu) 55%, transparent), 0 0 18px color-mix(in srgb, var(--shu) 22%, transparent);
+  --glow-alpha: max(.35, var(--lamp-alpha));
+  --paper-opacity: .04; --paper-blend: soft-light; --paper-tint: color-mix(in srgb, var(--kin) 35%, transparent);
+  --cartouche-inner: color-mix(in srgb, var(--kin) 35%, var(--line));
+}
+:root[data-slow="on"] { --slow: 4; }
+/* reduced motion zeroes the travel tokens and never --dur-fade (09 §4.1) */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-reduced-motion="off"]) { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; --dur-4: 0ms; --dur-5: 0ms; --stagger: 0ms; }
+}
+:root[data-reduced-motion="on"] { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; --dur-4: 0ms; --dur-5: 0ms; --stagger: 0ms; }
+
+/* ── base ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg-paper); color: var(--fg); font-family: var(--font-ui); font-size: var(--fs-3); line-height: var(--lh-latin); min-height: 100dvh; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+:root[data-reduced-motion="on"] body { transition: background-color var(--dur-fade) linear, color var(--dur-fade) linear; }
+html.tint-step body { transition: background-color var(--dur-4) var(--ease); }
+html.theme-fade body { transition: background-color var(--dur-3) var(--ease), color var(--dur-3) var(--ease); }
+/* the top safe-area band */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg-paper); }
+/* the paper: --paper on body, a static image at --paper-opacity */
+body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0; background-image: var(--paper); background-color: var(--paper-tint); background-size: 128px 128px; opacity: var(--paper-opacity); mix-blend-mode: var(--paper-blend); }
+.wrap { position: relative; z-index: 1; max-width: 1180px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 72px; }
+:lang(ja), [lang="ja"] { font-family: var(--font-ja); font-feature-settings: "palt"; line-height: var(--lh-ja); }
+:focus-visible { outline: var(--focus-ring) solid var(--focus); outline-offset: var(--focus-offset); }
+button { font: inherit; color: inherit; }
+h1, h2, h3, h4, p { margin: 0; }
+h2, h3 { text-wrap: balance; }
+a { color: var(--ai); }
+code, kbd { font-family: var(--font-pixel); font-size: var(--fs-2); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ── voices (09 §3) ───────────────────────────────────────────────────── */
+.brush { font-family: var(--font-brush); font-weight: 400; line-height: 1.1; position: relative; top: -.08em; }
+.mincho { font-family: var(--font-mincho); font-weight: 400; line-height: var(--lh-mincho); }
+.pixel { font-family: var(--font-pixel); font-weight: 400; font-variant-numeric: tabular-nums; }
+.dela { font-family: var(--font-neon); font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: .02em; line-height: 1; }
+.eyebrow { font-family: var(--font-pixel); font-weight: 400; font-size: var(--fs-1); text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.gloss { font-size: var(--fs-1); color: var(--fg-muted); letter-spacing: .02em; }
+.ja { font-family: var(--font-ja); }
+.title-lockup { display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap; min-width: 0; }
+.title-lockup .brush { font-size: var(--fs-5); }
+.title-lockup .en { font-family: var(--font-ui); font-size: var(--fs-2); text-transform: uppercase; letter-spacing: .12em; color: var(--fg-muted); }
+.title-lockup .say { font-size: var(--fs-2); color: var(--fg-muted); }
+.lede { max-width: 62ch; color: var(--fg-muted); }
+.lede strong { color: var(--fg); font-weight: 600; }
+
+/* ── control bar ──────────────────────────────────────────────────────── */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding-block: var(--sp-2); margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))) calc(-1 * max(16px, env(safe-area-inset-right, 0px))); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: color-mix(in srgb, var(--bg-paper) 92%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); contain: paint; }
+.bar .hairline { position: absolute; left: 0; right: 0; bottom: 0; }
+.brand { display: inline-flex; align-items: baseline; gap: var(--sp-2); position: relative; text-decoration: none; color: inherit; margin-right: auto; min-width: 0; }
+.brand__ja { font-family: var(--font-brush); font-size: var(--fs-4); line-height: 1; position: relative; }
+.brand__glow { position: absolute; left: 0; top: 0; font-family: var(--font-brush); font-size: var(--fs-4); line-height: 1; color: var(--shu); text-shadow: var(--glow-shu); opacity: 0; pointer-events: none; }
+.brand.is-igniting .brand__ja { animation: ignite var(--dur-4) var(--ease) both; }
+.brand.is-igniting .brand__glow { animation: tomosu var(--dur-4) var(--ease) both; }
+.brand__en { font-family: var(--font-ui); font-size: var(--fs-1); text-transform: uppercase; letter-spacing: .12em; color: var(--fg-muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--surface-paper); }
+.seg button { border: 0; background: transparent; padding: 4px 10px; border-radius: 999px; font-size: var(--fs-2); color: var(--fg-muted); cursor: pointer; min-height: 28px; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.switch { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px 3px 4px; background: var(--surface-paper); font-size: var(--fs-2); color: var(--fg-muted); cursor: pointer; min-height: 28px; user-select: none; }
+.switch input { appearance: none; margin: 0; width: 26px; height: 16px; border-radius: 999px; background: var(--raised); border: 1px solid var(--line); position: relative; cursor: pointer; }
+.switch input::after { content: ""; position: absolute; top: 1px; left: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--fg-muted); transition: transform var(--dur-1) var(--ease); }
+.switch input:checked { background: var(--shu); border-color: var(--shu); }
+.switch input:checked::after { background: var(--bg); transform: translateX(10px); }
+.switch:has(input:checked) { color: var(--fg); }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 10px; background: var(--raised-paper); font-family: var(--font-pixel); font-size: var(--fs-1); letter-spacing: .04em; color: var(--fg-muted); font-variant-numeric: tabular-nums; min-height: 24px; white-space: nowrap; }
+.chip b { color: var(--fg); font-weight: 400; }
+
+/* ── chapters ─────────────────────────────────────────────────────────── */
+.hero { padding-block: var(--sp-6) var(--sp-5); display: grid; gap: var(--sp-4); }
+.hero__mark { display: flex; align-items: baseline; gap: var(--sp-4); flex-wrap: wrap; }
+.hero__mark .brush { font-size: clamp(3rem, 12vw, var(--fs-7)); }
+.hero__mark .say { display: grid; gap: 2px; }
+.hero__mark .say b { font-family: var(--font-ui); font-size: var(--fs-2); text-transform: uppercase; letter-spacing: .14em; font-weight: 600; }
+.hero__mark .say span { font-size: var(--fs-2); color: var(--fg-muted); }
+.chapter { padding-block: var(--sp-6); display: grid; gap: var(--sp-4); border-top: 0; position: relative; }
+.chapter > .hairline { position: absolute; top: 0; left: 0; right: 0; }
+.chapter__head { display: grid; gap: var(--sp-2); }
+.grid { display: grid; gap: var(--sp-4); min-width: 0; }
+.grid > * { min-width: 0; }
+@media (min-width: 720px) { .grid--2 { grid-template-columns: 1fr 1fr; } .grid--3 { grid-template-columns: repeat(3, 1fr); } .grid--4 { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 480px) and (max-width: 719px) { .grid--3, .grid--4 { grid-template-columns: 1fr 1fr; } }
+.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; min-width: 0; }
+.demo-foot { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; justify-content: space-between; }
+.note { font-size: var(--fs-2); color: var(--fg-muted); max-width: 70ch; }
+.note code { font-size: var(--fs-1); }
+.readout { display: inline-flex; gap: 6px; align-items: center; font-family: var(--font-pixel); font-size: var(--fs-1); letter-spacing: .04em; color: var(--fg-muted); padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-seal); background: var(--surface-paper); font-variant-numeric: tabular-nums; max-width: 100%; }
+.readout b { color: var(--fg); font-weight: 400; }
+.readout--ok b { color: var(--matcha); }
+
+/* ── paper you can almost touch (09 §5.1) ─────────────────────────────── */
+.sheet { position: relative; background: var(--surface-paper); border-radius: var(--radius-paper); padding: var(--sp-4); box-shadow: inset 0 0 36px color-mix(in srgb, var(--stage-bg) 6%, transparent), 0 1px 0 color-mix(in srgb, var(--stage-bg) 14%, transparent); min-width: 0; }
+.sheet::before { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: var(--paper); background-size: 128px 128px; opacity: var(--paper-opacity); mix-blend-mode: var(--paper-blend); }
+.sheet > * { position: relative; }
+.sheet--gutter::after { content: ""; position: absolute; inset: 8px auto 8px 50%; width: 1px; background: var(--line); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--sp-4); min-width: 0; }
+.seal-corner { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 3px; background: var(--shu); color: var(--bg); font-family: var(--font-brush); font-size: 12px; line-height: 18px; text-align: center; }
+.hairline { height: 1px; background: var(--line); -webkit-mask-image: var(--fibre); mask-image: var(--fibre); -webkit-mask-size: 256px 100%; mask-size: 256px 100%; }
+@media (forced-colors: active) { .hairline { -webkit-mask-image: none; mask-image: none; } }
+
+/* ── the cartouche (09 §5.5) ──────────────────────────────────────────── */
+.status-window { position: relative; padding: var(--sp-3) var(--sp-4); color: var(--fg); background: color-mix(in srgb, var(--raised) 92%, transparent); border: 2px double var(--fg-muted); border-radius: 2px; clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px); min-width: 0; }
+.status-window::after { content: ""; position: absolute; inset: 3px; pointer-events: none; border: 1px solid var(--cartouche-inner); }
+.status-window__label { font-family: var(--font-pixel); font-size: var(--fs-1); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+.stat { display: grid; gap: 2px; }
+.stat .dela { font-size: var(--fs-5); }
+.stat small { font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--fg-muted); letter-spacing: .06em; text-transform: uppercase; }
+
+/* ── seals, hanko (09 §5.3) ───────────────────────────────────────────── */
+.hanko { --hanko-size: 56px; position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); min-width: var(--hanko-size); min-height: var(--hanko-size); padding: var(--sp-3) var(--sp-5); font-weight: 700; font-size: var(--fs-3); line-height: 1.1; letter-spacing: .02em; color: var(--bg); background: var(--shu); border: 2px solid var(--shu); border-radius: var(--radius-sm); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bg) 35%, transparent), 0 1px 0 color-mix(in srgb, var(--fg) 25%, transparent); cursor: pointer; transition: transform 60ms var(--ease), background var(--dur-1) var(--ease); -webkit-tap-highlight-color: transparent; }
+.hanko [lang="ja"] { font-family: var(--font-brush); font-size: 1.15em; line-height: 1; }
+.hanko:hover { background: color-mix(in srgb, var(--shu) 88%, var(--fg)); }
+.hanko.is-pressed { transform: scale(.96); }
+.hanko.is-pressed::before { content: ""; position: absolute; inset: -2px; border-radius: inherit; box-shadow: 0 0 0 0 color-mix(in srgb, var(--shu) 45%, transparent); animation: hanko-bleed var(--dur-2) var(--ease) both; pointer-events: none; }
+.hanko.is-charged { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bg) 35%, transparent), 0 0 0 3px var(--bg), 0 0 0 5px var(--kin), var(--glow-shu); }
+.ghost { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: var(--touch); padding: var(--sp-2) var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-paper); color: var(--fg); cursor: pointer; font-size: var(--fs-2); }
+.ghost:hover { border-color: var(--fg-muted); }
+.ghost--sm { min-height: 32px; padding-block: 4px; }
+.ink-wet { position: relative; }
+.ink-wet .wet { position: absolute; inset: 0; pointer-events: none; color: inherit; opacity: .3; filter: url(#ink-bleed-8); }
+.ink-wet.is-dry .wet { animation: kawaku var(--dur-4) linear both; }
+.seal { display: inline-block; color: var(--shu); }
+.seal-date { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--shu); color: var(--shu); font-family: var(--font-brush); font-size: 9px; line-height: 1; writing-mode: vertical-rl; }
+
+/* ── sign lockup (09 §3.3) ────────────────────────────────────────────── */
+.sign { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--sp-3); align-items: baseline; min-width: 0; }
+.sign__n { font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--fg-muted); font-variant-numeric: tabular-nums; grid-row: span 3; align-self: start; padding-top: .4em; }
+.sign__ja { font-family: var(--font-brush); font-size: var(--fs-4); line-height: 1.1; font-weight: 400; }
+.sign--head .sign__ja { font-size: var(--fs-5); }
+.sign__ja rt { font-family: var(--font-ja); font-size: .5em; color: var(--fg-muted); }
+.sign__romaji { font-size: var(--fs-2); letter-spacing: .04em; }
+.sign__en { font-size: var(--fs-1); color: var(--fg-muted); }
+.sign.is-arriving .sign__ja { animation: sign-settle var(--dur-3) var(--ease-press) both; transform-origin: left bottom; }
+.sign--ahead { color: var(--fg-muted); }
+.sign--ahead .sign__ja { color: var(--hai); }
+
+/* ── meter, ticker (09 §5.7, §5.8) ────────────────────────────────────── */
+.meter { --value: 0; --target: 0; position: relative; height: 6px; overflow: hidden; background: var(--raised); border-radius: 999px; min-width: 60px; }
+.meter__fill { position: absolute; inset: 0; background: var(--meter-tone, var(--kin)); transform: scaleX(var(--value)); transform-origin: left; transition: transform var(--dur-3) var(--ease-out); }
+.meter[data-target]::after { content: ""; position: absolute; top: 0; bottom: 0; width: 2px; left: calc(var(--target) * 100%); background: var(--fg-muted); }
+.meter[data-met="true"]::after { background: var(--kin); animation: osu var(--dur-2) var(--spring) both; }
+.ticker { font-variant-numeric: tabular-nums; }
+
+/* ── lantern (09 §5.10) ──────────────────────────────────────────────── */
+.lantern { display: inline-flex; align-items: center; gap: var(--sp-2); position: relative; min-width: 0; }
+.lantern__tongue { width: 20px; height: 20px; flex: none; position: relative; }
+.lantern__tongue svg { display: block; width: 20px; height: 20px; overflow: visible; }
+.lantern__tongue .flame { transform-origin: 10px 20px; animation: flicker 1.6s ease-in-out infinite; }
+.lantern[data-state="broken"] .flame, .lantern[data-state="frozen"] .flame, .lantern[data-state="rest"] .flame { animation: none; }
+.lantern__glow { position: absolute; inset: -4px; border-radius: 50%; box-shadow: var(--glow-kin); opacity: var(--glow-alpha); transition: opacity var(--dur-4) var(--ease); pointer-events: none; }
+.lantern[data-state="broken"] .lantern__glow, .lantern[data-state="frozen"] .lantern__glow, .lantern[data-state="rest"] .lantern__glow, .lantern[data-state="ember"] .lantern__glow, .lantern[data-state="unlit"] .lantern__glow { opacity: 0; }
+.lantern__word { font-size: var(--fs-2); }
+.lantern[data-state="lit"] .flame { fill: var(--shu); } .lantern[data-state="lit"] .flame-core { fill: var(--kin); }
+.lantern[data-state="gold"] .flame { fill: var(--kin); } .lantern[data-state="gold"] .flame-core { fill: var(--bg); }
+.lantern[data-state="ember"] .flame { fill: color-mix(in srgb, var(--shu) 55%, var(--hai)); } .lantern[data-state="ember"] .flame-core { fill: var(--raised); }
+.lantern[data-state="frozen"] .flame { fill: var(--ai); } .lantern[data-state="frozen"] .flame-core { fill: var(--surface); }
+.lantern[data-state="rest"] .flame { fill: var(--matcha); } .lantern[data-state="rest"] .flame-core { fill: var(--surface); }
+.lantern[data-state="broken"] .flame { fill: var(--hai); } .lantern[data-state="broken"] .flame-core { fill: var(--raised); }
+.lantern[data-state="unlit"] .flame { fill: var(--raised); stroke: var(--hai); stroke-width: 1; } .lantern[data-state="unlit"] .flame-core { fill: transparent; }
+.fchip { display: inline-flex; align-items: center; gap: 6px; position: relative; overflow: hidden; border-radius: 999px; padding: 3px 10px; background: var(--raised-paper); font-size: var(--fs-1); color: var(--fg); }
+.fchip .ja { color: var(--fg-muted); }
+.fchip--kintsugi::after { content: ""; position: absolute; left: -4px; right: -4px; top: 55%; height: 2px; background: var(--kintsugi); transform: rotate(-4deg); }
+
+/* ── poster title (09 §5.6) ──────────────────────────────────────────── */
+.poster { position: relative; padding: var(--sp-5) var(--sp-5) var(--sp-4); overflow: hidden; border-radius: var(--radius-paper); background: var(--surface-paper); }
+.poster::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--kon) 42%, transparent), transparent 55%); pointer-events: none; }
+.poster-title { position: relative; display: inline-block; font-family: var(--font-neon); font-weight: 400; font-size: clamp(1.75rem, 7vw, var(--fs-6)); line-height: 1; letter-spacing: .02em; color: var(--neon-c-text); text-shadow: 1px 0 0 var(--shu); padding: 10px 14px; }
+.poster-title::before, .poster-title::after { content: ""; position: absolute; width: 8px; height: 8px; border: 1px solid var(--fg-muted); }
+.poster-title::before { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.poster-title::after { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.poster-title--m { color: var(--neon-m-text); }
+.poster .dela { font-size: var(--fs-6); }
+.wet-street { height: 24px; background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--kon) 30%, var(--bg))); margin: var(--sp-3) calc(-1 * var(--sp-5)) calc(-1 * var(--sp-4)); }
+
+/* ── scroll card (09 §5.4) ───────────────────────────────────────────── */
+.scroll-card { position: relative; padding: var(--sp-4); margin-inline: 6px; background: var(--surface-paper); border-inline: 1px solid var(--line); transform-origin: top; }
+.scroll-card::before, .scroll-card::after { content: ""; position: absolute; left: -6px; right: -6px; height: 10px; border-radius: 5px; background: linear-gradient(180deg, var(--wood-light), var(--wood)); }
+.scroll-card::before { top: -5px; } .scroll-card::after { bottom: -5px; }
+.scroll-card.ink-hiku { animation: hiku-y var(--dur-3) var(--ease-out) both; }
+
+/* ── verb classes (09 §5.13, §6.2) ───────────────────────────────────── */
+.ink-nijimi { animation: nijimi var(--dur-2) var(--ease) both; animation-delay: calc(min(var(--i, 0), 7) * var(--stagger)); }
+.ink-nijimi.is-small { animation-name: nijimi-sm; }
+.ink-kasure { animation: kasure var(--dur-1) var(--ease-out) both; animation-delay: calc(min(var(--i, 0), 7) * var(--stagger)); }
+.ink-hiku-x { transform-origin: left; animation: hiku-x var(--dur-3) var(--ease-draw) both; }
+.ink-osu { animation: osu calc(180ms * var(--slow)) var(--spring) both; }
+.ink-meku { animation: meku var(--dur-3) var(--ease) both; }
+.ink-tomosu { animation: tomosu var(--dur-4) var(--ease) both; }
+.write { stroke-dasharray: 1; stroke-dashoffset: 1; animation: write-draw var(--dur-write, var(--dur-4)) var(--ease-draw) var(--delay-write, 0ms) forwards; }
+.page-enter { animation: nijimi var(--dur-2) var(--ease) both; }
+.hit-stop { transform: scale(.995); }
+
+@keyframes nijimi { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes nijimi-sm { from { opacity: 0; transform: scale(.985); filter: blur(2px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes kasure { to { opacity: 0; transform: translate(var(--exit-x, 0px), var(--exit-y, 6px)); } }
+@keyframes hiku-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes hiku-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes write-draw { to { stroke-dashoffset: 0; } }
+@keyframes osu { 0% { transform: scale(1.12); } 60% { transform: scale(.98); } 100% { transform: none; } }
+@keyframes kawaku { from { opacity: .3; } to { opacity: 0; } }
+@keyframes meku { from { clip-path: inset(0 100% 0 0); opacity: .6; } to { clip-path: inset(0); opacity: 1; } }
+@keyframes meku-back { from { clip-path: inset(0 0 0 100%); opacity: .6; } to { clip-path: inset(0); opacity: 1; } }
+@keyframes meku-down { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+@keyframes mat { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mat-out { to { opacity: 0; } }
+@keyframes tomosu { from { opacity: 0; } to { opacity: var(--glow-alpha); } }
+@keyframes ignite { 0% { opacity: .35; } 55% { opacity: 1; } 70% { opacity: .7; } 100% { opacity: 1; } }
+@keyframes rm-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vt-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes glow-pulse { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@keyframes gold-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes flicker { 0%, 100% { transform: scaleY(1) skewX(0); } 50% { transform: scaleY(1.08) skewX(-4deg); } }
+@keyframes belt-flip { from { transform: rotateX(90deg); } to { transform: none; } }
+@keyframes hanko-bleed { to { box-shadow: 0 0 0 14px color-mix(in srgb, var(--shu) 0%, transparent); } }
+@keyframes sign-settle { from { transform: scale(1.43); } to { transform: none; } }
+@keyframes run { to { transform: translateX(var(--run, 200px)); } }
+@keyframes lantern-breath { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes nav-down { to { transform: translateY(100%); } }
+@keyframes nav-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes shoji-part-l { to { transform: translateX(-101%); } }
+@keyframes shoji-part-r { to { transform: translateX(101%); } }
+@keyframes shoji-close-l { from { transform: translateX(-101%); } to { transform: none; } }
+@keyframes shoji-close-r { from { transform: translateX(101%); } to { transform: none; } }
+@keyframes slip-down { from { transform: translateY(-110%); } to { transform: none; } }
+@keyframes page-turn { from { transform: perspective(1200px) rotateY(0); } to { transform: perspective(1200px) rotateY(-180deg); } }
+
+/* ── View Transitions (09 §6.4, §7 G) ────────────────────────────────── */
+html[data-vt="route"] .mock-main { view-transition-name: main; }
+html[data-vt="route"] .mock-chrome { view-transition-name: chrome; }
+html[data-vt="route"] .mock-nav { view-transition-name: nav; }
+html[data-vt="route"][data-hero="station-seal"] .hero-seal { view-transition-name: station-seal; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-group(*) { animation-duration: var(--dur-3); animation-timing-function: var(--ease); }
+::view-transition-old(main) { animation: kasure var(--dur-1) var(--ease-out) both; }
+::view-transition-new(main) { animation: meku var(--dur-3) var(--ease) both; }
+html[data-travel="forward"] ::view-transition-old(main) { --exit-x: -6px; --exit-y: 0px; }
+html[data-travel="back"] ::view-transition-old(main) { --exit-x: 6px; --exit-y: 0px; }
+html[data-travel="back"] ::view-transition-new(main) { animation-name: meku-back; }
+html[data-travel="in"] ::view-transition-image-pair(main) { background: var(--stage-bg); }
+html[data-travel="in"] ::view-transition-old(main) { animation: mat-out calc(300ms * var(--slow)) var(--ease-in) both; }
+html[data-travel="in"] ::view-transition-new(main) { animation: mat calc(300ms * var(--slow)) var(--ease-out) calc(120ms * var(--slow)) both; }
+html[data-travel="in"] ::view-transition-old(nav) { animation: nav-down var(--dur-3) var(--ease-in) both; }
+html[data-travel="out"] ::view-transition-new(main), html[data-travel="home"] ::view-transition-new(main) { animation-name: nijimi; }
+html[data-travel="out"] ::view-transition-new(nav), html[data-travel="home"] ::view-transition-new(nav) { animation: nav-up var(--dur-3) var(--ease-out) both; }
+html[data-travel="in"] ::view-transition-old(chrome), html[data-travel="out"] ::view-transition-new(chrome) { animation: none; }
+html[data-vt="theme"] ::view-transition-new(root) { animation: meku-down var(--dur-3) var(--ease) both; }
+html:active-view-transition { scroll-behavior: auto; }
+:root[data-reduced-motion="on"]::view-transition-group(*), :root[data-reduced-motion="on"]::view-transition-old(*), :root[data-reduced-motion="on"]::view-transition-new(*) { animation: vt-fade var(--dur-fade) linear both; clip-path: none; }
+
+/* ── demo frames ─────────────────────────────────────────────────────── */
+.stage { position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 10; overflow: hidden; border-radius: var(--radius-paper); background: var(--surface-paper); isolation: isolate; }
+.stage--tall { aspect-ratio: 4 / 3; }
+.stage--card { aspect-ratio: auto; height: 620px; }
+.stage--card.is-scene { height: auto; aspect-ratio: 16 / 10; }
+.stage--rep { aspect-ratio: auto; height: 360px; }
+@media (min-width: 720px) { .stage--card { height: 520px; } .stage--rep { height: 400px; } }
+.stage--sumi { background: var(--stage-bg); color: var(--stage-fg); }
+.stage--sumi::before { content: ""; position: absolute; inset: 0; background: var(--paper); background-size: 128px 128px; opacity: .04; pointer-events: none; }
+@media (min-width: 720px) { .stage--tall { aspect-ratio: 16 / 10; } }
+.scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.scene .tongue { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); transition: transform calc(600ms * var(--slow)) var(--spring); }
+.scene:not(.is-lit) .hearth .glow-twin { opacity: 0; }
+.scene .quest-slot { transform-box: fill-box; transform-origin: center; }
+.scene.is-lit .tongue { transform: scaleY(1); }
+.scene .tongue.is-flicker { animation: flicker 1.7s ease-in-out infinite; }
+.scene .glow-twin { opacity: var(--glow-alpha); transition: opacity var(--dur-4) var(--ease); }
+.scene .lamp-glow { opacity: 0; }
+.scene .is-pulse .lamp-glow { animation: glow-pulse var(--dur-4) var(--ease) both; }
+.scene .is-ring .ring { stroke: var(--kin); stroke-width: 1; fill: none; }
+.scene .ring { stroke: none; fill: none; }
+.scene .lantern-breath { animation: lantern-breath 4s ease-in-out infinite; }
+.scene .kage { transition: transform var(--dur-3) var(--ease-out), opacity var(--dur-1) var(--ease-out); }
+.scene .quest { opacity: 0; transition: opacity var(--dur-1) linear; }
+.scene .is-ticked .quest { opacity: 1; }
+.shoji { position: absolute; inset: 0; pointer-events: none; display: flex; z-index: 3; }
+.shoji__panel { position: relative; flex: 1; background: var(--surface-paper); overflow: hidden; border: 6px solid var(--wood); }
+.shoji__panel::before { content: ""; position: absolute; inset: 0; background: var(--paper); background-size: 128px 128px; opacity: var(--paper-opacity); mix-blend-mode: var(--paper-blend); }
+.shoji__panel::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, var(--wood) 0 2px, transparent 2px 34px), repeating-linear-gradient(0deg, var(--wood) 0 2px, transparent 2px 48px); opacity: .55; }
+.shoji.is-open .shoji__panel:first-child { animation: shoji-part-l calc(600ms * var(--slow)) var(--ease) both; }
+.shoji.is-open .shoji__panel:last-child { animation: shoji-part-r calc(600ms * var(--slow)) var(--ease) both; }
+.shoji.is-closing .shoji__panel:first-child { animation: shoji-close-l var(--dur-3) var(--ease-in) both; }
+.shoji.is-closing .shoji__panel:last-child { animation: shoji-close-r var(--dur-3) var(--ease-in) both; }
+.shoji.is-away .shoji__panel:first-child { transform: translateX(-101%); }
+.shoji.is-away .shoji__panel:last-child { transform: translateX(101%); }
+.enso { position: absolute; z-index: 4; width: 34%; aspect-ratio: 1; left: 33%; top: 15%; color: var(--fg); pointer-events: none; transition: transform var(--dur-3) var(--ease), opacity var(--dur-2) var(--ease); }
+.enso svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.stage--sumi .enso { color: var(--stage-fg); }
+.phase-word { position: absolute; z-index: 4; left: 16px; top: 12px; display: grid; gap: 0; color: var(--fg); pointer-events: none; }
+.phase-word .brush { font-size: var(--fs-6); }
+.phase-word .gloss { color: var(--fg-muted); }
+.since { position: absolute; z-index: 4; left: 16px; bottom: 12px; right: 36%; font-size: var(--fs-2); color: var(--fg); background: color-mix(in srgb, var(--surface-paper) 85%, transparent); padding: 4px 8px; border-radius: var(--radius-paper); pointer-events: none; }
+.since b { font-weight: 600; }
+.under-btn { position: absolute; z-index: 2; right: 12px; bottom: 12px; }
+.tategaki-column { writing-mode: vertical-rl; font-family: var(--font-mincho); font-size: var(--fs-3); line-height: var(--lh-mincho); display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-2); align-items: flex-start; align-content: flex-start; color: var(--fg); }
+.tategaki-column .seal-date { writing-mode: vertical-rl; }
+.tategaki-column .gloss { writing-mode: vertical-rl; font-family: var(--font-ui); }
+.tategaki-column .foot { font-family: var(--font-ja); font-size: var(--fs-1); color: var(--fg-muted); }
+.tategaki-column.in-stage { position: absolute; right: 10px; top: 10px; bottom: 10px; z-index: 2; }
+.column-row { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-4); align-items: center; }
+.column-row .mincho { font-size: var(--fs-4); }
+@media (max-width: 639px) { .tategaki-column.in-stage { display: none; } }
+@media (min-width: 640px) { .column-row.phone-only { display: none; } }
+
+/* ── End Card ────────────────────────────────────────────────────────── */
+.end-card { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr auto; gap: var(--sp-2); padding: var(--sp-3); color: var(--stage-fg); }
+.end-card__controls { display: flex; gap: var(--sp-2); justify-content: flex-end; }
+.end-card__controls .pill { font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--stage-muted); border: 1px solid var(--stage-line); border-radius: 999px; padding: 2px 8px; }
+.end-card__body { display: grid; grid-template-columns: 1fr; gap: var(--sp-2); align-content: start; min-width: 0; }
+@media (min-width: 720px) { .end-card__body { grid-template-columns: 1fr 120px; } }
+.end-card__brush { width: min(60%, 260px); margin-inline: auto; color: var(--stage-fg); grid-column: 1 / -1; }
+.end-card__brush svg { width: 100%; height: auto; display: block; }
+.end-card__brush .wrote { font-family: var(--font-brush); }
+.tally { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
+.tally .tile { background: var(--stage-raised); border: 1px solid var(--stage-line); border-radius: var(--radius-paper); padding: 6px 8px; display: grid; gap: 2px; min-width: 0; }
+.tally .tile small { font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--stage-muted); letter-spacing: .06em; text-transform: uppercase; }
+.tally .tile .dela { font-size: var(--fs-5); color: var(--stage-fg); }
+.belts { display: flex; flex-wrap: wrap; gap: 6px; }
+.belt-chip { display: inline-flex; gap: 6px; align-items: center; font-size: var(--fs-1); color: var(--stage-fg); border: 1px solid var(--stage-line); border-radius: 999px; padding: 2px 8px; perspective: 400px; }
+.belt-chip i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; background: var(--belt-white); }
+.belt-chip.is-flipping i { animation: belt-flip var(--dur-3) var(--ease-press) both; }
+.belt-chip .ja { color: var(--stage-muted); }
+.lantern-line { display: flex; gap: var(--sp-2); align-items: center; font-size: var(--fs-2); color: var(--stage-fg); }
+.jikai { display: grid; gap: 2px; min-width: 0; }
+.jikai .eyebrow { color: var(--stage-muted); }
+.jikai .mincho { font-size: var(--fs-3); line-height: 1.6; }
+.jikai .masked { color: var(--kin); font-family: var(--font-pixel); }
+.jikai .masked.is-pulse { animation: gold-pulse var(--dur-4) var(--ease) both; }
+.jikai .omikuji { font-size: var(--fs-2); color: var(--stage-muted); }
+@media (min-width: 720px) { .jikai--column { writing-mode: vertical-rl; justify-self: end; height: 100%; } }
+.end-card__foot { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; justify-content: space-between; }
+.end-card__foot .rest { font-size: var(--fs-2); color: var(--stage-muted); }
+.end-card__foot .rest b { color: var(--stage-fg); font-weight: 600; display: block; }
+.end-card .ghost { background: var(--stage-raised); color: var(--stage-fg); border-color: var(--stage-line); }
+.stage--sumi .hanko { color: var(--stage-bg); }
+.mark-travel { position: absolute; z-index: 5; pointer-events: none; color: var(--stage-fg); transition: transform var(--dur-3) var(--ease-in), opacity var(--dur-3) var(--ease-in); }
+.mark-travel .brush { font-size: var(--fs-6); }
+
+/* ── Road ────────────────────────────────────────────────────────────── */
+.road { display: grid; grid-template-columns: 48px 1fr; gap: 0 var(--sp-3); position: relative; }
+.road__spine { grid-column: 1; grid-row: 1 / span 4; width: 48px; display: block; height: 100%; }
+.road__row { grid-column: 2; display: grid; grid-template-columns: 1fr auto; gap: var(--sp-3); align-items: center; padding: var(--sp-3) var(--sp-3); border-radius: var(--radius-paper); min-height: 64px; min-width: 0; }
+.road__row.is-current { background: linear-gradient(90deg, var(--road), transparent 70%); }
+.road__row.is-ahead { filter: url(#sumi-wash); }
+.road__row.is-arrived { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--kin) 60%, transparent); }
+.road__seal { width: 40px; height: 40px; position: relative; color: var(--shu); }
+.road__seal svg { display: block; width: 40px; height: 40px; overflow: visible; }
+.road__seal .wet { position: absolute; inset: 0; opacity: .3; filter: url(#ink-bleed-8); color: var(--shu); }
+.road__seal.is-dry .wet { animation: kawaku var(--dur-4) linear both; }
+.road__seal.is-blank { color: var(--hai); }
+.road__lantern { width: 40px; height: 48px; position: relative; }
+.road__lantern svg { display: block; width: 40px; height: 48px; overflow: visible; }
+.road__lantern .halo { opacity: 0; transition: opacity var(--dur-3) var(--ease); }
+.road__lantern.is-lit .halo { opacity: var(--glow-alpha); }
+.road__lantern .body { fill: var(--raised); transition: fill var(--dur-3) var(--ease); }
+.road__lantern.is-lit .body { fill: var(--kin); }
+.ahead-tag { font-family: var(--font-pixel); font-size: var(--fs-1); letter-spacing: .08em; text-transform: uppercase; color: var(--fg-muted); }
+.headpiece { position: relative; height: 160px; overflow: hidden; border-radius: var(--radius-paper); color: var(--fg); }
+.headpiece svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.headpiece .sign { position: absolute; left: 10px; bottom: 8px; z-index: 1; background: color-mix(in srgb, var(--surface-paper) 82%, transparent); padding: 6px 10px; border-radius: var(--radius-paper); }
+.headpiece .sign__romaji, .headpiece .sign__en { color: var(--fg); }
+.headpiece .keeper { transition: opacity var(--dur-4) var(--ease); }
+.headpiece .keeper--wash { opacity: 1; } .headpiece .keeper--tone { opacity: 0; }
+.headpiece.is-lifted .keeper--wash { opacity: 0; } .headpiece.is-lifted .keeper--tone { opacity: 1; }
+.headpiece .ordinal { font-family: var(--font-mincho); font-size: var(--fs-2); color: var(--fg); }
+
+/* ── Stamp press ─────────────────────────────────────────────────────── */
+.stamp-stage { display: grid; place-items: center; }
+.stamp-sheet { width: min(78%, 300px); aspect-ratio: 1; display: grid; place-items: center; position: relative; }
+.stamp-sheet .seal-art { width: 62%; aspect-ratio: 1; position: relative; color: var(--shu); }
+.stamp-sheet .seal-art svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.stamp-sheet .seal-art .wet { position: absolute; inset: 0; opacity: .3; filter: url(#ink-bleed-8); }
+.stamp-sheet .seal-art.is-dry .wet { animation: kawaku var(--dur-4) linear both; }
+.stamp-sheet .era { position: absolute; right: 10px; top: 10px; writing-mode: vertical-rl; font-family: var(--font-mincho); font-size: var(--fs-2); color: var(--fg); line-height: 1.6; }
+.stamp-sheet .era .gloss { writing-mode: horizontal-tb; position: absolute; left: -2px; bottom: -22px; white-space: nowrap; }
+.stamp-sheet .caption { position: absolute; left: 10px; bottom: 10px; }
+
+/* ── Rep (session) ───────────────────────────────────────────────────── */
+.rep { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr auto; gap: var(--sp-2); padding: var(--sp-3); color: var(--stage-fg); }
+.hud { display: flex; gap: var(--sp-3); align-items: center; font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--stage-muted); letter-spacing: .06em; }
+.hud .meter { flex: 1; background: var(--stage-raised); }
+.hud .xp { color: var(--kin); min-width: 4ch; text-align: right; }
+.hud .ki-label { color: var(--stage-fg); }
+.rep__cards { position: relative; min-height: 0; }
+.step { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr; gap: var(--sp-2); }
+.step.is-leaving { animation: kasure var(--dur-1) var(--ease-out) both; --exit-x: -6px; --exit-y: 0px; }
+.step.is-entering { animation: step-in var(--dur-2) var(--ease) both; }
+@keyframes step-in { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+.step .prompt { display: flex; gap: var(--sp-3); align-items: baseline; flex-wrap: wrap; }
+.step .prompt .ja { font-size: var(--fs-5); color: var(--stage-fg); }
+.step .prompt .gloss { color: var(--stage-muted); }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); min-height: 0; }
+.choice { position: relative; border: 1px solid var(--stage-line); background: var(--stage-raised); color: var(--stage-fg); border-radius: var(--radius-paper); padding: var(--sp-2) var(--sp-3); text-align: left; cursor: pointer; font-size: var(--fs-3); display: flex; align-items: center; gap: var(--sp-2); min-height: 44px; overflow: visible; }
+.choice .mark { width: 14px; height: 14px; border: 1px solid var(--stage-muted); border-radius: 50%; flex: none; position: relative; }
+.choice .splat { position: absolute; left: -9px; top: -9px; width: 32px; height: 32px; color: var(--matcha); opacity: 0; }
+.choice[data-state="correct"] { border-color: var(--matcha); }
+.choice[data-state="correct"] .splat { opacity: 1; animation: osu calc(180ms * var(--slow)) var(--spring) both; }
+.choice[data-state="wrong"] { color: var(--stage-muted); }
+.choice .strike { position: absolute; left: 32px; right: 8px; top: 50%; height: 10px; transform: translateY(-50%); pointer-events: none; display: none; color: var(--stage-fg); }
+.choice[data-state="wrong"] .strike { display: block; }
+.choice .strike path { stroke: currentColor; fill: none; stroke-linecap: round; }
+.choice .strike .write { --dur-write: var(--dur-2); }
+.feedback { font-size: var(--fs-2); color: var(--stage-muted); min-height: 1.5em; }
+.feedback b { color: var(--stage-fg); font-weight: 600; }
+.feedback.ink-nijimi { animation-duration: var(--dur-2); }
+.rep__foot { display: flex; gap: var(--sp-2); justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.rep .ghost { background: var(--stage-raised); color: var(--stage-fg); border-color: var(--stage-line); }
+.backdrop { position: absolute; inset: 0; z-index: 6; background: color-mix(in srgb, var(--stage-bg) 60%, transparent); display: grid; justify-items: center; align-items: start; }
+.backdrop.ink-nijimi { animation-duration: var(--dur-2); }
+.tanzaku { width: min(80%, 300px); margin-top: 0; background: var(--surface-paper); color: var(--fg); padding: var(--sp-4); border-radius: 0 0 var(--radius-paper) var(--radius-paper); box-shadow: 0 1px 0 color-mix(in srgb, var(--stage-bg) 14%, transparent), inset 0 0 36px color-mix(in srgb, var(--stage-bg) 6%, transparent); animation: slip-down calc(300ms * var(--slow)) var(--ease-out) both; display: grid; gap: var(--sp-3); position: relative; }
+.tanzaku::before { content: ""; position: absolute; left: 50%; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--shu); transform: translateX(-50%); }
+.tanzaku .status-window { background: var(--raised-paper); }
+.tanzaku .left { color: var(--shu-text); font-weight: 600; }
+.tanzaku.is-leaving { animation: kasure var(--dur-1) var(--ease-out) both; --exit-y: -6px; }
+
+/* ── mock phone (route transitions) ──────────────────────────────────── */
+.mock-wrap { display: grid; gap: var(--sp-3); justify-items: center; }
+.mock { width: min(100%, 360px); height: 520px; max-width: 100%; position: relative; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: var(--bg-paper); display: grid; grid-template-rows: auto 1fr auto; isolation: isolate; }
+.mock-chrome { display: flex; align-items: center; gap: var(--sp-2); padding: 8px 12px; font-size: var(--fs-2); background: color-mix(in srgb, var(--bg-paper) 92%, transparent); border-bottom: 1px solid var(--line); min-width: 0; }
+.mock-chrome .brush { font-size: var(--fs-3); }
+.mock-chrome .belt { width: 10px; height: 10px; border-radius: 2px; background: var(--belt-color); }
+.mock-chrome .lv { margin-left: auto; font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--fg-muted); }
+.mock-main { position: relative; overflow: hidden; padding: var(--sp-3); display: grid; align-content: start; gap: var(--sp-3); min-width: 0; }
+.mock-main.is-session { background: var(--stage-bg); color: var(--stage-fg); }
+.mock-nav { display: flex; justify-content: space-around; padding: 6px 4px; border-top: 1px solid var(--line); font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--fg-muted); letter-spacing: .04em; background: var(--bg-paper); }
+.mock-nav span[aria-current] { color: var(--fg); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--shu); }
+.mock-main .scene-box { position: relative; aspect-ratio: 16 / 10; max-width: 100%; border-radius: var(--radius-paper); overflow: hidden; }
+.mock-main .road { grid-template-columns: 32px 1fr; }
+.mock-main .road__spine { width: 32px; }
+.mock-main .headpiece { height: 130px; }
+.mock-main .choices { min-height: 120px; }
+.vt-controls { display: flex; flex-wrap: wrap; gap: var(--sp-2); justify-content: center; }
+
+/* ── grammar board, runners, materials ───────────────────────────────── */
+.verb { display: grid; gap: var(--sp-2); }
+.verb__stage { position: relative; height: 96px; display: grid; place-items: center; overflow: hidden; border-radius: var(--radius-paper); background: var(--raised-paper); }
+.verb__chip { padding: 8px 14px; background: var(--surface-paper); border-radius: var(--radius-paper); box-shadow: 0 1px 0 color-mix(in srgb, var(--stage-bg) 14%, transparent); font-size: var(--fs-2); }
+.verb__bar { width: 70%; height: 6px; background: var(--kin); border-radius: 999px; }
+.verb__page { position: absolute; inset: 10px; background: var(--surface-paper); display: grid; place-items: center; font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--fg-muted); border-radius: var(--radius-paper); }
+.verb__head { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+.verb__head .brush { font-size: var(--fs-4); }
+.verb__head .en { font-weight: 600; font-size: var(--fs-2); }
+.verb p { font-size: var(--fs-1); color: var(--fg-muted); }
+.stagger-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.stagger-row .chip { --i: 0; }
+.runner { display: grid; grid-template-columns: 110px 1fr; gap: var(--sp-3); align-items: center; }
+.runner__track { position: relative; height: 14px; border-radius: 999px; background: var(--raised-paper); overflow: visible; }
+.runner__dot { position: absolute; left: 0; top: 1px; width: 12px; height: 12px; border-radius: 50%; background: var(--shu); }
+.runner.is-run .runner__dot { animation: run var(--d, var(--dur-3)) var(--e, var(--ease)) both; }
+.runner__name { font-family: var(--font-pixel); font-size: var(--fs-1); color: var(--fg-muted); letter-spacing: .04em; }
+.runner__name b { color: var(--fg); font-weight: 400; display: block; }
+.swatch { display: grid; gap: 6px; }
+.swatch__fill { height: 56px; border-radius: var(--radius-paper); position: relative; overflow: hidden; }
+.swatch__fill::before { content: ""; position: absolute; inset: 0; background: var(--paper); background-size: 128px 128px; opacity: .08; mix-blend-mode: multiply; }
+.swatch b { font-weight: 600; font-size: var(--fs-2); }
+.swatch .gloss { display: block; }
+.type-row { display: grid; gap: var(--sp-2); padding-block: var(--sp-3); }
+.type-row + .type-row { border-top: 1px solid var(--line); }
+.type-row .sample { display: flex; gap: var(--sp-3); align-items: baseline; flex-wrap: wrap; }
+.type-row .sample .brush { font-size: var(--fs-6); }
+.type-row .sample .mincho { font-size: var(--fs-4); max-width: var(--measure-ja); }
+.type-row .sample .dela { font-size: var(--fs-6); }
+.type-row .sample .pixel { font-size: var(--fs-2); }
+.type-row .job { font-size: var(--fs-2); color: var(--fg-muted); max-width: 70ch; }
+.sky-strip { height: 48px; border-radius: var(--radius-paper); background: linear-gradient(180deg, var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon)); position: relative; overflow: hidden; }
+.sky-strip .moon { position: absolute; right: 12px; top: 8px; width: 24px; height: 24px; }
+.sky-row { display: grid; grid-template-columns: 1fr; gap: var(--sp-2); align-items: center; }
+input[type="range"] { width: 100%; accent-color: var(--shu); }
+.dates { display: grid; gap: var(--sp-3); }
+@media (min-width: 720px) { .dates { grid-template-columns: repeat(3, 1fr); } }
+.date-sheet { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-3); align-items: start; min-height: 220px; }
+.date-sheet .tategaki-column { font-size: var(--fs-3); }
+.date-sheet .right { display: grid; gap: 6px; align-content: start; }
+.date-sheet .moon { width: 36px; height: 36px; }
+.font-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.font-chips .chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--hai); display: inline-block; }
+.font-chips .chip.is-ok i { background: var(--matcha); }
+.kbd-list { display: flex; gap: var(--sp-2); flex-wrap: wrap; font-size: var(--fs-2); color: var(--fg-muted); }
+
+/* ── reduced motion as a first-class variant (09 §6.6) ────────────────── */
+:root[data-reduced-motion="on"] *:not(.rm-fade), :root[data-reduced-motion="on"] *:not(.rm-fade)::before, :root[data-reduced-motion="on"] *:not(.rm-fade)::after { animation-duration: .001ms; animation-iteration-count: 1; transition-duration: .001ms; }
+:root[data-reduced-motion="on"] .rm-fade { animation-duration: var(--dur-fade); transition-duration: var(--dur-fade); }
+:root[data-reduced-motion="on"] .ink-nijimi, :root[data-reduced-motion="on"] .page-enter, :root[data-reduced-motion="on"] .step.is-entering, :root[data-reduced-motion="on"] .feedback.ink-nijimi, :root[data-reduced-motion="on"] .backdrop.ink-nijimi { animation-name: rm-fade; animation-duration: var(--dur-fade); transform: none; filter: none; }
+:root[data-reduced-motion="on"] .ink-osu, :root[data-reduced-motion="on"] .choice[data-state="correct"] .splat, :root[data-reduced-motion="on"] .meter[data-met="true"]::after { animation: none; transform: none; }
+:root[data-reduced-motion="on"] .ink-meku, :root[data-reduced-motion="on"] .tanzaku { animation-name: rm-fade; animation-duration: var(--dur-fade); clip-path: none; transform: none; }
+:root[data-reduced-motion="on"] .write { animation: none; stroke-dashoffset: 0; }
+:root[data-reduced-motion="on"] .ink-hiku-x, :root[data-reduced-motion="on"] .scroll-card.ink-hiku { animation: none; transform: none; }
+:root[data-reduced-motion="on"] .ink-wet .wet, :root[data-reduced-motion="on"] .road__seal .wet, :root[data-reduced-motion="on"] .seal-art .wet { opacity: 0; animation: none; }
+:root[data-reduced-motion="on"] .hanko.is-pressed { transform: none; }
+:root[data-reduced-motion="on"] .hanko.is-pressed::before { animation: none; box-shadow: 0 0 0 6px color-mix(in srgb, var(--shu) 30%, transparent); }
+:root[data-reduced-motion="on"] .lantern__tongue .flame, :root[data-reduced-motion="on"] .scene .tongue.is-flicker, :root[data-reduced-motion="on"] .scene .lantern-breath { animation: none; }
+:root[data-reduced-motion="on"] .scene .is-pulse .lamp-glow { animation: none; opacity: 0; }
+:root[data-reduced-motion="on"] .scene .tongue { transition: none; }
+:root[data-reduced-motion="on"] .shoji .shoji__panel { animation: none; }
+:root[data-reduced-motion="on"] .shoji.is-open .shoji__panel, :root[data-reduced-motion="on"] .shoji.is-away .shoji__panel { opacity: 0; transform: none; transition: opacity var(--dur-fade) linear; }
+:root[data-reduced-motion="on"] .shoji.is-closing .shoji__panel { opacity: 1; transform: none; transition: opacity var(--dur-fade) linear; }
+:root[data-reduced-motion="on"] .enso { transition: opacity var(--dur-fade) linear; }
+:root[data-reduced-motion="on"] .sign.is-arriving .sign__ja { animation: none; }
+:root[data-reduced-motion="on"] .belt-chip.is-flipping i { animation: none; }
+:root[data-reduced-motion="on"] .jikai .masked.is-pulse { animation: none; }
+:root[data-reduced-motion="on"] .brand.is-igniting .brand__ja { animation: none; }
+:root[data-reduced-motion="on"] .brand.is-igniting .brand__glow { animation: none; opacity: var(--glow-alpha); }
+:root[data-reduced-motion="on"] .runner.is-run .runner__dot { animation: none; transform: translateX(var(--run, 200px)); }
+:root[data-reduced-motion="on"] .step.is-leaving, :root[data-reduced-motion="on"] .ink-kasure, :root[data-reduced-motion="on"] .tanzaku.is-leaving { animation: none; opacity: 0; }
+:root[data-reduced-motion="on"] .mark-travel { transition: opacity var(--dur-fade) linear; }
+:root[data-reduced-motion="on"] .headpiece .keeper { transition-duration: var(--dur-fade); }
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="ink-bleed-8" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="8" xChannelSelector="R" yChannelSelector="G"/></filter>
+    <filter id="sumi-wash"><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".6"/></feComponentTransfer></filter>
+    <radialGradient id="halo"><stop offset="0" stop-color="#E0B341" stop-opacity=".7"/><stop offset="1" stop-color="#E0B341" stop-opacity="0"/></radialGradient>
+  </defs>
+</svg>
+<div class="wrap">
+  <header class="bar" role="toolbar" aria-label="Prototype controls">
+    <a class="brand" href="#top" id="brand" aria-label="Tsuzuku, to be continued">
+      <span class="brand__ja" lang="ja">つづく</span><span class="brand__glow" aria-hidden="true" lang="ja">つづく</span>
+      <span class="brand__en">tsuzuku · to be continued</span>
+    </a>
+    <div class="seg" role="group" aria-label="Theme" id="theme-seg">
+      <button type="button" data-theme-choice="auto" aria-pressed="true">Auto</button>
+      <button type="button" data-theme-choice="light" aria-pressed="false">Morning</button>
+      <button type="button" data-theme-choice="dark" aria-pressed="false">Night</button>
+    </div>
+    <label class="switch"><input type="checkbox" id="sw-reduced"> Reduced motion</label>
+    <label class="switch"><input type="checkbox" id="sw-slow"> Slow 0.25×</label>
+    <label class="switch"><input type="checkbox" id="sw-arcade"> Arcade feel</label>
+    <label class="switch"><input type="checkbox" id="sw-repair"> Repair open</label>
+    <span class="chip" id="fps" aria-live="off">fps <b>—</b></span>
+    <span class="chip" id="glow-count" title="Glowing elements in the viewport, Arcade Night only (ceiling 6)">glows <b>0</b>/6</span>
+    <div class="hairline" aria-hidden="true"></div>
+  </header>
+
+  <section class="hero" id="top">
+    <p class="eyebrow">Design 09 · Washi &amp; Sumi · live prototype · 2026-10-18</p>
+    <div class="hero__mark">
+      <span class="brush" lang="ja">つづく</span>
+      <span class="say"><b>tsuzuku</b><span>to be continued · the book that takes ink</span></span>
+    </div>
+    <p class="lede"><strong>Everything is printed.</strong> Paper has grain; ink bleeds, then dries overnight; a seal is pressed and leaves a slightly imperfect mark; the page carries the real date and the colour of the paper follows the calendar. Edo is the hand, the arcade is a woodblock print of an arcade, the status window is the print's cartouche. Three eras, one press, differing in <strong>tempo, not colour</strong>. Toggle the theme, reduced motion and slow motion above; every demo replays.</p>
+    <div class="row">
+      <span class="readout" id="now-readout">now <b>—</b></span>
+      <span class="readout" id="vt-support">View Transitions <b>—</b></span>
+      <span class="readout" id="spring-support">linear() spring <b>—</b></span>
+      <span class="readout" id="phase-readout">phase <b>—</b></span>
+    </div>
+    <div class="font-chips" id="font-chips" aria-label="Font status"></div>
+  </section>
+
+  <!-- §2 Materials -->
+  <section class="chapter" id="materials" aria-labelledby="h-materials">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§2 · The world · materials, light, texture</p>
+      <h2 class="title-lockup" id="h-materials"><span class="brush" lang="ja">紙</span><span class="say">kami · paper</span><span class="en">Materials</span></h2>
+      <p class="lede">Six materials, each already in the kit. Paper receives ink and never moves. Dojo Morning is paper receiving ink; Arcade Night is lacquer receiving gold. The two themes are not inversions.</p>
+    </div>
+    <div class="grid grid--4" id="swatches"></div>
+    <div class="grid grid--2">
+      <div class="grid grid--3" style="--cols:3">
+        <div class="sheet"><p class="eyebrow">.sheet</p><p>Washi: inset shading, grain at <span class="pixel" id="grain-pct">5.5%</span>.</p><span class="seal-corner" lang="ja" aria-label="seal corner: kata">型</span></div>
+        <div class="sheet"><p class="eyebrow">.sheet</p><p class="mincho" lang="ja">第七宿</p><p class="gloss">dai-nana-shuku · Station 7 (kanji numerals that teach)</p></div>
+        <div class="sheet sheet--gutter"><p class="eyebrow">.sheet--gutter</p><p class="gloss">the goshuin spread's centre line</p></div>
+      </div>
+      <div class="grid grid--3">
+        <div class="card"><p class="eyebrow">.card</p><p>Flat surface, hairline border. Stays on arcade and utility pages.</p></div>
+        <div class="card"><p class="eyebrow">.card</p><p class="pixel">COMBO ×12</p><p class="gloss">pixel counts live here</p></div>
+        <div class="card"><p class="eyebrow">.card</p><p class="gloss">no grain, no inset</p></div>
+      </div>
+    </div>
+    <div class="demo-foot">
+      <p class="note">Rule 2 is testable here: nothing glows in Dojo Morning. Switch to Night and only the light sources glow (lanterns, hearth, the brand once a day); the glow is a static shadow on a twin whose <em>opacity</em> changes. The <b>glows</b> chip above counts them in the viewport.</p>
+      <span class="readout" id="paper-readout">paper opacity <b>—</b></span>
+    </div>
+  </section>
+
+  <!-- §3 Type -->
+  <section class="chapter" id="type" aria-labelledby="h-type">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§3 · Typography · three voices per page, never more</p>
+      <h2 class="title-lockup" id="h-type"><span class="brush" lang="ja">字</span><span class="say">ji · a written character</span><span class="en">Type system</span></h2>
+    </div>
+    <div class="sheet">
+      <div class="type-row">
+        <p class="eyebrow">Brush · Yuji Syuku · says one word</p>
+        <div class="sample"><span class="brush" lang="ja">一本</span><span class="gloss">ippon · one full point</span><span class="brush" lang="ja">原</span><span class="gloss">Hara · Station 13</span></div>
+        <p class="job">Always 400, line-height 1.1; may be <em>written</em> (hiku) on first paint of a ceremony; shown whole on back navigation. Never body text.</p>
+      </div>
+      <div class="type-row">
+        <p class="eyebrow">Mincho · Shippori Mincho B1 · the reading voice (fenced)</p>
+        <div class="sample"><p class="mincho" lang="ja"><ruby>水<rt>みず</rt></ruby>を<ruby>飲<rt>の</rt></ruby>みます。</p><span class="gloss">mizu o nomimasu · I drink water. (sentence of the day)</span></div>
+        <p class="job">Story and reader bodies, the sekki label, station ordinals, the omikuji. Line-height 2, measure 36em, gothic ruby at 0.5em. Mincho never animates beyond opacity; formality is stillness.</p>
+      </div>
+      <div class="type-row">
+        <p class="eyebrow">Pixel · DotGothic16 · the carved label and every count</p>
+        <div class="sample"><span class="pixel">LV 13 · 2,480 XP</span><span class="pixel">STATION 13 / 53</span><kbd>Enter</kbd></div>
+        <p class="job">One <code>.eyebrow</code> replaces 22 hand-rolled copies. Never below --fs-1 (12 px).</p>
+      </div>
+      <div class="type-row">
+        <p class="eyebrow">Poster · Dela Gothic One · the number that matters</p>
+        <div class="sample"><span class="dela ticker" id="dela-sample" data-to="2480">0</span><span class="gloss">tabular-nums, counts up in ≤ 400 ms</span><button class="ghost ghost--sm" type="button" data-replay="dela-sample">Replay count</button></div>
+        <p class="job">Titles carry a 1 px vermilion misregistration; numbers never.</p>
+      </div>
+      <div class="type-row">
+        <p class="eyebrow">.sign · the zero-Japanese lockup · every glyph has romaji and English within 16 px</p>
+        <div class="sample">
+          <div class="sign sign--head"><span class="sign__n">13</span><span class="sign__ja" lang="ja"><ruby>原<rt>はら</rt></ruby></span><span class="sign__romaji">Hara</span><span class="sign__en">Fuji-View Keeper · Orange belt</span></div>
+          <div class="sign sign--ahead"><span class="sign__n">14</span><span class="sign__ja" lang="ja">吉原</span><span class="sign__romaji">Yoshiwara</span><span class="sign__en">ahead · Left-Fuji Keeper</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- §4.3 Calendar -->
+  <section class="chapter" id="calendar" aria-labelledby="h-cal">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§4.3 · The calendar mechanism · deterministic from the date</p>
+      <h2 class="title-lockup" id="h-cal"><span class="brush" lang="ja">暦</span><span class="say">koyomi · the calendar</span><span class="en">Sky, sekki, moon</span></h2>
+      <p class="lede">The real hour paints the sky; the date names one of twenty-four sekki (traditional calendar, approximate) and tints the paper by at most 3 %. Shown as dates, never countdowns. Nothing unlocks on a season; it is decorative with a label.</p>
+    </div>
+    <div class="grid grid--2">
+      <div class="sheet">
+        <p class="eyebrow">Today, from the real clock</p>
+        <div class="sky-strip" id="sky-strip"><svg class="moon" id="moon-now" viewBox="0 0 24 24" role="img" aria-label="moon phase"></svg></div>
+        <div class="sky-row">
+          <label for="hour" class="gloss">Scrub the hour (boundaries 05 · 08 · 17 · 20) · <span id="hour-label" class="pixel"></span></label>
+          <input type="range" id="hour" min="0" max="23" step="1" value="12">
+          <div class="row"><button class="ghost ghost--sm" type="button" id="hour-now">Back to now</button><span class="readout" id="moon-readout">moon <b>—</b></span><span class="readout" id="lamp-readout">--lamp-alpha <b>0</b></span></div>
+        </div>
+      </div>
+      <div class="sheet" id="today-sheet">
+        <p class="eyebrow">The tategaki column reads today · <span lang="ja">節気</span> sekki · <span lang="ja">候</span> kō</p>
+        <div class="column-row" id="today-column"></div>
+        <p class="note" id="today-note"></p>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="demo-foot">
+        <p class="eyebrow">Moment H · <span lang="ja">節気</span> sekki · the calendar turns · the paper tint steps (≤ 3 %), the label kasure/nijimi, the moon changes</p>
+        <div class="row"><button class="ghost ghost--sm" type="button" data-sekki-date="2026-02-04">Feb 4</button><button class="ghost ghost--sm" type="button" data-sekki-date="2026-07-23">Jul 23</button><button class="ghost ghost--sm" type="button" data-sekki-date="2026-10-24">Oct 24</button><button class="ghost ghost--sm" type="button" data-sekki-date="today">Today</button></div>
+      </div>
+      <div class="dates" id="dates"></div>
+      <p class="note">Contrast readouts measure <code>--fg-muted</code> on the tinted paper with the WCAG formula from <code>tokens.test.ts</code>. Every pair must stay ≥ 4.5:1. The whole page body is tinted when you press a date (one full-page paint, accepted once a fortnight).</p>
+    </div>
+  </section>
+
+  <!-- §6.1 Motion tokens -->
+  <section class="chapter" id="motion" aria-labelledby="h-motion">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§6.1 · Motion tokens · durations and eases</p>
+      <h2 class="title-lockup" id="h-motion"><span class="brush" lang="ja">動</span><span class="say">dō · motion</span><span class="en">Tokens</span></h2>
+      <p class="lede">Edo moves at 400–2,400 ms, the arcade at 40–220 ms, the cartouche at 220–600 ms. Reduced motion zeroes <code>--dur-1…5</code> and <code>--stagger</code> and keeps only <code>--dur-fade</code> (150 ms). Slow motion multiplies every token by 4.</p>
+    </div>
+    <div class="grid grid--2">
+      <div class="sheet"><p class="eyebrow">Durations · one dot, --ease</p><div class="grid" id="dur-runners" style="gap:10px"></div></div>
+      <div class="sheet"><p class="eyebrow">Eases · one dot, --dur-4</p><div class="grid" id="ease-runners" style="gap:10px"></div></div>
+    </div>
+    <div class="row"><button class="ghost" type="button" id="run-all">Run all</button><span class="note">Composited properties only: opacity, transform, clip-path, stroke-dashoffset. Never width, height, box-shadow, text-shadow or filter.</span></div>
+  </section>
+
+  <!-- §6.2 Grammar board -->
+  <section class="chapter" id="grammar" aria-labelledby="h-grammar">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§6.2–6.3 · Seven ink verbs · the choreography grammar</p>
+      <h2 class="title-lockup" id="h-grammar"><span class="brush" lang="ja">七</span><span class="say">nana · seven</span><span class="en">Grammar board</span></h2>
+      <p class="lede">Every animation in the app is one of seven verbs, so a review can say "that should be a nijimi, not an osu". Each has a reduced-motion form: keep opacity, drop travel, drop loops, nothing longer than 150 ms.</p>
+    </div>
+    <div class="grid grid--4" id="verbs"></div>
+    <div class="sheet">
+      <div class="demo-foot"><p class="eyebrow">Stagger with a cap · <code>calc(min(var(--i), 7) * var(--stagger))</code> · twelve chips, the first eight stagger, the rest arrive with the eighth</p><button class="ghost ghost--sm" type="button" id="stagger-replay">Replay</button></div>
+      <div class="stagger-row" id="stagger-row"></div>
+    </div>
+  </section>
+
+  <!-- §7 A · Arrival -->
+  <section class="chapter" id="arrival" aria-labelledby="h-arrival">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§7 A · Hiraku · opening the book · daily arrival on the Dojo home · silent by rule</p>
+      <h2 class="title-lockup" id="h-arrival"><span class="brush" lang="ja">開</span><span class="say">hiraku · to open</span><span class="en">Daily arrival</span></h2>
+      <p class="lede">Boot: an ensō draws itself on the closed shōji (900 ms). The panels part; the ensō lands on the wall scroll; the phase word for the real hour bleeds in under the brand; the column reads today; one thing that changed since yesterday pulses once, with a caption. Hotspots are interactive the whole time. Any tap skips.</p>
+    </div>
+    <div class="stage stage--tall" id="arrival-stage">
+      <svg class="scene" id="arrival-scene" viewBox="0 0 640 400" role="img" aria-label="The dojo: a shōji window with the sky, a wall scroll, lanterns, a hearth and tatami"></svg>
+      <div class="tategaki-column in-stage" id="arrival-column"></div>
+      <div class="phase-word" id="phase-word" hidden></div>
+      <div class="since" id="since" hidden></div>
+      <button class="ghost ghost--sm under-btn" type="button" id="under-btn">Tap me · <span class="pixel">0</span></button>
+      <div class="shoji is-away" id="arrival-shoji" aria-hidden="true"><div class="shoji__panel"></div><div class="shoji__panel"></div></div>
+      <div class="enso" id="arrival-enso" hidden></div>
+    </div>
+    <div class="column-row phone-only" id="arrival-column-phone"></div>
+    <div class="demo-foot">
+      <div class="row"><button class="hanko" type="button" id="arrival-play"><span lang="ja">開</span> Replay arrival</button><span class="readout" id="arrival-readout">beat <b>idle</b></span></div>
+      <p class="note">Ethical line: the arrival never names a gap. The never-lit hearth says "Unlit. Your first session lights it." No absent-day count, no streak history here.</p>
+    </div>
+  </section>
+
+  <!-- §7 B/C · End Card and Rest -->
+  <section class="chapter" id="endcard" aria-labelledby="h-end">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§7 B · Shūhitsu · finishing a session → §7 C · Kadode · leaving</p>
+      <h2 class="title-lockup" id="h-end"><span class="brush" lang="ja">終</span><span class="say">shū · to finish</span><span class="en">End Card and Rest</span></h2>
+      <p class="lede">Controls dry out, the page dims to the sumi stage, <span lang="ja">つづく</span> (tsuzuku) is <em>written</em> over 1,200 ms, the tally counts up, item belts flip, a lantern catches for today, the next-time sentence shows its masked word. "Rest." carries the mark into the hearth, which relights by growing. The silence is the rest.</p>
+    </div>
+    <div class="stage stage--card stage--sumi" id="end-stage"></div>
+    <div class="demo-foot">
+      <div class="row"><button class="hanko" type="button" id="end-play"><span lang="ja">終</span> Replay End Card</button><span class="readout" id="end-readout">beat <b>idle</b></span></div>
+      <p class="note">No BEST eyebrow on this card; no time words; "Another Kata?" only while reviews remain. There is no exit interception, ever.</p>
+    </div>
+  </section>
+
+  <!-- §7 D · Road -->
+  <section class="chapter" id="road" aria-labelledby="h-road">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§7 D · Tōchaku · arriving at a new station · the Road and the Station headpiece</p>
+      <h2 class="title-lockup" id="h-road"><span class="brush" lang="ja">着</span><span class="say">chaku · to arrive</span><span class="en">Station arrival</span></h2>
+      <p class="lede">The belt-coloured spine draws from the last cleared station; the cleared seal presses, then dries; the new station's lantern catches and its sign settles from --fs-6 to --fs-5. Towns ahead are ink wash and labelled <em>ahead</em>, never locked.</p>
+    </div>
+    <div class="grid grid--2">
+      <div class="sheet" id="road-sheet">
+        <p class="eyebrow">The Road · Orange belt · stations 12–14 of 53</p>
+        <div class="road" id="road-list"></div>
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="headpiece" id="headpiece"></div>
+        <p class="note">The 160 px headpiece: sky bands by the real hour, a Fuji profile from the wallpaper kit, the road surface in <code>--road</code> (belt colour mixed 35 % into paper), the keeper lifting from ink wash to tone over 900 ms, and the sign at --fs-5 with <span class="mincho" lang="ja">第十三宿</span> (dai-jūsan-shuku, Station 13).</p>
+      </div>
+    </div>
+    <div class="demo-foot">
+      <div class="row"><button class="hanko" type="button" id="road-play"><span lang="ja">着</span> Replay arrival</button><span class="readout" id="road-readout">beat <b>idle</b></span></div>
+      <p class="note">Sound: the <code>scroll</code> fanfare on first arrival only (not played here). Projected Arrival stays a month name.</p>
+    </div>
+  </section>
+
+  <!-- §7 E · Stamp + Hanko -->
+  <section class="chapter" id="stamp" aria-labelledby="h-stamp">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§7 E · Ōin · a stamp or badge · and the Hanko Button</p>
+      <h2 class="title-lockup" id="h-stamp"><span class="brush" lang="ja">押</span><span class="say">osu · to press</span><span class="en">Seal press</span></h2>
+      <p class="lede">The sheet bleeds in with its grain; the seal presses on the spring; the wet ink dries over the dry layer (kawaku); the era date appears in Mincho. Today's ink stays wet (30 %) until the 04:00 roll; tomorrow it is dry. That is the "what's new" layer: no counts, no notification.</p>
+    </div>
+    <div class="grid grid--2">
+      <div class="stage stamp-stage" id="stamp-stage"></div>
+      <div class="grid" style="align-content:start">
+        <div class="sheet">
+          <p class="eyebrow">Hanko Button · square vermilion · scale(.96) for 60 ms · ink bleeds on pointerdown · one per view</p>
+          <div class="row" style="margin-top:8px">
+            <button class="hanko" type="button" id="hanko-demo"><span lang="ja">型</span> Kata · 20 reps</button>
+            <span class="readout" id="hanko-readout">pressed <b>0</b></span>
+          </div>
+          <p class="note" style="margin-top:8px">Text is paper on vermilion at 4.6:1, so no alpha on hanko text. Hold the press: the bleed ring is the ink; release: it dries over 900 ms (reduced motion: colour sets in 200 ms, no scale).</p>
+        </div>
+        <div class="row"><button class="hanko" type="button" id="stamp-play"><span lang="ja">押</span> Replay stamp press</button><span class="readout" id="stamp-readout">beat <b>idle</b></span><button class="ghost" type="button" id="stamp-dismiss">Dismiss (kasure)</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- §6.4 Route transitions -->
+  <section class="chapter" id="routes" aria-labelledby="h-routes">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§6.4 · Meku · route transitions on the hash router · the ink wipe</p>
+      <h2 class="title-lockup" id="h-routes"><span class="brush" lang="ja">捲</span><span class="say">mekuru · to turn a page</span><span class="en">Route transitions</span></h2>
+      <p class="lede">The old page dries out (kasure, 120 ms) while the new one is revealed by a <code>clip-path: inset()</code> wipe in the travel direction (400 ms). Chrome holds still; only <code>main</code> moves. Road → Station carries the seal as a shared element. Dojo → Session dims to the stage (mat). The View Transitions API runs when it exists; otherwise the CSS fallback bleeds the new page in.</p>
+    </div>
+    <div class="mock-wrap">
+      <div class="mock" id="mock" aria-label="Mock app frame">
+        <div class="mock-chrome"><span class="brush" lang="ja">つづく</span><span class="belt" aria-label="Orange belt"></span><span class="lantern" data-state="lit" id="mock-lantern"></span><span class="lv pixel">LV 13</span></div>
+        <div class="mock-main" id="mock-main"></div>
+        <div class="mock-nav" id="mock-nav"><span aria-current="page">Dojo</span><span>Road</span><span>Library</span><span>Records</span></div>
+      </div>
+      <div class="vt-controls" id="vt-controls">
+        <button class="ghost ghost--sm" type="button" data-go="dojo">Dojo</button>
+        <button class="ghost ghost--sm" type="button" data-go="road">Road</button>
+        <button class="ghost ghost--sm" type="button" data-go="station">Station 13</button>
+        <button class="ghost ghost--sm" type="button" data-go="session">Session</button>
+      </div>
+      <div class="row" style="justify-content:center">
+        <label class="switch"><input type="checkbox" id="sw-stub"> Stub out startViewTransition</label>
+        <span class="readout" id="vt-ran">ran <b>—</b></span>
+      </div>
+      <p class="note">Travel: dojo → road is <code>forward</code>, station → road is <code>back</code>, → session is <code>in</code>, session → dojo is <code>home</code>. Under reduced motion the API is skipped and the fallback plays its 150 ms fade.</p>
+    </div>
+  </section>
+
+  <!-- §7 G · Dusk -->
+  <section class="chapter" id="dusk" aria-labelledby="h-dusk">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§7 G · Kure · dusk falls · the theme change</p>
+      <h2 class="title-lockup" id="h-dusk"><span class="brush" lang="ja">暮</span><span class="say">kure · dusk</span><span class="en">Theme change</span></h2>
+      <p class="lede">Dojo Morning and Arcade Night are the same room at 09:00 and 21:00. Switching is dusk falling: a 400 ms View Transition revealed top-down, so the sky darkens before the floor; then the lanterns catch (tomosu, 900 ms). Silent. The app never switches presets on its own; "Follow the sky" is opt-in.</p>
+    </div>
+    <div class="grid grid--2">
+      <div class="stage" id="dusk-stage"><svg class="scene" id="dusk-scene" viewBox="0 0 640 400" role="img" aria-label="The dojo at the current theme"></svg></div>
+      <div class="grid" style="align-content:start">
+        <div class="row">
+          <button class="hanko" type="button" id="dusk-toggle"><span lang="ja">暮</span> Let dusk fall</button>
+          <span class="readout" id="dusk-ran">ran <b>—</b></span>
+        </div>
+        <div class="row" id="theme-swatches"></div>
+        <p class="note">Each theme radio in Settings shows a live 48 px washi or lacquer swatch holding a tiny status window (above). The browser's <code>theme-color</code> follows the sky horizon mixed 40 % into the paper.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- §7 I/J/F · The rep -->
+  <section class="chapter" id="rep" aria-labelledby="h-rep">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§7 I · Bokuten · the ink dot · §7 J · Michi · step to step · §7 F · Shiori · about to leave</p>
+      <h2 class="title-lockup" id="h-rep"><span class="brush" lang="ja">点</span><span class="say">ten · a dot</span><span class="en">The rep loop</span></h2>
+      <p class="lede">Correct: a matcha ink dot blooms at the tile's mark. Wrong: a dry-brush strike draws across the text (ink, not red). The ki meter draws from the left and a full bar charges the hanko. Steps change with a 6 px dry-out left and an 8 px bleed-in right, tiles staggered 40 ms. Under Arcade feel a single 33 ms hit-stop. The loop never waits on decoration.</p>
+    </div>
+    <div class="stage stage--rep stage--sumi" id="rep-stage"></div>
+    <div class="demo-foot">
+      <div class="row"><button class="ghost" type="button" id="rep-reset">Reset rep</button><span class="readout" id="rep-readout">last <b>—</b></span></div>
+      <p class="note">The wrong sound is a soft donk, never a buzzer (not played here). No streak or combo copy appears on a miss. The leave slip says "Your place is kept." with no second step.</p>
+    </div>
+  </section>
+
+  <!-- §5 Components -->
+  <section class="chapter" id="components" aria-labelledby="h-comp">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">§5 · Materials and components · the vocabulary</p>
+      <h2 class="title-lockup" id="h-comp"><span class="brush" lang="ja">部</span><span class="say">bu · a part</span><span class="en">Components</span></h2>
+    </div>
+    <div class="grid grid--2">
+      <div class="sheet">
+        <p class="eyebrow">.lantern[data-state] · one drawn flame everywhere, with the English word · forgiveness chips</p>
+        <div class="grid" id="lantern-states" style="gap:10px;margin-top:8px"></div>
+        <div class="row" id="forgive-chips" style="margin-top:12px"></div>
+        <p class="note" style="margin-top:8px">The kintsugi seam shows only while a repair window is open (toggle <b>Repair open</b> above). When it closes, a repaired flame is indistinguishable from one that never dimmed.</p>
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="status-window">
+          <p class="status-window__label">Status window · the cartouche · reserved for character sheets</p>
+          <div class="grid grid--3" style="margin-top:8px;gap:12px">
+            <div class="stat"><span class="dela ticker" id="t-lv" data-to="13">0</span><small>Level</small></div>
+            <div class="stat"><span class="dela ticker" id="t-xp" data-to="2480">0</span><small>XP</small></div>
+            <div class="stat"><span class="dela ticker" id="t-st" data-to="13">0</span><small>Station</small></div>
+          </div>
+          <div class="meter" id="xp-meter" data-target style="--target:.8;margin-top:12px" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62" aria-label="XP to next level"><div class="meter__fill"></div></div>
+          <div class="row" style="margin-top:8px;justify-content:space-between"><span class="eyebrow">.meter · hiku from the left · tick at the target</span><button class="ghost ghost--sm" type="button" id="meter-replay">Replay</button></div>
+        </div>
+        <div class="poster">
+          <p class="eyebrow">.poster-title · the arcade as a print · kentō marks · 1 px misregistration</p>
+          <div class="row" style="margin-top:8px;align-items:flex-end;gap:16px">
+            <h3 class="poster-title">KAGE VS</h3>
+            <h3 class="poster-title poster-title--m" lang="ja">影</h3>
+            <span class="gloss">kage · shadow (your past self)</span>
+          </div>
+          <div class="row" style="margin-top:8px"><span class="dela ticker" id="t-combo" data-to="48" style="font-size:var(--fs-6)">0</span><span class="eyebrow">best combo · your own history only</span><span class="readout" id="poster-glow">glows here <b>0</b>/6</span></div>
+          <div class="wet-street" aria-hidden="true"></div>
+        </div>
+        <div>
+          <div class="scroll-card ink-hiku" id="scroll-card"><p class="eyebrow">.scroll-card · unrolls from the top in 400 ms (hiku on scaleY)</p><p class="mincho" lang="ja" style="margin-top:6px">雨にも負けず</p><p class="gloss">ame ni mo makezu · "unbowed by the rain" (Miyazawa Kenji, 1931, public domain)</p></div>
+          <div class="row" style="margin-top:12px"><button class="ghost ghost--sm" type="button" id="scroll-replay">Unroll again</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="chapter" id="notes" aria-labelledby="h-notes">
+    <div class="hairline" aria-hidden="true"></div>
+    <div class="chapter__head">
+      <p class="eyebrow">Colophon · what this page is and is not</p>
+      <h2 class="title-lockup" id="h-notes"><span class="brush" lang="ja">奥</span><span class="say">oku · the back of the book</span><span class="en">Notes</span></h2>
+    </div>
+    <div class="sheet">
+      <ul class="note" style="padding-left:1.2em;display:grid;gap:6px">
+        <li>One static HTML page, no build, no dependencies. Fonts come from Google Fonts here; the app self-hosts subsets (and the twelve sekki glyphs need the one rebuild §3.5 describes).</li>
+        <li>Sound is never played on this page. The app's recipes (<code>tsuzuku</code>, <code>stamp</code>, <code>promotion</code>…) are named where they would fire.</li>
+        <li>The 72 kō are shown for the four sekki used in the demos; the rest are data for <code>koyomi.json</code> and await a Sensei-voice review.</li>
+        <li>Glows are counted live in Arcade Night from the <code>[data-glow]</code> twins in the viewport; the ceiling is 6.</li>
+        <li>Nothing here flashes above 3 Hz; the only loops are the flame flicker (1.6–1.7 s) and the lantern breath (4 s), both off under reduced motion.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+<script>
+(() => {
+  'use strict';
+  /* ── utils ─────────────────────────────────────────────────────────── */
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const root = document.documentElement;
+  const TAU = Math.PI * 2;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const fmt = (n) => Math.round(n * 100) / 100;
+  let uidN = 0;
+  const uid = () => 'u' + (++uidN).toString(36);
+  function mulberry32(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function noise1(rng) { const k = Array.from({ length: 16 }, () => rng()); return (x) => { const i = Math.floor(x); const f = x - i; const s = f * f * (3 - 2 * f); return lerp(k[i & 15], k[(i + 1) & 15], s); }; }
+  const reduced = () => root.dataset.reducedMotion === 'on';
+  const speed = () => (root.dataset.slow === 'on' ? 4 : 1);
+  const at = (ms) => (reduced() ? 0 : ms * speed());
+  function replay(el, cls) { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function afterPaint() { return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); }
+  function setReadout(el, label, value) { if (el) el.innerHTML = `${label} <b>${value}</b>`; }
+  class Timeline {
+    constructor(readout) { this.timers = []; this.readout = readout; this.onSkip = null; }
+    beat(ms, label, fn, rMs = 0) { const t = setTimeout(() => { this.timers = this.timers.filter((x) => x !== t); if (label) setReadout(this.readout, 'beat', label); fn(); }, reduced() ? rMs : ms * speed()); this.timers.push(t); }
+    cancel() { this.timers.forEach(clearTimeout); this.timers = []; }
+    skip() { this.cancel(); if (this.onSkip) this.onSkip(); }
+  }
+
+  /* ── preferences (localStorage only as a convenience) ──────────────── */
+  const PREF_KEY = 'tsuzuku-proto-prefs';
+  const prefs = (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY) || '{}') || {}; } catch (e) { return {}; } })();
+  function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) { /* private window: fine */ } }
+  const mqDark = matchMedia('(prefers-color-scheme: dark)');
+  const mqReduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const isDark = () => root.dataset.theme === 'dark' || (root.dataset.theme !== 'light' && mqDark.matches);
+  const stubbed = () => $('#sw-stub').checked;
+  const canVT = () => 'startViewTransition' in document && !stubbed() && !reduced() && !document.hidden;
+
+  /* ── koyomi: the calendar (09 §4.3) ────────────────────────────────── */
+  const SEKKI = [
+    ['立春', 'risshun', 'spring begins', 2, 4, 'sakura', 2], ['雨水', 'usui', 'rain water', 2, 19, 'ai', 2], ['啓蟄', 'keichitsu', 'insects awaken', 3, 6, 'matcha', 2], ['春分', 'shunbun', 'spring equinox', 3, 21, 'sakura', 3],
+    ['清明', 'seimei', 'clear and bright', 4, 5, 'matcha', 2], ['穀雨', 'kokuu', 'grain rain', 4, 20, 'kon', 2], ['立夏', 'rikka', 'summer begins', 5, 6, 'matcha', 3], ['小満', 'shōman', 'grain fills', 5, 21, 'matcha', 2],
+    ['芒種', 'bōshu', 'grain in ear', 6, 6, 'ai', 2], ['夏至', 'geshi', 'summer solstice', 6, 21, 'kin', 2], ['小暑', 'shōsho', 'lesser heat', 7, 7, 'kin', 2], ['大暑', 'taisho', 'greater heat', 7, 23, 'kin', 2],
+    ['立秋', 'risshū', 'autumn begins', 8, 8, 'shu', 2], ['処暑', 'shosho', 'heat ends', 8, 23, 'kin', 2], ['白露', 'hakuro', 'white dew', 9, 8, 'hai', 2], ['秋分', 'shūbun', 'autumn equinox', 9, 23, 'shu', 2],
+    ['寒露', 'kanro', 'cold dew', 10, 8, 'kon', 2], ['霜降', 'sōkō', 'frost falls', 10, 24, 'hai', 3], ['立冬', 'rittō', 'winter begins', 11, 7, 'kon', 2], ['小雪', 'shōsetsu', 'lesser snow', 11, 22, 'hai', 2],
+    ['大雪', 'taisetsu', 'greater snow', 12, 7, 'ai', 3], ['冬至', 'tōji', 'winter solstice', 12, 22, 'kon', 3], ['小寒', 'shōkan', 'lesser cold', 1, 6, 'ai', 2], ['大寒', 'daikan', 'greater cold', 1, 20, 'hai', 3],
+  ];
+  const KO = {
+    '立春': [['東風解凍', 'harukaze kōri o toku', 'east wind melts the ice'], ['黄鶯睍睆', 'uguisu naku', 'bush warblers sing'], ['魚上氷', 'uo kōri o izuru', 'fish rise through the ice']],
+    '大暑': [['桐始結花', 'kiri hajimete hana o musubu', 'paulownia sets its flower'], ['土潤溽暑', 'tsuchi uruoute mushi atsushi', 'earth is damp, air is humid'], ['大雨時行', 'taiu tokidoki furu', 'great rains sometimes fall']],
+    '寒露': [['鴻雁来', 'kōgan kitaru', 'wild geese return'], ['菊花開', 'kiku no hana hiraku', 'chrysanthemums bloom'], ['蟋蟀在戸', 'kirigirisu to ni ari', 'crickets chirp by the door']],
+    '霜降': [['霜始降', 'shimo hajimete furu', 'first frost falls'], ['霎時施', 'kosame tokidoki furu', 'light rains sometimes fall'], ['楓蔦黄', 'momiji tsuta kibamu', 'maples and ivy turn yellow']],
+  };
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function sekkiOf(d) { const m = d.getMonth() + 1, day = d.getDate(); let best = null; for (const s of SEKKI) { const sm = s[3], sd = s[4]; if (sm < m || (sm === m && sd <= day)) { if (!best || sm > best[3] || (sm === best[3] && sd > best[4])) best = s; } } return best || SEKKI[21]; }
+  function koOf(d, s) { const list = KO[s[0]]; if (!list) return null; const start = new Date(d.getFullYear(), s[3] - 1, s[4]); const days = Math.floor((d - start) / 86400000); return list[clamp(Math.floor(days / 5), 0, 2)]; }
+  const MOON_NAMES = [['新月', 'shingetsu', 'new moon'], ['三日月', 'mikazuki', 'waxing crescent'], ['半月', 'hangetsu', 'first-quarter half moon'], ['十三夜', 'jūsanya', 'waxing gibbous'], ['満月', 'mangetsu', 'full moon'], ['十六夜', 'izayoi', 'waning gibbous'], ['半月', 'hangetsu', 'last-quarter half moon'], ['三日月', 'mikazuki', 'waning crescent']];
+  function moonPhase(d) { const synodic = 29.530588; const ref = Date.UTC(2000, 0, 6, 18, 14); let f = ((d.getTime() - ref) / 86400000 / synodic) % 1; if (f < 0) f += 1; return { fraction: f, name: MOON_NAMES[Math.round(f * 8) % 8] }; }
+  const KD = '〇一二三四五六七八九';
+  function kanjiNum(n) { if (n < 10) return KD[n]; const t = Math.floor(n / 10), o = n % 10; return (t > 1 ? KD[t] : '') + '十' + (o ? KD[o] : ''); }
+  const eraYear = (d) => d.getFullYear() - 2018;
+  const eraDate = (d) => `令和${eraYear(d)}年${d.getMonth() + 1}月${d.getDate()}日`;
+  const eraDateKanji = (d) => `令和${kanjiNum(eraYear(d))}年${kanjiNum(d.getMonth() + 1)}月${kanjiNum(d.getDate())}日`;
+  const dateEn = (d) => `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+
+  /* ── sky by hour (room.ts SKY_STOPS) ──────────────────────────────── */
+  const SKY = { dawn: ['#1F3A93', '#C9718A', '#F7B2C4'], day: ['#4F6FD6', '#9FC4F0', '#F4EDE0'], dusk: ['#1F2A6B', '#C9302C', '#E0B341'], night: ['#0A0F2E', '#1F2A6B', '#1F3A93'] };
+  const LAMP = { dawn: .15, day: 0, dusk: .35, night: .6 };
+  const PHASE_WORD = { dawn: ['朝', 'asa', 'morning'], day: ['昼', 'hiru', 'day'], dusk: ['夕', 'yū', 'dusk'], night: ['夜', 'yoru', 'night'] };
+  const skyPhase = (h) => (h >= 5 && h < 8 ? 'dawn' : h >= 8 && h < 17 ? 'day' : h >= 17 && h < 20 ? 'dusk' : 'night');
+  let hour = new Date().getHours();
+  function applySky(h) {
+    hour = h; const p = skyPhase(h); root.dataset.phase = p; const [a, b, c] = SKY[p];
+    root.style.setProperty('--sky-top', a); root.style.setProperty('--sky-mid', b); root.style.setProperty('--sky-horizon', c); root.style.setProperty('--lamp-alpha', String(LAMP[p]));
+    const w = PHASE_WORD[p];
+    setReadout($('#phase-readout'), 'phase', `${w[0]} ${w[1]} · ${w[2]} · ${String(h).padStart(2, '0')}:00`);
+    setReadout($('#lamp-readout'), '--lamp-alpha', String(LAMP[p]));
+    $('#hour-label').textContent = `${String(h).padStart(2, '0')}:00 · ${p}`;
+  }
+
+  /* ── procedural art ───────────────────────────────────────────────── */
+  const TONGUE = 'M10 20 C3 15 2 9 10 0 C18 9 17 15 10 20 Z';
+  const CORE = 'M10 19 C6.5 15.5 6.5 11.5 10 6.5 C13.5 11.5 13.5 15.5 10 19 Z';
+  function tongueSvg() { return `<svg viewBox="0 0 20 20" aria-hidden="true"><g class="flame"><path d="${TONGUE}"/><path class="flame-core" d="${CORE}"/></g></svg>`; }
+  function lanternHtml(state, word, extra = '') { return `<span class="lantern ${extra}" data-state="${state}"><span class="lantern__tongue"><span class="lantern__glow" data-glow="flame"></span>${tongueSvg()}</span><span class="lantern__word">${word}</span></span>`; }
+  function ensoParts(cx, cy, r, seed) {
+    const rng = mulberry32(seed); const wob = noise1(mulberry32(seed ^ 0x3c6ef372));
+    const width = r * .22, start = -115 * Math.PI / 180 + (rng() - .5) * .2, sweep = TAU - .55, n = 72;
+    const pts = [], L = [], R = [];
+    for (let i = 0; i < n; i++) { const t = i / (n - 1); const a = start + t * sweep; const rr = r * (1 + .04 * (wob(t * 4) * 2 - 1) + .02 * t); pts.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]); }
+    for (let i = 0; i < n; i++) {
+      const t = i / (n - 1); const [x, y] = pts[i]; const [px, py] = pts[Math.max(0, i - 1)]; const [nx, ny] = pts[Math.min(n - 1, i + 1)];
+      let tx = nx - px, ty = ny - py; const len = Math.hypot(tx, ty) || 1; tx /= len; ty /= len;
+      const env = Math.min(1, .3 + t * 6) * (1.05 - .85 * t); const w = width * env * (1 + .22 * (rng() - .5));
+      L.push([x - ty * w / 2, y + tx * w / 2]); R.push([x + ty * w / 2, y - tx * w / 2]);
+    }
+    const P = (p) => `${fmt(p[0])} ${fmt(p[1])}`;
+    return { fill: 'M' + L.map(P).join('L') + 'L' + R.reverse().map(P).join('L') + 'Z', spine: 'M' + pts.map(P).join('L'), width };
+  }
+  function ensoSvg(seed, dur) { const id = uid(); const e = ensoParts(50, 50, 38, seed); return `<svg viewBox="0 0 100 100" aria-hidden="true"><mask id="${id}"><path class="write" d="${e.spine}" fill="none" stroke="#fff" stroke-width="${fmt(e.width * 1.5)}" stroke-linecap="round" pathLength="1" style="--dur-write:${dur}"/></mask><path d="${e.fill}" fill="currentColor" mask="url(#${id})"/></svg>`; }
+  function ensoStatic(cx, cy, r, seed) { const e = ensoParts(cx, cy, r, seed); return `<path d="${e.fill}" fill="currentColor"/>`; }
+  function sealPath(size, seed) {
+    const rng = mulberry32(seed); const half = size / 2; const stroke = size * .09; const n = 96;
+    const ring = (rad, k) => { let d = ''; for (let i = 0; i < n; i++) { const a = (i / n) * TAU; const c = Math.cos(a), s = Math.sin(a); const sx = Math.sign(c) * Math.pow(Math.abs(c), .4), sy = Math.sign(s) * Math.pow(Math.abs(s), .4); let rr = rad * (1 + (rng() - .5) * .025 * k); if (rng() < .05) rr *= .955; d += (i ? 'L' : 'M') + fmt(half + sx * rr) + ' ' + fmt(half + sy * rr); } return d + 'Z'; };
+    return ring(half - 1, 1) + ring(half - stroke, .8);
+  }
+  function sealSvg(seed, chars, ordinal, size = 100) { const lines = chars.split(''); const fs = lines.length > 1 ? 30 : 44; const y0 = lines.length > 1 ? 50 - (lines.length - 1) * 16 : 50; let text = ''; lines.forEach((ch, i) => { text += `<text x="50" y="${y0 + i * 32 + fs * .36}" text-anchor="middle" font-size="${fs}" style="font-family:var(--font-brush)" fill="currentColor">${ch}</text>`; }); return `<svg viewBox="0 0 100 100" aria-hidden="true"><path d="${sealPath(100, seed)}" fill="currentColor" fill-rule="evenodd"/>${ordinal ? `<text x="50" y="18" text-anchor="middle" font-size="8" style="font-family:var(--font-mincho)" fill="currentColor">${ordinal}</text>` : ''}${text}</svg>`; }
+  function splatSvg(seed) { const rng = mulberry32(seed); let d = '<circle cx="16" cy="16" r="7"/>'; for (let i = 0; i < 6; i++) { const a = rng() * TAU, r = 8 + rng() * 6, s = .8 + rng() * 2.2; d += `<circle cx="${fmt(16 + Math.cos(a) * r)}" cy="${fmt(16 + Math.sin(a) * r)}" r="${fmt(s)}"/>`; } return `<svg viewBox="0 0 32 32" aria-hidden="true" fill="currentColor">${d}</svg>`; }
+  function strikeSvg(seed) { const rng = mulberry32(seed); let paths = ''; for (let h = 0; h < 3; h++) { const y = 3.5 + h * 1.6; let d = '', x = 0, pen = true; while (x < 100) { const seg = 6 + rng() * 14; if (pen) d += `M${fmt(x)} ${fmt(y + (rng() - .5) * 1.4)}L${fmt(Math.min(100, x + seg))} ${fmt(y + (rng() - .5) * 1.4)}`; x += seg; pen = rng() > .3; } paths += `<path class="write" d="${d}" stroke-width="${h === 1 ? 1.8 : 1}" vector-effect="non-scaling-stroke" pathLength="1" style="--delay-write:calc(${h * 30}ms * var(--slow))"/>`; } return `<svg viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>`; }
+  function seigaihaPattern(id, R, ink, paper) { const sw = fmt(R * .07); const fan = (cx, cy) => { let s = `<circle cx="${cx}" cy="${cy}" r="${R}" style="fill:${paper};stroke:${ink}" stroke-width="${sw}"/>`; for (const k of [.75, .5, .25]) s += `<circle cx="${cx}" cy="${cy}" r="${fmt(R * k)}" fill="none" style="stroke:${ink}" stroke-width="${sw}"/>`; return s; }; return `<pattern id="${id}" width="${2 * R}" height="${R}" patternUnits="userSpaceOnUse">${fan(R, -R / 2)}${fan(0, 0)}${fan(2 * R, 0)}${fan(R, R / 2)}</pattern>`; }
+  function moonMarkup(f, id, cx = 12, cy = 12, r = 10, fill = 'var(--stage-fg)') { const k = (1 - Math.cos(TAU * f)) / 2; const off = (f < .5 ? -1 : 1) * 2 * r * k; return `<mask id="${id}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff"/><circle cx="${fmt(cx + off)}" cy="${cy}" r="${r}" fill="#000"/></mask><circle cx="${cx}" cy="${cy}" r="${r}" style="fill:${fill}" opacity=".22"/><circle cx="${cx}" cy="${cy}" r="${r}" style="fill:${fill}" mask="url(#${id})"/>`; }
+  function moonSvg(d) { const m = moonPhase(d); return `<svg class="moon" viewBox="0 0 24 24" role="img" aria-label="${m.name[2]}">${moonMarkup(m.fraction, uid())}</svg>`; }
+  function chochin(x, y, cls = '') { return `<g transform="translate(${x} ${y})"><g class="chochin ${cls}"><line x1="0" y1="-34" x2="0" y2="0" style="stroke:var(--wood)" stroke-width="2"/><circle class="glow-twin" cx="0" cy="30" r="42" fill="url(#halo)" data-glow="lantern"/><circle class="lamp-glow" cx="0" cy="30" r="46" fill="url(#halo)"/><circle class="ring" cx="0" cy="30" r="32"/><rect x="-10" y="0" width="20" height="6" rx="2" style="fill:var(--wood)"/><path d="M-18 8 Q-23 30 -18 52 L18 52 Q23 30 18 8 Z" style="fill:var(--shu)"/><path d="M-20 18H20M-22 28H22M-22 38H22M-20 48H20" style="stroke:var(--stage-bg)" stroke-opacity=".35" stroke-width="1.2"/><rect x="-10" y="52" width="20" height="6" rx="2" style="fill:var(--wood)"/><line x1="0" y1="58" x2="0" y2="68" style="stroke:var(--kin)" stroke-width="1.5"/></g></g>`; }
+  function sceneSvg(p, d = new Date()) {
+    const m = moonPhase(d);
+    const tongues = [-24, -8, 8, 24].map((x, i) => `<g transform="translate(${x - 10} -46) scale(1 2.2)"><g class="tongue" style="transition-delay:calc(${i * 60}ms * var(--slow))"><path d="${TONGUE}" style="fill:${i % 2 ? 'var(--kin)' : 'var(--shu)'}"/><path d="${CORE}" style="fill:var(--kin)"/></g></g>`).join('');
+    const quests = [0, 1, 2].map((i) => `<g transform="translate(${342 + i * 36} 232)"><g class="quest-slot"><circle r="9" fill="none" style="stroke:var(--line)" stroke-width="1.5"/><path class="quest" d="M-5 0 L-1.5 4 L6 -5" fill="none" style="stroke:var(--shu)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g></g>`).join('');
+    return `<defs><linearGradient id="${p}-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--sky-top)"/><stop offset=".55" style="stop-color:var(--sky-mid)"/><stop offset="1" style="stop-color:var(--sky-horizon)"/></linearGradient><pattern id="${p}-tatami" width="40" height="40" patternUnits="userSpaceOnUse"><rect width="40" height="40" style="fill:var(--raised)"/><rect width="40" height="40" style="fill:var(--matcha)" opacity=".12"/><line x1="0" y1="20" x2="40" y2="20" style="stroke:var(--line)" stroke-width="3" opacity=".7"/></pattern></defs>
+<rect width="640" height="400" style="fill:var(--surface-paper)"/>
+<rect y="272" width="640" height="128" fill="url(#${p}-tatami)"/><rect y="268" width="640" height="5" style="fill:var(--wood)"/>
+<g class="window"><rect x="320" y="48" width="200" height="150" fill="url(#${p}-sky)"/><g class="sky-moon" transform="translate(470 72) scale(1.2)">${moonMarkup(m.fraction, p + '-moon', 0, 0, 11)}</g><path d="M360 48V198M400 48V198M440 48V198M480 48V198M320 86H520M320 124H520M320 162H520" style="stroke:var(--wood)" stroke-width="3"/><rect x="316" y="44" width="208" height="158" fill="none" style="stroke:var(--wood)" stroke-width="8"/></g>
+<g class="scroll"><rect x="80" y="40" width="92" height="230" style="fill:var(--surface)"/><rect x="80" y="40" width="92" height="230" fill="none" style="stroke:var(--line)"/><rect x="72" y="32" width="108" height="10" rx="5" style="fill:var(--wood)"/><rect x="72" y="268" width="108" height="10" rx="5" style="fill:var(--wood)"/><g class="scroll-mark" id="${p}-mark" style="color:var(--fg)">${ensoStatic(126, 150, 30, 7)}</g></g>
+${chochin(236, 36, 'lantern-a lantern-breath')}${chochin(566, 36, 'lantern-b')}
+<g class="bonsai" transform="translate(214 236)"><rect x="-22" y="24" width="44" height="6" style="fill:var(--wood)"/><path d="M0 24 C-2 10 6 6 2 -6" fill="none" style="stroke:var(--wood)" stroke-width="3"/><ellipse cx="-8" cy="4" rx="14" ry="6" style="fill:var(--matcha)"/><ellipse cx="10" cy="-6" rx="12" ry="5" style="fill:var(--matcha)"/><ellipse cx="0" cy="-14" rx="9" ry="4" style="fill:var(--matcha)"/></g>
+<g class="quests">${quests}</g>
+<g class="hearth" transform="translate(320 330)"><ellipse class="glow-twin" cx="0" cy="-10" rx="70" ry="40" fill="url(#halo)" data-glow="hearth"/><rect x="-54" y="-14" width="108" height="44" rx="2" style="fill:var(--wood)"/><rect x="-46" y="-8" width="92" height="32" style="fill:var(--stage-bg)"/><g class="tongues">${tongues}</g><line x1="0" y1="-120" x2="0" y2="-60" style="stroke:var(--stage-bg)" stroke-width="2"/><path d="M-8 -60 H8 L4 -48 H-4 Z" style="fill:var(--stage-bg)"/></g>
+<g class="kage" transform="translate(40 230)" opacity=".5"><circle cx="0" cy="-10" r="10" style="fill:var(--fg)"/><path d="M-18 44 C-18 10 18 10 18 44 Z" style="fill:var(--fg)"/></g>`;
+  }
+  function headpieceSvg(p) {
+    return `<svg viewBox="0 0 720 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><linearGradient id="${p}-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--sky-top)"/><stop offset=".6" style="stop-color:var(--sky-mid)"/><stop offset="1" style="stop-color:var(--sky-horizon)"/></linearGradient><linearGradient id="${p}-bokashi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--kon)" stop-opacity=".45"/><stop offset="1" style="stop-color:var(--kon)" stop-opacity="0"/></linearGradient>${seigaihaPattern(p + '-wave', 14, 'var(--kon)', 'var(--surface)')}</defs>
+<rect width="720" height="160" fill="url(#${p}-sky)"/><rect width="720" height="60" fill="url(#${p}-bokashi)"/>
+<path d="M0 130 L120 92 L220 110 L330 70 L470 112 L600 84 L720 118 V160 H0 Z" style="fill:var(--kon)" opacity=".22"/>
+<path d="M150 134 L330 44 Q360 32 390 44 L570 134 Z" style="fill:var(--ai)" opacity=".7"/>
+<path d="M300 60 L330 44 Q360 32 390 44 L420 60 Q405 70 388 58 Q372 72 356 58 Q340 70 324 58 Q312 68 300 60 Z" style="fill:var(--stage-fg)"/>
+<rect y="116" width="720" height="24" fill="url(#${p}-wave)" opacity=".55"/>
+<rect y="138" width="720" height="22" style="fill:var(--road)"/><line x1="0" y1="138" x2="720" y2="138" style="stroke:var(--wood)" stroke-width="1.5"/>
+<g transform="translate(60 136)"><rect x="-3" y="-30" width="6" height="30" style="fill:var(--wood)"/><path d="M-30 -24 L0 -56 L30 -24 Z M-24 -40 L0 -68 L24 -40 Z M-18 -56 L0 -82 L18 -56 Z" style="fill:var(--matcha)" opacity=".85"/></g>
+<g class="keeper keeper--wash" transform="translate(640 112)" style="fill:var(--hai)"><circle cx="0" cy="-30" r="9"/><path d="M-20 26 C-20 -6 20 -6 20 26 Z"/><line x1="26" y1="-40" x2="26" y2="26" style="stroke:var(--hai)" stroke-width="3"/></g>
+<g class="keeper keeper--tone" transform="translate(640 112)" style="fill:var(--fg)"><circle cx="0" cy="-30" r="9"/><path d="M-20 26 C-20 -6 20 -6 20 26 Z"/><line x1="26" y1="-40" x2="26" y2="26" style="stroke:var(--wood)" stroke-width="3"/></g></svg>`;
+  }
+  function roadLantern(lit) { return `<div class="road__lantern ${lit ? 'is-lit' : ''}"><svg viewBox="0 0 40 48" aria-hidden="true"><circle class="halo" cx="20" cy="26" r="24" fill="url(#halo)" data-glow="lantern"/><line x1="20" y1="0" x2="20" y2="8" style="stroke:var(--wood)" stroke-width="2"/><rect x="12" y="8" width="16" height="4" rx="1" style="fill:var(--wood)"/><path class="body" d="M8 14 Q4 26 8 38 L32 38 Q36 26 32 14 Z"/><path d="M7 20H33M6 26H34M7 32H33" style="stroke:var(--stage-bg)" stroke-opacity=".3" stroke-width="1"/><rect x="12" y="38" width="16" height="4" rx="1" style="fill:var(--wood)"/></svg></div>`; }
+  function signHtml(n, ja, rt, romaji, en, cls = '') { return `<div class="sign ${cls}"><span class="sign__n">${n}</span><span class="sign__ja" lang="ja">${rt ? `<ruby>${ja}<rt>${rt}</rt></ruby>` : ja}</span><span class="sign__romaji">${romaji}</span><span class="sign__en">${en}</span></div>`; }
+
+  /* ── ticker (09 §5.8): one shared rAF scheduler ────────────────────── */
+  const tickers = new Set(); let tickRaf = 0;
+  const fmtNum = (n, prefix = '') => prefix + Math.round(n).toLocaleString('en-US');
+  function tick(el, to, dur = 400, prefix = '') {
+    if (!el) return;
+    const from = Number(el.dataset.from || 0);
+    el.dataset.from = String(to);
+    if (reduced()) { el.textContent = fmtNum(to, prefix); replay(el, 'rm-fade'); replay(el, 'ink-nijimi'); return; }
+    tickers.add({ el, from, to, prefix, t0: performance.now(), dur: dur * speed() });
+    if (!tickRaf) tickRaf = requestAnimationFrame(tickLoop);
+  }
+  function tickLoop(now) {
+    for (const t of tickers) { const k = clamp((now - t.t0) / t.dur, 0, 1); const e = 1 - Math.pow(1 - k, 3); t.el.textContent = fmtNum(lerp(t.from, t.to, e), t.prefix); if (k >= 1) tickers.delete(t); }
+    tickRaf = tickers.size && !document.hidden ? requestAnimationFrame(tickLoop) : 0;
+  }
+
+  /* ── fps + glow count ─────────────────────────────────────────────── */
+  const fpsEl = $('#fps'); let frames = 0, lastT = performance.now(), fpsRaf = 0;
+  function countGlows(scope = document) { const vh = innerHeight, vw = innerWidth; let n = 0; for (const el of $$('[data-glow]', scope)) { const r = el.getBoundingClientRect(); if (r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue; const op = parseFloat(getComputedStyle(el).opacity); if (op > .05) n++; } return n; }
+  function fpsLoop(now) { frames++; if (now - lastT >= 1000) { setReadout(fpsEl, 'fps', String(frames)); frames = 0; lastT = now; const g = isDark() ? countGlows() : 0; setReadout($('#glow-count'), 'glows', `${g}/6`); setReadout($('#poster-glow'), 'glows here', `${isDark() ? countGlows($('#components')) : 0}/6`); } fpsRaf = document.hidden ? 0 : requestAnimationFrame(fpsLoop); }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { frames = 0; lastT = performance.now(); if (!fpsRaf) fpsRaf = requestAnimationFrame(fpsLoop); if (tickers.size && !tickRaf) tickRaf = requestAnimationFrame(tickLoop); } });
+  fpsRaf = requestAnimationFrame(fpsLoop);
+
+  /* ── controls ─────────────────────────────────────────────────────── */
+  function applyTheme(choice) { if (choice === 'auto') delete root.dataset.theme; else root.dataset.theme = choice; for (const b of $$('#theme-seg button')) b.setAttribute('aria-pressed', String(b.dataset.themeChoice === choice)); }
+  let themeChoice = prefs.theme || 'auto';
+  function setTheme(choice, animate, readout) {
+    themeChoice = choice; prefs.theme = choice; savePrefs();
+    const mutate = () => { applyTheme(choice); };
+    if (!animate) { mutate(); refreshContrast(); return; }
+    if (!canVT()) { root.classList.add('theme-fade'); mutate(); setTimeout(() => root.classList.remove('theme-fade'), 500 * speed()); setReadout(readout, 'ran', reduced() ? 'reduced motion · 150 ms crossfade (API skipped)' : 'CSS fallback · 400 ms colour fade'); refreshContrast(); return; }
+    root.dataset.vt = 'theme';
+    const vt = document.startViewTransition(() => { mutate(); return afterPaint(); });
+    vt.finished.catch(() => {}).then(() => { delete root.dataset.vt; refreshContrast(); });
+    setReadout(readout, 'ran', 'View Transitions API · meku-down 400 ms · then lanterns tomosu 900 ms');
+  }
+  applyTheme(themeChoice);
+  $('#theme-seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-theme-choice]'); if (b) setTheme(b.dataset.themeChoice, true, $('#dusk-ran')); });
+  mqDark.addEventListener('change', () => { if (themeChoice === 'auto') refreshContrast(); });
+  const swReduced = $('#sw-reduced'), swSlow = $('#sw-slow'), swArcade = $('#sw-arcade'), swRepair = $('#sw-repair');
+  swReduced.checked = 'reduced' in prefs ? !!prefs.reduced : mqReduce.matches;
+  swSlow.checked = !!prefs.slow; swArcade.checked = !!prefs.arcade; swRepair.checked = !!prefs.repair;
+  function applySwitches() { root.dataset.reducedMotion = swReduced.checked ? 'on' : 'off'; root.dataset.slow = swSlow.checked ? 'on' : 'off'; root.dataset.feel = swArcade.checked ? 'arcade' : 'edo'; prefs.reduced = swReduced.checked; prefs.slow = swSlow.checked; prefs.arcade = swArcade.checked; prefs.repair = swRepair.checked; savePrefs(); renderForgiveChips(); }
+  for (const sw of [swReduced, swSlow, swArcade, swRepair]) sw.addEventListener('change', applySwitches);
+  mqReduce.addEventListener('change', (e) => { if (!('reduced' in prefs)) { swReduced.checked = e.matches; applySwitches(); } });
+  applySwitches();
+  setReadout($('#vt-support'), 'View Transitions', 'startViewTransition' in document ? 'supported' : 'not in this browser · CSS fallback');
+  setReadout($('#spring-support'), 'linear() spring', CSS.supports('animation-timing-function', 'linear(0, 1)') ? 'native' : 'fallback --ease-press');
+  const now = new Date();
+  setReadout($('#now-readout'), 'now', `${dateEn(now)} · ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} · ${eraDate(now)} (Reiwa ${eraYear(now)})`);
+  setReadout($('#paper-readout'), 'paper opacity', getComputedStyle(root).getPropertyValue('--paper-opacity').trim());
+
+  /* fonts */
+  const FONTS = [['Yuji Syuku', 'つづく', 'brush'], ['Shippori Mincho B1', '第七宿', 'mincho'], ['DotGothic16', 'LV13', 'pixel'], ['Dela Gothic One', '2480', 'poster'], ['Noto Sans JP', '日本語', 'JP body fallback']];
+  const fontChips = $('#font-chips');
+  fontChips.innerHTML = FONTS.map(([f, , role]) => `<span class="chip" data-font="${f}"><i></i>${f} · ${role} · <b>loading</b></span>`).join('');
+  if (document.fonts && document.fonts.load) {
+    Promise.all(FONTS.map(([f, s]) => document.fonts.load(`1em "${f}"`, s).then((l) => l.length > 0).catch(() => false))).then((oks) => {
+      oks.forEach((ok, i) => { const c = fontChips.children[i]; c.classList.toggle('is-ok', ok); c.querySelector('b').textContent = ok ? 'loaded' : 'fallback stack'; });
+      $('#brand').classList.add('is-igniting');
+    });
+  } else { $('#brand').classList.add('is-igniting'); }
+  $('#brand').addEventListener('click', (e) => { e.preventDefault(); replay($('#brand'), 'is-igniting'); scrollTo({ top: 0, behavior: reduced() ? 'instant' : 'smooth' }); });
+
+  /* sky controls */
+  const hourInput = $('#hour');
+  hourInput.value = String(hour);
+  applySky(hour);
+  hourInput.addEventListener('input', () => applySky(Number(hourInput.value)));
+  $('#hour-now').addEventListener('click', () => { hourInput.value = String(new Date().getHours()); applySky(Number(hourInput.value)); });
+  $('#moon-now').outerHTML = moonSvg(now).replace('class="moon"', 'class="moon" id="moon-now"');
+  const mp = moonPhase(now);
+  setReadout($('#moon-readout'), 'moon', `${mp.name[0]} ${mp.name[1]} · ${mp.name[2]} · ${Math.round(mp.fraction * 29.53)} d`);
+
+  /* ── materials ────────────────────────────────────────────────────── */
+  const MATERIALS = [
+    ['和紙', 'washi · paper', 'var(--bg-paper)', 'receives ink; never moves; grain ≤ 6 %'],
+    ['墨', 'sumi · ink', 'var(--fg)', 'spreads, dries, draws, dries out'],
+    ['朱', 'shu · cinnabar seal paste', 'var(--shu)', 'is pressed'],
+    ['金', 'kin · gold leaf', 'var(--kin)', 'settles; XP, dan, lanterns, repair'],
+    ['藍', 'ai · indigo dye', 'var(--ai-dye)', 'notes, listening, water and sky'],
+    ['木', 'ki · wood', 'linear-gradient(180deg, var(--wood-light), var(--wood))', 'holds things: rollers, shelves, the rack'],
+    ['漆', 'urushi · lacquer (Night only)', 'var(--stage-bg)', 'sumi with a warm cast; grain becomes gold dust'],
+    ['空', 'sora · the sky by the hour', 'linear-gradient(180deg, var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))', 'mixed ≤ 40 % into paper by consumers'],
+  ];
+  $('#swatches').innerHTML = MATERIALS.map(([ja, say, fill, job]) => `<div class="swatch"><div class="swatch__fill" style="background:${fill}"></div><b><span lang="ja">${ja}</span> <span class="gloss">${say}</span></b><span class="gloss">${job}</span></div>`).join('');
+
+  /* ── calendar sheets ──────────────────────────────────────────────── */
+  function columnItems(d, s, ko) {
+    const m = moonPhase(d);
+    return { seal: `<span class="seal-date" aria-label="${dateEn(d)}" lang="ja">${kanjiNum(d.getDate())}日</span>`, sekki: `<span lang="ja" class="mincho">${s[0]}</span><span class="gloss">${s[1]} · ${s[2]} · from ${MONTHS[s[3] - 1]} ${s[4]}</span>`, ko: ko ? `<span lang="ja">${ko[0]}</span><span class="gloss">${ko[2]} (kō)</span>` : `<span class="gloss">kō: data pending</span>`, moon: `<span lang="ja">${m.name[0]}</span><span class="gloss">${m.name[2]}</span>`, foot: `<span class="foot" lang="ja">${eraDate(d)}</span><span class="gloss">Reiwa ${eraYear(d)} · ${dateEn(d)}</span>` };
+  }
+  function columnVertical(d) { const s = sekkiOf(d); const c = columnItems(d, s, koOf(d, s)); return `${c.seal}${c.sekki}${c.ko}${c.foot}`; }
+  function columnRow(d) { const s = sekkiOf(d); const c = columnItems(d, s, koOf(d, s)); return `${c.seal}<span class="row" style="gap:6px">${c.sekki}</span><span class="row" style="gap:6px">${c.ko}</span><span class="row" style="gap:6px">${c.moon}</span><span class="row" style="gap:6px">${c.foot}</span>`; }
+  let shownDate = new Date(now);
+  function renderToday(d, animate) {
+    const el = $('#today-column'), s = sekkiOf(d);
+    const swap = () => { el.innerHTML = columnRow(d); $('#arrival-column').innerHTML = columnVertical(d); $('#arrival-column-phone').innerHTML = columnRow(d); $('#today-note').textContent = `Paper tint for ${s[0]} ${s[1]}: --${s[5]} at ${s[6]} % (ceiling 3 %). Traditional calendar, approximate. Shown as a date, never as "in N days".`; if (animate) replay(el, 'ink-nijimi'); };
+    if (animate && !reduced()) { replay(el, 'ink-kasure'); setTimeout(() => { el.classList.remove('ink-kasure'); swap(); }, at(130)); } else swap();
+  }
+  function applyTint(s) { root.style.setProperty('--sekki-pigment', `var(--${s[5]})`); root.style.setProperty('--sekki-mix', `${s[6]}%`); }
+  function stepSekki(dateStr) {
+    const d = dateStr === 'today' ? new Date(now) : new Date(dateStr + 'T12:00:00');
+    shownDate = d; root.classList.add('tint-step'); applyTint(sekkiOf(d)); renderToday(d, true);
+    setTimeout(() => root.classList.remove('tint-step'), at(1000) + 50); setTimeout(refreshContrast, at(950) + 60);
+  }
+  $$('[data-sekki-date]').forEach((b) => b.addEventListener('click', () => stepSekki(b.dataset.sekkiDate)));
+  applyTint(sekkiOf(now)); renderToday(now, false);
+  const DATES = ['2026-02-04', '2026-07-23', '2026-10-24'];
+  $('#dates').innerHTML = DATES.map((ds) => { const d = new Date(ds + 'T12:00:00'); const s = sekkiOf(d); return `<div class="sheet date-sheet" data-date="${ds}" style="--sekki-pigment:var(--${s[5]});--sekki-mix:${s[6]}%;--surface-paper:color-mix(in srgb, var(--surface) calc(100% - var(--sekki-mix)), var(--sekki-pigment))"><div class="tategaki-column">${columnVertical(d)}</div><div class="right"><p class="eyebrow">${dateEn(d)}</p>${moonSvg(d)}<span class="gloss">${moonPhase(d).name[0]} ${moonPhase(d).name[1]} · ${moonPhase(d).name[2]}</span><span class="chip">tint <b>--${s[5]} ${s[6]}%</b></span><span class="readout contrast" data-probe>muted on paper <b>—</b></span><span class="probe sr-only" style="color:var(--fg-muted)">probe</span></div></div>`; }).join('');
+  function parseColor(str) { let m = str.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/); if (m) return [m[1], m[2], m[3]].map((v) => Math.round(Number(v) * 255)); m = str.match(/[\d.]+/g); return m ? m.slice(0, 3).map(Number) : [0, 0, 0]; }
+  function luminance([r, g, b]) { const f = (c) => { c /= 255; return c <= .03928 ? c / 12.92 : Math.pow((c + .055) / 1.055, 2.4); }; return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); }
+  function contrast(a, b) { const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); }
+  function refreshContrast() { requestAnimationFrame(() => { const po = getComputedStyle(root).getPropertyValue('--paper-opacity').trim(); setReadout($('#paper-readout'), 'paper opacity', po + (isDark() ? ' · soft-light, gold-tinted (lacquer)' : ' · multiply (washi)')); $('#grain-pct').textContent = (parseFloat(po) * 100).toFixed(1) + '%'; for (const sheet of $$('.date-sheet')) { const bg = parseColor(getComputedStyle(sheet).backgroundColor); const fg = parseColor(getComputedStyle($('.probe', sheet)).color); const c = contrast(bg, fg); const out = $('.contrast', sheet); out.classList.toggle('readout--ok', c >= 4.5); setReadout(out, 'muted on paper', `${c.toFixed(2)}:1 ${c >= 4.5 ? '· passes' : '· fails'}`); } }); }
+  refreshContrast();
+
+  /* ── motion token runners ─────────────────────────────────────────── */
+  const DURS = [['--dur-1', '120 ms · micro'], ['--dur-2', '220 ms · ui'], ['--dur-3', '400 ms · content'], ['--dur-4', '900 ms · a drawn stroke'], ['--dur-5', '2,400 ms · one written kanji'], ['--dur-fade', '150 ms · reduced motion keeps it']];
+  const EASES = [['--ease', 'the house curve'], ['--ease-out', 'exits'], ['--ease-in', 'the mat dim, kasure of chrome'], ['--ease-draw', 'a brush lifts slowly'], ['--ease-press', 'the unified overshoot'], ['--spring', 'damped spring, linear()']];
+  const runner = (name, job, d, e) => `<div class="runner" style="--d:var(${d});--e:var(${e})"><span class="runner__name"><b>${name}</b>${job}</span><div class="runner__track"><div class="runner__dot"></div></div></div>`;
+  $('#dur-runners').innerHTML = DURS.map(([n, j]) => runner(n, j, n, '--ease')).join('');
+  $('#ease-runners').innerHTML = EASES.map(([n, j]) => runner(n, j, '--dur-4', n)).join('');
+  function runRunner(r) { const track = $('.runner__track', r); r.style.setProperty('--run', `${track.clientWidth - 12}px`); replay(r, 'is-run'); }
+  $$('.runner').forEach((r) => r.addEventListener('click', () => runRunner(r)));
+  $('#run-all').addEventListener('click', () => $$('.runner').forEach(runRunner));
+
+  /* ── grammar board ────────────────────────────────────────────────── */
+  const VERBS = [
+    ['滲み', 'nijimi', 'bleed in', 'entrance', 'opacity 0→1 + scale(.985)→1, --dur-2; ≤ 160 px add blur(2px)→0', 'opacity only, 150 ms', (st) => `<div class="verb__chip ink-nijimi is-small">a card</div>`, (st) => replay($('.verb__chip', st), 'ink-nijimi')],
+    ['掠れ', 'kasure', 'dry out', 'exit', 'opacity 1→0 + 6 px toward the exit, --dur-1', 'instant', (st) => `<div class="verb__chip">a toast</div>`, (st) => { const c = $('.verb__chip', st); c.classList.remove('ink-kasure'); void c.offsetWidth; setTimeout(() => c.classList.add('ink-kasure'), at(250)); }],
+    ['引く', 'hiku', 'draw', 'strokes, bars, unroll', 'stroke-dashoffset; bars scaleX from the left; cards scaleY from the top; --ease-draw', 'shown complete', (st) => `<div class="verb__bar ink-hiku-x"></div>`, (st) => replay($('.verb__bar', st), 'ink-hiku-x')],
+    ['押す', 'osu', 'press', 'commit', 'scale(1.12)→.98→1, 180 ms on --spring, then kawaku', 'no scale; colour sets in 200 ms', (st) => `<div class="seal ink-osu" style="width:56px;height:56px">${sealSvg(21, '一本', '')}</div>`, (st) => replay($('.seal', st), 'ink-osu')],
+    ['乾く', 'kawaku', 'dry', 'settle', 'the wet layer (30 %, one shared ink-bleed filter) fades over the dry layer, --dur-4; today’s ink stays wet until the 04:00 roll', 'shown dry', (st) => `<div class="seal ink-wet" style="width:56px;height:56px">${sealSvg(22, '原', '第十三宿')}<div class="wet">${sealSvg(22, '原', '第十三宿')}</div></div>`, (st) => { const s = $('.seal', st); s.classList.remove('is-dry'); void s.offsetWidth; setTimeout(() => s.classList.add('is-dry'), at(200)); }],
+    ['捲る', 'meku', 'turn', 'pages, theme', 'View Transition: old kasure; new revealed by a clip-path: inset() wipe in the travel direction, --dur-3', '150 ms crossfade, no wipe', (st) => `<div class="verb__page">old page</div><div class="verb__page ink-meku" style="background:var(--raised-paper);box-shadow:inset 0 0 0 1px var(--line)">new page</div>`, (st) => replay($$('.verb__page', st)[1], 'ink-meku')],
+    ['灯す', 'tomosu', 'light', 'a lamp catches', 'the glow twin’s opacity 0→--lamp-alpha over --dur-4; core fill crossfade; never idle flicker. Nothing glows in Morning: the core recolours', 'final state + caption', (st) => `<div style="display:grid;gap:4px;justify-items:center">${lanternHtml('unlit', '')}<span class="gloss verb-cap">unlit</span></div>`, (st) => { const l = $('.lantern', st); l.dataset.state = 'unlit'; $('.verb-cap', st).textContent = 'unlit'; setTimeout(() => { l.dataset.state = 'lit'; $('.verb-cap', st).textContent = 'lit · The flame is lit.'; replay($('.lantern__glow', l), 'ink-tomosu'); }, at(200)); }],
+  ];
+  $('#verbs').innerHTML = VERBS.map(([ja, ro, en, job, full, red, mk], i) => `<div class="verb sheet" data-verb="${i}"><div class="verb__head"><span class="brush" lang="ja">${ja}</span><span class="en">${ro} · ${en}</span><span class="gloss">${job}</span></div><div class="verb__stage">${mk()}</div><p><b>Full:</b> ${full}</p><p><b>Reduced:</b> ${red}</p><button class="ghost ghost--sm" type="button" data-verb-replay="${i}">Replay</button></div>`).join('');
+  $('#verbs').addEventListener('click', (e) => { const b = e.target.closest('[data-verb-replay]'); if (!b) return; const i = Number(b.dataset.verbReplay); const st = $(`.verb[data-verb="${i}"] .verb__stage`); VERBS[i][7](st); });
+  const STAGGER_WORDS = ['あ a', 'い i', 'う u', 'え e', 'お o', 'か ka', 'き ki', 'く ku', 'け ke', 'こ ko', 'さ sa', 'し shi'];
+  function renderStagger() { $('#stagger-row').innerHTML = STAGGER_WORDS.map((w, i) => `<span class="chip ink-nijimi is-small" style="--i:${i}"><b lang="ja">${w.split(' ')[0]}</b> ${w.split(' ')[1]} <span style="opacity:.6">#${i + 1}</span></span>`).join(''); }
+  renderStagger();
+  $('#stagger-replay').addEventListener('click', renderStagger);
+
+  /* ── A · arrival ──────────────────────────────────────────────────── */
+  const arrival = { tl: new Timeline($('#arrival-readout')), stage: $('#arrival-stage'), scene: $('#arrival-scene'), shoji: $('#arrival-shoji'), enso: $('#arrival-enso'), phase: $('#phase-word'), since: $('#since'), column: $('#arrival-column') };
+  arrival.scene.innerHTML = sceneSvg('ar', shownDate); arrival.scene.classList.add('is-lit'); $('.tongue', arrival.scene).forEach((t) => t.classList.add('is-flicker'));
+  $('#under-btn').addEventListener('click', (e) => { e.stopPropagation(); const n = $('.pixel', e.currentTarget); n.textContent = String(Number(n.textContent) + 1); });
+  function arrivalEnd() {
+    arrival.shoji.classList.remove('is-open', 'is-closing'); arrival.shoji.classList.add('is-away');
+    arrival.enso.hidden = true; arrival.enso.style.transform = ''; $('#ar-mark').style.opacity = '';
+    arrival.phase.hidden = true; arrival.column.style.opacity = ''; arrival.since.hidden = false;
+    const la = $('.lantern-a', arrival.scene); la.classList.remove('is-pulse'); la.classList.toggle('is-ring', reduced());
+    setReadout(arrival.tl.readout, 'beat', 'end · hotspots were interactive the whole time');
+  }
+  arrival.tl.onSkip = arrivalEnd;
+  function playArrival() {
+    const tl = arrival.tl; tl.cancel(); const r = reduced(); const w = PHASE_WORD[skyPhase(hour)];
+    arrival.shoji.classList.remove('is-away', 'is-open', 'is-closing'); void arrival.shoji.offsetWidth;
+    arrival.enso.hidden = false; arrival.enso.style.transform = ''; arrival.enso.style.opacity = '1'; arrival.enso.innerHTML = ensoSvg(7, 'var(--dur-4)');
+    $('#ar-mark').style.opacity = '0'; arrival.phase.hidden = true; arrival.since.hidden = true; arrival.column.style.opacity = '0';
+    const la = $('.lantern-a', arrival.scene); la.classList.remove('is-pulse', 'is-ring');
+    setReadout(tl.readout, 'beat', r ? '0 · ensō shown complete for 300 ms' : '0 · ensō draws itself on the closed shōji (hiku, 900 ms)');
+    tl.beat(900, r ? '150 ms crossfade' : '900 · panels part (600 ms) · ensō carries onto the wall scroll', () => {
+      arrival.shoji.classList.add('is-open');
+      const from = arrival.enso.getBoundingClientRect(), to = $('#ar-mark').getBoundingClientRect();
+      const s = to.width / from.width; const dx = (to.left + to.width / 2) - (from.left + from.width / 2), dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+      arrival.enso.style.transform = `translate(${fmt(dx)}px, ${fmt(dy)}px) scale(${fmt(s)})`;
+    }, 300);
+    tl.beat(1300, null, () => { $('#ar-mark').style.opacity = ''; arrival.enso.style.opacity = '0'; }, 300);
+    tl.beat(r ? 0 : 1100, `1100 · phase word nijimi: ${w[0]} ${w[1]} · ${w[2]} (2 s)`, () => { arrival.phase.hidden = false; arrival.phase.innerHTML = `<span class="brush" lang="ja">${w[0]}</span><span class="gloss">${w[1]} · ${w[2]}</span>`; replay(arrival.phase, 'ink-nijimi'); });
+    tl.beat(r ? 0 : 3100, null, () => { replay(arrival.phase, 'ink-kasure'); setTimeout(() => { arrival.phase.hidden = true; arrival.phase.classList.remove('ink-kasure'); }, at(130)); });
+    tl.beat(r ? 0 : 1300, '1300 · the tategaki column nijimi: seal, sekki, kō', () => { arrival.column.style.opacity = ''; replay(arrival.column, 'ink-nijimi'); });
+    tl.beat(r ? 0 : 1700, r ? 'since yesterday: static 1 px gold ring + caption' : '1700 · since yesterday: one glow pulse (900 ms) + caption', () => { arrival.since.hidden = false; arrival.since.innerHTML = '<b>Since yesterday:</b> a lantern was lit (Lv 12 → 13).'; replay(arrival.since, 'ink-nijimi'); if (r) la.classList.add('is-ring'); else replay(la, 'is-pulse'); });
+    tl.beat(r ? 0 : 2100, '2100 · forecast line and the one hanko nijimi · end', () => { arrival.shoji.classList.remove('is-open'); arrival.shoji.classList.add('is-away'); arrival.enso.hidden = true; });
+  }
+  $('#arrival-play').addEventListener('click', (e) => { e.stopPropagation(); playArrival(); });
+  arrival.stage.addEventListener('click', () => { if (arrival.tl.timers.length) arrival.tl.skip(); });
+  arrival.stage.addEventListener('keydown', (e) => { if (e.key === 'Escape' && arrival.tl.timers.length) arrival.tl.skip(); });
+
+  /* ── B/C · End Card and Rest ──────────────────────────────────────── */
+  const endStage = $('#end-stage'); const endTl = new Timeline($('#end-readout'));
+  function tsuzukuSvg(dur) { const id = uid(); return `<svg viewBox="0 0 360 160" aria-hidden="true"><mask id="${id}"><path class="write" d="M18 60 Q60 26 104 60 Q118 100 56 128 M138 60 Q180 26 224 60 Q238 100 176 128 M226 24 l10 14 M246 18 l10 14 M342 36 L284 86 L342 136" fill="none" stroke="#fff" stroke-width="56" stroke-linecap="round" stroke-linejoin="round" pathLength="1" style="--dur-write:${dur}"/></mask><text x="180" y="124" text-anchor="middle" font-size="124" style="font-family:var(--font-brush)" fill="currentColor" mask="url(#${id})">つづく</text></svg>`; }
+  const TALLY = [['Reps', 24, ''], ['Correct', 21, ''], ['XP', 86, '+']];
+  const BELTS = [['いぬ', 'inu · dog'], ['ねこ', 'neko · cat'], ['みず', 'mizu · water']];
+  function endCardHtml() {
+    return `<div class="end-card" id="ec"><div class="end-card__controls" id="ec-controls"><span class="pill">PAUSE</span><span class="pill">LEAVE</span></div>
+<div class="end-card__body"><div class="end-card__brush" id="ec-brush" aria-label="tsuzuku, to be continued"></div>
+<div class="grid" style="gap:8px"><div class="tally" id="ec-tally">${TALLY.map(([k, v, p], i) => `<div class="tile" style="--i:${i};opacity:0"><small>${k}</small><span class="dela ticker" data-prefix="${p}" data-to="${v}">${p}0</span></div>`).join('')}</div>
+<div class="belts" id="ec-belts">${BELTS.map(([ja, say]) => `<span class="belt-chip" style="opacity:0"><i></i><b lang="ja">${ja}</b><span class="ja">${say}</span><span class="pixel">White → Yellow</span></span>`).join('')}</div>
+<div class="lantern-line" id="ec-lantern" style="opacity:0">${lanternHtml('unlit', '')}<span>A lantern for today.</span></div></div>
+<div class="jikai jikai--column" id="ec-jikai" style="opacity:0"><p class="eyebrow"><span lang="ja">次回予告</span> jikai yokoku · next time</p><p class="mincho" lang="ja">水を<span class="masked">???</span>。</p><p class="gloss">mizu o ??? · "I ___ water."</p><p class="omikuji mincho">A steady hand. (omikuji · fortune slip)</p></div></div>
+<div class="end-card__foot" id="ec-foot" style="opacity:0"><p class="rest"><b>Good training. Rest.</b>The dojo keeps your place.</p><div class="row"><button class="ghost ghost--sm" type="button">Another Kata?</button><button class="hanko" type="button" id="ec-rest"><span lang="ja">休</span> Rest.</button></div></div></div>
+<div class="shoji is-away" id="ec-shoji" aria-hidden="true"><div class="shoji__panel"></div><div class="shoji__panel"></div></div>`;
+  }
+  function playEndCard() {
+    endTl.cancel(); const r = reduced(); endStage.innerHTML = endCardHtml();
+    const show = (sel, cls = 'ink-nijimi') => { for (const el of $$(sel, endStage)) { el.style.opacity = ''; replay(el, cls); } };
+    setReadout(endTl.readout, 'beat', r ? 'stage cut at 0' : '0 · controls kasure 120 ms · page dims to the stage over 300 ms (sfx: none yet)');
+    endTl.beat(0, null, () => { for (const el of $$('#ec-controls .pill', endStage)) replay(el, 'ink-kasure'); });
+    endTl.beat(300, r ? 'つづく whole after 200 ms' : '300 · つづく is written (dashWrite mask, 1,200 ms) · sfx tsuzuku gliss', () => { $('#ec-brush', endStage).innerHTML = tsuzukuSvg('calc(1200ms * var(--slow))'); }, 200);
+    endTl.beat(r ? 200 : 1500, r ? 'tiles and final numbers at once' : '1500 · tally tiles nijimi 60 ms apart · Dela tickers count up in 400 ms', () => { show('#ec-tally .tile'); for (const t of $$('#ec-tally .ticker', endStage)) tick(t, Number(t.dataset.to), 400, t.dataset.prefix || ''); });
+    endTl.beat(r ? 200 : 2100, '2100 · item belts flip · sfx promotion koto pair', () => { show('#ec-belts .belt-chip'); $$('#ec-belts .belt-chip', endStage).forEach((c, i) => { setTimeout(() => { replay(c, 'is-flipping'); setTimeout(() => { $('i', c).style.background = 'var(--belt-yellow)'; }, at(200)); }, at(i * 90)); }); });
+    endTl.beat(r ? 200 : 2400, '2400 · a lantern for today: the tongue catches (tomosu)', () => { show('#ec-lantern'); setTimeout(() => { $('#ec-lantern .lantern', endStage).dataset.state = 'lit'; }, at(80)); });
+    endTl.beat(r ? 200 : 2700, r ? '??? static gold · end' : '2700 · next-time sentence · the ??? pulses gold once (900 ms) · omikuji in Mincho · end', () => { show('#ec-jikai'); show('#ec-foot'); if (!r) setTimeout(() => replay($('#ec-jikai .masked', endStage), 'is-pulse'), at(300)); });
+  }
+  function playRest() {
+    endTl.cancel(); const r = reduced(); const stageRect = endStage.getBoundingClientRect();
+    const brush = $('#ec-brush', endStage); const b = brush.getBoundingClientRect();
+    const mark = document.createElement('div'); mark.className = 'mark-travel'; mark.innerHTML = '<span class="brush" lang="ja">つづく</span>'; mark.style.left = `${fmt(b.left - stageRect.left + b.width / 2 - 60)}px`; mark.style.top = `${fmt(b.top - stageRect.top + b.height / 2 - 24)}px`; endStage.appendChild(mark);
+    brush.style.opacity = '0';
+    const shoji = $('#ec-shoji', endStage); shoji.classList.remove('is-away'); shoji.classList.add('is-closing');
+    setReadout(endTl.readout, 'beat', r ? '150 ms crossfade · hearth state swaps under a fade' : '0–400 · the mark travels into the hearth · shōji close over the stage (sfx: none; the silence is the rest)');
+    requestAnimationFrame(() => { const tx = stageRect.width * .5 - (b.left - stageRect.left + b.width / 2); const ty = stageRect.height * .8 - (b.top - stageRect.top + b.height / 2); mark.style.transform = `translate(${fmt(tx)}px, ${fmt(ty)}px) scale(.3)`; mark.style.opacity = '0'; });
+    endTl.beat(400, '400 · the Dojo stands behind · panels part · the hearth relights by growing (scaleY on --spring, 600 ms)', () => {
+      endStage.innerHTML = `<svg class="scene" id="rest-scene" viewBox="0 0 640 400" role="img" aria-label="The dojo after the session: the hearth relit, quest circles ticked"></svg><div class="shoji" id="rest-shoji" aria-hidden="true"><div class="shoji__panel"></div><div class="shoji__panel"></div></div><div class="since" id="rest-since" hidden></div>`;
+      endStage.classList.remove('stage--sumi'); endStage.classList.add('is-scene');
+      const sc = $('#rest-scene', endStage); sc.innerHTML = sceneSvg('rs', shownDate); const sh = $('#rest-shoji', endStage); void sh.offsetWidth; sh.classList.add('is-open');
+      setTimeout(() => { sc.classList.add('is-lit'); $$('.tongue', sc).forEach((t) => t.classList.add('is-flicker')); }, at(60));
+    });
+    endTl.beat(1000, '1000–1160 · today’s quest circles tick (osu, 40 ms apart) and stay wet · the Dojo shows today’s deltas, no replay', () => {
+      const sc = $('#rest-scene', endStage); $$('.quest-slot', sc).forEach((q, i) => setTimeout(() => { q.classList.add('is-ticked'); q.classList.add('ink-osu'); }, at(i * 40)));
+      const since = $('#rest-since', endStage); since.hidden = false; since.innerHTML = '<b>Today:</b> Kata done · 3 of 3 quests · the hearth is lit. Replay the End Card to return.'; replay(since, 'ink-nijimi');
+      $('#rest-shoji', endStage).classList.remove('is-open'); $('#rest-shoji', endStage).classList.add('is-away');
+    });
+  }
+  endStage.addEventListener('click', (e) => { if (e.target.closest('#ec-rest')) playRest(); });
+  $('#end-play').addEventListener('click', () => { endStage.classList.add('stage--sumi'); endStage.classList.remove('is-scene'); playEndCard(); });
+  endStage.classList.add('stage--sumi'); endStage.innerHTML = endCardHtml(); $('#ec-brush', endStage).innerHTML = tsuzukuSvg('0ms'); for (const el of $$('#ec [style*="opacity:0"]', endStage)) el.style.opacity = ''; for (const t of $$('#ec-tally .ticker', endStage)) { t.textContent = (t.dataset.prefix || '') + t.dataset.to; t.dataset.from = t.dataset.to; } $$('#ec-belts i', endStage).forEach((i) => { i.style.background = 'var(--belt-yellow)'; }); $('#ec-lantern .lantern', endStage).dataset.state = 'lit';
+
+  /* ── D · Road ─────────────────────────────────────────────────────── */
+  const ROWS = [
+    { n: 11, ja: '三島', rt: 'みしま', ro: 'Mishima', en: 'Spring Keeper · cleared', state: 'cleared' },
+    { n: 12, ja: '沼津', rt: 'ぬまづ', ro: 'Numazu', en: 'Harbor Market Keeper · cleared today', state: 'just' },
+    { n: 13, ja: '原', rt: 'はら', ro: 'Hara', en: 'Fuji-View Keeper · you are here', state: 'new' },
+    { n: 14, ja: '吉原', rt: '', ro: 'Yoshiwara', en: 'ahead · Left-Fuji Keeper', state: 'ahead' },
+  ];
+  const roadList = $('#road-list'); const roadTl = new Timeline($('#road-readout'));
+  function roadHtml(hero = false) {
+    return `<svg class="road__spine" aria-hidden="true"></svg>` + ROWS.map((r) => {
+      const right = r.state === 'ahead' ? `<span class="ahead-tag">ahead</span>` : r.state === 'new' ? `<span class="${hero ? 'hero-seal' : ''}" style="display:inline-block">${roadLantern(false)}</span>` : `<div class="road__seal ${r.state === 'just' ? 'is-blank' : ''}" data-n="${r.n}">${sealSvg(r.n, r.ja, '')}${r.state === 'just' ? `<div class="wet" hidden>${sealSvg(r.n, r.ja, '')}</div>` : ''}</div>`;
+      return `<div class="road__row ${r.state === 'ahead' ? 'is-ahead' : ''}" data-state="${r.state}" data-n="${r.n}">${signHtml(r.n, r.ja, r.rt, r.ro, r.en, r.state === 'ahead' ? 'sign--ahead' : '')}${right}</div>`;
+    }).join('');
+  }
+  function drawSpine(container, upTo, animate) {
+    const svg = $('.road__spine', container); const box = container.getBoundingClientRect(); const rows = $$('.road__row', container);
+    const ys = rows.map((r) => { const b = r.getBoundingClientRect(); return b.top - box.top + b.height / 2; }); const H = Math.max(1, box.height); const w = Math.round(svg.getBoundingClientRect().width) || 48; const cx = w / 2;
+    svg.setAttribute('viewBox', `0 0 ${w} ${fmt(H)}`); svg.setAttribute('preserveAspectRatio', 'none');
+    const done = ys.slice(0, upTo + 1), ahead = ys.slice(upTo);
+    svg.innerHTML = `<path d="M${cx} ${fmt(ahead[0])} L${cx} ${fmt(ys[ys.length - 1])}" fill="none" style="stroke:var(--hai)" stroke-width="3" stroke-dasharray="4 6"/><path class="${animate ? 'write' : ''}" d="M${cx} ${fmt(done[0])} L${cx} ${fmt(done[done.length - 1])}" fill="none" style="stroke:var(--belt-color);--dur-write:var(--dur-4)" stroke-width="4" stroke-linecap="round" pathLength="1"/>${ys.map((y, i) => `<circle cx="${cx}" cy="${fmt(y)}" r="${i === upTo ? 7 : 5}" style="fill:${i < upTo ? 'var(--belt-color)' : i === upTo ? 'var(--surface)' : 'var(--raised)'};stroke:${i <= upTo ? 'var(--belt-color)' : 'var(--hai)'}" stroke-width="2"/>`).join('')}`;
+  }
+  function roadFinal(container) { const seal = $('.road__seal[data-n="12"]', container); seal.classList.remove('is-blank'); const wet = $('.wet', seal); if (wet) { wet.hidden = true; } const row13 = $('.road__row[data-n="13"]', container); row13.classList.add('is-current'); $('.road__lantern', row13).classList.add('is-lit'); }
+  roadList.innerHTML = roadHtml(); $('#headpiece').innerHTML = headpieceSvg('hp') + `<div class="sign sign--head"><span class="sign__n ordinal" lang="ja">第十三宿</span><span class="sign__ja" lang="ja"><ruby>原<rt>はら</rt></ruby></span><span class="sign__romaji">Hara · Station 13</span><span class="sign__en">Fuji view · Orange belt · Fuji-View Keeper</span></div>`;
+  requestAnimationFrame(() => { drawSpine(roadList, 2, false); roadFinal(roadList); $('#headpiece').classList.add('is-lifted'); });
+  function playRoad() {
+    roadTl.cancel(); const r = reduced(); roadList.innerHTML = roadHtml(); const hp = $('#headpiece'); hp.classList.remove('is-lifted');
+    requestAnimationFrame(() => drawSpine(roadList, 2, true));
+    setReadout(roadTl.readout, 'beat', r ? 'spine, seal and lantern shown · the new row carries a gold hairline for the visit' : '0–900 · the belt spine draws from Mishima to Hara (hiku, --ease-draw)');
+    roadTl.beat(900, '900 · the cleared seal presses (osu 180 ms) then dries (kawaku) · sfx stamp · haptic 10-30-10', () => { const seal = $('.road__seal[data-n="12"]', roadList); seal.classList.remove('is-blank'); replay(seal, 'ink-osu'); const wet = $('.wet', seal); wet.hidden = false; setTimeout(() => seal.classList.add('is-dry'), at(180)); });
+    roadTl.beat(1100, '1100 · the new station’s lantern catches (tomosu 400 ms) · its sign settles --fs-6 → --fs-5', () => { const row13 = $('.road__row[data-n="13"]', roadList); row13.classList.add('is-current'); if (r) row13.classList.add('is-arrived'); $('.road__lantern', row13).classList.add('is-lit'); replay($('.sign', row13), 'is-arriving'); });
+    roadTl.beat(1500, '1500 · the headpiece: the keeper lifts from ink wash to tone (900 ms) · sfx scroll (first arrival only) · end', () => { hp.classList.add('is-lifted'); });
+  }
+  $('#road-play').addEventListener('click', playRoad);
+  addEventListener('resize', () => { if (!roadTl.timers.length) drawSpine(roadList, 2, false); });
+
+  /* ── E · stamp press + hanko ──────────────────────────────────────── */
+  const stampStage = $('#stamp-stage'); const stampTl = new Timeline($('#stamp-readout'));
+  function stampHtml(seedDate) { const id = uid(); return `<div class="sheet stamp-sheet" id="stamp-sheet"><svg aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%"><defs>${seigaihaPattern(id, 10, 'var(--kon)', 'var(--surface)')}</defs><rect x="3%" y="3%" width="94%" height="4%" fill="url(#${id})" opacity=".5"/><rect x="3%" y="93%" width="94%" height="4%" fill="url(#${id})" opacity=".5"/></svg><div class="seal-art ink-wet" id="stamp-seal" style="opacity:0">${sealSvg(13, '原', '第十三宿')}<div class="wet">${sealSvg(13, '原', '第十三宿')}</div></div><div class="era" id="stamp-era" style="opacity:0" lang="ja">${eraDateKanji(seedDate)}<span class="gloss">Reiwa ${eraYear(seedDate)} · ${dateEn(seedDate)}</span></div><div class="caption gloss" id="stamp-cap" style="opacity:0"><span lang="ja">原</span> Hara · Station 13 · goshuin (pilgrim’s seal page) · seigaiha wave band for Orange belt</div></div>`; }
+  function playStamp() {
+    stampTl.cancel(); const r = reduced(); stampStage.innerHTML = stampHtml(shownDate); const sheet = $('#stamp-sheet', stampStage); replay(sheet, 'ink-nijimi');
+    const seal = $('#stamp-seal', stampStage), era = $('#stamp-era', stampStage), cap = $('#stamp-cap', stampStage);
+    setReadout(stampTl.readout, 'beat', r ? 'sheet and dry seal at 0 · 200 ms fade' : '0 · the sheet bleeds in with its grain (nijimi)');
+    stampTl.beat(r ? 0 : 350, '350 · the seal presses on --spring (osu) · sfx stamp', () => { seal.style.opacity = ''; replay(seal, 'ink-osu'); });
+    stampTl.beat(r ? 0 : 530, '530–1300 · the wet ink dries over the dry layer (kawaku, opacity only)', () => { seal.classList.add('is-dry'); });
+    stampTl.beat(r ? 0 : 1300, '1300 · the era date in Mincho nijimi · end (dismiss = kasure)', () => { era.style.opacity = ''; cap.style.opacity = ''; replay(era, 'ink-nijimi'); replay(cap, 'ink-nijimi'); });
+  }
+  $('#stamp-play').addEventListener('click', playStamp);
+  $('#stamp-dismiss').addEventListener('click', () => { const s = $('#stamp-sheet', stampStage); if (s) { replay(s, 'ink-kasure'); setReadout(stampTl.readout, 'beat', 'dismiss · kasure 120 ms'); } });
+  stampStage.innerHTML = stampHtml(shownDate); for (const el of $$('[style*="opacity:0"]', stampStage)) el.style.opacity = ''; $('#stamp-seal', stampStage).classList.add('is-dry');
+  const hanko = $('#hanko-demo'); let presses = 0;
+  const press = () => hanko.classList.add('is-pressed'); const release = () => hanko.classList.remove('is-pressed');
+  hanko.addEventListener('pointerdown', press); hanko.addEventListener('pointerup', release); hanko.addEventListener('pointerleave', release); hanko.addEventListener('pointercancel', release);
+  hanko.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') press(); }); hanko.addEventListener('keyup', release);
+  hanko.addEventListener('click', () => { presses++; setReadout($('#hanko-readout'), 'pressed', `${presses} · sfx submit`); });
+
+  /* ── route transitions (mock) ─────────────────────────────────────── */
+  const mockMain = $('#mock-main'), mockNav = $('#mock-nav'); let current = 'dojo';
+  const ORDER = { dojo: 0, road: 1, station: 1.5 };
+  function travelOf(from, to) { if (to === 'session') return 'in'; if (from === 'session') return to === 'dojo' ? 'home' : 'out'; if (to === 'dojo') return 'home'; return ORDER[to] > ORDER[from] ? 'forward' : 'back'; }
+  const PAGES = {
+    dojo: () => `<div class="scene-box"><svg class="scene is-lit" viewBox="0 0 640 400" aria-hidden="true">${sceneSvg('mk', shownDate)}</svg></div><div class="row"><button class="hanko" type="button"><span lang="ja">型</span> Kata · 20 reps</button><span class="gloss">the one hanko: today’s recommended session</span></div><div class="grid" style="grid-template-columns:1fr 1fr;gap:8px"><div class="sheet" style="padding:10px"><p class="eyebrow">Kumite</p><p class="gloss">sparring · 12 reviews</p><span class="seal-corner" lang="ja" aria-label="kumite">組</span></div><div class="sheet" style="padding:10px"><p class="eyebrow">Shugyō</p><p class="gloss">long training</p><span class="seal-corner" lang="ja" aria-label="shugyo">修</span></div></div>`,
+    road: () => `<p class="eyebrow">The Tōkaidō · 53 stations · Orange belt</p><div class="road">${roadHtml(true)}</div>`,
+    station: () => `<div class="headpiece is-lifted">${headpieceSvg('ms')}<div class="sign sign--head hero-seal"><span class="sign__n ordinal" lang="ja">第十三宿</span><span class="sign__ja" lang="ja"><ruby>原<rt>はら</rt></ruby></span><span class="sign__romaji">Hara · Station 13</span><span class="sign__en">Fuji view · Fuji-View Keeper</span></div></div><div class="sheet" style="padding:10px"><p class="eyebrow">Gate · <span lang="ja">関所</span> sekisho · checkpoint</p><p class="gloss">Kata 3 of 5 · Kumite 2 of 3 · Shinsa ahead</p></div><div class="row"><button class="hanko" type="button"><span lang="ja">型</span> Kata</button></div>`,
+    session: () => `<div class="hud"><span class="ki-label" lang="ja">気</span><span>ki</span><div class="meter" style="--value:.5"><div class="meter__fill"></div></div><span class="xp">+12</span></div><div class="step" style="position:relative"><div class="prompt"><span class="ja" lang="ja">いぬ</span><span class="gloss">inu · which is it?</span></div><div class="choices"><button class="choice" type="button"><span class="mark"></span>dog</button><button class="choice" type="button"><span class="mark"></span>cat</button><button class="choice" type="button"><span class="mark"></span>bird</button><button class="choice" type="button"><span class="mark"></span>fish</button></div></div>`,
+  };
+  const NAV = { dojo: 'Dojo', road: 'Road', station: 'Road', session: '' };
+  function renderPage(to) { mockMain.innerHTML = PAGES[to](); mockMain.classList.toggle('is-session', to === 'session'); mockNav.hidden = to === 'session'; for (const s of $$('span', mockNav)) { if (s.textContent === NAV[to]) s.setAttribute('aria-current', 'page'); else s.removeAttribute('aria-current'); } if (to === 'road') requestAnimationFrame(() => { const rd = $('.road', mockMain); drawSpine(rd, 2, false); roadFinal(rd); }); }
+  function go(to) {
+    if (to === current) return; const from = current; const travel = travelOf(from, to); const hero = (from === 'road' && to === 'station') || (from === 'station' && to === 'road') ? 'station-seal' : '';
+    const mutate = () => { current = to; renderPage(to); };
+    if (!canVT()) { mutate(); replay(mockMain, 'page-enter'); setReadout($('#vt-ran'), 'ran', reduced() ? `reduced motion · 150 ms fade (API skipped) · ${travel}` : `CSS fallback · .page-enter nijimi · ${travel}${stubbed() ? ' · stubbed' : ''}`); return; }
+    root.dataset.vt = 'route'; root.dataset.travel = travel; if (hero) root.dataset.hero = hero;
+    const vt = document.startViewTransition(() => { mutate(); return afterPaint(); });
+    vt.finished.catch(() => {}).then(() => { delete root.dataset.vt; delete root.dataset.travel; delete root.dataset.hero; });
+    setReadout($('#vt-ran'), 'ran', `View Transitions API · ${travel}${hero ? ' · hero station-seal' : ''}${travel === 'in' ? ' · mat dim' : ''}`);
+  }
+  $('#vt-controls').addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
+  renderPage('dojo');
+  $('#mock-lantern').outerHTML = lanternHtml('lit', 'lit').replace('class="lantern ', 'id="mock-lantern" class="lantern ');
+
+  /* ── G · dusk ─────────────────────────────────────────────────────── */
+  $('#dusk-scene').innerHTML = sceneSvg('dk', shownDate); $('#dusk-scene').classList.add('is-lit'); $('.tongue', $('#dusk-scene')).forEach((t) => t.classList.add('is-flicker'));
+  $('#dusk-toggle').addEventListener('click', () => setTheme(isDark() ? 'light' : 'dark', true, $('#dusk-ran')));
+  $('#theme-swatches').innerHTML = `<span class="row" style="gap:6px"><span style="width:48px;height:48px;border-radius:4px;background:#F4EDE0;display:grid;place-items:center;border:1px solid #D9CDB6"><span style="width:28px;height:16px;border:2px double #5E5A52;background:#EADFCB;clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px)"></span></span><span class="gloss">Dojo Morning · washi</span></span><span class="row" style="gap:6px"><span style="width:48px;height:48px;border-radius:4px;background:#0B0B10;display:grid;place-items:center;border:1px solid #2C2C3A"><span style="width:28px;height:16px;border:2px double #A9A49A;background:#1F1F2A;clip-path:polygon(4px 0,calc(100% - 4px) 0,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0 calc(100% - 4px),0 4px)"></span></span><span class="gloss">Arcade Night · lacquer</span></span>`;
+
+  /* ── I/J/F · the rep ──────────────────────────────────────────────── */
+  const repStage = $('#rep-stage'); const STEPS = [
+    { ja: 'いぬ', ro: 'inu', answer: 'dog', choices: ['dog', 'cat', 'bird', 'fish'] },
+    { ja: 'ねこ', ro: 'neko', answer: 'cat', choices: ['fish', 'cat', 'dog', 'bird'] },
+    { ja: 'みず', ro: 'mizu', answer: 'water', choices: ['tea', 'rice', 'water', 'fire'] },
+    { ja: 'やま', ro: 'yama', answer: 'mountain', choices: ['river', 'mountain', 'sea', 'sky'] },
+  ];
+  let rep = { i: 0, ki: 0, xp: 0, graded: false, left: 6 };
+  function stepHtml(s, entering) { return `<div class="step ${entering ? 'is-entering' : ''}"><div class="prompt"><span class="ja" lang="ja">${s.ja}</span><span class="gloss">${s.ro} · which is it?</span></div><div class="choices">${s.choices.map((c, i) => `<button class="choice ink-nijimi is-small" type="button" data-answer="${c}" style="--i:${i}"><span class="mark"><span class="splat">${splatSvg(10 + i)}</span></span>${c}<span class="strike">${strikeSvg(30 + i)}</span></button>`).join('')}</div><p class="feedback" aria-live="polite"></p></div>`; }
+  function repHtml() { return `<div class="rep" id="rep-root"><div class="hud"><span class="ki-label" lang="ja">気</span><span>ki</span><div class="meter" id="ki-meter" style="--value:${rep.ki}"><div class="meter__fill"></div></div><span class="xp ticker" id="rep-xp" data-from="${rep.xp}">+${rep.xp}</span></div><div class="rep__cards" id="rep-cards">${stepHtml(STEPS[rep.i], false)}</div><div class="rep__foot"><button class="ghost ghost--sm" type="button" id="rep-leave">Leave</button><span class="gloss" style="color:var(--stage-muted)">step ${rep.i + 1} of ${STEPS.length} · ${rep.left} reps left</span><button class="hanko ${rep.ki >= 1 ? 'is-charged' : ''}" type="button" id="rep-next"><span lang="ja">次</span> Continue</button></div></div>`; }
+  function resetRep() { rep = { i: 0, ki: 0, xp: 0, graded: false, left: 6 }; repStage.innerHTML = repHtml(); setReadout($('#rep-readout'), 'last', '—'); }
+  resetRep();
+  repStage.addEventListener('click', (e) => {
+    const choice = e.target.closest('.choice');
+    if (choice && !rep.graded) {
+      const s = STEPS[rep.i]; const ok = choice.dataset.answer === s.answer; rep.graded = true; const fb = $('.feedback', repStage);
+      if (ok) { choice.dataset.state = 'correct'; fb.innerHTML = `<b><span lang="ja">一本</span> ippon.</b> ${s.ja} ${s.ro} · ${s.answer}. +4 XP`; rep.ki = Math.min(1, rep.ki + .25); rep.xp += 4; $('#ki-meter', repStage).style.setProperty('--value', String(rep.ki)); tick($('#rep-xp', repStage), rep.xp, 400, '+'); if (rep.ki >= 1) $('#rep-next', repStage).classList.add('is-charged'); setReadout($('#rep-readout'), 'last', `correct · matcha splatter osu 180 ms · ki hiku · sfx correct${root.dataset.feel === 'arcade' ? ' · hit-stop 33 ms' : ''}`); if (root.dataset.feel === 'arcade' && !reduced()) { repStage.classList.add('hit-stop'); setTimeout(() => repStage.classList.remove('hit-stop'), 33); } }
+      else { choice.dataset.state = 'wrong'; for (const st of $$('.strike .write', choice)) replay(st, 'write'); fb.innerHTML = `Not yet. <b>${s.ja} ${s.ro}</b> is ${s.answer}.`; setReadout($('#rep-readout'), 'last', 'wrong · dry-brush strike hiku 220 ms · the strike is ink, not red · sfx wrong (soft donk)'); }
+      replay(fb, 'ink-nijimi'); rep.left = Math.max(0, rep.left - 1); return;
+    }
+    if (e.target.closest('#rep-next')) {
+      if (!rep.graded) { setReadout($('#rep-readout'), 'last', 'answer first · the loop never waits on decoration'); return; }
+      const cards = $('#rep-cards', repStage); const old = $('.step', cards); old.classList.add('is-leaving'); rep.i = (rep.i + 1) % STEPS.length; rep.graded = false;
+      setTimeout(() => { cards.innerHTML = stepHtml(STEPS[rep.i], true); $('.rep__foot .gloss', repStage).textContent = `step ${rep.i + 1} of ${STEPS.length} · ${rep.left} reps left`; }, at(120));
+      setReadout($('#rep-readout'), 'last', 'J · step to step: outgoing kasure 6 px left (120 ms) · incoming nijimi from 8 px right (220 ms) · tiles staggered 40 ms'); return;
+    }
+    if (e.target.closest('#rep-leave')) {
+      const bd = document.createElement('div'); bd.className = 'backdrop ink-nijimi'; bd.id = 'rep-backdrop'; bd.innerHTML = `<div class="tanzaku" role="dialog" aria-labelledby="tz-title"><p class="eyebrow"><span lang="ja">栞</span> shiori · bookmark</p><div class="status-window"><p class="status-window__label" id="tz-title">Leave the session?</p><p style="margin-top:6px">Your place is kept. <span class="left">${rep.left} reps left</span> will wait here.</p></div><div class="row" style="justify-content:space-between"><button class="ghost ghost--sm" type="button" id="tz-leave">Leave</button><button class="hanko" type="button" id="tz-stay"><span lang="ja">続</span> Stay</button></div></div>`; repStage.appendChild(bd);
+      setReadout($('#rep-readout'), 'last', 'F · the leave slip slides down 300 ms over a 60 % stage backdrop · no timer, no second step'); return;
+    }
+    if (e.target.closest('#tz-stay') || e.target.closest('#tz-leave')) {
+      const leave = !!e.target.closest('#tz-leave'); const bd = $('#rep-backdrop', repStage); const slip = $('.tanzaku', bd); slip.classList.add('is-leaving'); replay(bd, 'ink-kasure');
+      setTimeout(() => { bd.remove(); if (leave) resetRep(); }, at(140));
+      setReadout($('#rep-readout'), 'last', leave ? 'leave · meku to the Dojo (out) · the slip lands as the Resume ribbon · sfx submit' : 'stay · the slip dries out (kasure)'); return;
+    }
+  });
+  $('#rep-reset').addEventListener('click', resetRep);
+
+  /* ── components ───────────────────────────────────────────────────── */
+  const FLAMES = [['lit', 'The flame is lit.', '火 hi'], ['gold', 'Full training day. The flame burns gold.', '炎 honō'], ['ember', 'Embers. One Kumite or larger brings the flame back.', '残 zan'], ['frozen', 'The flame is frozen for a while. Rest is training.', '氷 kōri'], ['rest', 'Planned rest. Even samurai rest.', '休 kyū'], ['broken', 'The flame is out. Light it with any session.', '灰 hai'], ['unlit', 'Unlit. Your first session lights it.', '— (day one)']];
+  $('#lantern-states').innerHTML = FLAMES.map(([s, w, g]) => `<div class="row" style="justify-content:space-between;gap:8px">${lanternHtml(s, w)}<span class="gloss" style="white-space:nowrap">was glyph ${g}</span></div>`).join('');
+  function renderForgiveChips() { const open = swRepair.checked; $('#forgive-chips').innerHTML = `<span class="fchip"><span class="ja" lang="ja">氷</span> freeze held × 2</span><span class="fchip"><span class="ja" lang="ja">休</span> rest day set · Sunday</span><span class="fchip">weekly flame × 3</span>${open ? `<span class="fchip fchip--kintsugi">repair open · 1 of 3 days</span><span class="gloss">"Streak paused · repair open: 1 of 3 days"</span>` : `<span class="gloss">repair window closed · no seam, no scar</span>`}`; }
+  renderForgiveChips();
+  const xpMeter = $('#xp-meter');
+  function playMeter() { xpMeter.style.setProperty('--value', '0'); xpMeter.removeAttribute('data-met'); for (const t of $$('.status-window .ticker')) tick(t, Number(t.dataset.to), 400); requestAnimationFrame(() => requestAnimationFrame(() => { xpMeter.style.setProperty('--value', '.86'); setTimeout(() => xpMeter.setAttribute('data-met', 'true'), at(300)); })); }
+  $('#meter-replay').addEventListener('click', playMeter);
+  tick($('#t-combo'), 48, 400); playMeter();
+  document.addEventListener('click', (e) => { const b = e.target.closest('[data-replay]'); if (b) { const t = document.getElementById(b.dataset.replay); t.dataset.from = '0'; tick(t, Number(t.dataset.to), 400); } });
+  tick($('#dela-sample'), 2480, 400);
+  $('#scroll-replay').addEventListener('click', () => replay($('#scroll-card'), 'ink-hiku'));
+})();
+</script>
