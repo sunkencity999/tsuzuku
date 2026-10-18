@@ -1,8 +1,38 @@
 {
   "schema": "tsuzuku.audio-pack/1",
   "repo": "sunkencity999/tsuzuku",
-  "audioVersion": null,
-  "tag": null,
-  "assets": [],
-  "credits": []
+  "audioVersion": "a-d2d42f75c3",
+  "tag": "audio-a-d2d42f75c3",
+  "assets": [
+    {
+      "tier": "core",
+      "name": "tsuzuku-audio-a-d2d42f75c3-core.tar",
+      "sha256": "7dd5f3a7f0e63402e8a6f8f2f004fd202a015a44ba33073805d72e00ff50894e",
+      "bytes": 206598656
+    }
+  ],
+  "credits": [
+    "VOICEVOX:ちび式じい",
+    "VOICEVOX:中部つるぎ",
+    "VOICEVOX:九州そら",
+    "VOICEVOX:冥鳴ひまり",
+    "VOICEVOX:剣崎雌雄",
+    "VOICEVOX:四国めたん",
+    "VOICEVOX:春日部つむぎ",
+    "VOICEVOX:春歌ナナ",
+    "VOICEVOX:東北きりたん",
+    "VOICEVOX:東北ずん子",
+    "VOICEVOX:東北イタコ",
+    "VOICEVOX:波音リツ",
+    "VOICEVOX:満別花丸",
+    "VOICEVOX:猫使アル",
+    "VOICEVOX:猫使ビィ",
+    "VOICEVOX:玄野武宏",
+    "VOICEVOX:琴詠ニア",
+    "VOICEVOX:白上虎太郎",
+    "VOICEVOX:雀松朱司",
+    "VOICEVOX:雨晴はう",
+    "VOICEVOX:麒ヶ島宗麟",
+    "VOICEVOX:黒沢冴白"
+  ]
 }
