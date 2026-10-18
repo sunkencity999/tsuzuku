@@ -344,17 +344,6 @@ interface Offender {
  * change that fixes the CSS; the match is exact, so a stale line fails too.
  */
 const ALLOW_LIST: Offender[] = [
-  // until C4 lands (the four src/input sites named in §10 C1, plus ListeningArena's height tween)
-  { file: 'src/input/reader/reader.css', kind: 'transition', property: 'width', owner: 'C4' },
-  { file: 'src/input/taiwa/RolePlay.css', kind: 'transition', property: 'width', owner: 'C4' },
-  { file: 'src/input/speaking/speaking.css', kind: 'transition', property: 'width', owner: 'C4' },
-  { file: 'src/input/speaking/speaking.css', kind: 'keyframes', property: 'height', owner: 'C4' },
-  { file: 'src/input/listening/ListeningArena.css', kind: 'transition', property: 'height', owner: 'C4' },
-  // until C1 lands (ui.css:228 ki-bar fill; MichikusaStep's reading bar)
-  { file: 'src/shared/ui/ui.css', kind: 'transition', property: 'width', owner: 'C1' },
-  { file: 'src/session/MichikusaStep.css', kind: 'keyframes', property: 'width', owner: 'C1' },
-  // until C3 lands (charts.css:276)
-  { file: 'src/records/charts.css', kind: 'transition', property: 'width', owner: 'C3' },
   // until D1 lands (GateView.css:113; WallpaperUnlock's height tween → scaleY, §6.7)
   { file: 'src/session/GateView.css', kind: 'transition', property: 'width', owner: 'D1' },
   { file: 'src/art/ceremony/WallpaperUnlock.css', kind: 'transition', property: 'height', owner: 'D1' },
@@ -423,11 +412,17 @@ describe('src/**/*.css: width and height never tween (design 09 §6.7 rule 1)', 
    Phase B landed at 420,757 B (B1 Dojo home +5,982: pages.css, DojoScene.css; B2 End Card +856:
    EndCard.css, TrainPage.css; B3 shell +1,405: Layout.css, App.css), so the phase ceiling is
    421,000 — the smallest multiple of 1,000 above the measured tree — and the constant is renamed
-   CSS_CEILING_PHASE (it was CSS_CEILING_PHASE_A = 415,000). Phases C–D have 4,243 B net left. */
-const CSS_CEILING_PHASE = 421_000;
+   CSS_CEILING_PHASE (it was CSS_CEILING_PHASE_A = 415,000). Phases C–D have 4,243 B net left.
+   Phase C landed at 412,940 B (net −7,852: C1 session loop −4,558, C2 Road/Station +1,453,
+   C3 Collections/Records −518, C4 input surfaces −4,229 — the 13 result panels, the per-file
+   reduced-motion blocks and the __label clones deleted), so the phase ceiling is 413,000 — again
+   the smallest multiple of 1,000 at or above the measured tree. The lead's Phase C fixes (d36 omikuji
+   readings and 次回予告 gloss faces in EndCard.css, the proverb gloss in pages.css) landed the tree at
+   413,399 B, so the ceiling is 414,000. Phase D has 11,601 B net left. */
+const CSS_CEILING_PHASE = 414_000;
 export const CSS_CEILING_PROGRAMME = 425_000;
 describe('CSS budget', () => {
-  it(`total src CSS ≤ ${CSS_CEILING_PHASE.toLocaleString('en-US')} bytes (phase ceiling, Phase B; the programme ends ≤ ${CSS_CEILING_PROGRAMME.toLocaleString('en-US')})`, () => {
+  it(`total src CSS ≤ ${CSS_CEILING_PHASE.toLocaleString('en-US')} bytes (phase ceiling, Phase C; the programme ends ≤ ${CSS_CEILING_PROGRAMME.toLocaleString('en-US')})`, () => {
     expect(CSS_CEILING_PHASE).toBeLessThanOrEqual(CSS_CEILING_PROGRAMME);
     const files = walk(resolve(ROOT, 'src'));
     const total = files.reduce((n, f) => n + statSync(f).size, 0);

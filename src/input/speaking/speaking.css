@@ -3,8 +3,10 @@
  * Shadow Strike, Say It Three Ways, Monologue Marathon.
  * Tokens only (src/styles/tokens.css). Mobile-first: fits 360 px with the
  * 16 px gutter; 44 px targets; every state is shape + text, never color
- * alone. Motion is removed under prefers-reduced-motion and body.reduced-motion;
- * Zen (data-feel="zen") drops the glow.
+ * alone. .eyebrow and .meter come from motion.css (design 09 §3.1, §5.7);
+ * the live level meter is the one loop here and rides scaleY (§6.7 rule 1);
+ * reduced motion is base.css's global rule plus the zeroed --dur-* tokens
+ * (§6.6); Zen (data-feel="zen") mutes the level colour.
  */
 
 /* ── shared shell ─────────────────────────────────────────────────────── */
@@ -29,7 +31,7 @@
 .speak__title-ja {
   font-family: var(--font-brush);
   font-size: var(--fs-5);
-  line-height: 1;
+  line-height: 1.1;
 }
 .speak__prompt,
 .speak__note,
@@ -96,14 +98,8 @@
   margin: 0;
   font-weight: 600;
 }
-.speak__label {
-  display: inline-block;
+.speak .eyebrow {
   margin-inline-end: var(--sp-2);
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
 }
 .speak__heard {
   margin: 0;
@@ -132,6 +128,9 @@
   padding-top: 10px;
   font-size: var(--fs-3);
   line-height: 1.2;
+  transition:
+    background var(--dur-1) var(--ease),
+    color var(--dur-1) var(--ease);
 }
 .pitch-strip__mora::before {
   content: '';
@@ -168,13 +167,6 @@
 .pitch-strip__mora[data-timing='past'] {
   color: var(--fg-muted);
 }
-@media (prefers-reduced-motion: no-preference) {
-  .pitch-strip__mora {
-    transition:
-      background var(--dur-1) var(--ease),
-      color var(--dur-1) var(--ease);
-  }
-}
 
 /* ── recorder ─────────────────────────────────────────────────────────── */
 .recorder {
@@ -202,7 +194,7 @@
   box-shadow: inset 0 0 0 2px var(--surface);
 }
 .recorder__rec--live .recorder__dot {
-  animation: recorder-blink 1s steps(2, end) infinite;
+  animation: recorder-blink calc(var(--dur-4) * 5 / 3) steps(2, end) infinite;
 }
 @keyframes recorder-blink {
   50% {
@@ -216,24 +208,27 @@
   gap: 3px;
   height: 28px;
 }
+/* the bars are full height and scaled from the baseline: 4 px at rest, the whole 26 px lit (09 §6.7);
+   `both` keeps them lit when the global reduced rule runs the loop once (§6.6: a static live form) */
 .recorder__bar {
   flex: 1 1 0;
-  height: 4px;
+  height: 26px;
   border-radius: 2px;
   background: var(--line);
+  transform: scaleY(0.154);
   transform-origin: bottom;
 }
 .recorder__meter[data-live='true'] .recorder__bar {
   background: var(--neon-c);
-  animation: recorder-level 900ms var(--ease) infinite alternate;
-  animation-delay: calc(var(--i) * -75ms);
+  animation: recorder-level calc(var(--dur-4) * 5 / 3) var(--ease) infinite alternate both;
+  animation-delay: calc(var(--i) * var(--stagger) * -2);
 }
 @keyframes recorder-level {
   from {
-    height: 4px;
+    transform: scaleY(0.154);
   }
   to {
-    height: 26px;
+    transform: scaleY(1);
   }
 }
 .recorder__cap {
@@ -268,11 +263,6 @@
 }
 .recorder__checklist legend {
   padding: 0 var(--sp-1);
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
 }
 .recorder__check {
   display: flex;
@@ -327,7 +317,6 @@
   font-weight: 600;
 }
 .three-ways__reg-ja {
-  font-family: var(--font-mincho);
   color: var(--fg-muted);
 }
 .three-ways__markers {
@@ -356,17 +345,8 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.monologue__track {
-  width: 100%;
-  height: 8px;
-  background: var(--raised);
-  border-radius: 4px;
-  overflow: hidden;
-}
-.monologue__fill {
-  height: 100%;
-  background: var(--ai);
-  transition: width var(--dur-1) linear;
+.monologue__clock .meter {
+  justify-self: stretch;
 }
 .monologue__transcript {
   margin: 0;
@@ -419,31 +399,9 @@
   color: var(--fg-muted);
 }
 
-/* ── motion / feel ────────────────────────────────────────────────────── */
+/* ── feel ─────────────────────────────────────────────────────────────── */
 [data-feel='zen'] .recorder__meter[data-live='true'] .recorder__bar {
   background: var(--fg-muted);
-}
-@media (prefers-reduced-motion: reduce) {
-  .recorder__rec--live .recorder__dot,
-  .recorder__meter[data-live='true'] .recorder__bar {
-    animation: none;
-  }
-  .recorder__meter[data-live='true'] .recorder__bar {
-    height: 16px;
-  }
-  .monologue__fill {
-    transition: none;
-  }
-}
-.reduced-motion .recorder__rec--live .recorder__dot,
-.reduced-motion .recorder__meter[data-live='true'] .recorder__bar {
-  animation: none;
-}
-.reduced-motion .recorder__meter[data-live='true'] .recorder__bar {
-  height: 16px;
-}
-.reduced-motion .monologue__fill {
-  transition: none;
 }
 
 @media (min-width: 600px) {

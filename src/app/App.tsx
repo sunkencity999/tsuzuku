@@ -58,6 +58,8 @@ export interface AppProps {
   pageFor?: (r: Route) => Promise<PageModule>;
   /** Defaults to `location.reload()`. */
   reload?: () => void;
+  /** Tests: how long the boot mark holds for the Dojo chunk (defaults to `ARRIVAL_HOLD_MS`). */
+  arrivalHoldMs?: number;
 }
 
 function defaultReload(): void {
@@ -292,13 +294,23 @@ function PageHost(p: { pageFor: (r: Route) => Promise<PageModule>; reload?: () =
  */
 export const ENSO_D = 'M15.55 5.87A20 20 0 1 1 7.23 13.11';
 
-type Arrival = 'idle' | 'pending' | 'running' | 'done';
+type Arrival = 'idle' | 'waiting' | 'pending' | 'running' | 'done';
+
+/**
+ * How long the boot mark waits for the prefetched Dojo chunk once the save is ready (design 09 §7 A,
+ * §12.1 d35): the ensō's own stroke (`--dur-4`). The save loads from localStorage in a few ms and the
+ * chunk from the network or the worker cache, so without this hold the arrival turn was never reached
+ * in production (the headless frame-protocol stand-in saw the plain arrival on every load).
+ */
+export const ARRIVAL_HOLD_MS = 900;
 
 export function App(p: AppProps): JSX.Element {
   const ready = store.ready.value;
   const pageFor = p.pageFor ?? defaultPageFor;
   const [, rerender] = useState(0);
   const prefetched = useRef<{ route: Route; mod: PageModule } | null>(null);
+  /** The prefetch in flight, so a `ready` that beats it can wait for it (d35). */
+  const prefetching = useRef<Promise<PageModule> | null>(null);
   const seed = useRef<Loaded | null>(null);
   /** The arrival turn: decided synchronously on the first ready render, started in an effect. */
   const arrival = useRef<Arrival>('idle');
@@ -313,7 +325,9 @@ export function App(p: AppProps): JSX.Element {
     const r = route.peek();
     if (r.name !== 'dojo') return;
     let alive = true;
-    pageFor(r).then(
+    const loading = pageFor(r);
+    prefetching.current = loading;
+    loading.then(
       (mod) => {
         if (alive) prefetched.current = { route: r, mod };
       },
@@ -321,6 +335,7 @@ export function App(p: AppProps): JSX.Element {
     );
     return () => {
       alive = false;
+      prefetching.current = null;
     };
   }, []);
 
@@ -333,12 +348,42 @@ export function App(p: AppProps): JSX.Element {
     const pre = prefetched.current;
     const mod = pre && sameRoute(pre.route, r) ? pre.mod : null;
     seed.current = mod ? loadedFrom(r, mod) : null;
-    if (mod && viewTransitionApi() && canTransition(null, r)) arrival.current = 'pending';
+    const turnable = Boolean(viewTransitionApi()) && canTransition(null, r);
+    if (mod && turnable) arrival.current = 'pending';
+    else if (!mod && turnable && prefetching.current) arrival.current = 'waiting';
     else {
       arrival.current = 'done';
       plainArrival.current = true;
     }
   }
+
+  // d35: the save is ready but the Dojo chunk is still loading — the boot mark holds for it, at most the ensō's stroke.
+  useEffect(() => {
+    if (arrival.current !== 'waiting') return;
+    const loading = prefetching.current;
+    const r = route.peek();
+    let live = true;
+    const settle = (mod: PageModule | null): void => {
+      if (!live || arrival.current !== 'waiting') return;
+      live = false;
+      clearTimeout(timer);
+      if (mod) {
+        seed.current = loadedFrom(r, mod);
+        arrival.current = 'pending';
+      } else {
+        arrival.current = 'done';
+        plainArrival.current = true;
+      }
+      rerender((n) => n + 1);
+    };
+    const timer = setTimeout(() => settle(null), p.arrivalHoldMs ?? ARRIVAL_HOLD_MS);
+    if (loading) loading.then((mod) => settle(mod), () => settle(null));
+    else settle(null);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [ready]);
 
   // The arrival turn: the boot mark (enso) → the shell, `.dojo-scene__art` named from the post-commit effect.
   useEffect(() => {

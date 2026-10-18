@@ -10,7 +10,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CardKey } from '../content/types';
-import { G, V, createFakeLoader } from '../content/fixtures';
+import { G, V, createFakeLoader, FIXTURE_STORY_ID } from '../content/fixtures';
 import { findBanned } from '../i18n/banned-phrases';
 import { installServices, nullAudio, resetServices } from '../shared/audio';
 import { bus } from '../shared/events';
@@ -128,7 +128,8 @@ describe('<EndCard>', () => {
     expect(root.querySelector('.end-card__yokoku-ja')?.textContent).toContain('???');
     expect(root.querySelectorAll('.end-card__word')).toHaveLength(3);
     expect(root.querySelector('.end-card__milestone')?.textContent).toBe(yokoku.milestone);
-    expect(root.querySelector('.end-card__omikuji-text')?.textContent).toMatch(/—/);
+    expect(root.querySelector('.end-card__omikuji-text ruby'), 'the proverb reads itself (d36)').not.toBeNull();
+    expect(root.querySelector('.end-card__omikuji-en')?.textContent).toMatch(/\.$/);
     expect(root.querySelector('.end-card__closing')?.textContent).toBe('Good training. Rest.');
     expect(root.querySelector('.end-card__keeps')?.textContent).toBe(ES.dojoKeepsPlace);
     expect(root.querySelector('.end-card__flame')).not.toBeNull();
@@ -579,6 +580,26 @@ describe('<EndCard> — moment B Shūhitsu (design 09 §7 B, fake timers)', () =
     expect(END_CARD_CSS).toMatch(/\.end-card__mask \{[^}]*color: var\(--kin-text\)/);
     expect(END_CARD_CSS).toMatch(/\.end-card__yokoku-line\.ink-nijimi \.end-card__mask \{[^}]*animation: end-card-mask var\(--dur-4\)/);
     expect(END_CARD_CSS).toMatch(/@media \(min-width: 720px\) \{[\s\S]*\.end-card__yokoku-h \{[^}]*writing-mode: vertical-rl/);
+  });
+
+  it('次回予告 glosses the three words and the preview sentence in English when the loader holds them (09 §12.1 d33); nothing invented when it does not', async () => {
+    await makeTestStore({ save: { settings: { reducedMotion: true } } });
+    const loader = createFakeLoader();
+    const story = loader.get(FIXTURE_STORY_ID) as { lines: { ja: string; kana: string; en: string }[] };
+    const line = story.lines[0]!;
+    mount({ loader, yokoku: { ...yokoku, sentence: { storyId: FIXTURE_STORY_ID, ja: line.ja, kana: line.kana, maskedToken: 0 } } });
+    const words = Array.from(root.querySelectorAll('.end-card__word'));
+    expect(words).toHaveLength(3);
+    expect(words[0]!.textContent).toContain('いぬ');
+    expect(words[0]!.querySelector('.end-card__word-en')?.textContent).toContain('dog');
+    expect(words[1]!.querySelector('.end-card__word-en')?.textContent).toContain('water');
+    expect(words[2]!.querySelector('.end-card__word-en')?.textContent).toContain('person');
+    expect(root.querySelector('.end-card__yokoku-en')?.textContent).toBe(line.en);
+    // the three-line rule holds: the glosses ride inside their lines
+    expect(root.querySelectorAll('.end-card__yokoku-line')).toHaveLength(3);
+    mount({ yokoku });
+    expect(root.querySelector('.end-card__word-en')).toBeNull();
+    expect(root.querySelector('.end-card__yokoku-en')).toBeNull();
   });
 
   it('次回予告 keeps three lines when the composer found no sentence or words', async () => {

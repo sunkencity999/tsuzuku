@@ -28,7 +28,7 @@ import { S } from './strings-1';
 const P = 'ft';
 const N_STATIONS = 53;
 
-function pine(x: number, y: number, s: number, fill: string): string {
+export function pine(x: number, y: number, s: number, fill: string): string {
   return (
     path(`M${(x - s * 0.08).toFixed(1)} ${y.toFixed(1)}h${(s * 0.16).toFixed(1)}v${(-s * 0.45).toFixed(1)}h${(-s * 0.16).toFixed(1)}Z`, { fill }) +
     el('ellipse', { cx: x, cy: y - s * 0.5, rx: s * 0.5, ry: s * 0.2, fill }) +

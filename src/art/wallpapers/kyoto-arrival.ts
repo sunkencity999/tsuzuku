@@ -43,7 +43,7 @@ export const spec: WallpaperSpec = {
 /* ────────────────────────────────────────────────────────────────────────── */
 
 /** Five-storey pagoda silhouette standing on `baseY`, `s` tall-ish. */
-function pagoda(cx: number, baseY: number, s: number): string {
+export function pagoda(cx: number, baseY: number, s: number): string {
   const parts: string[] = [];
   const tiers = 5;
   const pitch = s * 0.17;

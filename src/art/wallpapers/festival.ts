@@ -58,7 +58,7 @@ function burst(cx: number, cy: number, r: number, color: string, rng: () => numb
 }
 
 /** One chōchin on its cord. */
-function lantern(x: number, y: number, s: number, white: boolean): string {
+export function lantern(x: number, y: number, s: number, white: boolean): string {
   const body = white ? WASHI : SHU;
   return el('g', undefined, [
     line(x, y, x, y + s * 0.5, { stroke: INK, 'stroke-width': Math.max(1, s * 0.06) }),

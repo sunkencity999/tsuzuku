@@ -9,7 +9,9 @@
  *  inside a Kumite / Shugyō), so a new item is never checked before it is taught.
  *  Every speak button passes its clip key (design 08 §8): the headword plays
  *  `item.id` (words and kana), an example `${item.id}#ex${k}`; the pack voices
- *  what it has and the device voice covers the rest.
+ *  what it has and the device voice covers the rest. Section heads and the
+ *  pitch caption are motion.css's `.eyebrow`; the card's `--i` feeds the
+ *  capped stagger in TeachCard.css (design 09 §3.1, §6.3).
  */
 import type { JSX } from 'preact';
 import { toPlain } from '../content/ruby';
@@ -61,7 +63,7 @@ export function PitchMark(p: { kana: string; pitch: number }): JSX.Element {
           </span>
         ))}
       </span>
-      <span class="pitch-mark__label">
+      <span class="eyebrow">
         {S.pitchLabel}: {label}
       </span>
     </span>
@@ -132,7 +134,7 @@ export function TeachCard(p: TeachCardProps): JSX.Element {
       {m.pitch !== undefined && m.kana ? <PitchMark kana={m.kana} pitch={m.pitch} /> : null}
       {m.lines.length > 0 ? (
         <section class="teach-card__lines">
-          <h4 class="teach-card__label">{m.kind === 'grammar' ? S.formationTitle : m.kind === 'vocab' || m.kind === 'chunk' ? S.notesTitle : S.mnemonicTitle}</h4>
+          <h4 class="eyebrow">{m.kind === 'grammar' ? S.formationTitle : m.kind === 'vocab' || m.kind === 'chunk' ? S.notesTitle : S.mnemonicTitle}</h4>
           {m.lines.map((l, i) => (
             <p key={i} class="teach-card__line">
               <Ja text={l} />
@@ -142,7 +144,7 @@ export function TeachCard(p: TeachCardProps): JSX.Element {
       ) : null}
       {m.examples.length > 0 ? (
         <section class="teach-card__examples">
-          <h4 class="teach-card__label">{S.examplesTitle}</h4>
+          <h4 class="eyebrow">{S.examplesTitle}</h4>
           <ul>
             {m.examples.map((ex, i) => (
               <li key={i} class="teach-card__example">
@@ -158,7 +160,7 @@ export function TeachCard(p: TeachCardProps): JSX.Element {
       ) : null}
       {parts && m.parts.length > 0 ? (
         <section class="teach-card__parts">
-          <h4 class="teach-card__label">{parts}</h4>
+          <h4 class="eyebrow">{parts}</h4>
           <ul class="teach-card__chips">
             {m.parts.map((x, i) => (
               <li key={i} class="chip">
@@ -170,7 +172,7 @@ export function TeachCard(p: TeachCardProps): JSX.Element {
       ) : null}
       {p.contrast ? (
         <section class="teach-card__contrast">
-          <h4 class="teach-card__label">{S.contrastTitle}</h4>
+          <h4 class="eyebrow">{S.contrastTitle}</h4>
           <p>
             <span lang="ja">{p.contrast.head}</span>
             {p.contrast.kana && p.contrast.kana !== p.contrast.head ? (

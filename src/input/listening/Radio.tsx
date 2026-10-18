@@ -1010,6 +1010,7 @@ export function Radio(p: RadioProps): JSX.Element {
 
   const header = (
     <header class="radio__head">
+      <span class="radio__band" aria-hidden="true" title={chip} />
       <h2 class="radio__title">
         <span lang="ja" class="radio__title-ja">
           {S.titleJa}

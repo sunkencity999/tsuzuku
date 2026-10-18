@@ -58,27 +58,26 @@
   margin: var(--sp-2) 0;
 }
 
-/* ── station ─────────────────────────────────────────────────────────── */
+/* ── station (design 09 §7 D: the headpiece band in --road, the .sign--head plate over its foot) ───── */
 
 .station-head {
+  --road: color-mix(in oklab, var(--belt-color, var(--belt-white)) 10%, var(--bg));
   position: relative;
   padding-left: var(--sp-3);
   border-left: 6px solid var(--belt-color, var(--line));
 }
 
-.station-head__number {
-  margin: 0;
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
+.station-head__piece {
+  margin: 0 0 calc(-1 * var(--sp-4));
+  min-height: 160px;
 }
 
-.station-head__romaji {
-  font-size: var(--fs-4);
-  font-weight: 400;
-  color: var(--fg-muted);
+.station-head__sign {
+  position: relative;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 var(--sp-3) 0 0;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--stage-bg) 14%, transparent);
 }
 
 .station-head__keeper {

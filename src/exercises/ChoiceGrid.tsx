@@ -11,14 +11,41 @@
  *    color alone: `correct` (picked and right), `wrong` (picked and not),
  *    `missed` (the right answer the learner did not pick).
  *  · `onPick` fires once per grid life; later taps and digits are ignored.
+ *
+ * Motion (design 09 §7 I Bokuten, §7 J): tiles mount as `.ink-nijimi` with
+ * `--i` for the capped stagger (motion.css); a correct tile grows a matcha
+ * splatter dot (`.choice__dot`, a static SVG mask in ChoiceGrid.css, osu over
+ * --dur-1) under its ○ (the mark paints last, so the ring stays on the ink);
+ * a wrong tile's text is struck by a dry-brush stroke (`.choice__strike`,
+ * three paths hiku-drawn by stroke-dashoffset over --dur-2) in the text's ink,
+ * never red, instead of `line-through`. Under reduced motion no `.ink-*` class
+ * and no `--i` ride the tiles (the states still show by shape + text).
  */
 import type { JSX } from 'preact';
 import { useRef } from 'preact/hooks';
 import type { FuriganaMode } from '@/shared/store-types';
 import { useExerciseKeys } from '@/shared/ui/ExerciseFrame';
 import { Ruby } from '@/shared/ui/Ruby';
+import { prefersReducedMotion } from '@/shared/ui/use-reveal';
 import { S, fill } from './strings';
 import './ChoiceGrid.css';
+
+/** The dry-brush strike over a wrong tile's text: a body stroke and two hairs across a 100 × 20 box (stretched to the text). */
+const STRIKE_PATHS: readonly { d: string; w: number }[] = [
+  { d: 'M3 11C25 6 45 14 65 9S90 8 97 11', w: 2.4 },
+  { d: 'M6 13.5C30 8.5 55 15 95 12.5', w: 0.8 },
+  { d: 'M4 8.5C28 5 60 12 96 9', w: 0.6 },
+];
+
+function Strike(p: { animate: boolean }): JSX.Element {
+  return (
+    <svg class="choice__strike" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
+      {STRIKE_PATHS.map((s, i) => (
+        <path key={i} d={s.d} pathLength={1} stroke-width={s.w} class={p.animate ? 'ink-hiku' : undefined} data-axis={p.animate ? 'stroke' : undefined} />
+      ))}
+    </svg>
+  );
+}
 
 /** `picked` = chosen with no `correct` index given (ungraded / self-graded grids). */
 export type ChoiceState = 'idle' | 'picked' | 'correct' | 'wrong' | 'missed';
@@ -83,6 +110,7 @@ export function ChoiceGrid(p: ChoiceGridProps): JSX.Element {
   };
 
   useExerciseKeys({ onChoice: pick });
+  const reduced = prefersReducedMotion();
 
   return (
     <div
@@ -99,7 +127,8 @@ export function ChoiceGrid(p: ChoiceGridProps): JSX.Element {
           <button
             key={`${i}:${c}`}
             type="button"
-            class="choice"
+            class={reduced ? 'choice' : 'choice ink-nijimi'}
+            style={reduced ? undefined : `--i:${i}`}
             data-index={i}
             data-state={st}
             disabled={locked}
@@ -113,13 +142,15 @@ export function ChoiceGrid(p: ChoiceGridProps): JSX.Element {
             ) : null}
             <span class="choice__text">
               {p.ruby !== undefined ? <Ruby ja={c} mode={p.ruby} /> : ja ? <span lang="ja">{c}</span> : c}
+              {st === 'wrong' ? <Strike animate={!reduced} /> : null}
             </span>
+            {st === 'correct' ? <span class="choice__dot" aria-hidden="true" /> : null}
             {st !== 'idle' ? (
               <span class="choice__mark" aria-hidden="true">
                 {STATE_MARK[st]}
               </span>
             ) : null}
-            <span class="choice__sr">{st !== 'idle' ? ` (${STATE_TEXT[st]})` : fill(S.choiceN, { n: i + 1 })}</span>
+            <span class="sr-only">{st !== 'idle' ? ` (${STATE_TEXT[st]})` : fill(S.choiceN, { n: i + 1 })}</span>
           </button>
         );
       })}

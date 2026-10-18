@@ -191,7 +191,7 @@ describe('<FormForge>', () => {
     type(input, 'nomimasuu');
     enter(input);
     expect(pr.onResult.mock.calls[0]?.[0]).toMatchObject({ correct: false, nearMiss: true, errorTags: ['vowel-length'] });
-    expect(q('.gr__reveal')?.getAttribute('data-kind')).toBe('near');
+    expect(q('.gr__reveal')?.getAttribute('data-kind')).toBe('partial');
   });
 
   it('runner-supplied answer/accept work without a conjugable item', () => {

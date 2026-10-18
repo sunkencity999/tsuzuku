@@ -105,7 +105,7 @@ function crane(cx: number, cy: number, s: number, dir: 1 | -1, lift: number): st
 }
 
 /** A pine in sumi: brush trunk and flat needle clouds. */
-function pine(x: number, baseY: number, s: number, seed: number, rng: () => number): string {
+export function pine(x: number, baseY: number, s: number, seed: number, rng: () => number): string {
   const trunk: Pt[] = [
     [x, baseY],
     [x + s * 0.1, baseY - s * 0.4],

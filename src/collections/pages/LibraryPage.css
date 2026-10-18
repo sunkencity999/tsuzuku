@@ -1,6 +1,8 @@
 /*
  * TSUZUKU — Library page (group G). Shelves of introduced items and Michikusa
- * fragments by station. Tokens only; mobile-first from 360 px.
+ * fragments by station: .sheet cards on a --wood rail, the drawer expanding
+ * through grid-template-rows (design 09 §9 C3; reduced motion rides the zeroed
+ * tokens), a static --kin-text dot for new items. Tokens only; mobile-first.
  */
 .library {
   display: flex;
@@ -16,22 +18,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
-}
-.library__h1 {
-  margin: 0;
-  font-size: var(--fs-5);
-  font-weight: 600;
-  line-height: 1.2;
-}
-.library__h1 [lang="ja"] {
-  font-family: var(--font-brush);
-  color: var(--shu);
-}
-.library__h1-en {
-  font-size: var(--fs-3);
-  color: var(--fg-muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 .library__lede,
 .library__muted {
@@ -94,15 +80,42 @@
   }
 }
 
-/* ── station shelves ────────────────────────────────────────────────── */
+/* ── station shelves: paper on a wood rail ──────────────────────────── */
 .library__station {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  padding: var(--sp-3);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-top: 6px solid var(--wood);
+}
+/* the drawer opens 0fr → 1fr on mount (@starting-style, ≤ --dur-3) once the shelves have painted */
+.library__drawer {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.library[data-ready] .library__drawer {
+  transition: grid-template-rows var(--dur-3) var(--ease);
+}
+@starting-style {
+  .library__drawer {
+    grid-template-rows: 0fr;
+  }
+}
+.library__drawer > .library__items {
+  min-height: 0;
+  overflow: hidden;
+}
+.library__new {
+  display: inline-block;
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--kin-text);
+}
+.library__item .library__new {
+  grid-area: glyph;
+  align-self: start;
+  justify-self: end;
 }
 .library__station-head {
   display: flex;
@@ -341,14 +354,6 @@
   padding-left: 1.2em;
   font-size: var(--fs-2);
 }
-.library-detail__label {
-  display: block;
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
 .library-detail__example {
   margin: 0;
   font-size: var(--fs-3);
@@ -366,13 +371,4 @@
 }
 .library-detail .modal__actions {
   justify-content: flex-start;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .library__chevron {
-    transition: none;
-  }
-}
-.reduced-motion .library__chevron {
-  transition: none;
 }

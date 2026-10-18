@@ -2,6 +2,7 @@
  * TSUZUKU — 他流試合 Field Mission (src/input/missions, group F).
  * Tokens only (src/styles/tokens.css). Mobile-first: fits 360 px with the
  * 16 px gutter; 44 px targets; every state is shape + text, never color alone.
+ * .sheet and .eyebrow come from motion.css (design 09 §5.1, §3.1).
  */
 .mission {
   display: grid;
@@ -24,7 +25,7 @@
 .mission__title-ja {
   font-family: var(--font-brush);
   font-size: var(--fs-5);
-  line-height: 1;
+  line-height: 1.1;
 }
 .mission__meta {
   display: flex;
@@ -42,7 +43,6 @@
   font-weight: 600;
 }
 .mission__name [lang='ja'] {
-  font-family: var(--font-mincho);
   font-size: var(--fs-5);
 }
 .mission__prompt {
@@ -68,10 +68,6 @@
   display: grid;
   gap: var(--sp-1);
 }
-.mission__label {
-  font-weight: 600;
-  font-size: var(--fs-2);
-}
 .mission__minutes {
   max-width: 10em;
   min-height: var(--touch);
@@ -83,9 +79,7 @@
   display: grid;
   gap: var(--sp-3);
   margin: 0;
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border: 0;
 }
 .mission__gaps legend {
   font-weight: 600;
@@ -105,7 +99,6 @@
 .mission__result {
   display: grid;
   gap: var(--sp-2);
-  padding-left: var(--sp-3);
   border-left: 4px solid var(--matcha);
 }
 .mission__result[data-reported='false'] {

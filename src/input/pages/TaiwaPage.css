@@ -39,5 +39,5 @@
 }
 .taiwa-page__logged {
   font-family: var(--font-pixel);
-  color: var(--kin);
+  color: var(--kin-text);
 }

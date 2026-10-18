@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
@@ -289,5 +291,22 @@ describe('<Monologue> recognition path', () => {
     expect(phase()).toBe('done');
     expect(cap.events.filter(([n]) => n === 'output:done')[0]![1]).toEqual({ kind: 'monologue', seconds: 60, path: 'self' });
     cap.stop();
+  });
+});
+
+/* ── design 09 (C4): the clock bar is motion.css's .meter ───────────────────── */
+describe('<Monologue> clock meter (design 09 §5.7)', () => {
+  it('the running clock carries a .meter whose --value is the elapsed share; nothing writes a width', async () => {
+    await setup();
+    await mount(step());
+    await click('[data-action="start"]');
+    await elapse(30_000);
+    const meter = q('.monologue__clock .meter');
+    expect(meter).not.toBeNull();
+    expect(Number(meter!.style.getPropertyValue('--value'))).toBeCloseTo(0.5, 1);
+    expect(meter!.style.getPropertyValue('--meter-tone')).toBe('var(--ai)');
+    expect(meter!.querySelector('.meter__fill')).not.toBeNull();
+    expect(q('.monologue__track')).toBeNull();
+    expect(root.querySelector('[style*="width"]')).toBeNull();
   });
 });

@@ -10,20 +10,6 @@
   width: 100%;
   box-sizing: border-box;
 }
-
-.listen__prompt,
-.listen__note,
-.listen__nudge,
-.listen__ceiling,
-.listen__novoice,
-.listen__line,
-.listen__score,
-.listen__yours,
-.listen__sentence,
-.listen__tags,
-.listen__hint {
-  margin: 0;
-}
 .listen__prompt {
   font-size: var(--fs-3);
   line-height: var(--lh-latin);
@@ -126,46 +112,9 @@
   gap: var(--sp-2);
   justify-items: start;
 }
-.listen__hint {
-  display: grid;
-  gap: var(--sp-1);
-  padding: var(--sp-2) var(--sp-3);
-  border-left: 4px solid var(--kin);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--kin) 10%, var(--surface));
-}
-.listen__hint [lang='ja'] {
-  font-family: var(--font-ja);
-}
-.listen__hint small {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-}
-
-.listen__result {
-  display: grid;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  border-left: 4px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--raised);
-}
-.listen__result[data-kind='correct'] {
-  border-left-color: var(--matcha);
-}
-.listen__result[data-kind='near'] {
-  border-left-color: var(--kin);
-}
-.listen__result[data-kind='wrong'] {
-  border-left-color: var(--shu);
-}
+/* the labels are the shared .eyebrow (motion.css); each sits on its own line here */
 .listen__label {
   display: block;
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
 }
 .listen__sentence {
   font-size: var(--fs-4);
@@ -209,15 +158,4 @@
 .listen__clause {
   padding-left: var(--sp-3);
   border-left: 3px solid var(--ai);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .listen__play,
-  .listen__submit {
-    transition: none;
-  }
-}
-.reduced-motion .listen__play,
-.reduced-motion .listen__submit {
-  transition: none;
 }

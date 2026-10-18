@@ -224,7 +224,7 @@ export function KanjiWrite(p: ExerciseProps): JSX.Element {
   if (!kanji) {
     return (
       <div class="kj kj-write" data-state="unavailable">
-        <div class="kj__reveal status-window" data-kind="info" role="status">
+        <div class="kj__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{S.cannotBuild}</p>
           <p class="kj__why">{S.shownNotTested}</p>
         </div>
@@ -286,13 +286,13 @@ export function KanjiWrite(p: ExerciseProps): JSX.Element {
       ) : null}
 
       {revealed ? (
-        <div class="kj__reveal status-window" data-kind={phase === 'done' ? (result?.correct ? (result.nearMiss ? 'near' : 'correct') : 'wrong') : 'info'}>
+        <div class="kj__reveal reveal ink-nijimi" data-kind={phase === 'done' ? (result?.correct ? (result.nearMiss ? 'partial' : 'correct') : 'wrong') : 'info'}>
           <p class="kj__glyph kj__glyph--sm" lang="ja" aria-label={S.kanjiLabel} data-answer="true">
             {kanji.char}
           </p>
           <p class="kj__why">{S.writeOverlay}</p>
           <p>
-            <span class="kj__label">{SD.mnemonic}</span> <span>{kanji.mnemonic}</span>
+            <span class="eyebrow">{SD.mnemonic}</span> <span>{kanji.mnemonic}</span>
           </p>
           {phase === 'judge' ? (
             <p class="kj__why" role="status">

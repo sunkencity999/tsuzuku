@@ -1,8 +1,14 @@
 /*
  * TSUZUKU — <ChoiceGrid> (src/exercises, group D).
  * Tokens only (src/styles/tokens.css). States are shape + text + color:
- * correct = double border + ○, wrong = struck text + ×, missed = dashed + ○.
- * Mobile-first: two columns fill 360 px with 16 px gutters; 44 px targets.
+ * correct = double border + ○ + the matcha ink dot, wrong = a dry-brush strike
+ * through the text + ×, missed = dashed + ○. Mobile-first: two columns fill
+ * 360 px with 16 px gutters; 44 px targets. Motion (design 09 §7 I): the dot is
+ * a static SVG mask (brush.ts splatter, baked — no filter) that osu-blooms over
+ * --dur-1 under the ○ (DOM order: the mark paints last); the strike is ink
+ * (--fg, never --shu) hiku-drawn by stroke-dashoffset over --dur-2 (the
+ * .ink-hiku verb, motion.css). Reduced motion: the global rule and the zeroed
+ * tokens — no block here. The state text is base.css's .sr-only.
  */
 .choice-grid {
   display: grid;
@@ -75,6 +81,7 @@
   border-radius: var(--radius-sm);
 }
 .choice__text {
+  position: relative;
   min-width: 0;
 }
 .choice__text [lang='ja'] {
@@ -110,17 +117,43 @@
 .choice[data-state='correct'] .choice__mark {
   color: var(--matcha);
 }
+/* the ink dot at the ○ (09 §7 I): matcha through the baked splatter mask, pressed in over --dur-1 */
+.choice__dot {
+  position: absolute;
+  top: calc(var(--sp-1) - 8px);
+  right: calc(var(--sp-2) - 8px);
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  background: var(--matcha);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M17 12A5 5 0 1 1 7 12A5 5 0 1 1 17 12ZM13.8 3.2A1.5 0.4 281.4 1 1 13.2 6.3A1.5 0.4 281.4 1 1 13.8 3.2ZM17.6 7.4A0.7 0.7 0 1 1 16.3 7.4A0.7 0.7 0 1 1 17.6 7.4ZM3.3 11.9A0.6 0.6 0 1 1 2.1 11.9A0.6 0.6 0 1 1 3.3 11.9ZM12.6 9.1A0.7 0.7 0 1 1 11.2 9.1A0.7 0.7 0 1 1 12.6 9.1ZM11.4 19.5A1.1 0.4 94.7 1 1 11.6 17.4A1.1 0.4 94.7 1 1 11.4 19.5ZM7 18A2 0.6 129.9 1 1 9.6 14.9A2 0.6 129.9 1 1 7 18ZM7.9 2.4A0.6 0.6 0 1 1 6.7 2.4A0.6 0.6 0 1 1 7.9 2.4Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  animation: osu var(--dur-1) var(--spring) both;
+}
 .choice[data-state='wrong'] {
   color: var(--fg);
   border-color: var(--shu);
   background: color-mix(in srgb, var(--shu) 10%, var(--surface));
 }
-.choice[data-state='wrong'] .choice__text {
-  text-decoration: line-through;
-  text-decoration-thickness: 2px;
-}
 .choice[data-state='wrong'] .choice__mark {
   color: var(--shu);
+}
+/* the dry-brush strike: three strokes of ink hiku-drawn across the text over --dur-2 */
+.choice__strike {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.choice__strike path {
+  fill: none;
+  stroke: var(--fg);
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.choice .choice__strike .ink-hiku {
+  animation-duration: var(--dur-2);
 }
 .choice[data-state='missed'] {
   color: var(--fg);
@@ -136,33 +169,4 @@
 }
 .choice[data-state='picked'] .choice__mark {
   color: var(--ai);
-}
-
-/* screen-reader-only state text */
-.choice__sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .choice {
-    transition: none;
-  }
-  .choice:active:not(:disabled) {
-    transform: none;
-  }
-}
-.reduced-motion .choice {
-  transition: none;
-}
-.reduced-motion .choice:active:not(:disabled) {
-  transform: none;
 }

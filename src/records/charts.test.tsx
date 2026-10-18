@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { BarRow, CalendarHeat, HeatGrid, Radar, Ring, Sparkline, StackedBars, clamp100, fmtNum } from './charts';
+import { BarRow, CalendarHeat, HeatGrid, RADAR_MORPH_CLASS, Radar, Ring, Sparkline, StackedBars, clamp100, fmtNum } from './charts';
 
 let root: HTMLDivElement;
 beforeEach(() => {
@@ -106,21 +108,86 @@ describe('Sparkline', () => {
 });
 
 describe('BarRow', () => {
-  it('fills by value ÷ max, clamps above max, and exposes an aria-label', () => {
+  it('is a .meter: --value scales the fill by value ÷ max (clamped), --target places the milestone tick, and the aria-label names both', () => {
     act(() => render(<BarRow label="Due" value={30} max={120} />, root));
+    const track = root.querySelector('.bar__track') as HTMLElement;
+    expect(track.classList.contains('meter')).toBe(true);
+    expect(track.style.getPropertyValue('--value')).toBe('0.25');
+    expect(track.hasAttribute('data-target')).toBe(false);
     const fill = root.querySelector('.bar__fill') as HTMLElement;
-    expect(fill.style.width).toBe('25%');
+    expect(fill.classList.contains('meter__fill')).toBe(true);
+    expect(fill.getAttribute('style')).toBeNull();
     expect(root.querySelector('.bar')?.getAttribute('aria-label')).toBe('Due: 30 of 120');
     act(() => render(<BarRow label="Due" value={500} max={120} valueText="500 min" marker={0.5} />, root));
-    expect((root.querySelector('.bar__fill') as HTMLElement).style.width).toBe('100%');
+    const t2 = root.querySelector('.bar__track') as HTMLElement;
+    expect(t2.style.getPropertyValue('--value')).toBe('1');
+    expect(t2.hasAttribute('data-target')).toBe(true);
+    expect(t2.style.getPropertyValue('--target')).toBe('0.5');
     expect(root.querySelector('.bar__value')?.textContent).toBe('500 min');
-    expect((root.querySelector('.bar__marker') as HTMLElement).style.left).toBe('50%');
+    expect(root.querySelector('.bar__marker')).toBeNull();
+    expect(root.querySelector('.bar')?.getAttribute('aria-label')).toBe('Due: 500 min of 120 · milestone');
   });
 
   it('survives max 0 and NaN', () => {
     act(() => render(<BarRow label="x" value={Number.NaN} max={0} />, root));
-    expect((root.querySelector('.bar__fill') as HTMLElement).style.width).toBe('0%');
+    expect((root.querySelector('.bar__track') as HTMLElement).style.getPropertyValue('--value')).toBe('0');
     expect(root.innerHTML).not.toContain('NaN');
+  });
+});
+
+describe('Radar morph (design 09 §8 "the month")', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('without `morph` (or without history) the polygon never carries the morph class', () => {
+    act(() => render(<Radar axes={AXES} values={[50, 50, 50, 50, 50]} history={[[10, 10, 10, 10, 10]]} />, root));
+    expect(root.querySelector('polygon.chart__radar-now')?.classList.contains(RADAR_MORPH_CLASS)).toBe(false);
+    act(() => render(null, root));
+    act(() => render(<Radar axes={AXES} values={[50, 50, 50, 50, 50]} morph />, root));
+    expect(root.querySelector('polygon.chart__radar-now')?.classList.contains(RADAR_MORPH_CLASS)).toBe(false);
+  });
+
+  it('with `morph` and history it tweens the points from last month on the shared frame scheduler and lands on the real polygon', () => {
+    let frame: ((now: number) => void) | null = null;
+    vi.stubGlobal('requestAnimationFrame', (cb: (now: number) => void) => {
+      frame = cb;
+      return 1;
+    });
+    vi.stubGlobal('cancelAnimationFrame', () => undefined);
+    act(() => render(<Radar axes={AXES} values={[50, 100, 0, 25, 75]} history={[[0, 0, 0, 0, 0]]} morph />, root));
+    const now = root.querySelector('polygon.chart__radar-now')!;
+    expect(now.classList.contains(RADAR_MORPH_CLASS)).toBe(true);
+    // last month's shape is set before any frame, so the real polygon never flashes ahead of its tween
+    expect(now.getAttribute('points')).toBe('100,100 100,100 100,100 100,100 100,100');
+    // the first frame still starts from last month's shape: every point at the centre
+    act(() => frame!(1000));
+    expect(now.getAttribute('points')).toBe('100,100 100,100 100,100 100,100 100,100');
+    act(() => frame!(1300));
+    const mid = now.getAttribute('points') ?? '';
+    expect(mid).not.toBe('100,100 100,100 100,100 100,100 100,100');
+    expect(mid).not.toBe('100,61 174.2,75.9 100,100 88.5,115.8 44.4,81.9');
+    act(() => frame!(1700));
+    expect(now.getAttribute('points')).toBe('100,61 174.2,75.9 100,100 88.5,115.8 44.4,81.9');
+    expect(now.classList.contains(RADAR_MORPH_CLASS)).toBe(false);
+  });
+});
+
+describe('charts.css (design 09 §3.1, §6.7 rule 1)', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/records/charts.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('never tweens width or height (the bar track is motion.css\'s .meter) and carries no per-file reduced-motion block', () => {
+    expect(css).not.toMatch(/transition:[^;]*\b(width|height)\b/);
+    expect(css).not.toMatch(/\.bar__track\s*\{/);
+    expect(css).not.toMatch(/\.bar__fill\s*\{/);
+    expect(css).not.toMatch(/prefers-reduced-motion|\.reduced-motion/);
+  });
+
+  it('sets every chart type size as a scale token, none below --fs-1 (12 / 9 px lifted)', () => {
+    const sizes = Array.from(css.matchAll(/font-size:\s*([^;]+);/g), (m) => m[1]!.trim());
+    expect(sizes.length).toBeGreaterThan(5);
+    for (const v of sizes) expect(v).toMatch(/^var\(--fs-[1-8]\)$/);
+    expect(css).not.toMatch(/font-size:\s*\d+px/);
   });
 });
 

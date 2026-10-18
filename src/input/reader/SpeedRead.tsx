@@ -283,8 +283,8 @@ export function SpeedReadView(p: SpeedReadProps): JSX.Element {
             </span>
             <span class="reader__hint">{fill(S.speedReading, { n: rate })}</span>
           </div>
-          <div class="speed__bar" role="progressbar" aria-valuemin={0} aria-valuemax={n} aria-valuenow={shown} aria-label={S.speedTitle}>
-            <div class="speed__bar-fill" style={{ width: `${n > 0 ? Math.round((shown / n) * 100) : 0}%` }} />
+          <div class="meter" role="progressbar" aria-valuemin={0} aria-valuemax={n} aria-valuenow={shown} aria-label={S.speedTitle} style={{ '--value': n > 0 ? shown / n : 0, '--meter-tone': 'var(--ai)' } as JSX.CSSProperties}>
+            <span class="meter__fill" />
           </div>
           <ol class="speed__lines" aria-label={S.speedTitle}>
             {lines.slice(0, shown).map((line, i) => (

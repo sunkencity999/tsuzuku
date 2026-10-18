@@ -119,7 +119,7 @@ export function ComponentFlash(p: ExerciseProps): JSX.Element {
   if (!def || keyword.length === 0) {
     return (
       <div class="kj kj-flash" data-state="unavailable">
-        <div class="kj__reveal status-window" data-kind="info" role="status">
+        <div class="kj__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{S.cannotBuild}</p>
           <p class="kj__why">{S.shownNotTested}</p>
         </div>
@@ -132,7 +132,7 @@ export function ComponentFlash(p: ExerciseProps): JSX.Element {
     );
   }
 
-  const revealKind = result ? (result.correct ? (result.selfRating !== undefined ? 'near' : 'correct') : 'wrong') : 'info';
+  const revealKind = result ? (result.correct ? (result.selfRating !== undefined ? 'partial' : 'correct') : 'wrong') : 'info';
 
   return (
     <div class="kj kj-flash" data-phase={phase} data-mode={useChoices ? 'choices' : 'typed'}>
@@ -169,13 +169,13 @@ export function ComponentFlash(p: ExerciseProps): JSX.Element {
       )}
 
       {phase === 'done' ? (
-        <div class="kj__reveal status-window" data-kind={revealKind}>
+        <div class="kj__reveal reveal ink-nijimi" data-kind={revealKind}>
           <p>
-            <span class="kj__label">{S.componentKeyword}</span> <strong data-keyword="true">{keyword}</strong>
+            <span class="eyebrow">{S.componentKeyword}</span> <strong data-keyword="true">{keyword}</strong>
           </p>
           {def.hint ? (
             <p data-hint="true">
-              <span class="kj__label">{S.componentHint}</span> <span>{def.hint}</span>
+              <span class="eyebrow">{S.componentHint}</span> <span>{def.hint}</span>
             </p>
           ) : null}
           {result && result.correct && result.selfRating !== undefined ? <p class="kj__why">{SD.overrideLogged}</p> : null}

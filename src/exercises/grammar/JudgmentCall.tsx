@@ -195,9 +195,9 @@ export function JudgmentCall(p: ExerciseProps): JSX.Element {
       <ChoiceGrid choices={choices} onPick={onPick} picked={picked} correct={correctIdx} columns={2} size="lg" label={S2.judgmentPrompt} />
 
       {answered ? (
-        <div class="judgment__explain" data-kind={wasRight ? 'correct' : 'wrong'} role="status">
+        <div class="judgment__explain reveal ink-nijimi" data-kind={wasRight ? 'correct' : 'wrong'} role="status">
           <p class="judgment__line">{wasRight ? S2.judgmentCorrect : S2.judgmentMiss}</p>
-          <p class="judgment__label">{S2.explanation}</p>
+          <p class="eyebrow judgment__label">{S2.explanation}</p>
           {kase.natural ? (
             <p class="judgment__why">{g ? fill(S2.naturalLine, { pattern: g.pattern, meaning: g.meaning }) : S2.noExplanation}</p>
           ) : (

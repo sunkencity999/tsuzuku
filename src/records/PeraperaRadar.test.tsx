@@ -5,8 +5,8 @@ import { bus } from '../shared/events';
 import type { CardTuple } from '../shared/store-types';
 import { epochDay } from '../shared/time';
 import { resetStoreForTests, store } from '../store/store';
-import { DEFAULT_TEST_NOW, card, makeTestStore } from '../store/testing';
-import { PeraperaRadar, earlierMonths } from './PeraperaRadar';
+import { DEFAULT_TEST_NOW, MemoryStorage, card, makeTestStore } from '../store/testing';
+import { PeraperaRadar, RADAR_MORPH_KEY, claimRadarMorph, earlierMonths, resetRadarMorphForTests } from './PeraperaRadar';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 
@@ -14,12 +14,16 @@ let root: HTMLDivElement;
 beforeEach(() => {
   root = document.createElement('div');
   document.body.appendChild(root);
+  // Node ≥ 22 defines a flag-gated `localStorage` global that jsdom cannot override: stand a real Storage in for it
+  vi.stubGlobal('localStorage', new MemoryStorage());
 });
 afterEach(() => {
   render(null, root);
   root.remove();
   resetStoreForTests();
+  resetRadarMorphForTests();
   bus.reset();
+  vi.unstubAllGlobals();
 });
 
 function mount(): void {
@@ -86,5 +90,31 @@ describe('<PeraperaRadar>', () => {
       { month: '2026-02', axes: [3, 3, 3, 3, 3] as [number, number, number, number, number] },
     ];
     expect(earlierMonths(rows, '2026-01').map((r) => r.month)).toEqual(['2025-11']);
+  });
+
+  it('claimRadarMorph: once per month, only with an earlier snapshot (design 09 §8 "the month")', () => {
+    expect(claimRadarMorph('2026-01', false)).toBe(false);
+    expect(claimRadarMorph('2026-01', true)).toBe(true);
+    expect(claimRadarMorph('2026-01', true)).toBe(false);
+    expect(claimRadarMorph('2026-02', true)).toBe(true);
+    resetRadarMorphForTests();
+    expect(claimRadarMorph('2026-02', true)).toBe(true);
+  });
+
+  it('the morphed month rests in localStorage (not the save), so a relaunch in the same month never replays it', () => {
+    expect(localStorage.getItem(RADAR_MORPH_KEY)).toBeNull();
+    expect(claimRadarMorph('2026-01', true)).toBe(true);
+    expect(localStorage.getItem(RADAR_MORPH_KEY)).toBe('2026-01');
+    // a fresh module memory (a new launch) reads the stored month back
+    resetRadarMorphForTests();
+    localStorage.setItem(RADAR_MORPH_KEY, '2026-01');
+    expect(claimRadarMorph('2026-01', true)).toBe(false);
+    expect(claimRadarMorph('2026-02', true)).toBe(true);
+    expect(localStorage.getItem(RADAR_MORPH_KEY)).toBe('2026-02');
+    // a foreign value is ignored
+    resetRadarMorphForTests();
+    localStorage.setItem(RADAR_MORPH_KEY, 'not a month');
+    expect(claimRadarMorph('2026-02', true)).toBe(true);
+    expect(sessionStorage.getItem(RADAR_MORPH_KEY)).toBeNull();
   });
 });

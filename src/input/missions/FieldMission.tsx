@@ -249,7 +249,7 @@ function FieldMissionBody(p: ExerciseProps & FieldMissionExtraProps): JSX.Elemen
         >
           <p class="mission__note">{S.missionHonesty}</p>
           <label class="mission__field">
-            <span class="mission__label">{S.missionMinutes}</span>
+            <span class="eyebrow">{S.missionMinutes}</span>
             <input
               class="input mission__minutes"
               type="number"
@@ -262,17 +262,17 @@ function FieldMissionBody(p: ExerciseProps & FieldMissionExtraProps): JSX.Elemen
               data-field="minutes"
             />
           </label>
-          <fieldset class="mission__gaps">
+          <fieldset class="mission__gaps sheet">
             <legend>{slots.title}</legend>
             <p class="mission__note">{S.missionGapsLede}</p>
             {gaps.map((g, i) => (
               <div key={i} class="mission__gap">
                 <label class="mission__field">
-                  <span class="mission__label">{fill(S.missionGapField, { n: i + 1 })}</span>
+                  <span class="eyebrow">{fill(S.missionGapField, { n: i + 1 })}</span>
                   <input class="input" type="text" lang="ja" value={g.text} onInput={(e) => setGap(i, { text: e.currentTarget.value })} autoComplete="off" data-field={`gap-${i}`} />
                 </label>
                 <label class="mission__field mission__field--kind">
-                  <span class="mission__label">{S.missionGapKind}</span>
+                  <span class="eyebrow">{S.missionGapKind}</span>
                   <select class="select" value={g.tag} onChange={(e) => setGap(i, { tag: e.currentTarget.value as ErrorTag | '' })} data-field={`kind-${i}`}>
                     <option value="">{S.missionGapKindNone}</option>
                     {GAP_TAGS.map((t) => (
@@ -294,7 +294,7 @@ function FieldMissionBody(p: ExerciseProps & FieldMissionExtraProps): JSX.Elemen
       ) : null}
 
       {phase === 'done' && done ? (
-        <div class="mission__result" role="status" data-reported={done.minutes > 0 ? 'true' : 'false'}>
+        <div class="mission__result sheet" role="status" data-reported={done.minutes > 0 ? 'true' : 'false'}>
           {done.minutes > 0 ? (
             <>
               <p class="mission__verdict">{fill(S.missionReported, { n: done.minutes })}</p>

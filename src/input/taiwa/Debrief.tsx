@@ -3,7 +3,9 @@
  * meter (lines that slipped register) and the explicit corrections — the
  * learner's line against the model line with its error tags — plus the slot
  * verdicts. Pure presentation split out of `RolePlay.tsx` (file-size cap);
- * the host wraps it in the `.taiwa` frame with the header.
+ * the host wraps it in the `.taiwa` frame with the header. The register meter
+ * is motion.css's `.meter` (design 09 §5.7): `--value` drives the fill by
+ * transform, the label is an `.eyebrow`.
  */
 import type { JSX } from 'preact';
 import type { StoryLine } from '@/content/types';
@@ -32,13 +34,11 @@ export function Debrief(p: DebriefProps): JSX.Element {
         <h3 class="taiwa__subtitle">{S.debriefTitle}</h3>
         <p class="taiwa__result-line">{fill(S.bestLine, { best: r.best, total: r.total })}</p>
         <p class="taiwa__result-line">{r.aizuchiTotal > 0 ? fill(S.aizuchiLine, { hit: r.aizuchiHit, total: r.aizuchiTotal }) : S.noAizuchi}</p>
-        <div class="taiwa__meter" role="meter" aria-label={S.registerMeter} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio * 100)}>
-          <span class="taiwa__meter-label">{S.registerMeter}</span>
-          <span class="taiwa__meter-track">
-            <span class="taiwa__meter-fill" style={{ width: `${Math.round(ratio * 100)}%` }} />
-          </span>
-          <span class="taiwa__meter-text">{slips === 0 ? S.registerClean : slips === 1 ? S.registerSlipOne : fill(S.registerSlips, { n: slips })}</span>
+        <span class="eyebrow">{S.registerMeter}</span>
+        <div class="meter" role="meter" aria-label={S.registerMeter} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio * 100)} style={{ '--value': ratio, '--meter-tone': 'var(--matcha)' } as JSX.CSSProperties}>
+          <span class="meter__fill" />
         </div>
+        <p class="taiwa__hint">{slips === 0 ? S.registerClean : slips === 1 ? S.registerSlipOne : fill(S.registerSlips, { n: slips })}</p>
       </div>
       <section class="taiwa__corrections" aria-label={S.corrections}>
         <h3 class="taiwa__subtitle">{S.corrections}</h3>
@@ -48,11 +48,11 @@ export function Debrief(p: DebriefProps): JSX.Element {
           <ul class="taiwa__list">
             {corrections.map((o) => (
               <li key={o.lineIndex} class="taiwa__correction" data-kind={o.kind}>
-                <span class="taiwa__label">{S.yours}</span>
+                <span class="eyebrow">{S.yours}</span>
                 <span lang="ja" class="taiwa__given">
                   {o.given}
                 </span>
-                <span class="taiwa__label">{S.modelLine}</span>
+                <span class="eyebrow">{S.modelLine}</span>
                 <span class="taiwa__model">
                   <Ruby ja={p.lines[o.lineIndex]?.ja ?? o.recast} mode={p.furigana} />
                 </span>
@@ -80,7 +80,7 @@ export function Debrief(p: DebriefProps): JSX.Element {
           </ul>
         ) : null}
       </section>
-      <p class="taiwa__hint taiwa__closing">{S.closing}</p>
+      <p class="taiwa__hint">{S.closing}</p>
     </>
   );
 }

@@ -40,8 +40,8 @@ export const ES = {
     'wallpaper:unlocked': '軸',
     'wallpaper:revealed': '軸',
   } satisfies Record<Exclude<CeremonyEvent['name'], 'quest:completed'>, string>,
-  /** Line 3 of 次回予告 when the next station's vista is known: its name rides inside the Gatekeeper line (09 §10 B2), never a fourth line. */
-  gateWithVista: '{gate} · {vista}',
+  /** Line 3 of 次回予告 when the next station's vista is known: a second sentence after the Gatekeeper line (09 §10 B2, §12.1 d38), never a fourth line. */
+  gateWithVista: '{line} Beyond the gate: {vista}.',
   /** 次回予告 keeps 03 §10's three lines even when the composer found nothing for a slot. */
   yokokuNoSentence: 'No episode line yet.',
   yokokuNoWords: 'No new words yet.',

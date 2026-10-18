@@ -27,6 +27,10 @@
   stroke-linejoin: round;
   stroke-linecap: round;
 }
+/* the contour draws on mount (09 §10 C1): the .ink-hiku stroke verb at the content tempo */
+.pitch-svg .pitch-svg__line.ink-hiku {
+  animation-duration: var(--dur-3);
+}
 .pitch-svg__particle-line {
   stroke: var(--fg-muted);
   stroke-width: 1.5;
@@ -171,13 +175,4 @@
 }
 .pitch-glyph__label [lang='ja'] {
   font-family: var(--font-ja);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pitch-picker__btn {
-    transition: none;
-  }
-}
-.reduced-motion .pitch-picker__btn {
-  transition: none;
 }

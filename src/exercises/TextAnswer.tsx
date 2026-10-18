@@ -23,6 +23,13 @@
  * The widget never binds keys: Enter inside the field submits; outside it,
  * the frame's Enter reaches the registered `onSubmit`. Copy lives in
  * `strings.ts`.
+ *
+ * Motion (design 09 §10 C1): the English field sits in `.text-answer__ink`,
+ * whose ink rule hiku-draws under it on focus (scaleX, --dur-2) and whose
+ * caret is vermilion; the reveal and confirm panels are the shared `.reveal`
+ * (ui.css) entering as `.ink-nijimi`, kinds correct · partial · wrong · info
+ * (`revealKind`; a kana-only answer under the Hard policy is `partial` with
+ * its own why line).
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
@@ -100,6 +107,12 @@ export function offeredCandidates(candidates: readonly string[] | undefined, rea
   if (candidates.includes(v)) return [...candidates];
   if (reading && reading.trim().length > 0 && equivalentJa(finalizeIme(v), reading)) return [...candidates];
   return undefined;
+}
+
+/** The `.reveal` kind of a graded answer: a near miss or a kana-only reading is `partial` (design 09 §10 C1). */
+export function revealKind(r: Pick<TextAnswerResult, 'correct' | 'nearMiss'>): 'correct' | 'partial' | 'wrong' {
+  if (r.nearMiss) return 'partial';
+  return r.correct ? 'correct' : 'wrong';
 }
 
 function Diff(p: { given: string; expected: string; ja: boolean }): JSX.Element {
@@ -237,39 +250,43 @@ export function TextAnswer(p: TextAnswerProps): JSX.Element {
     <div class="text-answer" data-mode={mode} data-phase={phase} data-correct={result ? String(result.correct) : undefined}>
       <div class="text-answer__row">
         {ja ? (
-          <KanaInput
-            value={value}
-            onChange={change}
-            onSubmit={submit}
-            katakana={katakana}
-            candidates={offeredCandidates(p.candidates, p.candidateReading, value)}
-            placeholder={p.placeholder}
-            autoFocus={p.autoFocus}
-            disabled={locked}
-            label={label}
-          />
+          <span class="text-answer__ink" data-mode="ja">
+            <KanaInput
+              value={value}
+              onChange={change}
+              onSubmit={submit}
+              katakana={katakana}
+              candidates={offeredCandidates(p.candidates, p.candidateReading, value)}
+              placeholder={p.placeholder}
+              autoFocus={p.autoFocus}
+              disabled={locked}
+              label={label}
+            />
+          </span>
         ) : (
-          <input
-            ref={enRef}
-            class="text-answer__field"
-            type="text"
-            lang="en"
-            value={value}
-            placeholder={p.placeholder}
-            disabled={locked}
-            aria-label={label}
-            autoComplete="off"
-            autoCapitalize="off"
-            spellcheck={false}
-            enterKeyHint="done"
-            onInput={(e) => change(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
-              e.preventDefault();
-              e.stopPropagation();
-              submit(e.currentTarget.value);
-            }}
-          />
+          <span class="text-answer__ink">
+            <input
+              ref={enRef}
+              class="text-answer__field"
+              type="text"
+              lang="en"
+              value={value}
+              placeholder={p.placeholder}
+              disabled={locked}
+              aria-label={label}
+              autoComplete="off"
+              autoCapitalize="off"
+              spellcheck={false}
+              enterKeyHint="done"
+              onInput={(e) => change(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+                e.preventDefault();
+                e.stopPropagation();
+                submit(e.currentTarget.value);
+              }}
+            />
+          </span>
         )}
         <button
           type="button"
@@ -289,14 +306,14 @@ export function TextAnswer(p: TextAnswerProps): JSX.Element {
       ) : null}
 
       {phase === 'confirm' && result ? (
-        <div class="text-answer__confirm status-window" role="group" aria-label={S.meantPrompt}>
+        <div class="text-answer__confirm reveal ink-nijimi" data-kind="info" role="group" aria-label={S.meantPrompt}>
           <p class="text-answer__expected">
-            <span class="text-answer__label">{S.correctForm}</span>
+            <span class="eyebrow">{S.correctForm}</span>
             <span class="text-answer__form">{display}</span>
           </p>
           {alsoAccepted.length > 0 ? (
             <p class="text-answer__also">
-              <span class="text-answer__label">{S.alsoAccepted}</span> <span>{alsoAccepted.join(' · ')}</span>
+              <span class="eyebrow">{S.alsoAccepted}</span> <span>{alsoAccepted.join(' · ')}</span>
             </p>
           ) : null}
           <p class="text-answer__question">{S.meantPrompt}</p>
@@ -312,10 +329,10 @@ export function TextAnswer(p: TextAnswerProps): JSX.Element {
       ) : null}
 
       {showReveal && result ? (
-        <div class="text-answer__reveal" data-kind={result.correct ? (result.nearMiss ? 'kana-only' : 'correct') : result.nearMiss ? 'near' : 'wrong'}>
+        <div class="text-answer__reveal reveal ink-nijimi" data-kind={revealKind(result)}>
           {!result.correct || result.nearMiss ? (
             <p class="text-answer__expected">
-              <span class="text-answer__label">{S.correctForm}</span>
+              <span class="eyebrow">{S.correctForm}</span>
               <span class="text-answer__form" lang={ja ? 'ja' : undefined}>
                 {result.expected}
               </span>
@@ -323,7 +340,7 @@ export function TextAnswer(p: TextAnswerProps): JSX.Element {
           ) : null}
           {!result.correct && !result.override ? (
             <p class="text-answer__yours">
-              <span class="text-answer__label">{S.yours}</span>
+              <span class="eyebrow">{S.yours}</span>
               {ja ? <Diff given={result.given} expected={result.expected} ja /> : <span class="text-answer__given">{result.given}</span>}
             </p>
           ) : null}
@@ -331,7 +348,7 @@ export function TextAnswer(p: TextAnswerProps): JSX.Element {
           {why ? <p class="text-answer__why">{why}</p> : null}
           {!result.correct && !ja && alsoAccepted.length > 0 ? (
             <p class="text-answer__also">
-              <span class="text-answer__label">{S.alsoAccepted}</span> <span>{alsoAccepted.join(' · ')}</span>
+              <span class="eyebrow">{S.alsoAccepted}</span> <span>{alsoAccepted.join(' · ')}</span>
             </p>
           ) : null}
         </div>

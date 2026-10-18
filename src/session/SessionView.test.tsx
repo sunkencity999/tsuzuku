@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CardKey } from '../content/types';
 import { V, createFakeLoader } from '../content/fixtures';
 import { installServices, nullAudio, resetServices, type AudioService, type ClipCue, type SpeakOptions } from '../shared/audio';
+import { SFX_NAMES, type SfxName } from '../shared/catalog';
 import { bus } from '../shared/events';
 import { registerExercise, resetRegistryForTests, type ExerciseProps } from '../shared/exercise-types';
 import { useExerciseKeys } from '../shared/ui/ExerciseFrame';
@@ -19,7 +20,7 @@ import { resetStoreForTests, store } from '../store';
 import { DEFAULT_TEST_NOW, captureEvents, card, makeTestStore } from '../store/testing';
 import { SessionRunner } from './runner';
 import { checkStepId, resetScrollCompletions } from './scroll';
-import { SessionView, comboTierOf, examFurigana, pairClipKeys, previousSessionErrorRate, type JudgeAsk } from './SessionView';
+import { GHOST_FALLBACK_MS, HIT_STOP_MS, SessionView, comboTierOf, examFurigana, ghostOf, pageTurns, pairClipKeys, previousSessionErrorRate, sfxForGrade, type JudgeAsk } from './SessionView';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
 const loader = createFakeLoader();
@@ -39,7 +40,9 @@ afterEach(() => {
   resetRegistryForTests();
   resetStoreForTests();
   resetScrollCompletions();
+  resetServices();
   bus.reset();
+  vi.useRealTimers();
 });
 
 /* ── stub exercises ─────────────────────────────────────────────────── */
@@ -105,8 +108,8 @@ function cards(ids: readonly string[], s = 5): Record<CardKey, CardTuple> {
 
 const kataSteps = (): Step[] => [step({ id: 's0', cardKey: `${ITEMS[0]}#rec` }), step({ id: 's1', cardKey: `${ITEMS[1]}#rec` }), step({ id: 'mk', block: 'michikusa', exercise: 'story-read', cardKey: null, itemId: 'm-04-2', params: { michikusaId: 'm-04-2' } }), step({ id: 's2', cardKey: `${ITEMS[2]}#rec` })];
 
-async function setup(o: { steps?: Step[]; feel?: 'zen' | 'dojo' | 'arcade'; meta?: Partial<SessionPlan['meta']> } = {}): Promise<{ runner: SessionRunner; onExit: ReturnType<typeof vi.fn>; onAnother: ReturnType<typeof vi.fn> }> {
-  await makeTestStore({ save: { progress: { station: 4 }, settings: o.feel ? { feel: o.feel } : {} }, cards: cards(ITEMS), now: () => clock });
+async function setup(o: { steps?: Step[]; feel?: 'zen' | 'dojo' | 'arcade'; reduced?: boolean; meta?: Partial<SessionPlan['meta']> } = {}): Promise<{ runner: SessionRunner; onExit: ReturnType<typeof vi.fn>; onAnother: ReturnType<typeof vi.fn> }> {
+  await makeTestStore({ save: { progress: { station: 4 }, settings: { ...(o.feel ? { feel: o.feel } : {}), ...(o.reduced ? { reducedMotion: true } : {}) } }, cards: cards(ITEMS), now: () => clock });
   registerStubs();
   const runner = new SessionRunner(plan(o.steps ?? kataSteps(), o.meta), { loader });
   const onExit = vi.fn();
@@ -136,14 +139,36 @@ const flush = async (): Promise<void> => {
   });
 };
 
-/** Lets chained async work (the 次回予告 loads a plan context over several awaits) settle. */
+/** Lets chained async work (the 次回予告 loads a plan context and the vista lookup over several awaits) settle; 30 turns, so a loaded machine does not read as a failure. */
 const settle = async (): Promise<void> => {
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 30; i++) {
     await act(async () => {
       await new Promise<void>((r) => setTimeout(r, 0));
     });
   }
 };
+
+/** jsdom runs no animations, so every exit is instant there (nothing waits on decoration); these tests lend it an engine (`getAnimations`) and end the exits by hand. */
+let restoreEngine: (() => void) | null = null;
+const withAnimations = (): void => {
+  const proto = Element.prototype as { getAnimations?: () => Animation[] };
+  const had = proto.getAnimations;
+  proto.getAnimations = () => [];
+  restoreEngine = () => {
+    if (had) proto.getAnimations = had;
+    else delete proto.getAnimations;
+    restoreEngine = null;
+  };
+};
+afterEach(() => restoreEngine?.());
+const endAnimation = (sel: string): void => {
+  const el = root.querySelector(sel);
+  if (!el) throw new Error(`no element ${sel}`);
+  act(() => {
+    el.dispatchEvent(new Event('animationend', { bubbles: true }));
+  });
+};
+
 
 /* ── tests ──────────────────────────────────────────────────────────── */
 
@@ -190,6 +215,7 @@ describe('<SessionView>', () => {
     click('.exercise-frame__controls .hanko');
     expect(runner.done.value).not.toBeNull();
     expect(cap.events.filter((e) => e[0] === 'session:finished')).toHaveLength(1);
+    // jsdom runs no animations: the End Card mounts at once (the hold is tested under a stubbed engine below)
     expect(root.querySelector('.end-card')).not.toBeNull();
     expect(root.querySelector('.end-card__loading')).not.toBeNull();
     await settle();
@@ -384,6 +410,7 @@ describe('<SessionView>', () => {
     expect(root.querySelector('.combo')).toBeNull();
     click('.exercise-frame__controls .hanko');
     expect(runner.done.value?.zen).toBe(true);
+    expect(root.querySelector('.end-card')).not.toBeNull();
     expect(root.textContent).not.toContain('Best combo');
   });
 
@@ -561,5 +588,323 @@ describe('perception Judge: one source for both words (design 08 §10.4)', () =>
     expect(half.spoken).toHaveLength(2);
     expect(half.spoken.every(([, o]) => o === undefined)).toBe(true);
     unmount();
+  });
+});
+
+describe('<SessionView> motion (design 09 §7 F, I, J; d33)', () => {
+  const recordingAudio = (): { audio: AudioService; played: SfxName[] } => {
+    const played: SfxName[] = [];
+    return { audio: { ...nullAudio, sfx: (n) => played.push(n) }, played };
+  };
+
+  it('without an animation engine (jsdom) nothing is ghosted or held: the next step and the End Card mount at once', async () => {
+    const { runner } = await setup({ steps: [step({ id: 's0', cardKey: `${ITEMS[0]}#rec` }), step({ id: 's1', cardKey: `${ITEMS[1]}#rec` })] });
+    click('.stub-answer');
+    click('.exercise-frame__controls .hanko');
+    expect(root.querySelector('.session__ghost')).toBeNull();
+    expect(root.querySelector('.session__step.ink-nijimi .stub')?.getAttribute('data-step')).toBe('s1');
+    click('.stub-answer');
+    click('.exercise-frame__controls .hanko');
+    expect(runner.done.value).not.toBeNull();
+    expect(root.querySelector('.session--held')).toBeNull();
+    expect(root.querySelector('.end-card')).not.toBeNull();
+  });
+
+  it('J · the incoming step mounts as .ink-nijimi and the outgoing one is a ghost under data-leaving, gone on animationend; the new step is live at once', async () => {
+    const { runner } = await setup();
+    withAnimations();
+    expect(root.querySelector('.session__step.ink-nijimi .stub')?.getAttribute('data-step')).toBe('s0');
+    expect(root.querySelector('.session__ghost')).toBeNull();
+    click('.stub-answer');
+    click('.exercise-frame__controls .hanko');
+    const live = root.querySelector('.session__step.ink-nijimi:not([data-leaving]) .stub');
+    expect(live?.getAttribute('data-step')).toBe('s1');
+    const ghost = root.querySelector('.session__ghosts .session__ghost');
+    expect(ghost).not.toBeNull();
+    expect(ghost?.hasAttribute('data-leaving')).toBe(true);
+    expect(ghost?.getAttribute('aria-hidden')).toBe('true');
+    expect(ghost?.hasAttribute('inert')).toBe(true);
+    expect(ghost?.querySelector('.stub')?.getAttribute('data-step')).toBe('s0');
+    expect(ghost?.querySelector('[id]')).toBeNull();
+    // the live step answers while the ghost is still fading — nothing waits on decoration
+    click('.session__step:not([data-leaving]) .stub-answer');
+    expect(runner.results).toHaveLength(2);
+    endAnimation('.session__ghost');
+    expect(root.querySelector('.session__ghost')).toBeNull();
+  });
+
+  it('J · the ghost falls back to a timer when no animationend arrives (≤ 200 ms)', async () => {
+    await setup();
+    withAnimations();
+    vi.useFakeTimers();
+    click('.stub-answer');
+    click('.exercise-frame__controls .hanko');
+    expect(root.querySelector('.session__ghost')).not.toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(GHOST_FALLBACK_MS);
+    });
+    expect(root.querySelector('.session__ghost')).toBeNull();
+    expect(GHOST_FALLBACK_MS).toBeLessThanOrEqual(200);
+  });
+
+  it('ghostOf strips ids, roles and labels and marks the clone inert, hidden and leaving', () => {
+    const el = document.createElement('div');
+    el.className = 'x';
+    el.setAttribute('role', 'region');
+    el.setAttribute('aria-label', 'Training session');
+    el.innerHTML = '<p id="a"><button id="b">x</button></p>';
+    const g = ghostOf(el, 'ghost');
+    expect(g.className).toBe('ghost');
+    expect(g.hasAttribute('data-leaving')).toBe(true);
+    expect(g.getAttribute('aria-hidden')).toBe('true');
+    expect(g.hasAttribute('inert')).toBe(true);
+    expect(g.hasAttribute('role')).toBe(false);
+    expect(g.hasAttribute('aria-label')).toBe(false);
+    expect(g.querySelector('[id]')).toBeNull();
+    expect(g.querySelector('button')?.textContent).toBe('x');
+    expect(el.querySelector('#b')).not.toBeNull();
+  });
+
+  it('ghostOf freezes every descendant at its drawn end state (a fresh node would restart its entrance) and carries typed values over', () => {
+    const el = document.createElement('div');
+    el.innerHTML = '<button class="choice ink-nijimi" style="--i:2"><svg class="choice__strike"><path class="ink-hiku" data-axis="stroke"></path></svg></button><input value=""><textarea></textarea>';
+    (el.querySelector('input') as HTMLInputElement).value = 'typed';
+    (el.querySelector('textarea') as HTMLTextAreaElement).value = 'more';
+    const g = ghostOf(el, 'ghost');
+    for (const n of Array.from(g.querySelectorAll<HTMLElement>('*'))) {
+      expect(n.style.animation, n.tagName).toBe('none');
+      expect(n.style.transition, n.tagName).toBe('none');
+    }
+    // the classes stay (layout reads them); only their animations are silenced
+    expect(g.querySelector('.choice.ink-nijimi')).not.toBeNull();
+    expect((g.querySelector('input') as HTMLInputElement).value).toBe('typed');
+    expect((g.querySelector('textarea') as HTMLTextAreaElement).value).toBe('more');
+    expect((el.querySelector('button') as HTMLElement).style.animation).toBe('');
+  });
+
+  it('F · Leave: a role="dialog" .tanzaku with the remaining-rep mark; Leave sets data-leaving on slip and backdrop before onExit; no second step', async () => {
+    const { onExit } = await setup();
+    withAnimations();
+    click('.stub-answer');
+    click('.exercise-frame__controls .hanko');
+    click('.session__leave');
+    const dialog = root.querySelector('[role="dialog"]')!;
+    expect(dialog.classList.contains('tanzaku')).toBe(true);
+    expect(dialog.hasAttribute('data-shiori')).toBe(true);
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(root.querySelector('.tanzaku__backdrop')).not.toBeNull();
+    expect(root.querySelector('.tanzaku .status-window')).not.toBeNull();
+    expect(root.querySelector('.session__dialog-copy')?.textContent).toBe('Your place is kept. Resume from the dojo whenever you like; a resumed session still earns its card.');
+    // 4 steps (one a Michikusa card, not a rep), one answered → 2 reps left (a count, never a deadline)
+    expect(root.querySelector('.session__dialog-left')?.textContent).toBe('2 reps left');
+    expect(root.textContent).not.toMatch(/sure\?|hurry|only \d+/i);
+    // the Stay hanko takes the ink-bleed ring on pointerdown (§5.3), delegated from the session root
+    const stay = root.querySelector('.session__leave-stay')!;
+    act(() => {
+      stay.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    });
+    expect(stay.classList.contains('is-pressed')).toBe(true);
+    act(() => {
+      stay.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    });
+    expect(stay.classList.contains('is-pressed')).toBe(false);
+    click('.session__leave-keep');
+    const slip = root.querySelector('.tanzaku')!;
+    expect(slip.hasAttribute('data-leaving')).toBe(true);
+    expect(root.querySelector('.tanzaku__backdrop')?.hasAttribute('data-leaving')).toBe(true);
+    // while leaving the slip is no modal: inert, hidden from assistive tech, aria-modal gone
+    expect(slip.hasAttribute('inert')).toBe(true);
+    expect(slip.getAttribute('aria-hidden')).toBe('true');
+    expect(slip.hasAttribute('aria-modal')).toBe(false);
+    expect(onExit).not.toHaveBeenCalled();
+    // a second Leave click while leaving does nothing twice
+    click('.session__leave-keep');
+    endAnimation('.tanzaku');
+    expect(onExit).toHaveBeenCalledTimes(1);
+    expect(root.querySelectorAll('[role="dialog"]')).toHaveLength(0);
+  });
+
+  it('F · where a page turn will run (View Transitions, motion not reduced) Leave fires onExit at once and the slip stays whole for the shiori snapshot', async () => {
+    const { onExit } = await setup();
+    withAnimations();
+    expect(pageTurns()).toBe(false);
+    const doc = document as unknown as { startViewTransition?: unknown };
+    doc.startViewTransition = () => ({ finished: Promise.resolve() });
+    try {
+      expect(pageTurns()).toBe(true);
+      click('.session__leave');
+      click('.session__leave-keep');
+      expect(onExit).toHaveBeenCalledTimes(1);
+      const slip = root.querySelector('.tanzaku[data-shiori]');
+      expect(slip).not.toBeNull();
+      expect(slip?.hasAttribute('data-leaving')).toBe(false);
+      expect(slip?.hasAttribute('inert')).toBe(false);
+      // nothing fires twice
+      click('.session__leave-keep');
+      expect(onExit).toHaveBeenCalledTimes(1);
+    } finally {
+      delete doc.startViewTransition;
+    }
+    expect(pageTurns()).toBe(false);
+  });
+
+  it('F · the runner pauses behind the slip (no ring runs out while it reads "Your place is kept.") and resumes on Stay; Leave plays one submit tap, none in Zen', async () => {
+    const { audio, played } = recordingAudio();
+    const a = await setup();
+    installServices({ audio });
+    expect(a.runner.paused.value).toBe(false);
+    click('.session__leave');
+    expect(a.runner.paused.value).toBe(true);
+    expect(root.querySelector('.exercise-frame')?.getAttribute('data-paused')).toBeNull(); // the frame's own overlay is not up
+    click('.session__leave-stay');
+    expect(a.runner.paused.value).toBe(false);
+    expect(played).toEqual([]);
+    click('.session__leave');
+    click('.session__leave-keep');
+    expect(a.onExit).toHaveBeenCalledTimes(1);
+    expect(played).toEqual(['submit']);
+    render(null, root);
+    resetStoreForTests();
+    resetRegistryForTests();
+    const b = await setup({ feel: 'zen' });
+    installServices({ audio });
+    click('.session__leave');
+    click('.session__leave-keep');
+    expect(b.onExit).toHaveBeenCalledTimes(1);
+    expect(played).toEqual(['submit']);
+  });
+
+  it('F · the slip exits by the timer fallback too; under reduced motion it still leaves under data-leaving (motion.css: a --dur-fade fade) and onExit follows the fade', async () => {
+    const a = await setup();
+    withAnimations();
+    vi.useFakeTimers();
+    click('.session__leave');
+    click('.session__leave-keep');
+    expect(a.onExit).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(GHOST_FALLBACK_MS);
+    });
+    expect(a.onExit).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+    render(null, root);
+    resetStoreForTests();
+    resetRegistryForTests();
+    const b = await setup({ reduced: true });
+    click('.session__leave');
+    expect(root.querySelector('.session__dialog-left')?.textContent).toBe('3 reps left');
+    click('.session__leave-keep');
+    expect(root.querySelector('.tanzaku')?.hasAttribute('data-leaving')).toBe(true);
+    expect(b.onExit).not.toHaveBeenCalled();
+    endAnimation('.tanzaku');
+    expect(b.onExit).toHaveBeenCalledTimes(1);
+    // without an engine (plain jsdom) the slip is gone at once
+    restoreEngine?.();
+    render(null, root);
+    resetStoreForTests();
+    resetRegistryForTests();
+    const c = await setup({ reduced: true });
+    click('.session__leave');
+    click('.session__leave-keep');
+    expect(c.onExit).toHaveBeenCalledTimes(1);
+  });
+
+  it('d33 · when done flips the Hud and the frame are held under data-leaving and the End Card mounts after the hold (fake timers)', async () => {
+    const { runner } = await setup({ steps: [step({ id: 's0', cardKey: `${ITEMS[0]}#rec` })] });
+    withAnimations();
+    vi.useFakeTimers();
+    click('.stub-answer');
+    click('.exercise-frame__controls .hanko');
+    expect(runner.done.value).not.toBeNull();
+    const held = root.querySelector('.session--ending .session--held');
+    expect(held).not.toBeNull();
+    expect(held?.hasAttribute('data-leaving')).toBe(true);
+    expect(held?.querySelector('.hud')).not.toBeNull();
+    expect(held?.querySelector('.exercise-frame')).not.toBeNull();
+    expect(held?.hasAttribute('inert')).toBe(true);
+    expect(root.querySelector('.end-card')).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(GHOST_FALLBACK_MS);
+    });
+    expect(root.querySelector('.session--held')).toBeNull();
+    expect(root.querySelector('.end-card')).not.toBeNull();
+  });
+
+  it('d33 · the hold ends on animationend as well, and is skipped under reduced motion', async () => {
+    await setup({ steps: [step({ id: 's0', cardKey: `${ITEMS[0]}#rec` })] });
+    withAnimations();
+    click('.stub-answer');
+    click('.exercise-frame__controls .hanko');
+    expect(root.querySelector('.end-card')).toBeNull();
+    endAnimation('.session--held');
+    expect(root.querySelector('.end-card')).not.toBeNull();
+    render(null, root);
+    resetStoreForTests();
+    resetRegistryForTests();
+    await setup({ steps: [step({ id: 's0', cardKey: `${ITEMS[0]}#rec` })], reduced: true });
+    click('.stub-answer');
+    click('.exercise-frame__controls .hanko');
+    expect(root.querySelector('.session--held')).toBeNull();
+    expect(root.querySelector('.end-card')).not.toBeNull();
+  });
+
+  it('I · one sfx per graded attempt, an existing SfxName by kind and tier; a miss is the soft donk; a Guard taps', async () => {
+    const { audio, played } = recordingAudio();
+    await setup();
+    installServices({ audio });
+    click('.stub-answer');
+    expect(played).toEqual(['correct']);
+    click('.exercise-frame__controls .hanko');
+    click('.stub-miss');
+    expect(played).toEqual(['correct', 'wrong']);
+    click('.exercise-frame__controls .hanko');
+    // the Michikusa card grades nothing
+    click('.michikusa__continue');
+    expect(played).toHaveLength(2);
+    press('Enter', { shiftKey: true });
+    expect(played).toEqual(['correct', 'wrong', 'submit']);
+    for (const n of played) expect(SFX_NAMES).toContain(n);
+  });
+
+  it('I · Zen is silent', async () => {
+    const { audio, played } = recordingAudio();
+    await setup({ feel: 'zen' });
+    installServices({ audio });
+    click('.stub-answer');
+    click('.exercise-frame__controls .hanko');
+    click('.stub-miss');
+    expect(played).toEqual([]);
+  });
+
+  it('sfxForGrade: correct by tier (arpeggio, +G5, +C6), ippon, wrong / timeout donk, near / guard tap, info silent', () => {
+    expect(sfxForGrade({ kind: 'correct', ippon: false }, 0)).toBe('correct');
+    expect(sfxForGrade({ kind: 'correct', ippon: false }, 1)).toBe('correct');
+    expect(sfxForGrade({ kind: 'correct', ippon: false }, 2)).toBe('correct-tier2');
+    expect(sfxForGrade({ kind: 'correct', ippon: false }, 3)).toBe('correct-tier3');
+    expect(sfxForGrade({ kind: 'correct', ippon: true }, 3)).toBe('ippon');
+    expect(sfxForGrade({ kind: 'wrong', ippon: false }, 2)).toBe('wrong');
+    expect(sfxForGrade({ kind: 'timeout', ippon: false }, 0)).toBe('wrong');
+    expect(sfxForGrade({ kind: 'near', ippon: false }, 0)).toBe('submit');
+    expect(sfxForGrade({ kind: 'guard', ippon: false }, 0)).toBe('submit');
+    expect(sfxForGrade({ kind: 'info', ippon: false }, 0)).toBeNull();
+  });
+
+  it('I · the Arcade hit-stop: .is-hitstop on the session root for HIT_STOP_MS (33) after a grade; never under Dojo', async () => {
+    await setup({ feel: 'arcade' });
+    withAnimations();
+    vi.useFakeTimers();
+    click('.stub-answer');
+    expect(root.querySelector('.session')?.classList.contains('is-hitstop')).toBe(true);
+    act(() => {
+      vi.advanceTimersByTime(HIT_STOP_MS);
+    });
+    expect(root.querySelector('.session')?.classList.contains('is-hitstop')).toBe(false);
+    expect(HIT_STOP_MS).toBe(33);
+    vi.useRealTimers();
+    render(null, root);
+    resetStoreForTests();
+    resetRegistryForTests();
+    await setup({ feel: 'dojo' });
+    click('.stub-answer');
+    expect(root.querySelector('.session')?.classList.contains('is-hitstop')).toBe(false);
   });
 });

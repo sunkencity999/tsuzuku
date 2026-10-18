@@ -6,7 +6,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { CardKey } from '../content/types';
 import type { SessionPlan, Step } from '../shared/session-types';
-import { Hud, blockIndexOf, blockProgress, reviewSteps } from './Hud';
+import { Hud, blockIndexOf, blockProgress, glide, reviewSteps } from './Hud';
 
 let root: HTMLDivElement;
 beforeEach(() => {
@@ -57,13 +57,69 @@ describe('<Hud>', () => {
     expect(root.querySelector('.hud__block[data-state="done"]')?.textContent).toContain('Warm-up');
     expect(root.querySelector('.hud__block[data-state="current"]')?.textContent).toContain('Reviews');
     expect(root.querySelector('.hud__current')?.textContent).toBe('Reviews · 2 of 5');
-    const forge = root.querySelector('.forge-bar')!;
-    expect(forge).not.toBeNull();
+    const forge = root.querySelector('.hud__forge')!;
+    expect(forge.getAttribute('role')).toBe('meter');
     // 9 review steps (the Michikusa card is not a review); 4 answered → 5 left.
     expect(forge.getAttribute('aria-valuenow')).toBe('5');
     expect(forge.getAttribute('aria-valuemax')).toBe('9');
     expect(forge.querySelector('.forge-bar__label')?.textContent).toBe('百錬');
-    expect((forge.querySelector('.forge-bar__fill') as HTMLElement).style.width).toBe('56%');
+    // the Forge Bar is a .meter (design 09 §5.7): --value scales the fill, width never tweens
+    const track = forge.querySelector('.meter.forge-bar') as HTMLElement;
+    expect(track.style.getPropertyValue('--value')).toBe('0.56');
+    expect(track.querySelector('.meter__fill')).not.toBeNull();
+    expect(forge.querySelector('[style*="width"]')).toBeNull();
+    // and so is the progress bar (4 of 10)
+    expect(bar.classList.contains('meter')).toBe(true);
+    expect((bar as HTMLElement).style.getPropertyValue('--value')).toBe('0.4');
+    expect(bar.querySelector('.meter__fill')).not.toBeNull();
+  });
+
+  it('the current block alone carries the vermilion .hud__dot (the FLIP glider); done / ahead keep their pseudo dots', () => {
+    mount({ plan: plan(), index: 4, feel: 'dojo', backlog: false });
+    expect(root.querySelectorAll('.hud__dot')).toHaveLength(1);
+    expect(root.querySelector('.hud__block[data-state="current"] .hud__dot')).not.toBeNull();
+    expect(root.querySelector('.hud__dot')?.getAttribute('aria-hidden')).toBe('true');
+    // the block moves on: the dot follows into the new current block
+    mount({ plan: plan(), index: 8, feel: 'dojo', backlog: false });
+    expect(root.querySelector('.hud__block[data-state="current"]')?.textContent).toContain('Cooldown');
+    expect(root.querySelector('.hud__block[data-state="current"] .hud__dot')).not.toBeNull();
+    expect(root.querySelectorAll('.hud__dot')).toHaveLength(1);
+  });
+
+  it('the Forge Bar label carries its English beside 百錬 (the zero-Japanese rule)', () => {
+    mount({ plan: plan(), index: 4, feel: 'dojo', backlog: false });
+    expect(root.querySelector('.hud__forge .forge-bar__label')?.textContent).toBe('百錬');
+    expect(root.querySelector('.hud__forge .eyebrow')?.textContent).toBe('reviews');
+  });
+
+  it('the dot\'s FLIP measures relative to the Hud: a page that scrolled between two commits is not read as movement', () => {
+    const origin = Element.prototype.getBoundingClientRect;
+    let scroll = 0;
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      // every box rides the same scroll offset; the dot sits 40 px into the Hud
+      const x = this.classList.contains('hud__dot') ? 40 : 0;
+      return { left: x, top: -scroll, right: x + 6, bottom: -scroll + 6, width: 6, height: 6, x, y: -scroll, toJSON: () => ({}) } as DOMRect;
+    };
+    try {
+      mount({ plan: plan(), index: 4, feel: 'dojo', backlog: false });
+      scroll = 120;
+      mount({ plan: plan(), index: 8, feel: 'dojo', backlog: false });
+      expect(root.querySelector('.hud__block[data-state="current"]')?.textContent).toContain('Cooldown');
+      expect((root.querySelector('.hud__dot') as HTMLElement).style.transition).toBe('');
+    } finally {
+      Element.prototype.getBoundingClientRect = origin;
+    }
+  });
+
+  it('glide: FLIP\'s last two letters — the inverse translate, then a transform-only transition to rest; a zero delta is a no-op', () => {
+    const el = document.createElement('span');
+    expect(glide(el, 0, 0)).toBe(false);
+    expect(el.style.transition).toBe('');
+    expect(glide(el, -42, 3)).toBe(true);
+    expect(el.style.transform).toBe('');
+    expect(el.style.transition).toBe('transform var(--dur-2) var(--ease)');
+    el.dispatchEvent(new Event('transitionend'));
+    expect(el.style.transition).toBe('');
   });
 
   it('zen hides everything but progress', () => {
@@ -108,7 +164,8 @@ describe('<Hud>', () => {
     expect(progress[1]!.state).toBe('current');
     mount({ plan: live, index: 99, feel: 'dojo', backlog: false });
     expect(root.querySelector('[role="progressbar"]')!.getAttribute('aria-valuenow')).toBe('11');
-    expect(root.querySelector('.forge-bar')!.getAttribute('aria-valuetext')).toBe('All reviews done');
+    expect(root.querySelector('.hud__forge')!.getAttribute('aria-valuetext')).toBe('All reviews done');
+    expect((root.querySelector('.meter.forge-bar') as HTMLElement).style.getPropertyValue('--value')).toBe('0');
   });
 
   it('reviewSteps excludes cardless steps', () => {

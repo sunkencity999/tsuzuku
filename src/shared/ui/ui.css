@@ -1,25 +1,17 @@
 /*
  * TSUZUKU — shared UI primitives (src/shared/ui, group D).
  * Component-scoped rules only; the shared class contract (.status-window,
- * .hanko, .btn, .chip, .combo[data-tier], .judge-card, .tategaki) is declared
- * in src/styles/components.css (A). Rules here that touch those names are
- * scoped under our own roots so they layer on top rather than replace.
- * Colors come from tokens.css only.
+ * .hanko, .btn, .chip, .combo[data-tier], .judge-card, .tategaki, .sr-only and
+ * @keyframes belt-flip) is declared in src/styles/components.css / base.css (A)
+ * and never repeated here (design 09 §10 C1). Entrances ride motion.css's
+ * verbs — .ink-nijimi on the feedback card, the judge card's wrapper, the
+ * pause overlay and TeachOnce; exits set data-leaving — and a clipped
+ * .status-window is never the element that moves (§6.7 rule 7: the judge
+ * card, the pause card and the TeachOnce card sit inside the verb's wrapper;
+ * .reveal panels are plain). Reduced motion comes from base.css's global rule
+ * and the zeroed --dur-* tokens, so this file carries no reduced-motion block
+ * (§6.6). Labels are the shared .eyebrow (motion.css). Colors from tokens.css only.
  */
-
-/* ── a11y ─────────────────────────────────────────────────────────────── */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
 
 /* ── Ruby ─────────────────────────────────────────────────────────────── */
 .ruby {
@@ -83,6 +75,7 @@
   font-size: var(--fs-4);
   line-height: 1.4;
   color: var(--fg);
+  caret-color: var(--shu);
   background: var(--surface);
   border: 2px solid var(--line);
   border-radius: var(--radius);
@@ -203,7 +196,7 @@
   border-radius: var(--radius-sm);
 }
 
-/* ki bar */
+/* ki bar: the track is a .meter (motion.css) inside the cartouche; --value hiku-fills it */
 .ki-bar {
   display: flex;
   align-items: center;
@@ -218,49 +211,23 @@
 .ki-bar__track {
   flex: 1 1 auto;
   height: 8px;
-  overflow: hidden;
-  background: var(--line);
-  border-radius: 4px;
 }
-.ki-bar__fill {
-  height: 100%;
-  background: var(--kin);
-  transition: width var(--dur-2) var(--ease);
+.ki-bar[data-full='true'] .ki-bar__track {
+  --meter-tone: var(--shu);
 }
-.ki-bar[data-full='true'] .ki-bar__fill {
-  background: var(--shu);
+/* a full bar charges the Continue hanko (09 §7 I): a static kin ring in Morning, the static
+   --glow-shu border in Night — a class, nothing animated */
+.exercise-frame .hanko--charged {
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--bg) 35%, transparent),
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--kin);
 }
-.exercise-frame[data-feel='arcade'] .ki-bar[data-full='true'] {
-  box-shadow: 0 0 12px var(--neon-c);
-}
-
-/* combo: scale by tier (01 §4.4); base look from components.css */
-.exercise-frame .combo {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-4);
-  line-height: 1;
-  white-space: nowrap;
-  transform-origin: right center;
-  transition: transform var(--dur-2) var(--ease);
-}
-.exercise-frame .combo small {
-  margin-left: var(--sp-1);
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-}
-.exercise-frame .combo[data-tier='1'] {
-  transform: scale(1.1);
-}
-.exercise-frame .combo[data-tier='2'] {
-  transform: scale(1.2);
-  color: var(--kin);
-}
-.exercise-frame .combo[data-tier='3'] {
-  transform: scale(1.3);
-  color: var(--shu);
-}
-.exercise-frame[data-feel='arcade'] .combo[data-tier='3'] {
-  text-shadow: 0 0 8px var(--neon-m);
+:root[data-color-scheme='dark'] .exercise-frame .hanko--charged {
+  border-color: var(--kin);
+  box-shadow:
+    inset 0 0 0 2px color-mix(in srgb, var(--bg) 35%, transparent),
+    var(--glow-shu);
 }
 
 /* speed ring */
@@ -299,7 +266,7 @@
   color: var(--fg-muted);
 }
 
-/* pause overlay */
+/* pause overlay: nijimi in, kasure out on data-leaving (motion.css) */
 .pause-overlay {
   position: absolute;
   inset: 0;
@@ -321,27 +288,42 @@
   line-height: 1;
 }
 
-/* ── Feedback ─────────────────────────────────────────────────────────── */
-.feedback {
+/* ── .reveal[data-kind] — THE result panel (design 09 §10 C1) ─────────── */
+/* correct · wrong · partial · teach · info. Replaces the thirteen local panels of
+   src/exercises; the entrance is .ink-nijimi in the markup (a plain panel, never a
+   .status-window — §6.7 rule 7); the tone steps, nothing in the panel tweens (the panel
+   is wider than rule 1's 160 px). The feedback card maps its own kinds (near / guard /
+   timeout) onto the same tones. Margins: base.css's reset. */
+.reveal {
+  --reveal-tone: var(--line);
   display: grid;
   gap: var(--sp-2);
   padding: var(--sp-3) var(--sp-4);
-  border-left: 4px solid var(--line);
-  animation: fb-in var(--dur-2) var(--ease);
+  border-left: 4px solid var(--reveal-tone);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
 }
-.feedback[data-kind='correct'] {
-  border-left-color: var(--matcha);
+.reveal[data-kind='correct'] {
+  --reveal-tone: var(--matcha);
 }
-.feedback[data-kind='near'] {
-  border-left-color: var(--kin);
-}
-.feedback[data-kind='wrong'],
+.reveal[data-kind='wrong'],
 .feedback[data-kind='timeout'] {
-  border-left-color: var(--shu);
+  --reveal-tone: var(--shu);
 }
+.reveal[data-kind='partial'],
+.feedback[data-kind='near'] {
+  --reveal-tone: var(--kin);
+}
+.reveal[data-kind='teach'] {
+  --reveal-tone: var(--kin);
+  background: color-mix(in srgb, var(--kin) 10%, var(--surface));
+}
+.reveal[data-kind='info'],
 .feedback[data-kind='guard'] {
-  border-left-color: var(--ai);
+  --reveal-tone: var(--ai);
 }
+
+/* ── Feedback ─────────────────────────────────────────────────────────── */
 .feedback__head {
   display: flex;
   flex-wrap: wrap;
@@ -349,7 +331,6 @@
   gap: var(--sp-2) var(--sp-3);
 }
 .feedback__line {
-  margin: 0;
   font-weight: 600;
 }
 .feedback__answer {
@@ -362,14 +343,7 @@
   align-items: baseline;
   gap: var(--sp-2);
 }
-.feedback__label {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
 .feedback__why {
-  margin: 0;
   color: var(--fg-muted);
 }
 .feedback__tags {
@@ -408,7 +382,7 @@
   text-underline-offset: 0.2em;
 }
 
-/* belt flip */
+/* belt flip: the chip and its data-belt swatch colours (static); the keyframes are A1's (components.css) */
 .belt-flip {
   display: inline-flex;
   align-items: center;
@@ -440,46 +414,28 @@
   background: var(--belt-black);
 }
 
-/* ippon brush flash */
+/* ippon: brush 一本 written through a stroke mask over 300 ms (09 §3.4; the scale flash is retired) */
 .ippon {
-  position: relative;
-  font-family: var(--font-brush);
+  display: inline-block;
   font-size: var(--fs-6);
   line-height: 1;
   color: var(--shu);
-  animation: ippon var(--dur-2) var(--ease) both;
+}
+.ippon__svg {
+  display: block;
+  width: 2em;
+  height: 1em;
+  overflow: visible;
+}
+.ippon__text {
+  font-family: var(--font-brush);
+  fill: currentColor;
+}
+.ippon .ink-hiku {
+  animation-duration: calc(var(--dur-3) * 0.75);
 }
 
-@keyframes fb-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes belt-flip {
-  from {
-    transform: rotateX(90deg);
-  }
-  to {
-    transform: none;
-  }
-}
-@keyframes ippon {
-  from {
-    opacity: 0;
-    transform: scale(1.4);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* ── JudgeCard ────────────────────────────────────────────────────────── */
+/* ── JudgeCard (its .judge-card__wrap enters as .ink-nijimi from the right, --from in the markup) ── */
 .exercise-frame .judge-card,
 .judge-card {
   display: grid;
@@ -489,7 +445,6 @@
   max-width: 480px;
   margin-left: auto;
   padding: var(--sp-3) var(--sp-4);
-  animation: judge-in var(--dur-2) var(--ease) both;
 }
 .judge-card__title {
   display: flex;
@@ -551,33 +506,26 @@
   display: flex;
   gap: var(--sp-2);
 }
-@keyframes judge-in {
-  from {
-    opacity: 0;
-    transform: translateX(24px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 
 /* ── TeachOnce ────────────────────────────────────────────────────────── */
-/* First-contact card (design 08 §11). The .status-window frame comes from
-   components.css; this only adds the stack, tints the frame indigo (a note,
-   not XP gold) and un-pixels the title, which is a sentence, often Japanese,
-   not a window label — in every feel: arcade.css pixels .status-window > h3
-   at (0,3,1), so the title opts out again under the arcade gate at (0,4,0).
-   Surfaces scope their own spacing (.arena .teach-once, .station-ear
-   .teach-once); the dismiss button is a .btn--sm (44 px hit, no rule here). */
+/* First-contact card (design 08 §11). The outer .teach-once carries the verb
+   (.ink-nijimi in, data-leaving out — motion.css); the .status-window frame
+   is the inner .teach-once__card (components.css), tinted indigo (a note, not
+   XP gold). The title is un-pixelled: a sentence, often Japanese, not a window
+   label — in every feel: arcade.css pixels .status-window > h3 at (0,3,1), so
+   the title opts out again under the arcade gate at (0,4,0). Surfaces scope
+   their own spacing (.arena .teach-once, .station-ear .teach-once); the
+   dismiss button is a .btn--sm (44 px hit, no rule here). */
 .teach-once {
-  display: grid;
-  gap: var(--sp-2);
   box-sizing: border-box;
   width: 100%;
   margin: 0;
 }
-.teach-once.status-window {
+.teach-once__card {
+  display: grid;
+  gap: var(--sp-2);
+}
+.teach-once__card.status-window {
   border-color: var(--ai);
 }
 .teach-once .teach-once__title {
@@ -594,13 +542,13 @@
   font-family: var(--font-ja);
   line-height: var(--lh-ja);
 }
-:is(:root[data-feel='arcade'], body.feel-arcade) .teach-once > .teach-once__title {
+:is(:root[data-feel='arcade'], body.feel-arcade) .teach-once .teach-once__title {
   font-family: var(--font-ui);
   letter-spacing: normal;
   text-transform: none;
   color: var(--fg);
 }
-:is(:root[data-feel='arcade'], body.feel-arcade) .teach-once > .teach-once__title[lang='ja'] {
+:is(:root[data-feel='arcade'], body.feel-arcade) .teach-once .teach-once__title[lang='ja'] {
   font-family: var(--font-ja);
 }
 .teach-once__body {
@@ -614,29 +562,7 @@
   gap: var(--sp-2);
 }
 
-/* ── motion ───────────────────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .feedback,
-  .belt-flip,
-  .ippon,
-  .judge-card {
-    animation: fb-in var(--dur-2) linear both;
-  }
-  .exercise-frame .combo {
-    transition: none;
-  }
-}
-.reduced-motion .feedback,
-.reduced-motion .belt-flip,
-.reduced-motion .ippon,
-.reduced-motion .judge-card {
-  animation: fb-in var(--dur-2) linear both;
-}
-.reduced-motion .exercise-frame .combo {
-  transition: none;
-}
 .feel-zen .ki-bar,
-.feel-zen .combo,
 .feel-zen .speed-ring,
 .feel-zen .ippon {
   display: none;

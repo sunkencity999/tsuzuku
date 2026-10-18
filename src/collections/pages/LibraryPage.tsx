@@ -11,16 +11,23 @@
  * un-collected count ("3 more at Totsuka") and the reserved Yojijukugo shelf
  * (empty state until the 五段 pack). Items load per station on expand (or all
  * at once when a search starts), so a late-road save never fetches the whole
- * corpus to open the page.
+ * corpus to open the page. The shelves are .sheet cards on a --wood rail; a
+ * shelf expands through `grid-template-rows 0fr → 1fr` (design 09 §9 C3; the
+ * items mount on open, so a closed shelf costs no DOM; the transition arms
+ * only after the shelves' first paint, so arrival never animates) and a 6 px
+ * --kin-text dot marks items introduced since the Library was last opened
+ * (`reveal.ts`). Shelf heads follow §3.3's reading rule (`art/road/reading`):
+ * romaji while the learner's kana are below Green, kana ruby from Green on.
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { markKnown, retireItem } from '@/learn/apply';
+import { romajiAllowed, rubyMarkup } from '../../art/road/reading';
 import { content, type ContentLoader } from '../../content/loader';
-import type { ContentItem, Facet, MichikusaItem } from '../../content/types';
+import type { Belt, ContentItem, Facet, MichikusaItem } from '../../content/types';
 import { packWillSpeak, services, speak, voiceAudible, type AudioService } from '../../shared/audio';
 import type { Route } from '../../shared/routes';
-import type { ItemBelt, ItemKind } from '../../shared/store-types';
+import type { FuriganaMode, ItemBelt, ItemKind } from '../../shared/store-types';
 import { formatEraDate } from '../../shared/time';
 import { Ruby } from '../../shared/ui/Ruby';
 import { useDialogFocus } from '../../shared/ui/use-dialog-focus';
@@ -44,6 +51,7 @@ import {
   type StationIndex,
   type Surface,
 } from '../library-model';
+import { eraGloss, markOpened, newSince } from '../reveal';
 import { S, fill } from '../strings';
 import './LibraryPage.css';
 
@@ -72,12 +80,23 @@ export function voiceMissing(a: AudioService, packChosen: boolean = store.settin
   return !voiceAudible(a) && !a.hasJaVoice.value;
 }
 
-function stationLabel(g: { station: number; def: StationGroup['def'] }): JSX.Element {
+/** How a shelf head reads its station (design 09 §3.3): romaji below Green kana, kana ruby after. */
+export interface Reading {
+  romaji: boolean;
+  furigana: FuriganaMode;
+}
+
+export function readingFor(belt: Belt, furigana: FuriganaMode): Reading {
+  return { romaji: romajiAllowed(belt), furigana };
+}
+
+function stationLabel(g: { station: number; def: StationGroup['def'] }, r: Reading): JSX.Element {
   if (g.station === UNPLACED || !g.def) return <span>{S.stationUnplaced}</span>;
+  const d = g.def;
   return (
     <>
-      <span lang="ja">{g.def.nameJa}</span>
-      <span class="library__romaji">{fill(S.stationHeading, { n: g.def.number, name: g.def.nameRomaji })}</span>
+      {r.romaji ? <span lang="ja">{d.nameJa}</span> : <Ruby ja={rubyMarkup(d.nameJa, d.nameRomaji)} mode={r.furigana} class="library__ruby" />}
+      <span class="library__romaji">{r.romaji ? fill(S.stationHeading, { n: d.number, name: d.nameRomaji }) : fill(S.stationNumber, { n: d.number })}</span>
     </>
   );
 }
@@ -136,7 +155,7 @@ function ItemDetail(p: { item: LibraryItem; surface: Surface; onClose(): void; o
         </div>
         {surface.meanings.length > 0 ? (
           <div>
-            <span class="library-detail__label">{S.meaningLabel}</span>
+            <div class="eyebrow">{S.meaningLabel}</div>
             <ul class="library-detail__meanings">
               {surface.meanings.map((m) => (
                 <li key={m}>{m}</li>
@@ -146,7 +165,7 @@ function ItemDetail(p: { item: LibraryItem; surface: Surface; onClose(): void; o
         ) : null}
         {surface.example ? (
           <div>
-            <span class="library-detail__label">{S.exampleLabel}</span>
+            <div class="eyebrow">{S.exampleLabel}</div>
             <p class="library-detail__example">
               <Ruby ja={surface.example.ja} mode={furigana} />
             </p>
@@ -155,14 +174,15 @@ function ItemDetail(p: { item: LibraryItem; surface: Surface; onClose(): void; o
         ) : null}
         {facets.length > 0 ? (
           <div>
-            <span class="library-detail__label">{S.facetsLabel}</span>
+            <div class="eyebrow">{S.facetsLabel}</div>
             <ul class="library-detail__facets">
               {facets.map(([f, t]) => (
                 <li key={f}>
                   <span lang="ja" aria-hidden="true">
                     {FACET_JA[f]}
                   </span>{' '}
-                  {S.facetLabel[f] ?? f} · {fill(S.stabilityDays, { n: Math.round(t[1]) })} · {fill(S.dueOn, { date: formatEraDate(t[0]) })}
+                  {S.facetLabel[f] ?? f} · {fill(S.stabilityDays, { n: Math.round(t[1]) })} ·{' '}
+                  {fill(S.dueOn, { date: '' }).trim()} <span lang="ja">{formatEraDate(t[0])}</span> · {eraGloss(t[0])}
                 </li>
               ))}
             </ul>
@@ -196,7 +216,12 @@ function ItemDetail(p: { item: LibraryItem; surface: Surface; onClose(): void; o
 /* Rows                                                                       */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function ItemRow(p: { item: LibraryItem; surface: Surface; onOpen(el: HTMLElement): void }): JSX.Element {
+/** The 6 px --kin-text dot: static, both themes, no glow (design 09 §9 C3); its meaning on hover and for assistive tech. */
+function NewDot(): JSX.Element {
+  return <span class="library__new" role="img" aria-label={S.newSinceOpen} title={S.newSinceOpen} />;
+}
+
+function ItemRow(p: { item: LibraryItem; surface: Surface; fresh: boolean; onOpen(el: HTMLElement): void }): JSX.Element {
   const { item, surface } = p;
   return (
     <li>
@@ -207,13 +232,15 @@ function ItemRow(p: { item: LibraryItem; surface: Surface; onOpen(el: HTMLElemen
         data-kind={item.kind}
         data-belt={item.belt}
         data-archived={item.archived ? 'true' : 'false'}
+        data-new={p.fresh ? '' : undefined}
         aria-haspopup="dialog"
-        aria-label={fill(S.openItem, { surface: surface.text })}
+        aria-label={p.fresh ? `${fill(S.openItem, { surface: surface.text })} · ${S.newSinceOpen}` : fill(S.openItem, { surface: surface.text })}
         onClick={(e) => p.onOpen(e.currentTarget)}
       >
         <span class="library__glyph" lang="ja" aria-hidden="true">
           {S.kindGlyphs[item.kind]}
         </span>
+        {p.fresh ? <NewDot /> : null}
         <span class="library__surface">
           <span lang="ja">{surface.text}</span>
           {surface.reading ? (
@@ -249,7 +276,10 @@ export default function LibraryPage(p: LibraryPageProps): JSX.Element {
   const [loadError, setLoadError] = useState(false);
   const [filter, setFilter] = useState<ItemFilter>({ kind: '', belt: '', query: '' });
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set([progress.station]));
+  // the drawer transition arms after the shelves have painted, so the shelf open on arrival never animates
+  const [ready, setReady] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const reading = readingFor(store.profile.value.belt, store.settings.value.furigana);
   const triggerRef = useRef<HTMLElement | null>(null);
   const loadedAll = useRef(false);
   const alive = useRef(true);
@@ -271,6 +301,10 @@ export default function LibraryPage(p: LibraryPageProps): JSX.Element {
     return top;
   }, [progress.station, collections.michikusa]);
 
+  useEffect(() => {
+    setReady(index !== null);
+  }, [index]);
+
   // Station bundles once per loader / road position.
   useEffect(() => {
     let on = true;
@@ -285,6 +319,20 @@ export default function LibraryPage(p: LibraryPageProps): JSX.Element {
 
   const items = useMemo(() => (index ? placeItems(byItem, store.cards, (id) => index.map.get(id) ?? loader.stationOf(id)) : []), [byItem, index, loader]);
   const groups = useMemo(() => groupByStation(items), [items]);
+  // introduced since the Library was last opened: read once when the shelf has its items, then recorded
+  const fresh = useRef<Set<string> | null>(null);
+  if (fresh.current === null && index) {
+    fresh.current = newSince(
+      'library',
+      items.map((it) => ({ id: it.id })),
+      store.today(),
+    );
+    markOpened(
+      'library',
+      items.map((it) => it.id),
+    );
+  }
+  const isFresh = (id: string): boolean => fresh.current?.has(id) ?? false;
   const surface = (id: string): Surface => surfaceOf(loader.get(id) as ContentItem | undefined, id);
 
   const ensureLoaded = async (ids: readonly string[]): Promise<void> => {
@@ -335,10 +383,13 @@ export default function LibraryPage(p: LibraryPageProps): JSX.Element {
   const fragmentsCollected = michikusa.reduce((n, g) => n + g.collected.length, 0);
 
   return (
-    <div class="library" data-view={view} data-items={items.length}>
+    <div class="library" data-view={view} data-items={items.length} data-ready={ready ? '' : undefined}>
       <header class="library__head">
-        <h1 class="library__h1">
-          <span lang="ja">{S.libraryJa}</span> <span class="library__h1-en">{S.libraryTitle}</span>
+        <h1 class="title-lockup">
+          <span class="title-lockup__ja" lang="ja">
+            {S.libraryJa}
+          </span>
+          <span class="title-lockup__en">{S.libraryTitle}</span>
         </h1>
       </header>
 
@@ -420,6 +471,7 @@ export default function LibraryPage(p: LibraryPageProps): JSX.Element {
                       key={it.id}
                       item={it}
                       surface={surface(it.id)}
+                      fresh={isFresh(it.id)}
                       onOpen={(el) => {
                         triggerRef.current = el;
                         setOpenId(it.id);
@@ -432,31 +484,36 @@ export default function LibraryPage(p: LibraryPageProps): JSX.Element {
               groups.map((g) => {
                 const open = expanded.has(g.station);
                 const panelId = `library-station-${g.station}`;
+                const hasNew = g.items.some((it) => isFresh(it.id));
                 return (
-                  <section key={g.station} class="library__station" data-station={g.station} data-count={g.items.length}>
+                  <section key={g.station} class="library__station sheet" data-station={g.station} data-count={g.items.length}>
                     <button type="button" class="library__station-head" aria-expanded={open ? 'true' : 'false'} aria-controls={panelId} onClick={() => toggle(g.station)}>
                       <h3 class="library__h3">
-                        {stationLabel(g)}
+                        {stationLabel(g, reading)}
                         <span class="library__count tag">{fill(S.itemCount, { n: g.items.length })}</span>
+                        {hasNew ? <NewDot /> : null}
                       </h3>
                       <span class="library__chevron" aria-hidden="true">
                         ▸
                       </span>
                     </button>
                     {open ? (
-                      <ul id={panelId} class="library__items">
-                        {g.items.map((it) => (
-                          <ItemRow
-                            key={it.id}
-                            item={it}
-                            surface={surface(it.id)}
-                            onOpen={(el) => {
-                              triggerRef.current = el;
-                              setOpenId(it.id);
-                            }}
-                          />
-                        ))}
-                      </ul>
+                      <div class="library__drawer">
+                        <ul id={panelId} class="library__items">
+                          {g.items.map((it) => (
+                            <ItemRow
+                              key={it.id}
+                              item={it}
+                              surface={surface(it.id)}
+                              fresh={isFresh(it.id)}
+                              onOpen={(el) => {
+                                triggerRef.current = el;
+                                setOpenId(it.id);
+                              }}
+                            />
+                          ))}
+                        </ul>
+                      </div>
                     ) : null}
                   </section>
                 );
@@ -471,9 +528,9 @@ export default function LibraryPage(p: LibraryPageProps): JSX.Element {
             {michikusa.map((g) => {
               const name = g.def ? g.def.nameRomaji : String(g.station);
               return (
-                <section key={g.station} class="library__station library__station--michikusa" data-station={g.station} data-collected={g.collected.length} data-missing={g.missing}>
+                <section key={g.station} class="library__station library__station--michikusa sheet" data-station={g.station} data-collected={g.collected.length} data-missing={g.missing}>
                   <h3 class="library__h3">
-                    {stationLabel(g)}
+                    {stationLabel(g, reading)}
                     <span class="library__count tag">{`${g.collected.length} / ${g.total}`}</span>
                   </h3>
                   {g.collected.length > 0 ? (
@@ -501,7 +558,7 @@ export default function LibraryPage(p: LibraryPageProps): JSX.Element {
                 </section>
               );
             })}
-            <section class="library__station library__shelf--empty" aria-labelledby="library-yoji">
+            <section class="library__station library__shelf--empty sheet" aria-labelledby="library-yoji">
               <h3 id="library-yoji" class="library__h3">
                 <span lang="ja">{S.yojijukugoJa}</span>
                 <span class="library__romaji">{S.yojijukugoShelf}</span>

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import type { ContentLoader } from '@/content/loader';
@@ -289,5 +291,44 @@ describe('<SpeedRead> as the speed-read exercise', () => {
     tick(revealSchedule(STORY.lines, 150).at(-1) as number);
     answer(false);
     expect(pr.onResult).toHaveBeenCalledWith(expect.objectContaining({ correct: false, score: 0 }));
+  });
+});
+
+/* ── design 09 (C4): the reveal bar is motion.css's .meter; reader.css is the Mincho body ── */
+describe('design 09 (C4): speed-read meter and reader.css', () => {
+  it('the progress bar is a .meter whose --value is lines shown / lines total; no width is written inline', () => {
+    mount();
+    click(q('[data-action="start"]'));
+    const meter = q('.meter[role="progressbar"]');
+    expect(meter).not.toBeNull();
+    // the first line shows at start, the second at SCHEDULE[1]
+    expect(meter!.getAttribute('aria-valuenow')).toBe('1');
+    expect(Number(meter!.style.getPropertyValue('--value'))).toBeCloseTo(1 / STORY.lines.length, 6);
+    tick(2100);
+    expect(meter!.getAttribute('aria-valuenow')).toBe('2');
+    expect(Number(meter!.style.getPropertyValue('--value'))).toBeCloseTo(2 / STORY.lines.length, 6);
+    expect(meter!.style.getPropertyValue('--meter-tone')).toBe('var(--ai)');
+    expect(meter!.querySelector('.meter__fill')).not.toBeNull();
+    expect(q('.speed__bar')).toBeNull();
+    expect(root.querySelector('[style*="width"]')).toBeNull();
+  });
+
+  it('reader.css: no width/height tween, no bar clone, the episode body is Mincho at --lh-mincho within --measure-ja with gothic ruby (§3.1–§3.3), labels come from .eyebrow', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/input/reader/reader.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).not.toMatch(/transition:[^;]*\b(width|height)\b/);
+    expect(css).not.toMatch(/\.speed__bar|\.reader__result|\.reader__big/);
+    const body = /\.ruby\.reader__ja\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(body).toMatch(/font-family:\s*var\(--font-mincho\)/);
+    expect(body).toMatch(/line-height:\s*var\(--lh-mincho\)/);
+    expect(body).toMatch(/max-inline-size:\s*var\(--measure-ja\)/);
+    expect(/\.reader__ja rt\s*\{[^}]*font-family:\s*var\(--font-ja\)/.test(css)).toBe(true);
+    // the fence stops at the body: the title (shared with Speed Read, a tempo drill) is chrome and sets no face
+    expect(css.match(/--font-mincho/g)).toHaveLength(1);
+    expect(/\.reader__title\s*\{[^}]*font-family/.test(css)).toBe(false);
+    // the gloss sheet shades inset (§2.2), never a blurred drop shadow
+    expect(/\.gloss\s*\{[^}]*box-shadow:\s*inset /.test(css)).toBe(true);
+    expect(css).not.toMatch(/\.gloss__body dt|__label|__eyebrow/);
+    expect(/\.reader__mode\s*\{[^}]*(font-family|text-transform)/.test(css)).toBe(false);
+    expect(css).not.toMatch(/prefers-reduced-motion|\.reduced-motion/);
   });
 });

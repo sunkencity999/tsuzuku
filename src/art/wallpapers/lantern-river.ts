@@ -62,7 +62,7 @@ export function placeLanterns(seed: number, count: number, w: number, horizon: n
   return out;
 }
 
-function lanternMarkup(l: Lantern, mine: boolean, belt: string): { front: string; refl: string } {
+export function lanternMarkup(l: Lantern, mine: boolean, belt: string): { front: string; refl: string } {
   const { x, y, s } = l;
   const half = s / 2;
   const bodyH = s * 1.2;
@@ -85,7 +85,7 @@ function lanternMarkup(l: Lantern, mine: boolean, belt: string): { front: string
   return { front, refl };
 }
 
-function torii(x: number, base: number, size: number, fill: string): string {
+export function torii(x: number, base: number, size: number, fill: string): string {
   const post = size * 0.09;
   const hh = size * 1.15;
   return g({ fill }, [

@@ -1,5 +1,9 @@
 /* TSUZUKU — <SessionView> (group E). Layout around the shared ExerciseFrame; the frame styles itself.
-   The Leave button is a `.btn--sm`, which already carries the 44 px touch height (components.css). */
+   The Leave button is a `.btn--sm`, which already carries the 44 px touch height (components.css).
+   Motion (design 09 §7 F, I, J; d33): the step host is .ink-nijimi (motion.css); the outgoing step,
+   the held session and the Leave slip are ghosts / .tanzaku that leave on data-leaving. Reduced
+   motion: base.css's global rule and the zeroed --dur-* tokens; the ghost alone keeps a --dur-fade
+   crossfade (.rm-fade) so the swap still reads as one. */
 
 .session {
   position: relative;
@@ -26,6 +30,7 @@
 }
 
 .session__exercise {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
@@ -36,8 +41,45 @@
   pointer-events: none;
 }
 
-.session__judge {
-  animation: session-judge-in 220ms var(--ease) both;
+/* J · the incoming step bleeds in from 8 px right; the outgoing ghost dries out 6 px left */
+.session__step {
+  --from: 8px 0;
+}
+.session__ghosts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.session__ghost {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  animation: kasure var(--dur-1) var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .session__ghost {
+    animation-name: mat-out;
+    animation-timing-function: linear;
+  }
+}
+:root[data-reduced-motion] .session__ghost {
+  animation-name: mat-out;
+  animation-timing-function: linear;
+}
+
+/* d33 · the finished session, held under data-leaving: controls kasure down before the End Card */
+.session--ending {
+  min-height: 60vh;
+}
+.session--held {
+  --to: 0 6px;
+  pointer-events: none;
+  animation: kasure var(--dur-1) var(--ease-out) both;
+}
+
+/* I · the Arcade hit-stop: a class held for HIT_STOP_MS by SessionView.tsx, never a keyframe */
+.session.is-hitstop {
+  transform: scale(0.995);
 }
 
 .session__missing {
@@ -62,34 +104,37 @@
   gap: var(--sp-2);
 }
 
-.session__dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: grid;
-  place-items: center;
-  padding: var(--gutter);
-  background: rgba(11, 11, 16, 0.6);
+/* F · the Leave slip: .tanzaku + .tanzaku__backdrop come from motion.css; the cartouche body sits inside
+   (never transform a clipped window — the slip moves, §6.7 rule 7). `shiori` is the shared element the
+   Dojo's Resume ribbon will pick up (B1 follow-up). */
+.tanzaku[data-shiori] {
+  view-transition-name: shiori;
 }
-
 .session__dialog {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  width: min(100%, 420px);
-  padding: var(--sp-4);
 }
-
+.session__dialog-body {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+}
 .session__dialog-title {
   margin: 0;
   font-size: var(--fs-4);
 }
-
-.session__dialog-body {
+.session__dialog-copy {
   margin: 0;
   color: var(--fg-muted);
 }
-
+.session__dialog-left {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-size: var(--fs-2);
+  letter-spacing: 0.04em;
+  color: var(--shu-text);
+}
 .session__dialog-actions {
   display: flex;
   flex-wrap: wrap;
@@ -99,26 +144,6 @@
 
 .session--done {
   padding-bottom: var(--sp-5);
-}
-
-@keyframes session-judge-in {
-  from {
-    opacity: 0;
-    transform: translateX(16px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .session__judge {
-    animation: none;
-  }
-}
-.reduced-motion .session__judge {
-  animation: none;
 }
 
 /* ── Scroll teach phase (cards before the first intro check) ──────────── */

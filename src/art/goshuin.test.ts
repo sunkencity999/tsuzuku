@@ -12,6 +12,8 @@ import {
   bookStripImages,
   clampGoshuinSize,
   eraDateKanji,
+  goshuinDataUrl,
+  goshuinImage,
   goshuinLabel,
   goshuinParts,
   goshuinSvg,
@@ -252,6 +254,36 @@ describe('goshuinSvg', () => {
     const dark = base(ST7, { theme: 'dark' }).toLowerCase();
     expect(dark).toContain(PALETTE.dark.shu.toLowerCase());
     expect(dark).not.toContain(PALETTE.light.shu.toLowerCase());
+  });
+
+  it('goshuinDataUrl is the stamp with cssVars off as a data URL (design 09 §5.3: hex paints, the turbulence rasterised once)', () => {
+    const url = goshuinDataUrl({ station: ST7, at: DAY, perfect: true, assisted: false, seed: 1, size: 200, theme: 'dark', cssVars: true });
+    expect(url.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true);
+    const svg = decodeURIComponent(url.slice(url.indexOf(',') + 1));
+    expect(svg).toBe(goshuinSvg({ station: ST7, at: DAY, perfect: true, assisted: false, seed: 1, size: 200, theme: 'dark', cssVars: false }));
+    expect(svg).not.toContain('var(');
+    expect(svg.toLowerCase()).toContain(PALETTE.dark.shu.toLowerCase());
+    parse(svg);
+  });
+
+  it('goshuinImage leaves every <text> out of the data URL and hands the layers back for an inline overlay in the page fonts (07 §8)', () => {
+    const img = goshuinImage({ station: ST7, at: DAY, perfect: true, assisted: false, seed: 1, size: 200, theme: 'dark', cssVars: true });
+    expect(img.url.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true);
+    const svg = decodeURIComponent(img.url.slice(img.url.indexOf(',') + 1));
+    expect(svg).toBe(goshuinSvg({ station: ST7, at: DAY, perfect: true, assisted: false, seed: 1, size: 200, theme: 'dark', cssVars: false, textInSvg: false }));
+    expect(svg).not.toContain('<text');
+    expect(svg).not.toContain('var(');
+    expect(svg).toContain('goshuin__gold');
+    parse(svg);
+    expect(img.view).toBe(GOSHUIN_VIEW);
+    const texts = img.texts.map((t) => t.text);
+    expect(texts).toContain('平塚');
+    expect(texts).toContain('奉拝');
+    expect(texts).toContain(stationOrdinal(7));
+    expect(texts).toContain(eraDateKanji(DAY));
+    for (const t of img.texts) expect(t.fill).toMatch(/^#[0-9a-f]{6}$/i);
+    // the dark theme's sumi is the washi hex, as in the image itself
+    expect(img.texts.find((t) => t.text === '奉拝')?.fill.toLowerCase()).toBe(WASHI.toLowerCase());
   });
 
   it('goshuinLabel reads the stamp aloud', () => {

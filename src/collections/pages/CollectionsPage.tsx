@@ -3,8 +3,13 @@
  * Kakejiku (掛け軸) | Goshuin-chō (御朱印帳). The tab comes from the route so
  * every shelf has a link; the tab strip is a real tablist (arrow keys move,
  * Enter/Space follow the link) and the panel holds the chosen collection.
+ * The page mounts the ONE shared wet-ink def (`#ink-bleed-8`, design 09 §5.3)
+ * that moment E's `.ink-wet` layer references on both shelves; at most two
+ * reveals are live at a time (`reveal.ts`), so the page never holds more than
+ * two live SVG filters (§6.7 rule 2).
  */
 import type { JSX } from 'preact';
+import { inkBleed } from '../../art/brush';
 import { COLLECTION_TABS, href, navigate, type CollectionsTab, type Route } from '../../shared/routes';
 import { GoshuinBook } from '../GoshuinBook';
 import { KakejikuGallery } from '../KakejikuGallery';
@@ -32,6 +37,9 @@ export const TABS: readonly TabDef[] = [
 export function tabOf(route: Route): CollectionsTab {
   return route.name === 'collections' && (COLLECTION_TABS as readonly string[]).includes(route.tab) ? route.tab : 'mon';
 }
+
+/** The one shared `#ink-bleed-8` def per page (brush.ts `inkBleed` at scale 8, seed 8 — the Dojo's twin). */
+const INK_DEFS = inkBleed('ink-bleed-8', 8, { scale: 8 });
 
 function Panel(p: { tab: CollectionsTab }): JSX.Element {
   switch (p.tab) {
@@ -64,9 +72,13 @@ export default function CollectionsPage(p: CollectionsPageProps): JSX.Element {
 
   return (
     <div class="collections" data-tab={tab}>
+      <svg class="collections__defs" width="0" height="0" aria-hidden="true" focusable="false" dangerouslySetInnerHTML={{ __html: INK_DEFS }} />
       <header class="collections__head">
-        <h1 class="collections__h1">
-          <span lang="ja">{S.collectionsJa}</span> <span class="collections__h1-en">{S.collectionsTitle}</span>
+        <h1 class="title-lockup">
+          <span class="title-lockup__ja" lang="ja">
+            {S.collectionsJa}
+          </span>
+          <span class="title-lockup__en">{S.collectionsTitle}</span>
         </h1>
         <p class="collections__lede">{S.collectionsLede}</p>
       </header>

@@ -226,7 +226,7 @@ describe('<ComponentFlash> typed (fuzzy)', () => {
     });
     expect(pr.onResult).toHaveBeenCalledTimes(1);
     expect(pr.onResult.mock.calls[0]?.[0]).toMatchObject({ correct: true, selfRating: 3, answer: 'meal' });
-    expect(q('.kj__reveal')?.getAttribute('data-kind')).toBe('near');
+    expect(q('.kj__reveal')?.getAttribute('data-kind')).toBe('partial');
 
     act(() => render(null, root));
     const pr2 = props({ step: step(), exposures: 4 });

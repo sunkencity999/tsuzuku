@@ -156,7 +156,7 @@ describe('<ParticleDuel>', () => {
     expect(slots()[1]?.textContent).toBe('がを');
     expect(q('[data-hits="true"]')?.textContent).toBe('1 of 2 slots right.');
     expect(root.textContent).toContain('The particle sets the role of the word before it.');
-    expect(q('.gr__reveal')?.getAttribute('data-kind')).toBe('near');
+    expect(q('.gr__reveal')?.getAttribute('data-kind')).toBe('partial');
   });
 
   it('every slot wrong → Again tagged particle', () => {

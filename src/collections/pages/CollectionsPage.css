@@ -1,6 +1,9 @@
 /*
  * TSUZUKU — Collections page (group G). Tokens only; mobile-first from 360 px,
- * 16 px gutters, no horizontal scroll.
+ * 16 px gutters, no horizontal scroll (the kakejiku rail scrolls inside its
+ * own strip). Moment E inline (design 09 §7 E) is choreographed here once for
+ * both shelves: the verb classes come from motion.css, the beats are delays on
+ * tokens, so reduced motion (zeroed tokens, mat fades) lands everything at once.
  */
 .collections {
   display: flex;
@@ -12,26 +15,13 @@
   padding: 0 var(--gutter) var(--sp-6);
   box-sizing: border-box;
 }
+.collections__defs {
+  position: absolute;
+}
 .collections__head {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
-}
-.collections__h1 {
-  margin: 0;
-  font-size: var(--fs-5);
-  font-weight: 600;
-  line-height: 1.2;
-}
-.collections__h1 [lang="ja"] {
-  font-family: var(--font-brush);
-  color: var(--shu);
-}
-.collections__h1-en {
-  font-size: var(--fs-3);
-  color: var(--fg-muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 .collections__lede {
   margin: 0;
@@ -59,9 +49,7 @@
   background: var(--raised);
   border: 2px solid var(--line);
   border-radius: var(--radius);
-  transition:
-    border-color var(--dur-1) var(--ease),
-    background var(--dur-1) var(--ease);
+  transition: border-color var(--dur-1) var(--ease);
 }
 .collections__tab:hover {
   border-color: var(--fg-muted);
@@ -86,4 +74,27 @@
 }
 .collections__panel {
   min-width: 0;
+}
+
+/* ── moment E inline: nijimi → osu a beat later → the ink dries → the era date (09 §7 E) ── */
+[data-reveal] .ink-osu {
+  animation-delay: var(--dur-2);
+}
+[data-reveal] .ink-wet.is-dry::after {
+  animation-delay: calc(var(--dur-2) * 2);
+}
+/* Mincho animates by opacity only (§3.1): mat in on the beat, dry out in place */
+[data-reveal] .collections__seal {
+  --to: 0 0;
+  margin-top: var(--sp-1);
+}
+[data-reveal] .collections__seal:not([data-leaving]) {
+  animation-name: mat;
+  animation-delay: calc(var(--dur-2) * 2 + var(--dur-3));
+}
+.collections__era {
+  font-family: var(--font-mincho);
+  font-size: var(--fs-1);
+  line-height: var(--lh-mincho);
+  color: var(--fg);
 }

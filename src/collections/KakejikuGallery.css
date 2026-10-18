@@ -1,6 +1,8 @@
 /*
  * TSUZUKU — <KakejikuGallery> styles (src/collections/KakejikuGallery.tsx,
- * group G). Hanging scrolls on a two-column shelf from 360 px; tokens only.
+ * group G). A kakejiku rail (design 09 §5.4): the scrolls hang as .sheet cards
+ * from a --wood rail on a .hairline cord, in one horizontal scroll-snap strip
+ * from 360 px. Tokens only; nothing swings.
  */
 .kakejiku-gallery {
   display: flex;
@@ -12,23 +14,37 @@
   font-size: var(--fs-2);
   color: var(--fg-muted);
 }
+/* the rail: a wood bar across the top, the strip snapping card by card */
 .kakejiku-gallery__cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: var(--sp-4) var(--sp-3);
+  display: flex;
+  gap: var(--sp-3);
   margin: 0;
-  padding: 0;
+  padding: 30px var(--sp-2) var(--sp-3);
   list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--sp-2);
+  border-top: 8px solid var(--wood);
+  box-shadow: inset 0 1px 0 var(--wood-light);
 }
 .kakejiku-card {
   display: flex;
+  flex: 0 0 min(72vw, 220px);
   flex-direction: column;
   gap: var(--sp-2);
   min-width: 0;
-  padding: var(--sp-3);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  scroll-snap-align: start;
+}
+/* the cord: a hairline turned upright across the 30 px from rail to scroll */
+.kakejiku-card__cord {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  width: 32px;
+  height: 1px;
+  margin-left: -16px;
+  rotate: 90deg;
 }
 .kakejiku-card__link {
   display: block;
@@ -39,8 +55,6 @@
 .kakejiku-card__scroll {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 0;
   margin: 0;
 }
 .kakejiku-card__jiku {
@@ -137,24 +151,9 @@
 .kakejiku-card__ring-fill {
   stroke: var(--kin);
   stroke-linecap: round;
-  transition: stroke-dasharray var(--dur-2) var(--ease);
 }
 .kakejiku-card__ring-text {
   font-family: var(--font-pixel);
-  font-size: 11px;
+  font-size: var(--fs-1);
   fill: var(--fg-muted);
-}
-
-@media (min-width: 720px) {
-  .kakejiku-gallery__cards {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .kakejiku-card__ring-fill {
-    transition: none;
-  }
-}
-.reduced-motion .kakejiku-card__ring-fill {
-  transition: none;
 }

@@ -161,7 +161,7 @@ export function KanjiRead(p: ExerciseProps): JSX.Element {
   if (!prompt || !kanji) {
     return (
       <div class="kj kj-read" data-state="unavailable">
-        <div class="kj__reveal status-window" data-kind="info" role="status">
+        <div class="kj__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{S.cannotBuild}</p>
           <p class="kj__why">{S.shownNotTested}</p>
         </div>
@@ -176,7 +176,7 @@ export function KanjiRead(p: ExerciseProps): JSX.Element {
 
   const revealed = phase === 'done';
   const targetRuby = prompt.sentence ? prompt.sentence[1] : null;
-  const revealKind = result ? (result.correct ? 'correct' : result.nearMiss ? 'near' : 'wrong') : 'info';
+  const revealKind = result ? (result.nearMiss ? 'partial' : result.correct ? 'correct' : 'wrong') : 'info';
 
   return (
     <div class="kj kj-read" data-phase={phase} data-mode={prompt.sentence ? 'sentence' : 'word'}>
@@ -199,7 +199,7 @@ export function KanjiRead(p: ExerciseProps): JSX.Element {
         <div class="kj__actions">
           {hintShown ? (
             <p class="kj__gloss" data-hint="true">
-              <span class="kj__label">{S.readGloss}</span> <span>{prompt.gloss}</span>
+              <span class="eyebrow">{S.readGloss}</span> <span>{prompt.gloss}</span>
             </p>
           ) : (
             <button type="button" class="btn btn--ghost" onClick={showHint}>
@@ -213,17 +213,17 @@ export function KanjiRead(p: ExerciseProps): JSX.Element {
       <TextAnswer mode="ja" accept={accept} onSubmit={onSubmit} autoFocus label={SD.reading} particleSlip={false} kanaOnlyPolicy="good" missTags={['kanji-reading']} />
 
       {revealed ? (
-        <div class="kj__reveal status-window" data-kind={revealKind}>
+        <div class="kj__reveal reveal ink-nijimi" data-kind={revealKind}>
           <p lang="ja" class="kj__sentence" data-word="true">
             {targetRuby ? <Ruby ja={targetRuby} mode="always" /> : <Ruby ja={`{${prompt.word}|${prompt.answer}}`} mode="always" />}
           </p>
           {prompt.gloss ? (
             <p>
-              <span class="kj__label">{S.readGloss}</span> <span>{prompt.gloss}</span>
+              <span class="eyebrow">{S.readGloss}</span> <span>{prompt.gloss}</span>
             </p>
           ) : null}
           <p>
-            <span class="kj__label">{S.kanjiLabel}</span> <span lang="ja">{kanji.char}</span> <span>{kanji.meanings.join(' · ')}</span>
+            <span class="eyebrow">{S.kanjiLabel}</span> <span lang="ja">{kanji.char}</span> <span>{kanji.meanings.join(' · ')}</span>
           </p>
         </div>
       ) : null}

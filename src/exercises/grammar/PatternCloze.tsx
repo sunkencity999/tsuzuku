@@ -205,7 +205,7 @@ export function PatternCloze(p: ExerciseProps): JSX.Element {
   if (!prompt || !item) {
     return (
       <div class="gr gr-cloze" data-state="unavailable">
-        <div class="gr__reveal status-window" data-kind="info" role="status">
+        <div class="gr__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{S.cannotBuild}</p>
           <p class="gr__why">{S.shownNotTested}</p>
         </div>
@@ -220,7 +220,7 @@ export function PatternCloze(p: ExerciseProps): JSX.Element {
 
   const revealed = phase === 'done';
   const check = result?.check;
-  const kind = result ? (result.correct ? (result.nearMiss ? 'near' : 'correct') : result.nearMiss ? 'near' : 'wrong') : 'info';
+  const kind = result ? (result.nearMiss ? 'partial' : result.correct ? 'correct' : 'wrong') : 'info';
   const given = result?.answer ?? '';
   const showDiff = revealed && !useTiles && result && !result.correct && given.length > 0;
 
@@ -243,7 +243,7 @@ export function PatternCloze(p: ExerciseProps): JSX.Element {
       </p>
       {prompt.gloss ? (
         <p class="gr__gloss">
-          <span class="gr__label">{S.clozeGloss}</span> <span>{prompt.gloss}</span>
+          <span class="eyebrow">{S.clozeGloss}</span> <span>{prompt.gloss}</span>
         </p>
       ) : null}
 
@@ -258,9 +258,9 @@ export function PatternCloze(p: ExerciseProps): JSX.Element {
         ) : null}
       </div>
       {hintShown && phase === 'answer' ? (
-        <div class="gr__reveal status-window" data-kind="info" data-hint="true">
+        <div class="gr__reveal reveal ink-nijimi" data-kind="info" data-hint="true">
           <p>
-            <span class="gr__label">{S.clozePattern}</span> <span lang="ja">{item.pattern}</span>
+            <span class="eyebrow">{S.clozePattern}</span> <span lang="ja">{item.pattern}</span>
           </p>
           {item.formation[0] ? <p class="gr__why">{item.formation[0]}</p> : null}
           <p class="gr__why">{S.hintUsedNote}</p>
@@ -281,15 +281,15 @@ export function PatternCloze(p: ExerciseProps): JSX.Element {
       )}
 
       {revealed ? (
-        <div class="gr__reveal status-window" data-kind={kind}>
+        <div class="gr__reveal reveal ink-nijimi" data-kind={kind}>
           {!result?.correct || result.nearMiss ? (
             <p>
-              <span class="gr__label">{SD.correctForm}</span> <span class="gr__form" lang="ja">{prompt.answer}</span>
+              <span class="eyebrow">{SD.correctForm}</span> <span class="gr__form" lang="ja">{prompt.answer}</span>
             </p>
           ) : null}
           {showDiff ? (
             <p>
-              <span class="gr__label">{SD.yours}</span>{' '}
+              <span class="eyebrow">{SD.yours}</span>{' '}
               <span class="gr__diff" lang="ja">
                 {diffChars(given, check?.expected ?? prompt.answer).map(([ch, k], i) => (
                   <span key={i} class={`diff ${['diff--same', 'diff--extra', 'diff--missing'][k]}`} data-diff={k}>
@@ -301,7 +301,7 @@ export function PatternCloze(p: ExerciseProps): JSX.Element {
           ) : null}
           {check ? <p class="gr__why">{whyFor(check)}</p> : null}
           <p>
-            <span class="gr__label">{S.clozePattern}</span> <span lang="ja">{item.pattern}</span> <span>{item.meaning}</span>
+            <span class="eyebrow">{S.clozePattern}</span> <span lang="ja">{item.pattern}</span> <span>{item.meaning}</span>
           </p>
         </div>
       ) : null}

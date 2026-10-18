@@ -68,6 +68,18 @@ describe('<CollectionsPage>', () => {
     expect(tabs()[2]?.getAttribute('aria-selected')).toBe('true');
   });
 
+  it('mounts the one shared #ink-bleed-8 def and never more than two <filter> elements, whichever shelf is open (design 09 §5.3, §6.7 rule 2)', async () => {
+    for (const tab of ['mon', 'kakejiku', 'goshuin'] as const) {
+      await mount(tab);
+      expect(root.querySelectorAll('filter#ink-bleed-8')).toHaveLength(1);
+      expect(root.querySelectorAll('filter').length).toBeLessThanOrEqual(2);
+      expect(root.querySelectorAll('filter')).toHaveLength(1);
+      expect(root.querySelector('.collections__defs')?.getAttribute('aria-hidden')).toBe('true');
+      render(null, root);
+      resetStoreForTests();
+    }
+  });
+
   it('arrow keys on the tablist navigate to the neighbouring shelf', async () => {
     await mount('mon');
     act(() => {

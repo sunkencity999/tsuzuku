@@ -63,10 +63,10 @@ export function redirectFor(mode: SessionMode, station: number): Route | null {
   return null;
 }
 
-/** Reps left in a snapshot; 0 when it is spent. */
+/** Graded reps left in a snapshot (steps with a card behind them — the Leave slip's count, d37); 0 when it is spent. */
 export function snapshotStepsLeft(snap: SessionSnapshot | null): number {
   if (!snap) return 0;
-  return Math.max(0, snap.plan.steps.length - snap.cursor);
+  return snap.plan.steps.slice(snap.cursor).filter((s) => s.cardKey !== null).length;
 }
 
 function fmtMinutes(min: number): string {

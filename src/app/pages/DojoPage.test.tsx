@@ -18,6 +18,7 @@ import { SANJO_OHASHI } from '@/content/types';
 // E's module, imported here only so the test can prove the injected fallback agrees with it (the page gets it through pages.ts).
 import { SCROLL_BLOCK_MINUTES, gateForecast } from '@/session/dojo-feed';
 import DojoPage, {
+  GenkanFallback,
   PHASE_WORD,
   dateLabel,
   dueLine,
@@ -92,7 +93,7 @@ function fullFeed(over: Partial<Feed> = {}): Feed {
     backlogLine: null,
     crammingCap: false,
     overtraining: false,
-    proverb: '継続は力なり',
+    proverb: { ja: '{継続|けいぞく}は{力|ちから}なり', en: 'Continuation is strength.' },
     sentenceOfDay: { ja: '水をください。', kana: 'みずをください。' },
     teaser: { sentence: { storyId: 's-04-1', ja: 'パンを???。', kana: 'ぱんをたべます。', maskedToken: 2 }, words: [{ itemId: 'v-n5-0001', kana: 'わたし' }], milestone: 'Totsuka in about 4 days.' },
     ...over,
@@ -202,6 +203,8 @@ describe('<DojoPage>', () => {
     // the hanko moved back to the recommended session
     expect(hankos()).toBe(1);
     expect(root.querySelector('.dojo__session.hanko')?.getAttribute('data-mode')).toBe('shugyo');
+    // the Leave slip's hero (§7 F `shiori`) lands on this card (d40)
+    expect(ruleOf(PAGES_CSS, '.dojo__resume {')).toMatch(/view-transition-name:\s*shiori/);
   });
 
   it('offers no Resume for a finished snapshot', async () => {
@@ -211,6 +214,10 @@ describe('<DojoPage>', () => {
     expect(root.querySelector('[data-resume]')).toBeNull();
     expect(stepsLeft(snapshot(10, 10))).toBe(0);
     expect(stepsLeft(null)).toBe(0);
+    // ungraded steps are not reps: Resume's count matches the Leave slip (d37)
+    const withPrompt = snapshot(3, 0);
+    withPrompt.plan.steps.push({ ...step(3), cardKey: null });
+    expect(stepsLeft(withPrompt)).toBe(3);
   });
 
   it('shows the welcome-back banner when progress.welcomeBackDue; the Welcome Back set is the one hanko', async () => {
@@ -267,7 +274,9 @@ describe('<DojoPage>', () => {
     expect(text('[data-col="sentence"] [lang="ja"]')).toBe('水をください。');
     expect(root.querySelector('[data-col="greeting"]')).toBeNull();
     expect(root.querySelector('.dojo__word')?.textContent).toBe('わたし');
-    expect(text('.dojo__proverb')).toBe('継続は力なり');
+    expect(root.querySelector('.dojo__proverb ruby'), 'the proverb carries its reading (d36)').not.toBeNull();
+    expect(text('.dojo__proverb')).toContain('けいぞく');
+    expect(text('.dojo__proverb-en')).toBe('Continuation is strength.');
     // the proverb's label is visible (an eyebrow), not an aria-label on a role-less element
     expect(root.querySelector('.dojo__proverb-line .eyebrow')?.textContent).toBe(S.dojoProverb);
     expect(root.querySelector('.dojo__proverb')?.hasAttribute('aria-label')).toBe(false);
@@ -689,10 +698,16 @@ describe('<DojoPage> quests, genkan and the road', () => {
     expect(root.querySelector('[data-quest="learn-scroll"]')?.getAttribute('data-wet')).toBe('dry');
   });
 
-  it('the genkan strip: three .sign plates with the current station in the middle, every town with its reading and ordinal; towns ahead are "ahead", never locked', async () => {
+  it('the genkan strip is src/art/road’s <GenkanStrip> (design 09 §12.1 d33): three .sign plates with the current station in the middle, every town with its reading, ordinal and vignette; towns ahead are "ahead", never locked', async () => {
+    await import('@/art/road'); // the strip is a lazy art chunk (~0.6 s on its first load here): have it evaluated before the page asks
     await makeTestStore({ save: { ...ACTIVE, progress: { station: 4 } } });
     await mount();
+    await act(async () => {
+      await tick();
+      await tick();
+    });
     const towns = Array.from(root.querySelectorAll('.dojo__town'));
+    expect(root.querySelectorAll('.dojo__town-art').length).toBe(3); // the kit vignettes: the art module landed
     expect(towns.map((t) => t.getAttribute('data-town'))).toEqual(['3', '4', '5']);
     expect(towns.map((t) => t.getAttribute('data-state'))).toEqual(['passed', 'here', 'ahead']);
     expect(towns[1]?.getAttribute('aria-current')).toBe('step');
@@ -712,12 +727,14 @@ describe('<DojoPage> quests, genkan and the road', () => {
     expect(townNumbers(53)).toEqual([52, 53, 54]);
     render(null, root);
     resetStoreForTests();
-    await makeTestStore({ save: { ...ACTIVE, progress: { station: 53 } } });
+    await makeTestStore({ save: { ...ACTIVE, progress: { station: 53 }, profile: { belt: 'black' } } });
     await mount();
     const end = root.querySelectorAll('.dojo__town')[2]!;
     expect(end.getAttribute('data-town')).toBe('54');
-    expect(end.querySelector('.sign__ja')?.textContent).toBe(SANJO_OHASHI.nameJa); // the content constant, no literal in the page
-    expect(end.querySelector('.sign__reading')?.textContent).toBe(SANJO_OHASHI.nameRomaji);
+    expect(end.querySelector('.sign__ja')?.textContent).toContain(SANJO_OHASHI.nameJa); // the content constant, no literal in the page
+    // Black belt: kana are Green, so the romaji line is gone and the name carries its kana ruby (design 09 §3.3)
+    expect(end.querySelector('.sign__reading')).toBeNull();
+    expect(end.querySelector('.sign__ja ruby')).not.toBeNull();
     render(null, root);
     resetStoreForTests();
     await makeTestStore(); // a fresh save stands at Nihonbashi (station 0)
@@ -729,6 +746,26 @@ describe('<DojoPage> quests, genkan and the road', () => {
     expect(t0[0]?.querySelector('.sign__ordinal')).toBeNull();
     expect(t0[0]?.querySelector('a')?.getAttribute('href')).toBe(href({ name: 'road' }));
     expect(root.querySelector('[data-next-station]')?.getAttribute('href')).toBe(href({ name: 'station', n: 1 }));
+  });
+
+  it('the genkan fallback (before the art chunk lands) keeps the reading for a zero-Japanese learner: number · 第N宿 · name · romaji below Green · the state word; no romaji from Green on; no number on the two ends', () => {
+    act(() => render(<GenkanFallback station={4} belt="white" />, root));
+    const towns = Array.from(root.querySelectorAll('.dojo__town'));
+    expect(towns.map((t) => t.getAttribute('data-town'))).toEqual(['3', '4', '5']);
+    const here = towns[1]!;
+    expect(here.querySelector('.sign__number')?.textContent).toBe('4');
+    expect(here.querySelector('.sign__ordinal')?.textContent).toBe('第四宿');
+    expect(here.querySelector('.sign__ja')?.textContent).toBe('保土ヶ谷');
+    expect(here.querySelector('.sign__reading')?.textContent).toBe('Hodogaya');
+    expect(here.querySelector('.sign__en')?.textContent).toBe(S.dojoTownHere);
+    expect(root.querySelectorAll('.dojo__town-art').length).toBe(0); // no pictures yet: that is the strip's job
+    act(() => render(<GenkanFallback station={53} belt="green" />, root));
+    const end = root.querySelectorAll('.dojo__town')[2]!;
+    expect(end.getAttribute('data-town')).toBe('54');
+    expect(end.querySelector('.sign__number')).toBeNull();
+    expect(end.querySelector('.sign__ordinal')).toBeNull();
+    expect(root.querySelector('.sign__reading')).toBeNull(); // kana are Green: romaji is removed, not dimmed
+    expect(root.querySelectorAll('.dojo__town')[1]?.querySelector('.sign__ordinal')?.textContent).toBe('第五十三宿');
   });
 });
 

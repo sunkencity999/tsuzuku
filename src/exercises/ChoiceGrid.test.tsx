@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
@@ -13,6 +15,7 @@ beforeEach(() => {
 afterEach(() => {
   render(null, root);
   root.remove();
+  vi.unstubAllGlobals();
 });
 
 const step: Step = {
@@ -184,6 +187,63 @@ describe('<ChoiceGrid>', () => {
     act(() => render(<ChoiceGrid choices={['a', 'b']} onPick={onPick} disabled correct={0} />, root));
     expect(buttons().every((b) => b.disabled)).toBe(true);
     expect(buttons().map((b) => b.getAttribute('data-state'))).toEqual(['idle', 'idle']);
+  });
+});
+
+describe('<ChoiceGrid> motion (design 09 §7 I Bokuten, §7 J)', () => {
+  it('tiles mount as .ink-nijimi with a --i stagger index', () => {
+    act(() => render(<ChoiceGrid choices={['a', 'b', 'c']} onPick={() => undefined} />, root));
+    const bs = buttons();
+    expect(bs.every((b) => b.classList.contains('ink-nijimi'))).toBe(true);
+    expect(bs.map((b) => b.style.getPropertyValue('--i'))).toEqual(['0', '1', '2']);
+  });
+
+  it('the correct tile carries the splatter dot, the wrong tile the dry-brush strike (three hiku strokes), and ChoiceGrid.css has no line-through', () => {
+    act(() => render(<ChoiceGrid choices={['a', 'b', 'c']} onPick={() => undefined} picked={0} correct={2} />, root));
+    const [wrong, idle, missed] = buttons();
+    const strike = wrong?.querySelector('.choice__text .choice__strike');
+    expect(strike).not.toBeNull();
+    expect(strike?.getAttribute('aria-hidden')).toBe('true');
+    const strokes = Array.from(strike?.querySelectorAll('path') ?? []);
+    expect(strokes).toHaveLength(3);
+    for (const s of strokes) {
+      expect(s.classList.contains('ink-hiku')).toBe(true);
+      expect(s.getAttribute('data-axis')).toBe('stroke');
+      expect(s.getAttribute('pathLength')).toBe('1');
+    }
+    expect(wrong?.querySelector('.choice__dot')).toBeNull();
+    expect(idle?.querySelector('.choice__strike, .choice__dot')).toBeNull();
+    expect(missed?.querySelector('.choice__strike, .choice__dot')).toBeNull();
+    act(() => render(<ChoiceGrid choices={['a', 'b', 'c']} onPick={() => undefined} picked={2} correct={2} />, root));
+    const correct = buttons()[2]!;
+    const dot = correct.querySelector('.choice__dot')!;
+    expect(dot).not.toBeNull();
+    expect(dot.getAttribute('aria-hidden')).toBe('true');
+    expect(correct.querySelector('.choice__strike')).toBeNull();
+    // the ○ paints over the ink: the mark follows the dot in the DOM
+    const mark = correct.querySelector('.choice__mark')!;
+    expect(mark.textContent).toBe('○');
+    expect(dot.compareDocumentPosition(mark) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // the state text is base.css's .sr-only, not a local copy
+    expect(correct.querySelector('.sr-only')?.textContent).toContain('(');
+    expect(root.querySelector('.choice__sr')).toBeNull();
+    const css = readFileSync(resolve(process.cwd(), 'src/exercises/ChoiceGrid.css'), 'utf8');
+    expect(css).not.toContain('line-through');
+    expect(css).not.toContain('.choice__sr');
+    expect(css).toMatch(/\.choice__dot \{[^}]*mask: url\("data:image\/svg\+xml/);
+    // the strike is ink, not red (§7 I ethical line)
+    expect(css.match(/\.choice__strike path \{([^}]*)\}/)?.[1]).toMatch(/stroke: var\(--fg\)/);
+  });
+
+  it('under reduced motion no .ink-* class and no --i ride the tiles; the strike is drawn complete (no verb class)', () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), media: q }));
+    act(() => render(<ChoiceGrid choices={['a', 'b']} onPick={() => undefined} picked={0} correct={1} />, root));
+    for (const b of buttons()) {
+      expect(Array.from(b.classList).some((c) => c.startsWith('ink-'))).toBe(false);
+      expect(b.style.getPropertyValue('--i')).toBe('');
+      expect(b.querySelector('[class*="ink-"]')).toBeNull();
+    }
+    expect(buttons()[0]?.querySelectorAll('.choice__strike path')).toHaveLength(3);
   });
 });
 

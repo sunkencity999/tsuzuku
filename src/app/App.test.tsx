@@ -514,7 +514,7 @@ describe('arrival — Hiraku (design 09 §7 A)', () => {
     expect(document.documentElement.hasAttribute('data-travel')).toBe(false);
   });
 
-  it('when the chunk has not resolved at ready, the API is not called: the shell arrives under a plain nijimi and the page loads as usual', async () => {
+  it('when the chunk has not resolved at ready, the boot mark holds for it (d35) and the arrival turns once it lands', async () => {
     resetStoreForTests();
     const vt = fakeViewTransitions();
     let release: (() => void) | null = null;
@@ -528,6 +528,45 @@ describe('arrival — Hiraku (design 09 §7 A)', () => {
       await makeTestStore();
     });
     await frames(3);
+    // the save is ready, the chunk is not: the ensō keeps the stage, nothing is turned yet
+    expect(vt.api).not.toHaveBeenCalled();
+    expect(root.querySelector('.app-loading')).not.toBeNull();
+    expect(root.querySelector('.layout')).toBeNull();
+    await act(async () => {
+      release!();
+    });
+    await flush();
+    await microtasks();
+    expect(vt.api).toHaveBeenCalledTimes(1);
+    expect(vt.calls[0]?.travel).toBe('home');
+    expect(vt.calls[0]?.names).toEqual([['app-loading__mark', 'enso']]);
+    const art = root.querySelector<HTMLElement>('.dojo-scene__art');
+    expect(art?.style.getPropertyValue('view-transition-name')).toBe('enso');
+    expect(root.querySelector('.app-loading')).toBeNull();
+    act(() => vt.calls[0]!.finish());
+    await flush();
+    expect(document.documentElement.hasAttribute('data-travel')).toBe(false);
+  });
+
+  it('a chunk that misses the hold arrives plainly — the ensō never waits past its own stroke (d35)', async () => {
+    resetStoreForTests();
+    const vt = fakeViewTransitions();
+    let release: (() => void) | null = null;
+    const slow = async (r: Route): Promise<PageModule> => {
+      if (r.name === 'dojo') await new Promise<void>((res) => (release = res));
+      return { Page: DojoLike };
+    };
+    act(() => render(<App pageFor={slow} arrivalHoldMs={30} />, root));
+    await flush();
+    await act(async () => {
+      await makeTestStore();
+    });
+    await frames(2);
+    expect(root.querySelector('.app-loading')).not.toBeNull();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 80));
+    });
+    await frames(2);
     expect(vt.api).not.toHaveBeenCalled();
     expect(root.querySelector('.layout')).not.toBeNull();
     expect(root.querySelector('.layout')?.classList.contains('page-enter')).toBe(true);

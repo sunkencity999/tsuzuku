@@ -12,7 +12,9 @@
  * recomputed on open from
  * the live store; the current station's bundle is fetched once so the
  * projection counts real remaining items, and every other station is
- * counted from its quota (the page says so).
+ * counted from its quota (the page says so). The tiles are .status-window
+ * cartouches with Dela <Ticker> values (design 09 §5.5, §5.8, §12.1 d4): the
+ * DOM holds the final number from first paint; the roll is a visual twin.
  */
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
@@ -23,6 +25,7 @@ import { href, type Route } from '../../shared/routes';
 import { weekStartDay } from '../../shared/time';
 import type { EpochDay } from '../../shared/store-types';
 import { TAG_LABEL, fill } from '../../shared/ui/strings';
+import { Ticker } from '../../shared/ui/Ticker';
 import { store } from '../../store';
 import { forecastCounts, isBacklog, reviewCap } from '../../store/derived';
 import { weekProgress } from '../../store/ledger';
@@ -46,9 +49,11 @@ export interface RecordsPageProps {
 /* Pure pieces                                                                */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function pct(x: number | null): string {
-  return x === null ? S.unavailable : fill(S.percent, { n: Math.round(x * 100) });
+/** A ratio as whole percent points for a tile, or null when there is nothing to show. */
+function pctValue(x: number | null): number | null {
+  return x === null ? null : Math.round(x * 100);
 }
+const percentFormat = (n: number): string => fill(S.percent, { n: Math.round(n) });
 
 /**
  * Station label for a belt's Shinsa station: `N3 (Okazaki)` style, from
@@ -93,11 +98,12 @@ export function nextStepLine(i: NextStepInput): string {
 /* Blocks                                                                     */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function Tile(p: { label: string; value: string; sub?: string; ja?: string }): JSX.Element {
+/** One cartouche: the number that matters in Dela, ticking in from its previous value; `null` prints the dash. */
+function Tile(p: { label: string; value: number | null; format?: (n: number) => string; sub?: string; ja?: string }): JSX.Element {
   return (
-    <div class="tile">
-      <span class="tile__value">{p.value}</span>
-      <span class="tile__label">
+    <div class="status-window tile">
+      <span class="tile__value">{p.value === null ? S.unavailable : <Ticker value={p.value} format={p.format ?? fmtNum} />}</span>
+      <span class="eyebrow">
         {p.ja ? <span lang="ja">{p.ja}</span> : null}
         {p.ja ? ' ' : ''}
         {p.label}
@@ -254,22 +260,25 @@ export default function RecordsPage(p: RecordsPageProps): JSX.Element {
   return (
     <article class="records">
       <header class="records__head">
-        <h1 class="records__h1">
-          <span lang="ja">{S.recordsTitleJa}</span> <span class="records__h1-en">{S.recordsTitle}</span>
+        <h1 class="title-lockup">
+          <span class="title-lockup__ja" lang="ja">
+            {S.recordsTitleJa}
+          </span>
+          <span class="title-lockup__en">{S.recordsTitle}</span>
         </h1>
         <p class="records__lede">{S.recordsLede}</p>
       </header>
 
       <section class="records__tiles" aria-label={S.recordsTitle}>
-        <Tile label={S.daysTrained} value={fmtNum(meta.streak.totalDays)} />
-        <Tile label={S.minutesTrained} value={fmtNum(stats.minutes)} />
-        <Tile label={S.reviews} value={fmtNum(stats.reviews)} />
-        <Tile label={S.retention7} value={pct(ret7)} sub={ret7 === null ? S.noReps : undefined} />
-        <Tile label={S.retention30} value={pct(ret30)} />
-        <Tile ja={S.honestyJa} label={S.honesty} value={pct(hon)} sub={hon === null ? S.honestyNone : `${fill(S.honestyLine, { pct: Math.round(hon * 100), n: stats.judgeChecks })}${hon >= 0.95 ? ` ${S.honestyCalibrated}` : ''}`} />
+        <Tile label={S.daysTrained} value={meta.streak.totalDays} />
+        <Tile label={S.minutesTrained} value={stats.minutes} />
+        <Tile label={S.reviews} value={stats.reviews} />
+        <Tile label={S.retention7} value={pctValue(ret7)} format={percentFormat} sub={ret7 === null ? S.noReps : undefined} />
+        <Tile label={S.retention30} value={pctValue(ret30)} format={percentFormat} />
+        <Tile ja={S.honestyJa} label={S.honesty} value={pctValue(hon)} format={percentFormat} sub={hon === null ? S.honestyNone : `${fill(S.honestyLine, { pct: Math.round(hon * 100), n: stats.judgeChecks })}${hon >= 0.95 ? ` ${S.honestyCalibrated}` : ''}`} />
       </section>
 
-      <section class="records__block records__block--next" aria-labelledby="next-title">
+      <section class="records__block--next status-window" aria-labelledby="next-title">
         <h2 id="next-title" class="records__h2">
           {S.nextTitle}
         </h2>
@@ -315,9 +324,9 @@ export default function RecordsPage(p: RecordsPageProps): JSX.Element {
       {meta.settings.feel === 'zen' ? null : (
         <Block id="kiai" ja={S.kiaiTitleJa} en={S.kiaiTitle} lede={S.kiaiNote}>
           <div class="records__tiles records__tiles--inline">
-            <Tile label={S.ippon} value={fmtNum(stats.ippon)} />
-            <Tile label={S.bestCombo} value={fmtNum(stats.bestCombo)} />
-            <Tile label={S.recoveries} value={fmtNum(stats.recoveries)} />
+            <Tile label={S.ippon} value={stats.ippon} />
+            <Tile label={S.bestCombo} value={stats.bestCombo} />
+            <Tile label={S.recoveries} value={stats.recoveries} />
           </div>
         </Block>
       )}

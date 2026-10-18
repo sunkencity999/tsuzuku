@@ -2,8 +2,9 @@
  * TSUZUKU — <ListeningArena> (src/input/listening, group F).
  * Tokens only (src/styles/tokens.css). Mobile-first: fits 360 px with the
  * 16 px gutter; 44 px targets; states are shape + text, never color alone.
- * Motion is removed under prefers-reduced-motion and body.reduced-motion;
- * Zen drops the glow.
+ * .eyebrow from motion.css (design 09 §3.1); the --ai-dye band marks the
+ * listening surface (§2.1, §4.1); the voice bands ride scaleY (§6.7 rule 1);
+ * reduced motion is base.css's global rule plus the zeroed --dur-* tokens (§6.6).
  */
 .arena {
   display: grid;
@@ -17,6 +18,12 @@
   display: grid;
   gap: var(--sp-2);
 }
+/* indigo dye: the listening surface's band, static (09 §2.1); its title says who speaks, the chip announces it */
+.arena__band {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--ai-dye);
+}
 .arena__title {
   display: flex;
   align-items: baseline;
@@ -28,7 +35,7 @@
 .arena__title-ja {
   font-family: var(--font-brush);
   font-size: var(--fs-5);
-  line-height: 1;
+  line-height: 1.1;
 }
 .arena__meta {
   display: flex;
@@ -69,10 +76,6 @@
   font-size: var(--fs-2);
   color: var(--fg-muted);
 }
-.arena__speakers-label {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-}
 .arena__speaker-name {
   color: var(--fg);
   font-size: var(--fs-3);
@@ -104,22 +107,25 @@
   align-items: flex-end;
   min-height: 48px;
 }
+/* every band is 40 px tall and scaled from its foot: 18 / 26 px idle, the full height while it speaks */
 .arena__wave {
   display: inline-block;
   width: 10px;
-  height: 18px;
+  height: 40px;
   border-radius: 3px;
   background: var(--line);
+  transform: scaleY(0.45);
+  transform-origin: bottom;
   transition:
     background var(--dur-1) var(--ease),
-    height var(--dur-2) var(--ease);
+    transform var(--dur-2) var(--ease);
 }
 .arena__wave[data-slot='b'] {
-  height: 26px;
+  transform: scaleY(0.65);
 }
 .arena__wave[data-on='true'] {
   background: var(--ai);
-  height: 40px;
+  transform: scaleY(1);
 }
 .arena__wave[data-slot='b'][data-on='true'] {
   background: var(--sakura);
@@ -127,9 +133,6 @@
 /* a set is playing: idle bands fade back so the lit one reads as the voice */
 .arena__waves[data-busy='true'] .arena__wave:not([data-on='true']) {
   background: color-mix(in srgb, var(--line) 55%, var(--surface));
-}
-.arena[data-feel='arcade'] .arena__wave[data-on='true'] {
-  box-shadow: 0 0 8px var(--neon-c);
 }
 
 /* ── lines (transcript and no-voice fallback) ─────────────────────────── */
@@ -150,7 +153,6 @@
   border-left: 3px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface);
-  transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease);
 }
 .arena__line[data-slot='b'] {
   border-left-color: var(--sakura);
@@ -243,10 +245,6 @@
   border-radius: var(--radius-sm);
   background: var(--surface);
 }
-.arena__credits-title {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-}
 .arena__credit [lang='ja'] {
   color: var(--fg);
 }
@@ -337,7 +335,6 @@
   border: 2px solid var(--line);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: border-color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
 }
 .arena__choice:hover:not(:disabled),
 .arena__choice:focus-visible {
@@ -397,7 +394,7 @@
   text-decoration-thickness: 2px;
 }
 .arena__choice[data-state='wrong'] .arena__mark {
-  color: var(--shu);
+  color: var(--shu-text);
 }
 .arena__choice[data-state='missed'] {
   border-style: dashed;
@@ -464,32 +461,4 @@
 }
 .arena__state--missing {
   border-left-style: dashed;
-}
-
-/* ── motion ───────────────────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  .arena__wave,
-  .arena__line,
-  .arena__choice,
-  .arena__mora-dot,
-  .arena__transcript .ruby__token[data-sung] {
-    transition: none;
-  }
-  .arena__mora-dot[data-on='true'] {
-    transform: none;
-  }
-}
-.reduced-motion .arena__wave,
-.reduced-motion .arena__line,
-.reduced-motion .arena__choice,
-.reduced-motion .arena__mora-dot,
-.reduced-motion .arena__transcript .ruby__token[data-sung] {
-  transition: none;
-}
-.reduced-motion .arena__mora-dot[data-on='true'] {
-  transform: none;
-}
-.feel-zen .arena__wave[data-on='true'],
-.arena[data-feel='zen'] .arena__wave[data-on='true'] {
-  box-shadow: none;
 }

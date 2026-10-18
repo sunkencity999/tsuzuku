@@ -1,7 +1,13 @@
 /**
  * TSUZUKU — `#/station/:n` (design 02 §1, §6.3, 04 §11, 06 §6).
  *
- *  Header (name, keeper, belt, JLPT), the station's quotas from `STATIONS`,
+ *  Header: the 160 px headpiece (`src/art/road headpiece`, design 09 §7 D —
+ *  the vista's motifs, the keeper as a dry-brush silhouette lifting from wash
+ *  to tone, the road in `--road`, towns ahead through the page's one sumi
+ *  filter) over the `.sign--head` plate: number · 第N宿 · brush name · the
+ *  reading (romaji below Green, kana ruby after — §3.3) · the English state
+ *  word. `.station-head .sign` is the `station-seal` hero's landing
+ *  (`transitions.ts`). Then the keeper line, the quotas from `STATIONS`,
  *  progress bars (introduced / Green) from `stationProgress`, the Scrolls with
  *  their introduced counts, items by kind with item belts, the texts with links
  *  to the reader / listening / role-play, the Michikusa collected count, the
@@ -27,15 +33,17 @@
  *  (`ear-panel`) explains the three doors once.
  */
 import type { JSX } from 'preact';
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { content, type ContentLoader } from '../../content/loader';
 import { STATIONS, type ContentItem, type ListeningPool, type StationBundle, type StationDef, type StoryItem } from '../../content/types';
 import { toPlain } from '../../content/ruby';
 import { audioSourceOf, services, voiceAudible } from '../../shared/audio';
 import { href, type Route } from '../../shared/routes';
 import type { ItemBelt, ItemKind } from '../../shared/store-types';
+import { Ruby } from '../../shared/ui/Ruby';
 import { BELT_LABEL } from '../../shared/ui/strings';
 import { TeachOnce, markTeachSeen } from '../../shared/ui/TeachOnce';
+import { prefersReducedMotion } from '../../shared/ui/use-reveal';
 import { store, weeklyTargetHours } from '../../store';
 import { SHINSA_STATIONS, itemBeltOf, kindOfItem, stationProgress } from '../../store/derived';
 import { knownSet, poolMinutes, scrollsForStation, selectPool } from '../../learn';
@@ -43,6 +51,7 @@ import { BELT_NAME, fill } from '../engine-strings';
 import { gateAvailable, rematchAllowed } from '../gatekeeper';
 import { itemHead } from '../GateView';
 import { isSpeakable, loadPools } from '../params';
+import { STATE_LABEL, isNight, ordinalJa, romajiAllowed, rubyMarkup, signRubyMode, stationState, useRoadArt } from '../RoadNav';
 import { GENRE_LABEL, ITEM_KIND_GLYPH, ITEM_KIND_LABEL, S, SCROLL_KIND_LABEL } from './strings';
 import './pages.css';
 
@@ -167,6 +176,25 @@ export default function StationPage(p: StationPageProps): JSX.Element {
   const collections = store.collections.value;
   // Read inside render so the chips follow the audio slot's signals (source, canSpeak / hasJaVoice).
   const chip = earChip(services.audio);
+  // the headpiece: the art tier on demand, the width from the box, the theme from the document (a settings read subscribes)
+  const art = useRoadArt();
+  const settings = store.settings.value;
+  const learnerBelt = store.profile.value.belt;
+  const headRef = useRef<HTMLDivElement>(null);
+  const [headWidth, setHeadWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = headRef.current;
+    if (!el) return;
+    const measure = (): void => setHeadWidth(el.clientWidth);
+    measure();
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [n]);
 
   useEffect(() => {
     if (!def) return;
@@ -204,6 +232,11 @@ export default function StationPage(p: StationPageProps): JSX.Element {
   const groups = useMemo(() => (bundle ? groupItems(bundle, (id) => loader.get(id)) : []), [bundle, loader, cardsVersion]);
   const stories = useMemo(() => (bundle ? bundle.storyIds.map((id) => loader.get<StoryItem>(id)).filter((s): s is StoryItem => !!s && 'lines' in s) : []), [bundle, loader, loaded]);
   const minutes = useMemo(() => earMinutes(pools, knownSet(store.cards, store.today())), [pools, cardsVersion]);
+  // the headpiece string is rebuilt only when its inputs change: a progress or audio re-render never restarts the keeper's lift
+  const night = isNight();
+  const reduced = prefersReducedMotion();
+  const pieceWidth = art ? art.headpieceWidth(headWidth) : 0;
+  const piece = useMemo(() => (art && def ? art.headpiece({ station: def.number, width: pieceWidth, theme: night ? 'dark' : 'light', reduced }) : null), [art, def, pieceWidth, night, reduced]);
 
   if (p.route.name !== 'station') return <NotFound />;
   if (n === 0) {
@@ -239,6 +272,8 @@ export default function StationPage(p: StationPageProps): JSX.Element {
   const michiTotal = bundle?.michikusaIds.length ?? 0;
   const michiDone = bundle ? bundle.michikusaIds.filter((id) => collections.michikusa.includes(id)).length : 0;
   const keeper = `${def.gateJa} ${def.gateEn}`;
+  const romaji = romajiAllowed(learnerBelt);
+  const headState = stationState(n, { current: progress.station, cleared: progress.stationsCleared, assisted: progress.assisted, perfect: Object.entries(collections.stamps ?? {}).filter(([, st]) => st.perfect).map(([k]) => Number(k)) });
 
   let gateLine: string;
   if (cleared) gateLine = assisted ? S.gateClearedAssistedLine : S.gateClearedLine;
@@ -250,9 +285,23 @@ export default function StationPage(p: StationPageProps): JSX.Element {
   return (
     <section class="page page--station" aria-label={S.stationPageAria} data-station={n}>
       <header class="page__head station-head" data-belt={def.belt}>
-        <p class="station-head__number">{fill(S.stationShort, { n })}</p>
-        <h2 class="page__title station-head__name">
-          <span lang="ja">{def.nameJa}</span> <span class="station-head__romaji">{def.nameRomaji}</span>
+        <div
+          ref={headRef}
+          class="headpiece station-head__piece"
+          role={art ? 'img' : undefined}
+          aria-label={art ? art.headpieceLabel(n) : undefined}
+          dangerouslySetInnerHTML={piece ? { __html: piece } : undefined}
+        />
+        <h2 class="sign sign--head station-head__sign">
+          <span class="sign__number">{fill(S.stationShort, { n })}</span>
+          <span class="sign__ordinal" lang="ja" aria-hidden="true">
+            {ordinalJa(n)}
+          </span>
+          <span class="sign__ja" lang="ja">
+            {romaji ? def.nameJa : <Ruby ja={rubyMarkup(def.nameJa, def.nameRomaji)} mode={signRubyMode(settings.furigana)} />}
+          </span>
+          {romaji ? <span class="sign__reading">{def.nameRomaji}</span> : null}
+          <span class="sign__en">{STATE_LABEL[headState]}</span>
         </h2>
         <p class="page__sub">
           <span class={`belt belt--${def.belt}`}>{fill(S.beltLine, { belt: BELT_NAME[def.belt], jlpt: def.jlpt ? fill(S.jlptLine, { n: def.jlpt }) : S.levelKana })}</span>

@@ -715,6 +715,7 @@ function Arena(p: ArenaProps): JSX.Element {
 
   const header = (
     <header class="arena__head">
+      <span class="arena__band" aria-hidden="true" title={sourceChip} />
       <h2 class="arena__title">
         <span lang="ja" class="arena__title-ja">
           {walk ? S.walkTitleJa : S.titleJa}
@@ -735,7 +736,7 @@ function Arena(p: ArenaProps): JSX.Element {
         <span class="chip arena__story-title">{titleEn}</span>
       </div>
       <p class="arena__speakers">
-        <span class="arena__speakers-label">{S.speakersLabel}</span>
+        <span class="eyebrow">{S.speakersLabel}</span>
         {speakers.map((name) => {
           const ja = containsJapanese(name);
           const ruby = nameRuby(name);
@@ -969,7 +970,7 @@ function Arena(p: ArenaProps): JSX.Element {
         </ol>
         {credits.length > 0 ? (
           <ul class="arena__credits" aria-label={S.creditsTitle}>
-            <li class="arena__credits-title">{S.creditsTitle}</li>
+            <li class="eyebrow">{S.creditsTitle}</li>
             {credits.map((c) => (
               <li key={c.name} class="arena__credit">
                 <span lang={containsJapanese(c.name) ? 'ja' : undefined}>{c.name}</span>

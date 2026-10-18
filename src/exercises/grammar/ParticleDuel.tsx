@@ -200,7 +200,7 @@ export function ParticleDuel(p: ExerciseProps): JSX.Element {
   if (!prompt || !item) {
     return (
       <div class="gr gr-duel" data-state="unavailable">
-        <div class="gr__reveal status-window" data-kind="info" role="status">
+        <div class="gr__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{S.cannotBuild}</p>
           <p class="gr__why">{S.shownNotTested}</p>
           {item ? <p lang="ja">{item.pattern}</p> : null}
@@ -216,7 +216,7 @@ export function ParticleDuel(p: ExerciseProps): JSX.Element {
 
   const full = picked.every((x) => x !== null);
   const revealed = phase === 'done';
-  const kind = result ? (result.correct ? 'correct' : result.nearMiss ? 'near' : 'wrong') : 'info';
+  const kind = result ? (result.nearMiss ? 'partial' : result.correct ? 'correct' : 'wrong') : 'info';
 
   return (
     <div class="gr gr-duel" data-phase={phase} data-slots={n}>
@@ -250,7 +250,7 @@ export function ParticleDuel(p: ExerciseProps): JSX.Element {
       </p>
       {prompt.gloss ? (
         <p class="gr__gloss">
-          <span class="gr__label">{S.clozeGloss}</span> <span>{prompt.gloss}</span>
+          <span class="eyebrow">{S.clozeGloss}</span> <span>{prompt.gloss}</span>
         </p>
       ) : null}
 
@@ -284,20 +284,20 @@ export function ParticleDuel(p: ExerciseProps): JSX.Element {
       ) : null}
 
       {hintShown && !revealed ? (
-        <div class="gr__reveal status-window" data-kind="info" data-hint="true">
+        <div class="gr__reveal reveal ink-nijimi" data-kind="info" data-hint="true">
           <p>
-            <span class="gr__label">{S.patternLabel}</span> <span lang="ja">{item.pattern}</span> <span>{item.meaning}</span>
+            <span class="eyebrow">{S.patternLabel}</span> <span lang="ja">{item.pattern}</span> <span>{item.meaning}</span>
           </p>
           <p class="gr__why">{S.hintUsedNote}</p>
         </div>
       ) : null}
 
       {revealed && result ? (
-        <div class="gr__reveal status-window" data-kind={kind}>
+        <div class="gr__reveal reveal ink-nijimi" data-kind={kind}>
           <p data-hits="true">{fill(S.particleHits, { hits: result.hits, n })}</p>
           {!result.correct ? <p class="gr__why">{WHY_BY_TAG.particle}</p> : null}
           <p>
-            <span class="gr__label">{S.patternLabel}</span> <span lang="ja">{item.pattern}</span> <span>{item.meaning}</span>
+            <span class="eyebrow">{S.patternLabel}</span> <span lang="ja">{item.pattern}</span> <span>{item.meaning}</span>
           </p>
           {result.correct && result.hits === n ? <p class="gr__why">{SD.correct}</p> : null}
         </div>

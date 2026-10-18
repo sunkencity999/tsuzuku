@@ -1,8 +1,9 @@
 /*
  * TSUZUKU — <TextAnswer> (src/exercises, group D).
- * Field + submit on one row (fits 360 px), reveal / confirm panels below.
- * Diff spans reuse the shared .diff classes from src/shared/ui/ui.css.
- * Tokens only.
+ * Field + submit on one row (fits 360 px); the reveal / confirm panels below are
+ * the shared .reveal (ui.css), their labels the shared .eyebrow (motion.css). Diff
+ * spans reuse the shared .diff classes. Tokens only; reduced motion through the
+ * global rule and the zeroed tokens.
  */
 .text-answer {
   display: grid;
@@ -16,6 +17,32 @@
   gap: var(--sp-2);
   align-items: start;
 }
+.text-answer__ink {
+  position: relative;
+  display: grid;
+}
+/* the ink rule hiku-draws under the field on focus (scaleX, --dur-2, --ease-draw); the caret is vermilion */
+.text-answer__ink::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  left: 2px;
+  height: 2px;
+  pointer-events: none;
+  background: var(--ai);
+  border-radius: 1px;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dur-2) var(--ease-draw);
+}
+.text-answer__ink:focus-within::after {
+  transform: scaleX(1);
+}
+/* the ja field (KanaInput) carries its meta row below the field: the rule sits above it (1.25em at --fs-1 + the grid gap) */
+.text-answer__ink[data-mode='ja']::after {
+  bottom: calc(var(--sp-2) + 1.25 * var(--fs-1));
+}
 .text-answer__field {
   box-sizing: border-box;
   width: 100%;
@@ -25,6 +52,7 @@
   font-size: var(--fs-4);
   line-height: 1.4;
   color: var(--fg);
+  caret-color: var(--shu);
   background: var(--surface);
   border: 2px solid var(--line);
   border-radius: var(--radius);
@@ -65,29 +93,6 @@
   color: var(--fg-muted);
 }
 
-.text-answer__confirm,
-.text-answer__reveal {
-  display: grid;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  border-left: 4px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--raised);
-}
-.text-answer__reveal[data-kind='wrong'] {
-  border-left-color: var(--shu);
-}
-.text-answer__reveal[data-kind='near'],
-.text-answer__reveal[data-kind='kana-only'] {
-  border-left-color: var(--kin);
-}
-.text-answer__reveal[data-kind='correct'] {
-  border-left-color: var(--matcha);
-}
-.text-answer__confirm {
-  border-left-color: var(--ai);
-}
-
 .text-answer__expected,
 .text-answer__yours,
 .text-answer__also,
@@ -98,12 +103,6 @@
   align-items: baseline;
   gap: var(--sp-2);
   margin: 0;
-}
-.text-answer__label {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .text-answer__form {
   font-size: var(--fs-4);
@@ -154,21 +153,4 @@
 }
 .text-answer__override {
   border-style: dashed;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .text-answer__field,
-  .text-answer__submit {
-    transition: none;
-  }
-  .text-answer__submit:active:not(:disabled) {
-    transform: none;
-  }
-}
-.reduced-motion .text-answer__field,
-.reduced-motion .text-answer__submit {
-  transition: none;
-}
-.reduced-motion .text-answer__submit:active:not(:disabled) {
-  transform: none;
 }

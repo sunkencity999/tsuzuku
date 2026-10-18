@@ -32,7 +32,7 @@ import { brushStroke, enso, PRESSURE } from './brush';
 import { BELT_HEX, INK, PALETTE, STONE, TOKENS, WASHI, darken, lighten, normalizeHex, pickReadable, ringHex, type Theme, type Token } from './color';
 import { polar, rays, regularPolygon, TAU, type Pt } from './geom';
 import { FONTS, type TextLayer } from './jtext';
-import { C, L, M, Q, Z, arcPath, circlePath, clipPath, defs, el, filter, fmt, g, path, points, polyPath, roundedRectPath, text, title, url, type Attrs } from './svg';
+import { C, L, M, Q, Z, arcPath, circlePath, clipPath, defs, el, filter, fmt, g, path, points, polyPath, roundedRectPath, svgDataUrl, text, title, url, type Attrs } from './svg';
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Types                                                                      */
@@ -68,6 +68,8 @@ export interface MonOptions {
   label?: string;
   /** Prefix for the ids inside `<defs>` (default derived from the seed). */
   idPrefix?: string;
+  /** Draw the glyph as `<text>` (default true); false leaves it to `glyphLayer` for a host that sets it in the page's own fonts. */
+  glyphInSvg?: boolean;
 }
 
 export interface MonParts {
@@ -683,27 +685,28 @@ export function monParts(spec: MonSpec, o: MonOptions): MonParts {
   const mark = spec.glyph === '゛' || spec.glyph === '゜';
   const baseline = CY + size * (mark ? 0.62 : 0.36);
   const glyphLayer: TextLayer = { text: spec.glyph, x: CX, y: baseline, size, font: FONTS.brush, fill: inks.glyph.hex, anchor: 'middle', lang: 'ja' };
-  layers.push(
-    text(spec.glyph, {
-      class: 'mon__glyph',
-      x: CX,
-      y: baseline,
-      'text-anchor': 'middle',
-      'font-family': FONTS.brush,
-      'font-size': size,
-      lang: 'ja',
-      ...paintAttrs({ fill: inks.glyph }),
-    }),
-  );
+  if (o.glyphInSvg ?? true) {
+    layers.push(
+      text(spec.glyph, {
+        class: 'mon__glyph',
+        x: CX,
+        y: baseline,
+        'text-anchor': 'middle',
+        'font-family': FONTS.brush,
+        'font-size': size,
+        lang: 'ja',
+        ...paintAttrs({ fill: inks.glyph }),
+      }),
+    );
+  }
 
   const body = [g({ class: `mon__art mon__art--${o.earned ? 'earned' : 'locked'}`, filter: o.earned ? undefined : url(embossId) }, layers)];
   return { defs: defsOut, body, glyphLayer, view: MON_VIEW };
 }
 
-/** A complete, self-contained crest SVG (`viewBox 0 0 256 256`, `width`/`height` = size px). */
-export function monSvg(spec: MonSpec, o: MonOptions): string {
+/** The `<svg>` wrapper around `parts` for (spec, o): `viewBox 0 0 256 256`, `width`/`height` = size px. */
+function wrapMon(spec: MonSpec, o: MonOptions, parts: MonParts): string {
   const size = clampMonSize(o.size);
-  const parts = monParts(spec, o);
   return el(
     'svg',
     {
@@ -720,7 +723,49 @@ export function monSvg(spec: MonSpec, o: MonOptions): string {
   );
 }
 
+/** A complete, self-contained crest SVG (`viewBox 0 0 256 256`, `width`/`height` = size px). */
+export function monSvg(spec: MonSpec, o: MonOptions): string {
+  return wrapMon(spec, o, monParts(spec, o));
+}
+
 /** Convenience: the crest of a badge id (spec and seed from the catalog). */
 export function badgeMonSvg(id: BadgeId, o: Omit<MonOptions, 'seed'> & { seed?: number }): string {
   return monSvg(MON_SPECS[id], { ...o, seed: o.seed ?? monSeed(id) });
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Stone as an image (design 09 §7 E, §6.7 rule 2)                            */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * A locked crest as an `<img>`-ready data URL. The emboss filter is rasterised
+ * once by the image decoder, so a grid of sixty stone crests holds no live SVG
+ * filter (§6.7 rule 2); inline `monSvg` stays for the earned crests, whose
+ * paints follow the theme through `cssVars`. Stone never depends on the theme,
+ * so one URL per (spec, seed, size) serves both. Same markup as
+ * `monSvg(spec, { earned: false, … })`, so the snapshot tests stand.
+ */
+export function monStoneDataUrl(spec: MonSpec, o: { size: number; seed: number; idPrefix?: string }): string {
+  return svgDataUrl(monSvg(spec, { size: o.size, earned: false, seed: o.seed, idPrefix: o.idPrefix }));
+}
+
+export interface MonStoneImage {
+  /** The stone art without its glyph, `<img>`-ready. */
+  url: string;
+  /** The glyph in 0–256 space (brush face, stone-light hex), for the host to set over the image in the page's own fonts. */
+  glyph: TextLayer;
+  view: number;
+}
+
+/**
+ * The stone crest split for an `<img>` host: webfonts never resolve inside an
+ * image (design 07 §8 — the Yuji brush face would fall back to a system
+ * serif), so the glyph stays out of the data URL and comes back as a
+ * `TextLayer` the host draws as inline `<text>` (`jtext.ts textEl`) over the
+ * image. The emboss still rasterises once; the overlay carries no filter.
+ */
+export function monStoneImage(spec: MonSpec, o: { size: number; seed: number; idPrefix?: string }): MonStoneImage {
+  const opts: MonOptions = { size: o.size, earned: false, seed: o.seed, idPrefix: o.idPrefix, glyphInSvg: false };
+  const parts = monParts(spec, opts);
+  return { url: svgDataUrl(wrapMon(spec, opts, parts)), glyph: parts.glyphLayer, view: MON_VIEW };
 }

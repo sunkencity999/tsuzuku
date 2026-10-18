@@ -1,7 +1,9 @@
 /*
  * TSUZUKU — chart primitives (group B, records/charts.tsx). Tokens only.
- * Thin marks, hairline solid grid, surface gaps/rings, text in text tokens.
- * Series colors are never the only signal: glyphs, labels, titles, tables.
+ * Thin marks, hairline solid grid, surface gaps/rings, text in text tokens
+ * never below --fs-1 (design 09 §3.1). Series colors are never the only
+ * signal: glyphs, labels, titles, tables. The bar track is motion.css's .meter
+ * (transform, not width); the radar morph is a JS points tween, no CSS.
  */
 
 .chart {
@@ -29,7 +31,7 @@
 }
 .chart__label {
   font-family: var(--font-ja);
-  font-size: 12px;
+  font-size: var(--fs-1);
   fill: var(--fg);
 }
 .chart__label--muted {
@@ -37,7 +39,7 @@
 }
 .chart__tick {
   font-family: var(--font-ui);
-  font-size: 9px;
+  font-size: var(--fs-1);
   fill: var(--fg-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -262,27 +264,6 @@
 .bar__label {
   font-size: var(--fs-2);
 }
-.bar__track {
-  position: relative;
-  height: 12px;
-  background: var(--line);
-  border-radius: 3px;
-  overflow: visible;
-}
-.bar__fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: 0 3px 3px 0;
-  transition: width var(--dur-2) var(--ease);
-}
-.bar__marker {
-  position: absolute;
-  top: -4px;
-  bottom: -4px;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--fg-muted);
-}
 .bar__value {
   font-size: var(--fs-2);
   font-variant-numeric: tabular-nums;
@@ -323,14 +304,13 @@
   stroke: var(--ai);
   stroke-width: 8;
   stroke-linecap: butt;
-  transition: stroke-dasharray var(--dur-2) var(--ease);
 }
 .ring__fill--met {
   stroke: var(--matcha);
 }
 .ring__center {
   font-family: var(--font-ui);
-  font-size: 14px;
+  font-size: var(--fs-2);
   font-weight: 600;
   fill: var(--fg);
 }
@@ -345,15 +325,4 @@
   .chart__radar-now {
     fill-opacity: 0;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bar__fill,
-  .ring__fill {
-    transition: none;
-  }
-}
-.reduced-motion .bar__fill,
-.reduced-motion .ring__fill {
-  transition: none;
 }

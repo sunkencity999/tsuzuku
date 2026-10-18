@@ -3,7 +3,11 @@
  * Tabi Nikki episode reader, tap gloss popover, comprehension, Speed Read.
  * Tokens only (src/styles/tokens.css); mobile-first (360 px), 44 px targets;
  * every state is shape + text, never color alone. Base widgets (.btn, .chip,
- * .ruby, .tategaki, .status-window, .notice) keep their own styles.
+ * .ruby, .tategaki, .status-window, .notice) keep their own styles; .eyebrow
+ * and .meter come from motion.css (design 09 §3.1, §5.7). The episode body is
+ * the one Mincho surface here (§3.1 fence; titles are chrome in --font-ja);
+ * the gloss sheet shades inset, never a drop shadow (§2.2); reduced motion is
+ * base.css's global rule plus the zeroed --dur-* tokens (§6.6), nothing local.
  */
 
 /* ── shared layout ───────────────────────────────────────────────────── */
@@ -19,7 +23,6 @@
 }
 .reader__title {
   margin: 0;
-  font-family: var(--font-mincho);
   font-size: var(--fs-5);
   line-height: 1.3;
 }
@@ -99,9 +102,15 @@
   font-size: var(--fs-2);
   color: var(--fg-muted);
 }
-.reader__ja {
+/* the reading body (09 §3.1 Mincho, §3.2 measure); gothic ruby at .5em stays on --font-ja (§3.3) */
+.ruby.reader__ja {
+  font-family: var(--font-mincho);
   font-size: var(--fs-4);
-  line-height: var(--lh-ja);
+  line-height: var(--lh-mincho);
+  max-inline-size: var(--measure-ja);
+}
+.reader__ja rt {
+  font-family: var(--font-ja);
 }
 .reader__ja .ruby__token[data-plus-one='true'] {
   text-decoration: underline;
@@ -155,7 +164,7 @@
   border: 2px solid var(--line);
   border-bottom: 0;
   border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: 0 -8px 24px color-mix(in srgb, var(--fg) 20%, transparent);
+  box-shadow: inset 0 0 36px color-mix(in srgb, var(--stage-bg) 6%, transparent);
   outline: none;
 }
 @media (min-width: 640px) {
@@ -209,12 +218,6 @@
   display: grid;
   gap: var(--sp-2);
   margin: 0;
-}
-.gloss__body dt {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 .gloss__body dd {
   margin: 0;
@@ -348,43 +351,6 @@
   font-size: var(--fs-4);
 }
 
-/* ── result card (reader / speed read) ───────────────────────────────── */
-.reader__result {
-  display: grid;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
-  background: var(--surface);
-  border: 2px solid var(--line);
-  border-radius: var(--radius);
-}
-.reader__result h2,
-.reader__result h3 {
-  margin: 0;
-  font-family: var(--font-mincho);
-  font-size: var(--fs-4);
-}
-.reader__result ul {
-  display: grid;
-  gap: var(--sp-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.reader__result li {
-  display: flex;
-  gap: var(--sp-2);
-  align-items: baseline;
-}
-.reader__big {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-5);
-}
-.reader__result-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-
 /* ── speed read ──────────────────────────────────────────────────────── */
 .speed {
   display: grid;
@@ -423,26 +389,10 @@
 .speed__line[data-latest='true'] {
   border-left-color: var(--ai);
 }
-.speed__bar {
-  height: 6px;
-  background: var(--raised);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.speed__bar-fill {
-  height: 100%;
-  background: var(--ai);
-  transition: width var(--dur-2) var(--ease);
-}
 
 /* ── read-along (design 08 §10.3) ────────────────────────────────────── */
 .reader__mode {
   margin: 0;
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
 }
 .reader__mode [lang='ja'] {
   font-family: var(--font-ja);

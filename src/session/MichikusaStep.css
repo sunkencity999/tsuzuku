@@ -103,28 +103,17 @@
   gap: var(--sp-3);
 }
 
-/* A ten-second read line: decorative pacing, never a gate. */
+/* A ten-second read line: decorative pacing, never a gate. A .meter (motion.css) whose fill draws
+   with motion.css's hiku keyframes over 4 × --dur-5 (9.6 s); --value stays 1 so the fill is the
+   drawn stroke itself. Reduced motion: the zeroed token completes it at once. */
 .michikusa__read {
   height: 3px;
-  overflow: hidden;
-  border-radius: 2px;
   background: var(--line);
 }
 
 .michikusa__read-fill {
-  width: 0;
-  height: 100%;
-  background: var(--kin);
-  animation: michikusa-read 10s linear forwards;
-}
-
-@keyframes michikusa-read {
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
+  transform-origin: left center;
+  animation: hiku calc(var(--dur-5) * 4) linear both;
 }
 
 .michikusa__continue {
@@ -133,18 +122,6 @@
 
 .michikusa[data-again='true'] .michikusa__glyph {
   background: var(--hai);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .michikusa__read-fill {
-    animation: none;
-    width: 100%;
-  }
-}
-.reduced-motion .michikusa__read-fill,
-.michikusa.reduced-motion .michikusa__read-fill {
-  animation: none;
-  width: 100%;
 }
 
 @media (min-width: 600px) {

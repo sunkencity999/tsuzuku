@@ -147,14 +147,14 @@ function KanaEarBody(p: ExerciseProps): JSX.Element {
       {done ? (
         <div class="drill__after" data-correct={done.correct ? 'true' : 'false'}>
           <p>
-            <span class="drill__label">{hasVoice ? S.earHeard : S.earTarget}</span>{' '}
+            <span class="eyebrow">{hasVoice ? S.earHeard : S.earTarget}</span>{' '}
             <span class="drill__ja" lang="ja">
               {item.kana}
             </span>{' '}
             <span>{romajiLabel(item)}</span>
           </p>
           <p>
-            <span class="drill__label">{S.seenIn}</span>{' '}
+            <span class="eyebrow">{S.seenIn}</span>{' '}
             <span class="drill__ja" lang="ja">
               {item.exampleWord.word}
             </span>{' '}

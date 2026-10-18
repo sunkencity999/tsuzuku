@@ -477,7 +477,7 @@ function ShadowBody(p: ExerciseProps & ShadowExtraProps): JSX.Element {
       {!hidden && cells ? (
         <div data-field="pitch-strip">
           <p class="speak__meta" data-field="strip-caption" title={S.shadowPitchDictionaryHint}>
-            <span class="speak__label">{S.shadowPitchLabel}</span>
+            <span class="eyebrow">{S.shadowPitchLabel}</span>
             <span data-field="strip-label">{S.shadowPitchDictionary}</span>
           </p>
           <ol ref={strip} class="pitch-strip" aria-label={`${S.shadowPitchLabel}: ${S.shadowPitchDictionary}`} lang="ja">
@@ -491,7 +491,7 @@ function ShadowBody(p: ExerciseProps & ShadowExtraProps): JSX.Element {
       ) : null}
       {meaning ? (
         <p class="speak__en">
-          <span class="speak__label">{S.shadowMeaning}</span>
+          <span class="eyebrow">{S.shadowMeaning}</span>
           {meaning}
         </p>
       ) : null}
@@ -535,7 +535,7 @@ function ShadowBody(p: ExerciseProps & ShadowExtraProps): JSX.Element {
           ) : null}
           {done.heard ? (
             <p class="speak__heard" lang="ja">
-              <span class="speak__label">{S.shadowHeard}</span>
+              <span class="eyebrow">{S.shadowHeard}</span>
               {done.heard}
             </p>
           ) : null}

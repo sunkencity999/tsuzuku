@@ -278,7 +278,7 @@ export function Recorder(p: RecorderProps): JSX.Element {
       {state === 'recorded' ? <p class="recorder__note">{S.recordedLine}</p> : null}
 
       <fieldset class="recorder__checklist" disabled={graded || !!p.disabled}>
-        <legend>{S.checklistTitle}</legend>
+        <legend class="eyebrow">{S.checklistTitle}</legend>
         <label class="recorder__check">
           <input type="checkbox" checked={checks.mora} onChange={() => toggle('mora')} data-check="mora" />
           <span>{fill(S.checkMora, { n: hints.morae })}</span>

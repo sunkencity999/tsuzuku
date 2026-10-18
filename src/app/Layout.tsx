@@ -40,6 +40,7 @@ import { href, route, type Route, type RouteName } from '@/shared/routes';
 import type { EpochDay, StorageState } from '@/shared/store-types';
 import { weekdayOf } from '@/shared/time';
 import { Lantern, lanternChips, repairOpen, type LanternChip, type LanternState } from '@/shared/ui/Lantern';
+import { pressRing } from '@/shared/ui/press-ring';
 import { Ticker } from '@/shared/ui/Ticker';
 import { prefersReducedMotion } from '@/shared/ui/use-reveal';
 import { BADGE_DEFS, WALLPAPER_DEFS, store } from '@/store';
@@ -446,6 +447,9 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
   const [ignition, setIgnition] = useState(() => (shouldIgnite(today) ? 1 : 0));
 
   useEffect(() => wireAnnouncements(), []);
+  /** Every seal in the shell rings when pressed (design 09 §5.3, d41): one delegated binding on `.layout`. */
+  const shell = useRef<HTMLDivElement>(null);
+  useEffect(() => (shell.current ? pressRing(shell.current) : undefined), []);
   useEffect(() => bus.on('backup:exported', () => setReminderDismissed(true)), []);
   useEffect(
     () =>
@@ -476,7 +480,7 @@ export function Layout(p: { children: ComponentChildren }): JSX.Element {
   };
 
   return (
-    <div class="layout" data-route={r.name}>
+    <div class="layout" data-route={r.name} ref={shell}>
       <button type="button" class="skip-link visually-hidden focusable" onClick={skipToMain}>
         {S.skipToContent}
       </button>

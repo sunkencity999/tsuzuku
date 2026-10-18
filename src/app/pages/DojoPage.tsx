@@ -36,7 +36,8 @@
  */
 import type { FunctionComponent, JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { SANJO_OHASHI, STATIONS, type Belt } from '@/content/types';
+import type * as RoadArt from '@/art/road';
+import { BELT_IDS, SANJO_OHASHI, STATIONS, type Belt } from '@/content/types';
 import { bus } from '@/shared/events';
 import { fetchKoyomi, koOf, koyomiData, moonJa, moonPhase, sekkiJa, sekkiSpanOf, skyPhase, type SkyPhase } from '@/shared/koyomi';
 import { href, type Route } from '@/shared/routes';
@@ -44,6 +45,7 @@ import type { DojoFeed, SessionMode, SessionSnapshot } from '@/shared/session-ty
 import type { DailyRow, EpochDay } from '@/shared/store-types';
 import { civilParts, dayToCivil, formatEraDate } from '@/shared/time';
 import { Lantern, type LanternState } from '@/shared/ui/Lantern';
+import { Ruby } from '@/shared/ui/Ruby';
 import { prefersReducedMotion } from '@/shared/ui/use-reveal';
 import { QUESTS, awayStatus, questProgress, store, type AwayStatus, type QuestProgress } from '@/store';
 import { forecastCounts, streakState, type FlameState } from '@/store/derived';
@@ -169,10 +171,10 @@ export function questTitle(id: QuestProgress['id']): string {
   return QUESTS.find((q) => q.id === id)?.titleEn ?? id;
 }
 
-/** Steps left in a saved session, or 0 when none is waiting. */
+/** Graded reps left in a saved session (steps with a card behind them, as the Leave slip counts them; d37), or 0 when none is waiting. */
 export function stepsLeft(snap: SessionSnapshot | null): number {
   if (!snap) return 0;
-  return Math.max(0, snap.plan.steps.length - snap.cursor);
+  return snap.plan.steps.slice(snap.cursor).filter((s) => s.cardKey !== null).length;
 }
 
 /**
@@ -749,28 +751,83 @@ function ShinsaBanner(p: { feed: Feed }): JSX.Element | null {
   );
 }
 
-/** The genkan strip (design 09 §10 B1 first version): three `.sign`s, the current station in the middle; towns ahead are "ahead", never locked. */
+/*
+ * The genkan strip (design 09 §9 B1 → C2, §12.1 decision 33): `src/art/road`'s
+ * `<GenkanStrip>` — three towns with kit vignettes, the reading by the kana rule
+ * (romaji below Green, ruby after). The shell may not import the art tier
+ * statically (ARCHITECTURE §0), so the strip arrives through the same deferred glob
+ * `pages.ts optional()` uses for the scene; until it lands, and on a build
+ * without the art, `<GenkanFallback>` stands in: the same three `.sign` plates
+ * (number · 第N宿 · name · the romaji reading while the belt is below Green ·
+ * the state word) without the kit vignettes. The kana ruby after Green is the
+ * art tier's (`reading.ts`), so a Green+ learner sees the bare name for the one
+ * tick before the chunk lands.
+ */
+type RoadArtModule = typeof RoadArt;
+const ROAD_ART_FILE = '/src/art/road/index.ts';
+const ROAD_ART = import.meta.glob<RoadArtModule>('/src/art/road/index.ts');
+let roadArt: RoadArtModule | null = null;
+let roadArtPromise: Promise<RoadArtModule | null> | null = null;
+
+function loadRoadArt(): Promise<RoadArtModule | null> {
+  if (!roadArtPromise) {
+    const loader = ROAD_ART[ROAD_ART_FILE];
+    roadArtPromise = loader
+      ? loader().then(
+          (m) => {
+            roadArt = m;
+            return m;
+          },
+          () => null,
+        )
+      : Promise.resolve(null);
+  }
+  return roadArtPromise;
+}
+
 function Genkan(p: { station: number }): JSX.Element {
+  const [art, setArt] = useState<RoadArtModule | null>(roadArt);
+  const belt = store.profile.value.belt;
+  const furigana = store.settings.value.furigana;
+  useEffect(() => {
+    if (art) return;
+    let alive = true;
+    loadRoadArt().then((m) => {
+      if (alive && m) setArt(m);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (art) return <art.GenkanStrip station={p.station} belt={belt} furigana={furigana} lit={typeof document !== 'undefined' && document.documentElement.getAttribute('data-color-scheme') === 'dark'} />;
+  return <GenkanFallback station={p.station} belt={belt} />;
+}
+
+/** The strip before the art lands: three `.sign` plates with the reading gated by the kana-Green rule (design 09 §3.3). */
+export function GenkanFallback(p: { station: number; belt: Belt }): JSX.Element {
+  const romaji = BELT_IDS.indexOf(p.belt) < BELT_IDS.indexOf('green');
   return (
     <ol class="dojo__genkan" aria-label={S.dojoGenkanLabel}>
       {townNumbers(p.station).map((n) => {
         const t = stationName(n);
+        const onRoad = n >= 1 && n <= 53;
         const state = n < p.station ? 'passed' : n === p.station ? 'here' : 'ahead';
-        const word = state === 'passed' ? S.dojoTownPassed : state === 'here' ? S.dojoTownHere : S.dojoTownAhead;
         return (
           <li key={n} class="dojo__town" data-town={n} data-state={state} aria-current={state === 'here' ? 'step' : undefined}>
             <a class="sign dojo__town-link" href={townHref(n)}>
-              <span class="sign__number">{n}</span>
-              {n >= 1 && n <= 53 ? (
-                <span class="sign__ordinal" lang="ja" aria-hidden="true">
-                  第{kanjiNumeral(n)}宿
-                </span>
+              {onRoad ? (
+                <>
+                  <span class="sign__number">{n}</span>
+                  <span class="sign__ordinal" lang="ja" aria-hidden="true">
+                    第{kanjiNumeral(n)}宿
+                  </span>
+                </>
               ) : null}
               <span class="sign__ja" lang="ja">
                 {t.ja}
               </span>
-              <span class="sign__reading">{t.romaji}</span>
-              <span class="sign__en">{word}</span>
+              {romaji ? <span class="sign__reading">{t.romaji}</span> : null}
+              <span class="sign__en">{state === 'passed' ? S.dojoTownPassed : state === 'here' ? S.dojoTownHere : S.dojoTownAhead}</span>
             </a>
           </li>
         );
@@ -944,7 +1001,9 @@ export default function DojoPage(p: DojoPageProps): JSX.Element {
         {phaseWord ? <PhaseWord phase={phase} reduced={reduced} hold={shoji} onDone={() => setPhaseWord(false)} /> : null}
       </div>
 
-      <section class={`status-window dojo__status${enter ? ' ink-nijimi' : ''}`} style={enter ? ({ '--i': 1 } as JSX.CSSProperties) : undefined} aria-label={S.dojoForecast}>
+      <section class={`dojo__status${enter ? ' ink-nijimi' : ''}`} style={enter ? ({ '--i': 1 } as JSX.CSSProperties) : undefined} aria-label={S.dojoForecast}>
+        {/* the verb rides the section; the clipped cartouche inside never animates (§6.7 rule 7, d39) */}
+        <div class="status-window dojo__status-body">
         <p class="dojo__forecast" data-forecast>
           {feed.forecastLine}
         </p>
@@ -979,6 +1038,7 @@ export default function DojoPage(p: DojoPageProps): JSX.Element {
             {S.dojoCramCap}
           </p>
         ) : null}
+        </div>
       </section>
 
       {fresh ? (
@@ -1056,7 +1116,10 @@ export default function DojoPage(p: DojoPageProps): JSX.Element {
           <p class="dojo__proverb-line">
             <span class="eyebrow">{S.dojoProverb}</span>
             <span class="dojo__proverb" lang="ja">
-              {feed.proverb}
+              <Ruby ja={feed.proverb.ja} mode="always" />
+            </span>
+            <span class="dojo__proverb-en muted" lang="en">
+              {feed.proverb.en}
             </span>
           </p>
         ) : null}

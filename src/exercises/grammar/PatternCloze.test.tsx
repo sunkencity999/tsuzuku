@@ -202,7 +202,7 @@ describe('<PatternCloze> typed', () => {
     type(input(), 'nomimasuu');
     enter(input());
     expect(pr2.onResult.mock.calls[0]?.[0]).toMatchObject({ correct: false, nearMiss: true, errorTags: ['vowel-length'] });
-    expect(q('.gr__reveal')?.getAttribute('data-kind')).toBe('near');
+    expect(q('.gr__reveal')?.getAttribute('data-kind')).toBe('partial');
 
     act(() => render(null, root));
     const pr3 = props({ step: step({ params: { sentence: '{水|みず}をください。', blank: [0, 2], answer: '水を' } }) });

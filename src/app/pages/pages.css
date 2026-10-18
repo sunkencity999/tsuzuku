@@ -75,7 +75,7 @@
 .dojo__phase-ja { font-family: var(--font-brush); font-size: var(--fs-5); line-height: 1.1; color: var(--shu); }
 .dojo__phase-reading { font-size: var(--fs-3); letter-spacing: 0.04em; }
 .dojo__phase-en { font-size: var(--fs-2); color: var(--fg-muted); }
-.dojo__status { display: flex; flex-direction: column; gap: var(--sp-2); }
+.dojo__status-body { display: flex; flex-direction: column; gap: var(--sp-2); }
 .dojo__forecast { margin: 0; font-size: var(--fs-4); line-height: 1.3; }
 .dojo__line { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); color: var(--fg-muted); font-size: var(--fs-2); }
 /* one hanko (the recommended session); the others are paper tiles with a seal corner (§5.3) */
@@ -91,7 +91,7 @@
 .dojo__session-desc { font-size: var(--fs-2); font-weight: 400; }
 .dojo__session-count { font-size: var(--fs-2); font-weight: 400; }
 .dojo__session-tag { font-family: var(--font-pixel); font-size: var(--fs-1); font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; }
-.dojo__resume { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.dojo__resume { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); view-transition-name: shiori; } /* §7 F: the Leave slip's shared element (SessionView.css .tanzaku[data-shiori]) lands here */
 .dojo__resume-text { flex: 1 1 200px; margin: 0; }
 .dojo__quests { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
 .dojo__quest { display: grid; grid-template-columns: 1.5rem 1fr auto; align-items: center; gap: var(--sp-2); min-height: var(--touch); }
@@ -125,6 +125,7 @@
 /* the proverb under its visible eyebrow; off Mincho (its glyphs are not in the Shippori shell, 09 §3.1) */
 .dojo__proverb-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); margin: 0; }
 .dojo__proverb { font-family: var(--font-ja); font-size: var(--fs-4); }
+.dojo__proverb-en { font-size: var(--fs-2); }
 /* 茶屋ラジオ tile (design 08 §10.2): quiet, under the session tiles */
 .dojo__radio { border-left: 4px solid var(--kin); }
 .dojo__radio-min { margin: 0; font-size: var(--fs-3); font-variant-numeric: tabular-nums; }

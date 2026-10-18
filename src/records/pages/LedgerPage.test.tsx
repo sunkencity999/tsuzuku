@@ -249,7 +249,7 @@ describe('<LedgerPage> the dojo’s share (design 08 §12)', () => {
   it('"(reported)" marks outside rows only; the honest-share paragraph is stated; the new copy passes the banned lint', async () => {
     await makeTestStore({ save: { ledger: { entries: [[TODAY, 20, 0, 1], [TODAY, 10, 0, 0]] } } });
     mount();
-    expect(root.querySelector('.ledger__h1')?.textContent).not.toContain('(reported)');
+    expect(root.querySelector('.ledger .title-lockup')?.textContent).not.toContain('(reported)');
     expect(root.querySelector('#ledger-life-title')?.textContent).not.toContain('(reported)');
     expect(root.querySelector('[data-tile-external] .tag')?.textContent).toBe('(reported)');
     expect(root.querySelector('.ledger__week-text .tag')?.textContent).toBe('(reported)');

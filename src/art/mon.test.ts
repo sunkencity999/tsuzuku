@@ -17,6 +17,8 @@ import {
   monParts,
   monSeed,
   monSpec,
+  monStoneDataUrl,
+  monStoneImage,
   monSvg,
   type MonSpec,
 } from './mon';
@@ -244,6 +246,37 @@ describe('monSvg', () => {
     expect(dark).toContain(PALETTE.dark.kin.toLowerCase());
     expect(dark).toContain(PALETTE.dark.kon.toLowerCase());
     expect(dark).not.toContain(PALETTE.light.kin.toLowerCase());
+  });
+
+  it('monStoneDataUrl is the locked crest as a data URL of the very same markup (design 09 §7 E: one rasterised emboss, no live filter)', () => {
+    const url = monStoneDataUrl(MON_SPECS.kyoto, { size: 72, seed: monSeed('kyoto') });
+    expect(url.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true);
+    const svg = decodeURIComponent(url.slice(url.indexOf(',') + 1));
+    expect(svg).toBe(monSvg(MON_SPECS.kyoto, { size: 72, earned: false, seed: monSeed('kyoto') }));
+    expect(svg).toContain('feSpecularLighting');
+    expect(svg).not.toContain('var(');
+    parse(svg);
+    expect(monStoneDataUrl(MON_SPECS.kyoto, { size: 72, seed: monSeed('kyoto'), idPrefix: 'grid' })).toContain('grid-emboss');
+  });
+
+  it('monStoneImage leaves the glyph out of the data URL and hands it back as a brush TextLayer for an inline overlay (webfonts never resolve inside an image)', () => {
+    const img = monStoneImage(MON_SPECS.kyoto, { size: 72, seed: monSeed('kyoto') });
+    expect(img.url.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true);
+    const svg = decodeURIComponent(img.url.slice(img.url.indexOf(',') + 1));
+    expect(svg).toBe(monSvg(MON_SPECS.kyoto, { size: 72, earned: false, seed: monSeed('kyoto'), glyphInSvg: false }));
+    expect(svg).not.toContain('<text');
+    expect(svg).toContain('feSpecularLighting');
+    expect(svg).toContain('mon__art--locked');
+    parse(svg);
+    expect(img.view).toBe(MON_VIEW);
+    expect(img.glyph.text).toBe(MON_SPECS.kyoto.glyph);
+    expect(img.glyph.font).toContain('Yuji Syuku');
+    expect(img.glyph.anchor).toBe('middle');
+    expect(img.glyph.fill).toMatch(/^#[0-9a-f]{6}$/i);
+    // the glyph layer is the very one monParts offers; the default output is untouched
+    const parts = monParts(MON_SPECS.kyoto, { size: 72, earned: false, seed: monSeed('kyoto') });
+    expect(img.glyph).toEqual(parts.glyphLayer);
+    expect(monSvg(MON_SPECS.kyoto, { size: 72, earned: false, seed: monSeed('kyoto') })).toContain('<text');
   });
 
   it('defs ids are namespaced per seed so several crests can share a page', () => {

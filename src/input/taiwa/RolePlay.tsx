@@ -695,7 +695,7 @@ function Play(p: PlayProps): JSX.Element {
       {phase === 'learner' && line ? (
         <div class="taiwa__turn">
           <p class="taiwa__prompt">
-            <span class="taiwa__label">{S.yourLine}</span>
+            <span class="eyebrow">{S.yourLine}</span>
             <span lang="ja" class="taiwa__you">
               {learner}
             </span>
@@ -818,13 +818,13 @@ function Play(p: PlayProps): JSX.Element {
           {last.kind !== 'best' ? (
             <>
               <p class="taiwa__row">
-                <span class="taiwa__label">{S.yours}</span>
+                <span class="eyebrow">{S.yours}</span>
                 <span lang="ja" class="taiwa__given">
                   {last.given}
                 </span>
               </p>
               <p class="taiwa__row taiwa__recast">
-                <span class="taiwa__label">{S.modelLine}</span>
+                <span class="eyebrow">{S.modelLine}</span>
                 <span class="taiwa__model">
                   <Ruby ja={feedbackLine.ja} mode={furigana} />
                 </span>

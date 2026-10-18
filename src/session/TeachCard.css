@@ -1,9 +1,12 @@
-/* TSUZUKU — <TeachCard> + <PitchMark> (group E). Tokens from tokens.css; .scroll-card / .btn / .chip from components.css. */
+/* TSUZUKU — <TeachCard> + <PitchMark> (group E). Tokens from tokens.css; .scroll-card / .btn / .chip from components.css;
+   .eyebrow from motion.css. Reduced motion is base.css's global rule plus the zeroed --dur-* tokens (design 09 §6.6). */
 
 /* ── teach card ──────────────────────────────────────────────────────── */
 
+/* cards stagger at 60 ms (a local --stagger, 09 §6.3); motion.css's cap: the first eight stagger, the rest arrive with the eighth */
 .teach-card {
-  animation-delay: calc(var(--i, 0) * 60ms);
+  --stagger: calc(var(--dur-1) / 2);
+  animation-delay: calc(min(var(--i, 0), 7) * var(--stagger));
 }
 
 .teach-card__head {
@@ -46,13 +49,8 @@
   font-size: var(--fs-4);
 }
 
-.teach-card__label {
+.teach-card h4 {
   margin: var(--sp-3) 0 var(--sp-1);
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
 }
 
 .teach-card__line {
@@ -146,15 +144,4 @@
 .pitch-mark__morae span {
   display: inline-block;
   text-align: center;
-}
-
-.pitch-mark__label {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .teach-card {
-    animation: none;
-  }
 }

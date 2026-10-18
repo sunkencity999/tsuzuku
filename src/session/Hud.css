@@ -1,4 +1,5 @@
-/* TSUZUKU — <Hud> (group E). Tokens from src/styles/tokens.css; .progress / .forge-bar / .notice base styles from components.css. */
+/* TSUZUKU — <Hud> (group E). Tokens from src/styles/tokens.css; .meter from motion.css, .forge-bar__label / __count
+   and .notice from components.css. Reduced motion: the global rule and the zeroed tokens (no block here). */
 
 .hud {
   display: flex;
@@ -19,7 +20,9 @@
 }
 
 .hud__bar {
+  --meter-tone: var(--matcha);
   flex: 1 1 auto;
+  height: 8px;
 }
 
 .hud__count {
@@ -50,13 +53,19 @@
   background: var(--surface);
 }
 
-.hud__block::before {
+/* the dots: done = matcha, ahead = hai (pseudo); the current block's vermilion dot is a real
+   .hud__dot that glides over by FLIP (Hud.tsx, transform only) */
+.hud__block::before,
+.hud__dot {
   content: '';
   display: inline-block;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--hai);
+}
+.hud__dot {
+  background: var(--shu);
 }
 
 .hud__block[data-state='done'] {
@@ -72,7 +81,7 @@
   border-color: var(--shu);
 }
 .hud__block[data-state='current']::before {
-  background: var(--shu);
+  content: none;
 }
 
 .hud__current {
@@ -87,20 +96,16 @@
 }
 
 .hud__forge {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   width: 100%;
+  min-height: 28px;
+}
+.hud__forge .meter {
+  flex: 1 1 auto;
 }
 
 .hud[data-feel='zen'] .hud__count {
   color: var(--hai);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hud .progress__fill,
-  .hud .forge-bar__fill {
-    transition: none;
-  }
-}
-.reduced-motion .hud .progress__fill,
-.reduced-motion .hud .forge-bar__fill {
-  transition: none;
 }

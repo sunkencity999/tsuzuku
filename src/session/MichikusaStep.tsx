@@ -9,7 +9,9 @@
  * exactly once (B grants the 5 XP); a fragment already collected is shown
  * flagged "again" and emits nothing (no XP, design 04 §10). The builder picks
  * the fragment (`builder.michikusaFor`); this component only reads it, loading
- * the file on demand when it is not in memory yet.
+ * the file on demand when it is not in memory yet. The ten-second read line is
+ * a `.meter` whose fill hiku-draws (scale, never width — design 09 §6.7); it is
+ * decorative pacing, never a gate.
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -155,8 +157,8 @@ export function MichikusaStep(p: MichikusaStepProps): JSX.Element {
       )}
 
       <footer class="michikusa__foot">
-        <div class="michikusa__read" aria-hidden="true">
-          <div class="michikusa__read-fill" />
+        <div class="meter michikusa__read" style="--value:1" aria-hidden="true">
+          <div class="meter__fill michikusa__read-fill" />
         </div>
         <span class="sr-only">{S.michikusaReadTime}</span>
         <button type="button" class="hanko michikusa__continue" onClick={finish} ref={continueRef} aria-keyshortcuts="Enter">

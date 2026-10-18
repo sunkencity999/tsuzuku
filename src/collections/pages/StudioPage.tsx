@@ -31,6 +31,7 @@ import { href, type Route } from '../../shared/routes';
 import { formatEraDate } from '../../shared/time';
 import { WALLPAPER_DEFS, store } from '../../store';
 import { gatherData, isUnlocked, progressFor, revealedFor } from '../KakejikuGallery';
+import { eraGloss } from '../reveal';
 import { S, fill } from '../strings';
 import './StudioPage.css';
 
@@ -323,7 +324,7 @@ export default function StudioPage(p: StudioPageProps): JSX.Element {
           </span>
           <span class="studio__h1-en">{names.en}</span>
         </h1>
-        <p class="studio__eyebrow">
+        <p class="studio__meta">
           <span lang="ja">{S.studioJa}</span> {S.studioTitle}
           {def?.living ? <span class="chip chip--tag">{S.livingLabel}</span> : null}
           {reforges > 0 ? <span class="chip">{fill(S.brushLabel, { n: reforges + 1 })}</span> : null}
@@ -367,7 +368,7 @@ export default function StudioPage(p: StudioPageProps): JSX.Element {
             {data ? (
               <span class="studio__facts">
                 <span>
-                  {S.dateLabel}: <span lang="ja">{formatEraDate(data.date)}</span>
+                  {S.dateLabel}: <span lang="ja">{formatEraDate(data.date)}</span> · {eraGloss(data.date)}
                 </span>
                 <span>
                   {S.streakLabel}: {fill(S.daysUnit, { n: data.streak })}

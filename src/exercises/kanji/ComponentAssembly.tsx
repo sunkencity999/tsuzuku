@@ -29,6 +29,7 @@ import { rngFor, shuffle, type Rng } from '@/shared/hash';
 import { useExerciseKeys } from '@/shared/ui/ExerciseFrame';
 import { store } from '@/store';
 import { attempt } from '../check';
+import { useFlip } from '../flip';
 import { S as SD } from '../strings';
 import { S, fill } from './strings';
 import './kanji.css';
@@ -197,6 +198,9 @@ export function ComponentAssembly(p: ExerciseProps): JSX.Element {
 
   const n = built?.answer.length ?? 0;
   const elapsed = (): number => Math.max(0, store.now() - started.current);
+  // reorder = FLIP (design 09 §10 C1): a part glides down a slot when the one before it is taken out
+  const frame = useRef<HTMLDivElement>(null);
+  useFlip(frame, picked.map((t) => t.key).join(','));
 
   const emit = (r: AttemptResult): void => {
     if (done.current) return;
@@ -250,7 +254,7 @@ export function ComponentAssembly(p: ExerciseProps): JSX.Element {
   if (!kanji || loadError) {
     return (
       <div class="kj kj-asm" data-state="unavailable">
-        <div class="kj__reveal status-window" data-kind="info" role="status">
+        <div class="kj__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{loadError ? S.assemblyNoParts : S.cannotBuild}</p>
           <p class="kj__why">{S.shownNotTested}</p>
           {kanji ? (
@@ -286,7 +290,7 @@ export function ComponentAssembly(p: ExerciseProps): JSX.Element {
       </dl>
 
       {built ? (
-        <div class="kj-frame" data-layout={layout} role="group" aria-label={S.assemblyFrame}>
+        <div class="kj-frame" data-layout={layout} role="group" aria-label={S.assemblyFrame} ref={frame}>
           {Array.from({ length: n }, (_, i) => {
             const t = picked[i] ?? null;
             const state = phase === 'done' && t ? (expectedKeys.has(t.key) ? 'correct' : 'wrong') : undefined;
@@ -304,7 +308,7 @@ export function ComponentAssembly(p: ExerciseProps): JSX.Element {
                 aria-label={t ? fill(S.assemblySlotFilled, { n: i + 1, part: t.name || t.char }) : `${fill(S.assemblySlot, { n: i + 1 })}: ${S.assemblySlotEmpty}`}
                 onClick={() => removeSlot(i)}
               >
-                {t ? t.char : fill(S.assemblySlot, { n: i + 1 })}
+                {t ? <span data-flip={t.key}>{t.char}</span> : fill(S.assemblySlot, { n: i + 1 })}
               </button>
             );
           })}
@@ -366,21 +370,21 @@ export function ComponentAssembly(p: ExerciseProps): JSX.Element {
       ) : null}
 
       {hintShown && phase === 'build' ? (
-        <div class="kj__reveal status-window" data-kind="info" data-hint="true">
+        <div class="kj__reveal reveal ink-nijimi" data-kind="info" data-hint="true">
           <p>
-            <span class="kj__label">{SD.mnemonic}</span> <span>{kanji.mnemonic}</span>
+            <span class="eyebrow">{SD.mnemonic}</span> <span>{kanji.mnemonic}</span>
           </p>
           <p class="kj__why">{S.hintUsedNote}</p>
         </div>
       ) : null}
 
       {phase === 'done' && built ? (
-        <div class="kj__reveal status-window" data-kind={revealKind}>
+        <div class="kj__reveal reveal ink-nijimi" data-kind={revealKind}>
           <p class="kj__glyph kj__glyph--sm" lang="ja" aria-label={S.kanjiLabel}>
             {kanji.char}
           </p>
           <p data-parts="true">
-            <span class="kj__label">{SD.components}</span>{' '}
+            <span class="eyebrow">{SD.components}</span>{' '}
             <span>{fill(S.assemblyAnswer, { parts: built.answer.map((t) => (t.name && !t.text ? `${t.char} ${t.name}` : t.char)).join(' · ') })}</span>
           </p>
           {orderNote ? (
@@ -389,7 +393,7 @@ export function ComponentAssembly(p: ExerciseProps): JSX.Element {
             </p>
           ) : null}
           <p>
-            <span class="kj__label">{SD.mnemonic}</span> <span>{kanji.mnemonic}</span>
+            <span class="eyebrow">{SD.mnemonic}</span> <span>{kanji.mnemonic}</span>
           </p>
         </div>
       ) : null}

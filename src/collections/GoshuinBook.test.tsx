@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import type { ExportOptions } from '../art/png';
@@ -5,7 +7,8 @@ import { STATIONS } from '../content/types';
 import { civilToDay, formatEraDate } from '../shared/time';
 import { resetStoreForTests } from '../store/store';
 import { makeTestStore } from '../store/testing';
-import { GoshuinBook, bookFilename, bookStamps, buildPages, initialSpread, spreadOfPage, spreadsOf } from './GoshuinBook';
+import { GoshuinBook, PAGE_TURN_CLASS, bookFilename, bookStamps, buildPages, initialSpread, spreadOfPage, spreadsOf } from './GoshuinBook';
+import { eraGloss, markOpened, newSince, resetOpenedForTests } from './reveal';
 
 const DAY = civilToDay({ year: 2026, month: 10, day: 17 });
 
@@ -18,6 +21,7 @@ afterEach(() => {
   render(null, root);
   root.remove();
   resetStoreForTests();
+  resetOpenedForTests();
 });
 
 const STAMPS = {
@@ -159,7 +163,10 @@ describe('<GoshuinBook>', () => {
     expect(belt).not.toBeNull();
     expect(belt.getAttribute('data-state')).toBe('cleared');
     expect(belt.querySelector('.mon--earned')).not.toBeNull();
-    expect(belt.textContent).toContain(`Passed ${formatEraDate(DAY - 1)}`);
+    expect(belt.textContent).toContain(`Passed ${formatEraDate(DAY - 1)} · ${eraGloss(DAY - 1)}`);
+    // the belt title carries its romaji (the only reading a rank has)
+    expect(belt.querySelector('.goshuin-book__romaji')?.textContent).toBe('入門 · Nyūmon');
+    expect(belt.querySelector('.goshuin-book__romaji [lang="ja"]')?.textContent).toBe('入門');
     expect(root.querySelector('.goshuin-book__spread-label')?.textContent).toBe('Spread 5 of 30');
   });
 
@@ -210,5 +217,88 @@ describe('<GoshuinBook>', () => {
     expect(rec.saved).toEqual([]);
     expect(root.querySelector('.goshuin-book__status')?.textContent).toContain('cannot draw the image');
     expect(root.querySelector<HTMLButtonElement>('[data-export="desktop"]')!.disabled).toBe(false);
+  });
+
+  it('holds at most two <filter> elements (none): stamps are <img> data URLs with their text set over them in the page fonts, the belt crest stone is an <img>, the spread is a .sheet--gutter', async () => {
+    await mount(recorder());
+    expect(root.querySelectorAll('filter').length).toBeLessThanOrEqual(2);
+    expect(root.querySelectorAll('filter')).toHaveLength(0);
+    const four = spreadEl().querySelector('[data-station="4"]')!;
+    const img = four.querySelector<HTMLImageElement>('img.goshuin__img');
+    expect(img).not.toBeNull();
+    expect(img!.getAttribute('src')!.startsWith('data:image/svg+xml')).toBe(true);
+    const image = decodeURIComponent(img!.getAttribute('src')!);
+    expect(image).not.toContain('var(');
+    // no webfont resolves inside an image: the name is inline <text> over it, not in the data URL
+    expect(image).not.toContain('<text');
+    expect(four.querySelector('.goshuin__svg svg.goshuin__text text')).not.toBeNull();
+    expect(four.querySelector('.goshuin__svg svg.goshuin__text')?.textContent).toContain('保土ヶ谷');
+    expect(four.querySelectorAll('.goshuin__svg svg')).toHaveLength(1);
+    expect(four.querySelector('.goshuin__svg')?.getAttribute('aria-label')).toContain('保土ヶ谷');
+    // the caption's era date carries its Latin gloss (§3.3)
+    expect(four.querySelector('.goshuin__date')?.textContent).toBe(formatEraDate(DAY - 2));
+    expect(four.querySelector('.goshuin__gloss')?.textContent).toBe(eraGloss(DAY - 2));
+    expect(spreadEl().classList.contains('sheet')).toBe(true);
+    expect(spreadEl().classList.contains('sheet--gutter')).toBe(true);
+    expect(root.querySelector('.goshuin-book__spread-label')?.classList.contains('eyebrow')).toBe(true);
+    key('End');
+    const black = spreadEl().querySelector('[data-belt="black"]')!;
+    expect(black.querySelector('img.mon__img')).not.toBeNull();
+    expect(black.querySelector('svg.mon__text text')?.textContent?.length).toBe(1);
+    expect(root.querySelectorAll('filter')).toHaveLength(0);
+    // the spread label takes its type from .eyebrow alone (no local font-size collision)
+    const css = readFileSync(resolve(process.cwd(), 'src/collections/GoshuinBook.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(/\.goshuin-book__spread-label\s*\{([^}]*)\}/.exec(css)?.[1]).not.toMatch(/font-size/);
+    expect(css).not.toMatch(/,\s*\.goshuin-book__spread-label\s*\{/);
+  });
+
+  it('the newest spread turns its right page in once: not the left page, gone after the spreads turn, never under reducedMotion (both pages stand)', async () => {
+    await mount(recorder());
+    const pages = spreadEl().querySelectorAll('.goshuin-book__page');
+    expect(pages).toHaveLength(2);
+    expect(pages[1]!.classList.contains(PAGE_TURN_CLASS)).toBe(true);
+    expect(pages[0]!.classList.contains(PAGE_TURN_CLASS)).toBe(false);
+    key('ArrowRight');
+    expect(root.querySelector(`.${PAGE_TURN_CLASS}`)).toBeNull();
+    key('ArrowLeft');
+    expect(stationsShown()).toEqual([3, 4]);
+    expect(root.querySelector(`.${PAGE_TURN_CLASS}`)).toBeNull();
+
+    render(null, root);
+    resetStoreForTests();
+    await mount(recorder(), { settings: { reducedMotion: true } });
+    expect(stationsShown()).toEqual([3, 4]);
+    expect(root.querySelector(`.${PAGE_TURN_CLASS}`)).toBeNull();
+  });
+
+  it('moment E inline: a stamp earned since the last open is pressed when its stamp slot is seen (at once without an observer), the print bleeding in while the caption stands, with the era date and its Latin gloss; the export bar is a .meter', async () => {
+    const rec = recorder();
+    // the book was opened before with stations 1 and 2 only: 4 is new since, whatever the clock says
+    markOpened('goshuin', ['1', '2']);
+    await mount(rec);
+    const four = spreadEl().querySelector('[data-station="4"]')!;
+    expect(four.getAttribute('data-reveal')).toBe('in');
+    // the entrance rides the print (image + text) inside the art box, never the figure: the caption never blinks
+    expect(four.querySelector('figure.goshuin')?.classList.contains('ink-nijimi')).toBe(false);
+    expect(four.querySelector('.goshuin__print')?.classList.contains('ink-nijimi')).toBe(true);
+    expect(four.querySelector('.goshuin__svg')?.classList.contains('ink-osu')).toBe(true);
+    expect(four.querySelector('.goshuin-book__stamp .collections__era')?.textContent).toBe(formatEraDate(DAY - 2));
+    expect(four.querySelector('.seal-date__label')?.textContent).toBe(eraGloss(DAY - 2));
+    // seen: the book records it, so a page turned away from and back never replays
+    expect(newSince('goshuin', [{ id: '4', at: DAY - 2 }], DAY).size).toBe(0);
+    // the uncleared page has no reveal
+    expect(spreadEl().querySelector('[data-station="3"]')?.hasAttribute('data-reveal')).toBe(false);
+    // while a fresh stamp waits, only its art is held back — the caption reads (CSS text)
+    const css = readFileSync(resolve(process.cwd(), 'src/collections/GoshuinBook.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).toMatch(/\[data-reveal="wait"\] \.goshuin__svg\s*\{\s*opacity:\s*0;\s*\}/);
+    expect(css).not.toMatch(/\[data-reveal="wait"\] \.goshuin\s*\{/);
+    await act(async () => {
+      root.querySelector<HTMLButtonElement>('[data-export="desktop"]')!.click();
+    });
+    const bar = root.querySelector<HTMLElement>('.goshuin-book__progress');
+    if (bar) {
+      expect(bar.classList.contains('meter')).toBe(true);
+      expect(bar.querySelector('.meter__fill')).not.toBeNull();
+    }
   });
 });

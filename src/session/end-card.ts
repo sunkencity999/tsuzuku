@@ -5,6 +5,9 @@
  *  jikaiYokoku()    次回予告: one sentence of the next episode with exactly one
  *                   token masked as ???, three words from the next Scroll in
  *                   kana, one informational milestone line (no countdown words)
+ *  glossOf()        the English beside each of those words, and
+ *  sentenceGloss()  the English of the preview line (design 09 §12.1 d33: a
+ *                   zero-Japanese learner never meets kana alone)
  *  endCardNotes()   overtraining line, Arcade-feel nudge, cramming / backlog lines
  *  omikuji()        the Omikuji cut: a seeded proverb line, no modifiers
  *  trackCeremonies() collects badge / wallpaper / stamp / belt / level events
@@ -138,6 +141,31 @@ export function kanaOf(item: ContentItem | undefined): string | null {
   return null;
 }
 
+/** English gloss of an item for the 次回予告 word line (design 09 §12.1 d33): the first house-style meaning, a kana's romaji, a part's name; a kanji's gloss follows `kanaOf` (its first example word's `en`, else the first meaning) so the line never pairs one word's kana with another's sense. */
+export function glossOf(item: ContentItem | undefined): string | null {
+  if (!item) return null;
+  if (isVocab(item)) return item.meanings[0] ?? null;
+  if (isKana(item)) return item.romaji;
+  if (isKanji(item)) return item.examples[0]?.en ?? item.meanings[0] ?? null;
+  if (isGrammar(item)) return item.meaning;
+  if (isComponent(item)) return item.name ?? null;
+  return null;
+}
+
+/**
+ * The English of the preview sentence: masking leaves the line's kana whole, so
+ * the line is found again in its story by kana (first by `ja` for the unmasked
+ * case). `null` when the story is not in memory or the line cannot be found.
+ */
+export function sentenceGloss(sentence: JikaiYokoku['sentence'], get: (id: string) => ContentItem | undefined): string | null {
+  if (!sentence) return null;
+  const story = get(sentence.storyId);
+  if (!story || !('lines' in story) || !Array.isArray(story.lines)) return null;
+  const lines = story.lines as readonly StoryLine[];
+  const line = lines.find((l) => l.ja === sentence.ja) ?? lines.find((l) => l.kana === sentence.kana);
+  return line?.en ?? null;
+}
+
 /** Tomorrow's first Scroll ignoring today's spent budget (what the learner will meet next). */
 export function nextScrollItems(ctx: PlanContext, n: number): string[] {
   if (!ctx.bundle) return [];
@@ -162,16 +190,50 @@ export function nextScrollItems(ctx: PlanContext, n: number): string[] {
 
 /**
  * The next station's vista name ("Fuji view"), when one is known — C2's
- * `src/art/road/vistas.ts` table once it lands; `null` / `undefined` for none.
+ * `src/art/road/vistas.ts` table; `null` / `undefined` for none.
  */
 export type VistaLookup = (station: number) => string | null | undefined;
 
-/** `坂の関守 Hill Keeper`, with the vista riding inside it (`… · Fuji view`) when the lookup knows one (design 09 §10 B2). */
-export function gateNameOf(station: number, vista?: VistaLookup): string {
+/*
+ * The table itself is art-tier (`src/art/road`), which the session group may
+ * not import statically (ARCHITECTURE §0); like `pages.ts optional()` it is
+ * reached through a lazy glob and the card degrades to the plain Gatekeeper
+ * line when it is absent. `jikaiYokoku` awaits it once per call.
+ */
+type VistasModule = { vistaName: VistaLookup };
+const VISTAS_FILE = '/src/art/road/vistas.ts';
+const VISTAS_GLOB = import.meta.glob<VistasModule>('/src/art/road/vistas.ts');
+let vistasPromise: Promise<VistaLookup | undefined> | null = null;
+
+/** The road's vista lookup, once; `undefined` when the table is not built. */
+export function loadVistaLookup(): Promise<VistaLookup | undefined> {
+  if (!vistasPromise) {
+    const loader = VISTAS_GLOB[VISTAS_FILE];
+    vistasPromise = loader
+      ? loader().then(
+          (m) => (typeof m.vistaName === 'function' ? m.vistaName : undefined),
+          () => undefined,
+        )
+      : Promise.resolve(undefined);
+  }
+  return vistasPromise;
+}
+
+/** Tests: forget the loaded table. */
+export function resetVistaLookupForTests(): void {
+  vistasPromise = null;
+}
+
+/** `坂の関守 Hill Keeper` — the gate's name as the milestone lines print it. */
+export function gateNameOf(station: number): string {
   const st = STATIONS.find((s) => s.number === station);
-  const gate = st ? `${st.gateJa} ${st.gateEn}` : `Station ${station}`;
+  return st ? `${st.gateJa} ${st.gateEn}` : `Station ${station}`;
+}
+
+/** A finished gate line with the next station's vista after it as a second sentence when the lookup knows one (design 09 §10 B2, §12.1 d38). */
+export function withVista(line: string, station: number, vista?: VistaLookup): string {
   const v = vista?.(station);
-  return v ? fill(ES.gateWithVista, { gate, vista: v }) : gate;
+  return v ? fill(ES.gateWithVista, { line, vista: v }) : line;
 }
 
 /** The milestone line: gate ETA from Projected Arrival, else the belt exam, else the Kage Monday (design 03 §10 #2). */
@@ -179,13 +241,14 @@ export function milestoneLine(ctx: PlanContext, vista?: VistaLookup): string {
   const progress = store.progress.value;
   if (ctx.bundle) {
     const sp = stationProgress(ctx.station, ctx.bundle);
-    if (sp.gateReady && !sp.cleared) return fill(S.milestoneGateReady, { gate: gateNameOf(ctx.station, vista) });
+    if (sp.gateReady && !sp.cleared) return withVista(fill(S.milestoneGateReady, { gate: gateNameOf(ctx.station) }), ctx.station, vista);
   }
   if (!progress.stationsCleared.includes(ctx.station)) {
     const proj = projectedArrival(store.meta(), store.cards, ctx.bundles, ctx.station, ctx.today, store.log.recent(5000));
     if (proj) {
       const days = Math.max(0, proj.atPace - ctx.today);
-      return days <= 1 ? fill(S.milestoneGateSoon, { gate: gateNameOf(ctx.station, vista) }) : fill(S.milestoneGateIn, { gate: gateNameOf(ctx.station, vista), n: days });
+      const gate = gateNameOf(ctx.station);
+      return withVista(days <= 1 ? fill(S.milestoneGateSoon, { gate }) : fill(S.milestoneGateIn, { gate, n: days }), ctx.station, vista);
     }
   }
   const belt = beltOfStation(ctx.station);
@@ -204,13 +267,17 @@ export interface YokokuOptions {
   today: EpochDay;
   /** Additive: content source (tests pass `createFakeLoader()`). */
   loader?: ContentLoader;
-  /** Additive: the next-station vista name for line 3 (design 09 §10 B2); absent until C2's vistas table lands. */
-  vista?: VistaLookup;
+  /** Additive: the next-station vista name for line 3 (design 09 §10 B2); defaults to the road's `vistaName` table, `null` to force the plain gate line. */
+  vista?: VistaLookup | null;
 }
 
 /** 次回予告 (design 03 §10 #2). Every line is informational; nothing counts down. */
 export async function jikaiYokoku(o: YokokuOptions): Promise<JikaiYokoku> {
-  const ctx = await loadPlanContext({ station: o.station, loader: o.loader, mode: 'yokoku' });
+  // the vista table loads beside the plan context, not after it (d42): the End Card's loading state is one await long
+  const [ctx, vista] = await Promise.all([
+    loadPlanContext({ station: o.station, loader: o.loader, mode: 'yokoku' }),
+    o.vista === null ? Promise.resolve(undefined) : o.vista ? Promise.resolve(o.vista) : loadVistaLookup(),
+  ]);
   const introduced = (id: string): boolean => Object.keys(store.cards.byItem(id)).length > 0;
   const dueSoon = (id: string): boolean => {
     const facets = store.cards.byItem(id);
@@ -219,7 +286,7 @@ export async function jikaiYokoku(o: YokokuOptions): Promise<JikaiYokoku> {
   const stories = ctx.stories.filter((s) => s.kind === 'story').sort((a, b) => (a.id < b.id ? -1 : 1));
   const candidates = stories.filter((s) => s.lines.some((l) => (l.tokenIds ?? []).some((id) => id !== null && !introduced(id))));
   const story = candidates[0] ?? stories[0] ?? ctx.stories[0];
-  const out: JikaiYokoku = { words: [], milestone: milestoneLine(ctx, o.vista) };
+  const out: JikaiYokoku = { words: [], milestone: milestoneLine(ctx, vista) };
   if (story) {
     const masked = pickMaskedLine(story, introduced, dueSoon);
     if (masked) out.sentence = { storyId: story.id, ja: masked.ja, kana: masked.kana, maskedToken: masked.maskedToken };
@@ -262,9 +329,15 @@ export function endCardNotes(o: EndCardNotesInput): string[] {
   return out;
 }
 
+/** One proverb: ruby-marked Japanese (`{base|reading}`) and its English gloss (design 09 §12.1 d36). */
+export interface Omikuji {
+  readonly ja: string;
+  readonly en: string;
+}
+
 /** The Omikuji cut: a deterministic proverb per (seed, day); it changes nothing (design 05 §13). */
-export function omikuji(seed: string, day: EpochDay): string {
-  return S.omikuji[hashSeed(seed, day, 'omikuji') % S.omikuji.length] as string;
+export function omikuji(seed: string, day: EpochDay): Omikuji {
+  return S.omikuji[hashSeed(seed, day, 'omikuji') % S.omikuji.length] as Omikuji;
 }
 
 /** The ledger prompt shows until an external entry exists for today. */

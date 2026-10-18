@@ -25,7 +25,7 @@ import { S, kanjiNumber, kanjiNumerals } from './strings-1';
 const P = 'ss';
 const PETAL = 'M0,-6 C3.5,-6 6,-3 5.5,0.5 C5,4 2,6 0,4.5 C-2,6 -5,4 -5.5,0.5 C-6,-3 -3.5,-6 0,-6 Z';
 
-function pagoda(x: number, ground: number, H: number, tiers: number, fill: string, glow: string): string {
+export function pagoda(x: number, ground: number, H: number, tiers: number, fill: string, glow: string): string {
   const parts: string[] = [];
   const tH = H / (tiers + 0.9);
   const W = H * 0.42;

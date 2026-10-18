@@ -220,11 +220,11 @@ export function FormChain(p: ExerciseProps): JSX.Element {
   if (!chain || !display) {
     return (
       <div class="gr gr-chain" data-state="unavailable">
-        <div class="gr__reveal status-window" data-kind="info" role="status">
+        <div class="gr__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{S.cannotBuild}</p>
           {vocab ? (
             <p>
-              <span class="gr__label">{S.forgeDictionary}</span> <span lang="ja">{vocab.word}</span>
+              <span class="eyebrow">{S.forgeDictionary}</span> <span lang="ja">{vocab.word}</span>
             </p>
           ) : null}
           <p class="gr__why">{S.shownNotTested}</p>
@@ -240,7 +240,7 @@ export function FormChain(p: ExerciseProps): JSX.Element {
 
   const current = chain[index] as ChainLink;
   const revealed = phase === 'done';
-  const kind = result ? (result.correct ? 'correct' : result.nearMiss ? 'near' : 'wrong') : 'info';
+  const kind = result ? (result.nearMiss ? 'partial' : result.correct ? 'correct' : 'wrong') : 'info';
   const band = result ? (result.correct ? S.chainPerfect : result.nearMiss ? S.chainOneMiss : S.chainMany) : '';
   const missed = log.filter((l) => l.state !== 'right');
 
@@ -248,7 +248,7 @@ export function FormChain(p: ExerciseProps): JSX.Element {
     <div class="gr gr-chain" data-phase={phase} data-index={index} data-length={n}>
       <p class="gr__prompt">{fill(S.chainPrompt, { n })}</p>
       <div class="gr__word">
-        <span class="gr__label">{S.forgeDictionary}</span>
+        <span class="eyebrow">{S.forgeDictionary}</span>
         <span class="gr__word-ja" lang="ja" data-dictionary="true">
           {display.word}
         </span>
@@ -275,7 +275,7 @@ export function FormChain(p: ExerciseProps): JSX.Element {
                 {entry ? MARK[entry.state] : i + 1}
               </span>
               <span>
-                <span class="gr__label">{FORM_LABEL[link.form]}</span>
+                <span class="eyebrow">{FORM_LABEL[link.form]}</span>
                 {entry ? (
                   <>
                     {' '}
@@ -314,9 +314,9 @@ export function FormChain(p: ExerciseProps): JSX.Element {
             )}
           </div>
           {hintOpen ? (
-            <div class="gr__reveal status-window" data-kind="info" data-hint="true">
+            <div class="gr__reveal reveal ink-nijimi" data-kind="info" data-hint="true">
               <p>
-                <span class="gr__label">{S.forgeRule}</span> <span>{FORM_HINT[current.form]}</span>
+                <span class="eyebrow">{S.forgeRule}</span> <span>{FORM_HINT[current.form]}</span>
               </p>
               <p class="gr__why">{S.hintUsedNote}</p>
             </div>
@@ -327,12 +327,12 @@ export function FormChain(p: ExerciseProps): JSX.Element {
       ) : null}
 
       {revealed && result ? (
-        <div class="gr__reveal status-window" data-kind={kind}>
+        <div class="gr__reveal reveal ink-nijimi" data-kind={kind}>
           <p data-tally="true">{fill(S.chainTally, { hits: result.hits, n })}</p>
           <p data-band="true">{band}</p>
           {missed.map((l) => (
             <p key={l.form} class="gr__why" data-rule={l.form}>
-              <span class="gr__label">{FORM_LABEL[l.form]}</span> <span>{FORM_HINT[l.form]}</span>
+              <span class="eyebrow">{FORM_LABEL[l.form]}</span> <span>{FORM_HINT[l.form]}</span>
             </p>
           ))}
           <p class="gr__why">{S.kanaAccepted}</p>

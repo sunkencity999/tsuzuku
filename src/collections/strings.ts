@@ -47,6 +47,14 @@ export const S = {
   earnedOn: 'Earned {date}',
   notYetEarned: 'Not yet earned.',
   close: 'Close',
+  /** Moment E inline (design 09 §7 E): the Latin gloss under the era date, never an unglossed one (§3.3). */
+  eraReiwa: 'Reiwa',
+  eraHeisei: 'Heisei',
+  eraShowa: 'Shōwa',
+  eraGloss: '{era} {y} · {mon} {d}',
+  eraGlossWestern: '{y} · {mon} {d}',
+  monthsShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as readonly string[],
+  newSinceOpen: 'New since you last opened this shelf',
 
   // ── Kakejiku gallery ────────────────────────────────────────────────
   kakejikuLede: '{unlocked} of {total} scrolls unlocked. Locked pieces hang as sumi silhouettes.',
@@ -200,6 +208,8 @@ export const S = {
   } as Record<string, string>,
   beltItem: '{belt} belt',
   stationHeading: '{n} · {name}',
+  /** The shelf head once kana are Green: the name reads as ruby, the number stays (design 09 §3.3). */
+  stationNumber: 'Station {n}',
   stationUnplaced: 'Captured on the road',
   itemCount: '{n} items',
   retiredChip: 'Retired',

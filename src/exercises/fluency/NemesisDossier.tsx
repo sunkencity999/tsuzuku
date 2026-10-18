@@ -410,14 +410,14 @@ export function NemesisDossier(p: ExerciseProps): JSX.Element {
               {S.duelHint}
             </button>
             {hint ? (
-              <p class="nemesis__hint" role="status">
+              <p class="nemesis__hint reveal ink-nijimi" data-kind="teach" role="status">
                 <span>{prompt.hint}</span>
                 <small>{S.duelHintCeiling}</small>
               </p>
             ) : null}
           </div>
         ) : (
-          <p class="nemesis__line" data-kind={done.correct && !done.nearMiss ? 'correct' : done.nearMiss ? 'near' : 'wrong'} role="status">
+          <p class="nemesis__line reveal ink-nijimi" data-kind={done.nearMiss ? 'partial' : done.correct ? 'correct' : 'wrong'} role="status">
             {line}
           </p>
         )}
@@ -540,7 +540,7 @@ export function NemesisDossier(p: ExerciseProps): JSX.Element {
 
       {dossier.sentences.length > 0 ? (
         <section class="nemesis__section" aria-label={S.inContext}>
-          <h3 class="nemesis__label">{S.inContext}</h3>
+          <h3 class="eyebrow nemesis__label">{S.inContext}</h3>
           <ul class="nemesis__sentences">
             {dossier.sentences.map((s, i) => (
               <li key={i}>
@@ -553,7 +553,7 @@ export function NemesisDossier(p: ExerciseProps): JSX.Element {
       ) : null}
 
       <section class="nemesis__section" aria-label={S.confusable}>
-        <h3 class="nemesis__label">{S.confusable}</h3>
+        <h3 class="eyebrow nemesis__label">{S.confusable}</h3>
         {dossier.confusables.length > 0 ? (
           <table class="nemesis__compare">
             <caption class="sr-only">{S.sideBySide}</caption>
@@ -593,7 +593,7 @@ export function NemesisDossier(p: ExerciseProps): JSX.Element {
 
       {dossier.rows.length > 0 ? (
         <section class="nemesis__section" aria-label={S.history}>
-          <h3 class="nemesis__label">{S.history}</h3>
+          <h3 class="eyebrow nemesis__label">{S.history}</h3>
           <ul class="nemesis__history">
             {dossier.rows.map((r) => (
               <li key={r.facet} data-nemesis={r.nemesis ? 'true' : undefined}>

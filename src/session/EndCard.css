@@ -70,6 +70,9 @@
 /* omikuji in --font-ja: Mincho is fenced (§3.1); the proverbs are outside the Shippori shell */
 .end-card__omikuji { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: var(--sp-3); border-inline-start: 3px solid var(--kin); background: var(--stage-raised); border-radius: var(--radius); }
 .end-card__omikuji-text { font-family: var(--font-ja); font-size: var(--fs-3); line-height: var(--lh-ja); }
+.end-card__omikuji-en { font-family: var(--font-ui); font-size: var(--fs-2); }
+/* 次回予告 glosses (d36): English in the UI face beside the kana chips and under the masked line */
+.end-card__word-en, .end-card__yokoku-en { font-family: var(--font-ui); font-size: var(--fs-2); }
 
 .end-card__notes { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; color: var(--stage-muted); }
 .end-card__ledger-prompt { margin: 0 0 var(--sp-2); }

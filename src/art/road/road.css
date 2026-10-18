@@ -1,0 +1,8 @@
+/* TSUZUKU — road art (design 09 §7 D, C2): the Station headpiece and the genkan strip. Tokens only; --road is the band
+   under the picture, never under .sign text (§3.3), mixed per town from data-belt (d16). The keeper lifts with
+   motion.css's nijimi at --dur-4 about its own feet (fill-box); reduced motion zeroes the token. */
+.headpiece { display: block; width: 100%; height: 160px; overflow: hidden; background: var(--road); border-radius: var(--radius-paper) var(--radius-paper) 0 0; }
+.headpiece__svg { display: block; width: 100%; height: 160px; }
+.headpiece__tone { --from: 0 6px; transform-box: fill-box; transform-origin: 50% 100%; animation: nijimi var(--dur-4) var(--ease-draw) both; }
+.dojo__town { --road: color-mix(in oklab, var(--belt-color, var(--belt-white)) 10%, var(--bg)); }
+.dojo__town-art { display: block; width: 100%; height: 32px; background: var(--road); border-radius: var(--radius-paper) var(--radius-paper) 0 0; }

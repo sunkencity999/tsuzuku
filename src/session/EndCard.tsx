@@ -54,7 +54,7 @@ import { prefersReducedMotion } from '../shared/ui/use-reveal';
 import { BADGE_DEFS, WALLPAPER_DEFS, addLedgerEntry, store } from '../store';
 import { dueCount, streakState, type FlameState } from '../store/derived';
 import { BELT_NAME, S as ENGINE } from './engine-strings';
-import { ledgerPromptDue, omikuji, type CeremonyEvent } from './end-card';
+import { ledgerPromptDue, omikuji, type CeremonyEvent, glossOf, sentenceGloss } from './end-card';
 import { ES } from './end-card-strings';
 import { itemHead } from './item-head';
 import { S, fill } from './strings';
@@ -263,6 +263,8 @@ const tenth = (n: number): string => String(Math.round(n * 10) / 10);
 
 export function EndCard(p: EndCardProps): JSX.Element {
   const loader = p.loader ?? appContent;
+  // 次回予告's glosses (09 §12.1 d33): the words' English beside their kana, the preview line's English under it
+  const sentenceEn = sentenceGloss(p.yokoku?.sentence, (id) => loader.get(id));
   const r = p.result;
   const t = r.tally;
   const zen = r.zen;
@@ -491,16 +493,26 @@ export function EndCard(p: EndCardProps): JSX.Element {
               ) : (
                 <span class="muted">{ES.yokokuNoSentence}</span>
               )}
+              {sentenceEn ? <span class="end-card__yokoku-en muted">{sentenceEn}</span> : null}
             </li>
             <li class={`end-card__yokoku-line${arrive(BEAT.yokoku)}`} style="--i:1">
               <span class="end-card__yokoku-label eyebrow">{S.yokokuWords}</span>
               {p.yokoku.words.length > 0 ? (
                 <span class="end-card__yokoku-words" lang="ja">
-                  {p.yokoku.words.map((w) => (
-                    <span key={w.itemId} class="chip end-card__word">
-                      {w.kana}
-                    </span>
-                  ))}
+                  {p.yokoku.words.map((w) => {
+                    const en = glossOf(loader.get(w.itemId));
+                    return (
+                      <span key={w.itemId} class="chip end-card__word">
+                        {w.kana}
+                        {en ? (
+                          <span class="end-card__word-en muted" lang="en">
+                            {' · '}
+                            {en}
+                          </span>
+                        ) : null}
+                      </span>
+                    );
+                  })}
                 </span>
               ) : (
                 <span class="muted">{ES.yokokuNoWords}</span>
@@ -520,7 +532,10 @@ export function EndCard(p: EndCardProps): JSX.Element {
       <p class={`end-card__omikuji${pend(BEAT.yokoku)}${arrive(BEAT.yokoku)}`} style="--i:3">
         <span class="end-card__omikuji-label eyebrow">{S.omikujiLabel}</span>
         <span class="end-card__omikuji-text" lang="ja">
-          {proverb}
+          <Ruby ja={proverb.ja} mode="always" />
+        </span>
+        <span class="end-card__omikuji-en muted" lang="en">
+          {proverb.en}
         </span>
       </p>
 

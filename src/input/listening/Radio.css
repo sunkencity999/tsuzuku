@@ -2,6 +2,7 @@
  * TSUZUKU — Teahouse Radio player (src/input/listening, group F).
  * Tokens only. Mobile-first: one column at 360 px with the 16 px gutter;
  * 44 px targets; the track card is the stage, the toolbar wraps beneath it.
+ * The --ai-dye band marks the listening surface (design 09 §2.1, §4.1), static.
  */
 .radio {
   display: grid;
@@ -12,6 +13,11 @@
 .radio__head {
   display: grid;
   gap: var(--sp-2);
+}
+.radio__band {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--ai-dye);
 }
 .radio__title {
   display: flex;
@@ -24,7 +30,7 @@
 .radio__title-ja {
   font-family: var(--font-brush);
   font-size: var(--fs-6);
-  line-height: var(--lh-ja);
+  line-height: 1.1;
 }
 .radio__meta {
   display: flex;

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
@@ -12,6 +14,7 @@ import { rngFor } from '@/shared/hash';
 import { cardKey } from '@/shared/ids';
 import { normalizeJa } from '@/shared/jp';
 import type { AttemptResult, Step } from '@/shared/session-types';
+import { EXIT_FALLBACK_MS } from '@/shared/ui/TeachOnce';
 import { store } from '@/store';
 import { captureEvents, card, makeTestStore } from '@/store/testing';
 import {
@@ -1203,7 +1206,7 @@ describe('clause dictation (design 08 §9)', () => {
 });
 
 describe('first-contact cards (design 08 §11, TeachOnce)', () => {
-  it('the first-Arena card shows in the listen phase until dismissed, which writes progress.teachSeen', () => {
+  it('the first-Arena card shows in the listen phase until dismissed, which writes progress.teachSeen', async () => {
     installServices({ audio: clipAudio().audio });
     mountStandalone();
     const card = root.querySelector(`[data-teach-id="${TEACH_ARENA_FIRST}"]`) as HTMLElement;
@@ -1211,6 +1214,10 @@ describe('first-contact cards (design 08 §11, TeachOnce)', () => {
     expect(card.textContent).toContain(S.teachArenaFirstTitle);
     expect(root.querySelector(`[data-teach-id="${TEACH_ARENA_BRIDGE}"]`)).toBeNull();
     act(() => (card.querySelector('.teach-once__dismiss') as HTMLButtonElement).click());
+    // design 09 §6.3: the card leaves (kasure) before onDismiss fires — on animationend, or TeachOnce's EXIT_FALLBACK_MS fallback where jsdom sends none
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, EXIT_FALLBACK_MS + 60));
+    });
     expect(store.progress.value.teachSeen).toContain(TEACH_ARENA_FIRST);
     expect(root.querySelector(`[data-teach-id="${TEACH_ARENA_FIRST}"]`)).toBeNull();
     render(null, root);
@@ -1264,5 +1271,42 @@ describe('listen evidence for a sentence without tokens (pool examples)', () => 
     // a clause restricts the evidence to the words inside it
     expect(implicitListenGrades(line, 'のみます', get, store.cards, today, { ids, clause: [9, 13] })).toEqual([{ cardKey: cardKey(V.飲む, 'listen'), rating: 3 }]);
     expect(implicitListenGrades(line, 'x', get, store.cards, today)).toEqual([]);
+  });
+});
+
+/* ── design 09 (C4): the --ai-dye band, .eyebrow labels, bands on scaleY ─────── */
+describe('design 09 (C4): the indigo band and ListeningArena.css', () => {
+  it('the header carries one static --ai-dye band whose title says who speaks, matching the source chip; the band is aria-hidden so the source is announced once', () => {
+    installServices({ audio: clipAudio().audio });
+    act(() => render(<ListeningArena storyId={PIECE_ID} rate={1} onDone={vi.fn()} loader={pieceLoader} />, root));
+    const bands = root.querySelectorAll('.arena__band');
+    expect(bands).toHaveLength(1);
+    const band = bands[0]!;
+    expect(band.parentElement?.classList.contains('arena__head')).toBe(true);
+    const chip = root.querySelector('.arena__source')?.textContent ?? '';
+    expect(chip).toContain('voices');
+    expect(band.getAttribute('title')).toBe(chip);
+    expect(band.getAttribute('aria-hidden')).toBe('true');
+    expect(band.hasAttribute('aria-label')).toBe(false);
+    expect(band.hasAttribute('role')).toBe(false);
+    // the "synthetic" word stays where it was: in the chip, not duplicated as text
+    expect(root.querySelector('.arena__speakers .eyebrow')?.textContent).toBe(S.speakersLabel);
+    expect(root.querySelector('[class*="__label"]')).toBeNull();
+  });
+
+  it('ListeningArena.css: the band is --ai-dye and static; no width/height tween, bands ride scaleY, no glow, no local reduced-motion block', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/input/listening/ListeningArena.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const band = /\.arena__band\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(band).toMatch(/background:\s*var\(--ai-dye\)/);
+    expect(band).not.toMatch(/transition|animation/);
+    expect(css).not.toMatch(/transition:[^;]*\b(width|height)\b/);
+    expect(css).not.toMatch(/@keyframes/);
+    const wave = /\.arena__wave\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(wave).toMatch(/transform:\s*scaleY\(/);
+    expect(wave).toMatch(/transform-origin:\s*bottom/);
+    expect(/\.arena__wave\[data-on='true'\]\s*\{[^}]*transform:\s*scaleY\(1\)/.test(css)).toBe(true);
+    expect(css).not.toMatch(/box-shadow:\s*0 0 8px/);
+    expect(css).not.toMatch(/__label|__eyebrow/);
+    expect(css).not.toMatch(/prefers-reduced-motion|\.reduced-motion/);
   });
 });

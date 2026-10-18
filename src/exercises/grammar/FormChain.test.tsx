@@ -225,7 +225,7 @@ describe('<FormChain>', () => {
     expect(q('[data-tally="true"]')?.textContent).toBe('4 of 5 forms right.');
     expect(q('[data-band="true"]')?.textContent).toBe('One form slipped. Hard.');
     expect(q('[data-rule="te"]')?.textContent).toContain('Group 2: drop る, add て.');
-    expect(q('.gr__reveal')?.getAttribute('data-kind')).toBe('near');
+    expect(q('.gr__reveal')?.getAttribute('data-kind')).toBe('partial');
   });
 
   it('3/5 → Again; a Block on one form counts as a slip and is marked close', () => {

@@ -1,18 +1,29 @@
 /**
- * TSUZUKU — <GoshuinBook>: the paged stamp book (design 06 §4).
+ * TSUZUKU — <GoshuinBook>: the paged stamp book (design 06 §4, 09 §5.3, §7 E).
  *
  * Fifty-three station pages plus one belt page after each Shinsa station,
  * read two pages per spread like an accordion book: swipe, the arrow keys or
  * the page index turn the spreads. Cleared gates show the learner's own
- * goshuin (`<GoshuinStamp>`), uncleared ones the station name in grey stone
- * with the Gatekeeper named, so the whole road is visible from day one. The
- * book exports through `art/png.ts`: one 6480 × 720 strip (desktop) or a
- * six-image phone set, both from `goshuin.bookStripImages`.
+ * goshuin (`<GoshuinStamp img>`: an `<img>` data URL with hex paints for the
+ * current colour scheme — re-rendered once on moment G — and its text set over
+ * it in the page's own fonts, so the book holds no live SVG filter, §6.7 rule
+ * 2), with the era date glossed in Latin (§3.3); uncleared ones the station
+ * name in grey stone with the Gatekeeper named, so the whole road is visible
+ * from day one. The spread is a `.sheet--gutter`; on first open the newest
+ * spread's right page turns in (`perspective(1200px) rotateY(-180deg)`,
+ * 320 ms; never under reduced motion, where both pages simply stand). A stamp
+ * earned since the book was last opened (`reveal.ts newSince`) is pressed when
+ * its stamp slot is half on screen — moment E inline: nijimi, osu, the ink
+ * dries, the era date with its Latin gloss, then kasure; the book records it
+ * as shown only then (`markSeen`). The book exports through `art/png.ts`: one
+ * 6480 × 720 strip (desktop) or a six-image phone set, both from
+ * `goshuin.bookStripImages`.
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { GoshuinStamp } from '../art/GoshuinStamp';
 import { MonCrest } from '../art/MonCrest';
+import type { Theme } from '../art/color';
 import { PHONE_SET, bookStripImages, kanjiNumber, type BookStamp } from '../art/goshuin';
 import { download, exportPng, filenameFor, type DownloadOutcome, type ExportOptions } from '../art/png';
 import { BELTS, STATIONS, type Belt, type BeltDef, type StationDef } from '../content/types';
@@ -20,7 +31,9 @@ import { BELT_BADGE, type BadgeId } from '../shared/catalog';
 import { hashSeed } from '../shared/hash';
 import type { EpochDay, StampEntry } from '../shared/store-types';
 import { formatEraDate, isoDate } from '../shared/time';
+import { prefersReducedMotion } from '../shared/ui/use-reveal';
 import { store } from '../store';
+import { eraGloss, markOpened, markSeen, newSince, useColorScheme, useMomentE } from './reveal';
 import { S, fill } from './strings';
 import './GoshuinBook.css';
 
@@ -37,6 +50,8 @@ export type BookPage =
 
 export const PAGES_PER_SPREAD = 2;
 export const SWIPE_PX = 40;
+/** The right page of the newest spread turns in on first open (design 09 §7 E). */
+export const PAGE_TURN_CLASS = 'goshuin-book__page--turn';
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Pure helpers                                                               */
@@ -97,11 +112,14 @@ export function bookFilename(layout: 'desktop' | 'phone', index: number, total: 
 /* Pages                                                                      */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function StationPage(p: { page: Extract<BookPage, { kind: 'station' }> }): JSX.Element {
+function StationPage(p: { page: Extract<BookPage, { kind: 'station' }>; theme: Theme; fresh: boolean; turn: boolean; onSeen(n: number): void }): JSX.Element {
   const st = p.page.station;
   const stamp = p.page.stamp;
+  // the stamp slot is what must be half seen (the whole page may never reach the threshold on a short viewport)
+  const ref = useRef<HTMLDivElement>(null);
+  const m = useMomentE(ref, p.fresh && stamp !== undefined, () => p.onSeen(st.number));
   return (
-    <article class="goshuin-book__page" data-page={p.page.index} data-station={st.number} data-state={stamp ? 'cleared' : 'locked'}>
+    <article class={`goshuin-book__page${p.turn ? ` ${PAGE_TURN_CLASS}` : ''}`} data-page={p.page.index} data-station={st.number} data-state={stamp ? 'cleared' : 'locked'} data-reveal={m.phase === 'done' ? undefined : m.phase}>
       <header class="goshuin-book__page-head">
         <span class="goshuin-book__ordinal" lang="ja">
           {fill(S.stationOrdinal, { n: kanjiNumber(st.number) })}
@@ -114,7 +132,17 @@ function StationPage(p: { page: Extract<BookPage, { kind: 'station' }> }): JSX.E
         </h3>
       </header>
       {stamp ? (
-        <GoshuinStamp station={st.number} at={stamp.at} perfect={stamp.perfect} assisted={stamp.assisted} size={200} caption />
+        <div ref={ref} class="goshuin-book__stamp">
+          <GoshuinStamp station={st.number} at={stamp.at} perfect={stamp.perfect} assisted={stamp.assisted} size={200} caption img theme={p.theme} dateGloss={eraGloss(stamp.at)} printClass={m.reveal ? 'ink-nijimi' : undefined} svgClass={m.artClass} />
+          {m.reveal ? (
+            <span class="seal-date collections__seal ink-nijimi" data-leaving={m.phase === 'leaving' ? '' : undefined} onAnimationEnd={m.onLeaveEnd}>
+              <span class="collections__era" lang="ja">
+                {formatEraDate(stamp.at)}
+              </span>
+              <span class="seal-date__label">{eraGloss(stamp.at)}</span>
+            </span>
+          ) : null}
+        </div>
       ) : (
         <div class="goshuin-book__blank" role="img" aria-label={`${st.nameJa} ${st.nameRomaji}: ${S.notCleared}`}>
           <span class="goshuin-book__blank-name" lang="ja" aria-hidden="true">
@@ -132,29 +160,33 @@ function StationPage(p: { page: Extract<BookPage, { kind: 'station' }> }): JSX.E
   );
 }
 
-function BeltPage(p: { page: Extract<BookPage, { kind: 'belt' }> }): JSX.Element {
+function BeltPage(p: { page: Extract<BookPage, { kind: 'belt' }>; turn: boolean }): JSX.Element {
   const { belt, badge, passed, at } = p.page;
   const last = STATIONS.find((s) => s.number === belt.stations[1]);
   return (
-    <article class="goshuin-book__page goshuin-book__page--belt" data-page={p.page.index} data-belt={belt.id} data-state={passed ? 'cleared' : 'locked'}>
+    <article class={`goshuin-book__page goshuin-book__page--belt${p.turn ? ` ${PAGE_TURN_CLASS}` : ''}`} data-page={p.page.index} data-belt={belt.id} data-state={passed ? 'cleared' : 'locked'}>
       <header class="goshuin-book__page-head">
         <span class="goshuin-book__ordinal" lang="ja">
           {belt.nameJa}
         </span>
         <h3 class="goshuin-book__name">
           <span>{fill(S.beltPage, { belt: belt.nameEn })}</span>
-          <span class="goshuin-book__romaji" lang="ja">
-            {belt.titleJa}
+          <span class="goshuin-book__romaji">
+            <span lang="ja">{belt.titleJa}</span> · {belt.titleRomaji}
           </span>
         </h3>
       </header>
-      <MonCrest id={badge} earned={passed} earnedOn={at} size={128} caption={false} class="goshuin-book__crest" />
+      <MonCrest id={badge} earned={passed} earnedOn={at} dateGloss={at !== undefined ? eraGloss(at) : undefined} size={128} caption={false} stoneImg class="goshuin-book__crest" />
       <p class="goshuin-book__gate">
         {passed ? (
           at !== undefined ? (
-            <time dateTime={isoDate(at)} lang="ja">
-              {fill(S.beltPassedOn, { date: formatEraDate(at) })}
-            </time>
+            <>
+              {fill(S.beltPassedOn, { date: '' }).trim()}{' '}
+              <time dateTime={isoDate(at)} lang="ja">
+                {formatEraDate(at)}
+              </time>{' '}
+              · {eraGloss(at)}
+            </>
           ) : (
             fill(S.beltPassedOn, { date: '' })
           )
@@ -178,6 +210,28 @@ export function GoshuinBook(p: GoshuinBookProps = {}): JSX.Element {
   const pages = buildPages(collections.stamps, progress.shinsaPassed, collections.badges);
   const spreads = spreadsOf(pages);
   const [spread, setSpread] = useState(() => initialSpread(pages, collections.stamps, progress.station));
+  // the newest spread's right page turns in once, on first open, never under reduced motion (09 §7 E)
+  const [turning, setTurning] = useState(() => !prefersReducedMotion());
+  const newest = useRef(spread);
+  const theme = useColorScheme();
+  // stamps earned since the book was last opened — read once at mount; a page leaves the set the moment its reveal plays
+  const fresh = useRef<Set<string> | null>(null);
+  if (fresh.current === null) {
+    fresh.current = newSince(
+      'goshuin',
+      bookStamps(collections.stamps).map((s) => ({ id: String(s.station.number), at: s.at })),
+      store.today(),
+    );
+  }
+  useEffect(() => {
+    // the record holds what the book showed settled; the fresh pages join it as they are seen
+    markOpened(
+      'goshuin',
+      bookStamps(collections.stamps)
+        .map((s) => String(s.station.number))
+        .filter((id) => !fresh.current?.has(id)),
+    );
+  }, []);
   const [busy, setBusy] = useState<'desktop' | 'phone' | null>(null);
   const [progressPct, setProgressPct] = useState(0);
   const [status, setStatus] = useState<string | null>(null);
@@ -191,7 +245,10 @@ export function GoshuinBook(p: GoshuinBookProps = {}): JSX.Element {
   }, []);
 
   const last = spreads.length - 1;
-  const go = (i: number): void => setSpread(Math.max(0, Math.min(last, i)));
+  const go = (i: number): void => {
+    setTurning(false);
+    setSpread(Math.max(0, Math.min(last, i)));
+  };
   const cleared = bookStamps(collections.stamps).length;
   const current = spreads[Math.min(spread, last)] ?? [];
   const inSpread = new Set(current.map((pg) => pg.index));
@@ -285,7 +342,7 @@ export function GoshuinBook(p: GoshuinBookProps = {}): JSX.Element {
         <button type="button" class="btn btn--ghost btn--sm" aria-label={S.prevSpread} disabled={spread <= 0} onClick={() => go(spread - 1)}>
           ←
         </button>
-        <p class="goshuin-book__spread-label" aria-live="polite">
+        <p class="goshuin-book__spread-label eyebrow" aria-live="polite">
           {fill(S.spreadOf, { i: spread + 1, n: spreads.length })}
         </p>
         <button type="button" class="btn btn--ghost btn--sm" aria-label={S.nextSpread} disabled={spread >= last} onClick={() => go(spread + 1)}>
@@ -293,8 +350,25 @@ export function GoshuinBook(p: GoshuinBookProps = {}): JSX.Element {
         </button>
       </div>
 
-      <div class="goshuin-book__spread" role="group" aria-label={fill(S.spreadOf, { i: spread + 1, n: spreads.length })} tabIndex={0} onKeyDown={onKey} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        {current.map((pg) => (pg.kind === 'station' ? <StationPage key={pg.index} page={pg} /> : <BeltPage key={pg.index} page={pg} />))}
+      <div class="goshuin-book__spread sheet sheet--gutter" role="group" aria-label={fill(S.spreadOf, { i: spread + 1, n: spreads.length })} tabIndex={0} onKeyDown={onKey} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} onAnimationEnd={(e) => turning && (e.target as HTMLElement | null)?.classList.contains(PAGE_TURN_CLASS) && setTurning(false)}>
+        {current.map((pg, i) => {
+          const turn = turning && spread === newest.current && i === PAGES_PER_SPREAD - 1;
+          return pg.kind === 'station' ? (
+            <StationPage
+              key={pg.index}
+              page={pg}
+              theme={theme}
+              turn={turn}
+              fresh={fresh.current?.has(String(pg.station.number)) ?? false}
+              onSeen={(n) => {
+                fresh.current?.delete(String(n));
+                markSeen('goshuin', String(n));
+              }}
+            />
+          ) : (
+            <BeltPage key={pg.index} page={pg} turn={turn} />
+          );
+        })}
       </div>
       <p class="goshuin-book__hint">{S.swipeHint}</p>
 
@@ -326,8 +400,8 @@ export function GoshuinBook(p: GoshuinBookProps = {}): JSX.Element {
           {fill(S.exportPhone, { n: PHONE_SET })}
         </button>
         {busy ? (
-          <div class="progress goshuin-book__progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct} aria-label={fill(S.bookExporting, { p: progressPct })}>
-            <div class="progress__fill" style={{ width: `${progressPct}%` }} />
+          <div class="meter goshuin-book__progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct} aria-label={fill(S.bookExporting, { p: progressPct })} style={{ '--value': String(progressPct / 100) }}>
+            <div class="meter__fill" />
           </div>
         ) : null}
         <p class="goshuin-book__status" role="status">

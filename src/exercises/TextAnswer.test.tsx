@@ -192,6 +192,8 @@ describe('<TextAnswer> Japanese mode', () => {
   it('converts romaji through the kana IME and grades with checkJa (IME variants accepted)', () => {
     const { onSubmit, input } = mount({ accept: ['続く', 'つづく'], mode: 'ja' });
     expect(root.querySelector('.kana-input')).not.toBeNull();
+    // the ja field wears the same ink rule as the English one (TextAnswer.css hiku-draws it on focus)
+    expect(root.querySelector('.text-answer__ink[data-mode="ja"] > .kana-input')).not.toBeNull();
     expect(input.getAttribute('lang')).toBe('ja');
     type(input, 'tsuzuku');
     expect(input.value).toBe('つずく');
@@ -210,7 +212,7 @@ describe('<TextAnswer> Japanese mode', () => {
     key(input, 'Enter');
     expect(onSubmit.mock.calls[0]?.[0]).toMatchObject({ correct: false, nearMiss: true, tags: ['small-kana'], expected: 'きって', given: 'きて' });
     const reveal = q('.text-answer__reveal');
-    expect(reveal?.getAttribute('data-kind')).toBe('near');
+    expect(reveal?.getAttribute('data-kind')).toBe('partial');
     expect(reveal?.querySelector('.text-answer__form')?.textContent).toBe('きって');
     expect(reveal?.querySelector('.text-answer__form')?.getAttribute('lang')).toBe('ja');
     const diff = Array.from(reveal?.querySelectorAll('.diff') ?? []).map((s) => `${s.textContent}${s.getAttribute('data-diff')}`);
@@ -225,7 +227,7 @@ describe('<TextAnswer> Japanese mode', () => {
     type(a.input, 'taberu');
     key(a.input, 'Enter');
     expect(a.onSubmit.mock.calls[0]?.[0]).toMatchObject({ correct: true, nearMiss: true, kanaOnly: true });
-    expect(q('.text-answer__reveal')?.getAttribute('data-kind')).toBe('kana-only');
+    expect(q('.text-answer__reveal')?.getAttribute('data-kind')).toBe('partial');
     expect(q('.text-answer__why')?.textContent).toBe('Right word. From Green, the kanji counts.');
 
     const b = mount({ accept: ['猫', 'ねこ'], mode: 'ja', missTags: ['kanji-reading'] });

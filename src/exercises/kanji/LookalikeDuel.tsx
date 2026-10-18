@@ -138,7 +138,7 @@ export function LookalikeDuel(p: ExerciseProps): JSX.Element {
   if (!kanji || !prompt) {
     return (
       <div class="kj kj-duel" data-state="unavailable">
-        <div class="kj__reveal status-window" data-kind="info" role="status">
+        <div class="kj__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{S.cannotBuild}</p>
           <p class="kj__why">{S.shownNotTested}</p>
         </div>
@@ -168,7 +168,7 @@ export function LookalikeDuel(p: ExerciseProps): JSX.Element {
       </p>
       {!sentenceMode && prompt.clue ? (
         <p class="kj__gloss" lang="ja" data-clue="true">
-          <span class="kj__label" lang="en">
+          <span class="eyebrow" lang="en">
             {S.lookalikeReading}
           </span>{' '}
           {prompt.clue}
@@ -179,7 +179,7 @@ export function LookalikeDuel(p: ExerciseProps): JSX.Element {
         <div class="kj__actions">
           {hintShown ? (
             <p class="kj__gloss" lang="ja" data-hint="true">
-              <span class="kj__label" lang="en">
+              <span class="eyebrow" lang="en">
                 {S.lookalikeReading}
               </span>{' '}
               {prompt.clue}
@@ -196,7 +196,7 @@ export function LookalikeDuel(p: ExerciseProps): JSX.Element {
       {testable ? (
         <ChoiceGrid choices={choices} onPick={onPick} picked={picked} correct={correctIdx} ja size="lg" label={S.kanjiLabel} />
       ) : (
-        <div class="kj__reveal status-window" data-kind="info" role="status">
+        <div class="kj__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{S.lookalikeShownNotTested}</p>
           <div class="kj__actions">
             <button type="button" class="hanko" onClick={() => emit(attempt({ ms: elapsed(), correct: true, hintUsed: true }))}>
@@ -207,20 +207,20 @@ export function LookalikeDuel(p: ExerciseProps): JSX.Element {
       )}
 
       {revealed && testable ? (
-        <div class="kj__reveal status-window" data-kind={revealKind}>
+        <div class="kj__reveal reveal ink-nijimi" data-kind={revealKind}>
           <p>
-            <span class="kj__label">{S.kanjiLabel}</span> <span lang="ja">{kanji.char}</span> <span>{kanji.meanings.join(' · ')}</span>
+            <span class="eyebrow">{S.kanjiLabel}</span> <span lang="ja">{kanji.char}</span> <span>{kanji.meanings.join(' · ')}</span>
           </p>
           {kanji.on.length > 0 || kanji.kun.length > 0 ? (
             <p>
               {kanji.on.length > 0 ? (
                 <>
-                  <span class="kj__label">{S.onReading}</span> <span lang="ja">{kanji.on.join('・')}</span>{' '}
+                  <span class="eyebrow">{S.onReading}</span> <span lang="ja">{kanji.on.join('・')}</span>{' '}
                 </>
               ) : null}
               {kanji.kun.length > 0 ? (
                 <>
-                  <span class="kj__label">{S.kunReading}</span> <span lang="ja">{kanji.kun.join('・')}</span>
+                  <span class="eyebrow">{S.kunReading}</span> <span lang="ja">{kanji.kun.join('・')}</span>
                 </>
               ) : null}
             </p>

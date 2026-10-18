@@ -31,6 +31,12 @@ describe('<JudgeCard> focus', () => {
     expect(card.getAttribute('tabindex')).toBe('-1');
     expect(card.getAttribute('role')).toBe('dialog');
     expect(document.activeElement).toBe(card);
+    // the verb rides a plain wrapper; the clipped window itself is never transformed (design 09 §6.7 rule 7)
+    expect(card.classList.contains('status-window')).toBe(true);
+    expect(card.classList.contains('ink-nijimi')).toBe(false);
+    expect(card.parentElement?.classList.contains('judge-card__wrap')).toBe(true);
+    expect(card.parentElement?.classList.contains('ink-nijimi')).toBe(true);
+    expect(card.parentElement?.getAttribute('style')).toContain('--from: 24px 0');
     act(() => render(<JudgeCard rubric="〜ている" regex="ている" answer="食べている" rng={mulberry32(1)} onPick={vi.fn()} />, root));
     expect(document.activeElement).toBe(root.querySelector('.judge-card[data-shape="rubric"]'));
     outside.remove();

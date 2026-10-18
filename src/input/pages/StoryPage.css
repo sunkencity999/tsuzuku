@@ -1,7 +1,9 @@
 /*
  * TSUZUKU — #/story/:id standalone reader page (src/input/pages, group F).
  * Tokens only (src/styles/tokens.css); mobile-first (360 px), 16 px gutter,
- * 44 px targets; states are shape + text, never color alone.
+ * 44 px targets; states are shape + text, never color alone. .sheet and
+ * .eyebrow come from motion.css (design 09 §5.1, §3.1); Mincho stays on the
+ * reader body (§3.1 fence) — every heading here, the title included, is chrome.
  */
 .story-page {
   display: grid;
@@ -12,21 +14,12 @@
   padding: 0 var(--gutter);
   box-sizing: border-box;
 }
-.story-page__eyebrow {
-  margin: 0;
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
 .story-page__head {
   display: grid;
   gap: var(--sp-2);
 }
 .story-page__title {
   margin: 0;
-  font-family: var(--font-mincho);
   font-size: var(--fs-6);
   line-height: 1.25;
 }
@@ -63,18 +56,10 @@
 .story-page__recap {
   display: grid;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  background: var(--raised);
   border-left: 4px solid var(--hai);
-  border-radius: var(--radius-sm);
 }
 .story-page__recap h2 {
   margin: 0;
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
 }
 .story-page__recap p {
   margin: 0;
@@ -89,17 +74,12 @@
 .story-page__result {
   display: grid;
   gap: var(--sp-3);
-  padding: var(--sp-4);
-  background: var(--surface);
-  border: 2px solid var(--line);
-  border-radius: var(--radius);
 }
 .story-page__result[data-passed='true'] {
-  border-color: var(--matcha);
+  border-left: 4px solid var(--matcha);
 }
 .story-page__result h2 {
   margin: 0;
-  font-family: var(--font-mincho);
   font-size: var(--fs-4);
 }
 .story-page__score {
@@ -123,7 +103,7 @@
 }
 .story-page__facts li[data-mark='true']::before {
   content: '◎';
-  color: var(--kin);
+  color: var(--kin-text);
 }
 .story-page__actions {
   display: flex;

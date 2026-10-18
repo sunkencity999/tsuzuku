@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
@@ -9,6 +11,7 @@ import { epochDay } from '../../shared/time';
 import { store } from '../../store';
 import { resetStoreForTests } from '../../store/store';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../../store/testing';
+import { markOpened, resetOpenedForTests } from '../reveal';
 import LibraryPage, { voiceMissing } from './LibraryPage';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
@@ -24,6 +27,7 @@ afterEach(() => {
   root.remove();
   resetStoreForTests();
   resetServices();
+  resetOpenedForTests();
 });
 
 const CARDS: Record<CardKey, CardTuple> = {
@@ -36,10 +40,10 @@ const CARDS: Record<CardKey, CardTuple> = {
   [`${G.です}#cloze`]: card({ s: 8, reps: 3, state: 2, due: TODAY + 4 }),
 };
 
-async function mount(o: { cards?: Record<CardKey, CardTuple>; michikusa?: string[]; station?: number } = {}): Promise<void> {
+async function mount(o: { cards?: Record<CardKey, CardTuple>; michikusa?: string[]; station?: number; belt?: 'white' | 'yellow' | 'orange' | 'green' | 'blue' | 'purple' | 'brown' | 'black' } = {}): Promise<void> {
   await makeTestStore({
     cards: o.cards ?? CARDS,
-    save: { progress: { station: o.station ?? 4 }, collections: { michikusa: o.michikusa ?? ['m-04-2'] } },
+    save: { progress: { station: o.station ?? 4 }, collections: { michikusa: o.michikusa ?? ['m-04-2'] }, ...(o.belt ? { profile: { belt: o.belt } } : {}) },
   });
   await act(async () => {
     render(<LibraryPage route={ROUTE} loader={createFakeLoader()} />, root);
@@ -273,5 +277,64 @@ describe('<LibraryPage> michikusa', () => {
     expect(shelf.textContent).not.toContain('content pack');
     act(() => q<HTMLButtonElement>('#library-view-items').click());
     expect(q<HTMLElement>('.library').dataset.view).toBe('items');
+  });
+
+  it('shelves are .sheet cards whose open drawer expands through grid-template-rows; items introduced since the last open carry the gold dot (design 09 §9 C3)', async () => {
+    await mount();
+    // first open: nothing is new, the shelf is recorded
+    expect(root.querySelector('.library__new')).toBeNull();
+    for (const st of qa('.library__station')) expect(st.classList.contains('sheet')).toBe(true);
+    expect(q<HTMLElement>('.library__station[data-station="4"] .library__drawer .library__items')).not.toBeNull();
+    expect(root.querySelector('.library__station[data-station="1"] .library__drawer')).toBeNull();
+    expect(root.querySelector('.library-detail__label')).toBeNull();
+
+    render(null, root);
+    resetStoreForTests();
+    resetServices();
+    resetOpenedForTests();
+    markOpened('library', ['v-n5-0006']);
+    await mount();
+    expect(q<HTMLElement>('.library__item[data-id="j-食"]').hasAttribute('data-new')).toBe(true);
+    expect(q<HTMLElement>('.library__item[data-id="j-食"] .library__new')).not.toBeNull();
+    expect(q<HTMLElement>('.library__item[data-id="v-n5-0006"]').hasAttribute('data-new')).toBe(false);
+    expect(q<HTMLElement>('.library__station[data-station="4"] .library__h3 .library__new')).not.toBeNull();
+    expect(q<HTMLElement>('.library__new').getAttribute('aria-label')).toBeTruthy();
+    // the dot says what it means on hover, and the row's own name carries it (an aria-label hides its descendants)
+    expect(q<HTMLElement>('.library__new').getAttribute('title')).toBe(q<HTMLElement>('.library__new').getAttribute('aria-label'));
+    expect(q<HTMLElement>('.library__item[data-id="j-食"]').getAttribute('aria-label')).toContain('New since you last opened this shelf');
+    expect(q<HTMLElement>('.library__item[data-id="v-n5-0006"]').getAttribute('aria-label')).not.toContain('New since');
+    // the drawer transition arms only once the shelves have painted (the shelf open on arrival never animates)
+    expect(q<HTMLElement>('.library').hasAttribute('data-ready')).toBe(true);
+    const css = readFileSync(resolve(process.cwd(), 'src/collections/pages/LibraryPage.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(/\.library__drawer\s*\{([^}]*)\}/.exec(css)?.[1]).not.toMatch(/transition/);
+    expect(/\.library\[data-ready\] \.library__drawer\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/transition:\s*grid-template-rows var\(--dur-3\)/);
+    expect(css).toMatch(/@starting-style\s*\{\s*\.library__drawer\s*\{\s*grid-template-rows:\s*0fr/);
+  });
+
+  it('shelf heads follow the reading rule (design 09 §3.3): romaji while kana are below Green, kana ruby from Green on — removed, not dimmed', async () => {
+    await mount({ belt: 'yellow' });
+    const head = q<HTMLElement>('.library__station[data-station="4"] .library__h3');
+    expect(head.querySelector('[lang="ja"]')?.textContent).toBe('保土ヶ谷');
+    expect(head.querySelector('ruby')).toBeNull();
+    expect(head.querySelector('.library__romaji')?.textContent).toBe('4 · Hodogaya');
+
+    render(null, root);
+    resetStoreForTests();
+    resetServices();
+    resetOpenedForTests();
+    await mount({ belt: 'green' });
+    const green = q<HTMLElement>('.library__station[data-station="4"] .library__h3');
+    expect(green.textContent).not.toContain('Hodogaya');
+    const ruby = green.querySelector('.library__ruby');
+    expect(ruby).not.toBeNull();
+    expect(ruby?.getAttribute('lang')).toBe('ja');
+    // kanaReading spells the name in katakana; <Ruby> sets furigana in its own kana convention — either reads
+    expect(ruby?.querySelector('rt')?.textContent).toMatch(/^(ほどがや|ホドガヤ)$/);
+    expect(ruby?.textContent?.replace(/ほどがや|ホドガヤ/g, '')).toBe('保土ヶ谷');
+    expect(green.querySelector('.library__romaji')?.textContent).toBe('Station 4');
+    // the detail sheet's due date is glossed too
+    act(() => q<HTMLButtonElement>('.library__item[data-id="j-食"]').click());
+    const facets = q<HTMLElement>('.library-detail__facets');
+    expect(facets.textContent).toMatch(/due 令和\d+年\d+月\d+日 · Reiwa \d+ · [A-Z][a-z]{2} \d+/);
   });
 });

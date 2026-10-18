@@ -1071,7 +1071,7 @@ export function StoryReaderView(p: StoryReaderProps): JSX.Element {
     <section class="reader" aria-label={listenMode ? S.listenTitle : S.episodeLabel} data-state={phase} data-mode={p.mode ?? 'read'} data-feel={p.feel ?? settings.feel} data-listen-phase={listenMode ? listenPhase : undefined}>
       <header class="reader__head">
         {listenMode ? (
-          <p class="reader__mode" data-field="mode">
+          <p class="eyebrow reader__mode" data-field="mode">
             <span lang="ja">{S.listenTitleJa}</span> {S.listenTitle}
           </p>
         ) : null}

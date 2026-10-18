@@ -1,6 +1,9 @@
 /*
  * TSUZUKU — <GoshuinBook> styles (src/collections/GoshuinBook.tsx, group G).
- * Two washi pages per spread from 360 px; the stamp fills its page column.
+ * Two washi pages per spread from 360 px on one .sheet--gutter (motion.css);
+ * the stamp fills its page column. The newest spread's right page turns in on
+ * first open; reduced motion rides the zeroed tokens (and the class is never
+ * set there). Moment E's delays live in CollectionsPage.css.
  */
 .goshuin-book {
   display: flex;
@@ -13,6 +16,9 @@
   font-size: var(--fs-2);
   color: var(--fg-muted);
 }
+.goshuin-book__spread-label {
+  margin: 0;
+}
 .goshuin-book__hint {
   font-size: var(--fs-1);
   text-align: center;
@@ -23,24 +29,12 @@
   justify-content: space-between;
   gap: var(--sp-2);
 }
-.goshuin-book__spread-label {
-  margin: 0;
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
 
 /* ── spread ─────────────────────────────────────────────────────────── */
 .goshuin-book__spread {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--sp-2);
-  padding: var(--sp-2);
-  background: color-mix(in srgb, var(--fg) 8%, var(--raised));
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
   touch-action: pan-y;
 }
 .goshuin-book__spread:focus-visible {
@@ -53,14 +47,33 @@
   align-items: center;
   gap: var(--sp-2);
   min-width: 0;
-  padding: var(--sp-3) var(--sp-2);
+  padding: var(--sp-2) var(--sp-1);
   text-align: center;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 2px;
 }
-.goshuin-book__page:first-child {
-  border-right-color: color-mix(in srgb, var(--fg) 20%, var(--line));
+/* the right page turns in from the gutter: 320 ms, transform only (09 §7 E) */
+.goshuin-book__page--turn {
+  transform-origin: left center;
+  backface-visibility: hidden;
+  animation: goshuin-turn calc(var(--dur-3) * 0.8) var(--ease-out) both;
+}
+@keyframes goshuin-turn {
+  from {
+    transform: perspective(1200px) rotateY(-180deg);
+  }
+  to {
+    transform: perspective(1200px) rotateY(0deg);
+  }
+}
+/* the stamp slot (moment E's observed box); a fresh stamp's art waits unpressed */
+.goshuin-book__stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+}
+[data-reveal="wait"] .goshuin__svg {
+  opacity: 0;
 }
 .goshuin-book__page-head {
   display: flex;
@@ -76,7 +89,6 @@
 .goshuin-book__name {
   display: flex;
   flex-direction: column;
-  gap: 0;
   margin: 0;
   font-size: var(--fs-3);
   font-weight: 600;
@@ -190,9 +202,8 @@
 @media (min-width: 560px) {
   .goshuin-book__spread {
     gap: var(--sp-3);
-    padding: var(--sp-3);
   }
   .goshuin-book__page {
-    padding: var(--sp-4) var(--sp-3);
+    padding: var(--sp-3) var(--sp-2);
   }
 }

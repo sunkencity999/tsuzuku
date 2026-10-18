@@ -148,14 +148,14 @@ function KanaForgeBody(p: ExerciseProps): JSX.Element {
       {done ? (
         <div class="drill__after" data-correct={done.nearMiss ? 'near' : done.correct ? 'true' : 'false'}>
           <p>
-            <span class="drill__label">{S.kanaLabel}</span>{' '}
+            <span class="eyebrow">{S.kanaLabel}</span>{' '}
             <span class="drill__ja" lang="ja">
               {item.kana}
             </span>{' '}
             <span>{romajiLabel(item)}</span>
           </p>
           <p>
-            <span class="drill__label">{S.seenIn}</span>{' '}
+            <span class="eyebrow">{S.seenIn}</span>{' '}
             <span class="drill__ja" lang="ja">
               {item.exampleWord.word}
             </span>{' '}

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
@@ -16,6 +18,8 @@ import { DEFAULT_TEST_NOW, captureEvents, card, makeTestStore } from '@/store/te
 import { ExerciseFrame } from '@/shared/ui/ExerciseFrame';
 import { windowMs } from './aizuchi';
 import { chooseOptions } from './options';
+import { Debrief } from './Debrief';
+import type { LineOutcome } from './role-play-logic';
 import { AIZUCHI_PAUSE_MS, RolePlay, meta, type RolePlayResult } from './RolePlay';
 import { S } from './strings';
 
@@ -710,5 +714,36 @@ describe('<RolePlay> cast voices (design 08 §8 / §11)', () => {
     expect(audio.speak).not.toHaveBeenCalled();
     expect(root.querySelector('[data-field="gold-replay"]')).toBeNull();
     expect(root.querySelector('[data-action="hear-model"]')).toBeNull();
+  });
+});
+
+/* ── design 09 (C4): the register meter is motion.css's .meter ─────────────── */
+describe('<Debrief> register meter (design 09 §5.7) and RolePlay.css', () => {
+  const outcome = (lineIndex: number, registerOk: boolean): LineOutcome => ({ lineIndex, kind: 'ok', given: 'x', recast: 'y', tags: [], registerOk, hintUsed: false, ms: 0 });
+
+  it('is a .meter whose --value is the kept-register share, labelled by an .eyebrow; no width is written inline', () => {
+    act(() => render(<Debrief result={{ best: 2, total: 4, aizuchiHit: 0, aizuchiTotal: 0, registerOk: false }} outcomes={[outcome(1, true), outcome(3, false)]} slots={[]} lines={DIALOGUE.lines} furigana="always" />, root));
+    const meter = root.querySelector<HTMLElement>('.meter[role="meter"]');
+    expect(meter).not.toBeNull();
+    expect(meter!.style.getPropertyValue('--value')).toBe('0.75');
+    expect(meter!.style.getPropertyValue('--meter-tone')).toBe('var(--matcha)');
+    expect(meter!.getAttribute('aria-valuenow')).toBe('75');
+    expect(meter!.getAttribute('aria-label')).toBe(S.registerMeter);
+    expect(meter!.querySelector('.meter__fill')).not.toBeNull();
+    expect(meter!.previousElementSibling?.className).toBe('eyebrow');
+    expect(meter!.previousElementSibling?.textContent).toBe(S.registerMeter);
+    expect(root.querySelector('[style*="width"]')).toBeNull();
+    expect(root.querySelector('.taiwa__meter, [class*="__label"]')).toBeNull();
+    // the correction rows label "yours" / "model" with eyebrows
+    expect(root.querySelectorAll('.taiwa__correction .eyebrow')).toHaveLength(4);
+  });
+
+  it('RolePlay.css: no width/height tween, no label or meter clone, no local keyframes or reduced-motion block (§5.7, §6.6, §6.7)', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/input/taiwa/RolePlay.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).not.toMatch(/transition:[^;]*\b(width|height)\b/);
+    expect(css).not.toMatch(/\.taiwa__(label|meter)/);
+    expect(css).not.toMatch(/@keyframes/);
+    expect(css).not.toMatch(/prefers-reduced-motion|\.reduced-motion/);
+    expect(css).not.toMatch(/--font-mincho/);
   });
 });

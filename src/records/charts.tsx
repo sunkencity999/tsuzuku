@@ -18,8 +18,11 @@
  * gaps and rings, text in text tokens (never the series color).
  */
 import type { JSX } from 'preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { dayToCivil } from '../shared/time';
 import { fill } from '../shared/ui/strings';
+import { easeOut, scheduleFrame } from '../shared/ui/Ticker';
+import { prefersReducedMotion } from '../shared/ui/use-reveal';
 import { MONTHS, MONTHS_SHORT, S } from './strings';
 import './charts.css';
 
@@ -110,10 +113,21 @@ export interface RadarProps {
   legend?: { now: string; history: string };
   /** Row labels for the table view (defaults to `axes`). */
   tableLabels?: string[];
+  /**
+   * Morph the now-polygon from the last history vector on mount (design 09 §8
+   * "the month"): a `RADAR_MORPH_MS` tween of the `points` attribute on the
+   * shared frame scheduler (points cannot be CSS-transitioned); the polygon
+   * carries `RADAR_MORPH_CLASS` while it moves. Under reduced motion both
+   * polygons stand at once and no class is set.
+   */
+  morph?: boolean;
 }
 
 const RADAR_R = 78;
 const RADAR_C = 100;
+/** ≤ calc(var(--dur-4) * 2 / 3). */
+export const RADAR_MORPH_MS = 600;
+export const RADAR_MORPH_CLASS = 'chart__radar-now--morph';
 
 function radarPoint(i: number, n: number, v: number, r = RADAR_R): [number, number] {
   const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
@@ -135,6 +149,28 @@ export function Radar(p: RadarProps): JSX.Element {
   const hist = last ? p.axes.map((_, i) => clamp100(last[i] ?? 0)) : null;
   const label = fill(S.radarLabel, { axes: p.axes.map((a, i) => `${a} ${Math.round(values[i] ?? 0)}`).join(', ') });
   const legend = p.legend ?? { now: S.chartNow, history: S.chartHistory };
+  const nowRef = useRef<SVGPolygonElement>(null);
+  const [morphing, setMorphing] = useState(false);
+  useEffect(() => {
+    const el = nowRef.current;
+    if (!p.morph || !hist || !el || prefersReducedMotion()) return;
+    const from = hist;
+    const to = values;
+    let start: number | null = null;
+    setMorphing(true);
+    // last month's shape before the first paint, so the real polygon never flashes ahead of its tween
+    el.setAttribute('points', polygon(from, n));
+    const cancel = scheduleFrame((now) => {
+      if (start === null) start = now;
+      const t = Number.isFinite(now) ? Math.min(1, (now - start) / RADAR_MORPH_MS) : 1;
+      const k = easeOut(t);
+      el.setAttribute('points', polygon(from.map((f, i) => f + ((to[i] ?? 0) - f) * k), n));
+      if (t < 1) return true;
+      setMorphing(false);
+      return false;
+    });
+    return cancel;
+  }, []);
   return (
     <figure class="chart chart--radar">
       <svg viewBox="0 0 200 200" role="img" aria-label={label} class="chart__svg">
@@ -146,7 +182,7 @@ export function Radar(p: RadarProps): JSX.Element {
           return <line key={i} class="chart__grid" x1={RADAR_C} y1={RADAR_C} x2={x} y2={y} />;
         })}
         {hist ? <polygon class="chart__radar-history" points={polygon(hist, n)} /> : null}
-        <polygon class="chart__radar-now" points={polygon(values, n)} />
+        <polygon ref={nowRef} class={morphing ? `chart__radar-now ${RADAR_MORPH_CLASS}` : 'chart__radar-now'} points={polygon(values, n)} />
         {values.map((v, i) => {
           const [x, y] = radarPoint(i, n, v);
           const ok = p.available ? p.available[i] !== false : true;
@@ -287,19 +323,21 @@ export interface BarRowProps {
   series?: string;
 }
 
+/** The track is a `.meter` (design 09 §5.7): `--value` scales the fill, `--target` places the milestone tick. */
 export function BarRow(p: BarRowProps): JSX.Element {
   const max = p.max > 0 ? p.max : 1;
   const v = Number.isFinite(p.value) ? Math.max(0, p.value) : 0;
   const pct = r1(Math.min(100, (v / max) * 100));
-  const aria = fill(S.barLabel, { label: p.label, value: p.valueText ?? fmtNum(v), max: fmtNum(p.max) });
+  const marker = p.marker === undefined ? undefined : Math.min(1, Math.max(0, p.marker));
+  const base = fill(S.barLabel, { label: p.label, value: p.valueText ?? fmtNum(v), max: fmtNum(p.max) });
+  const aria = marker === undefined ? base : `${base} · ${p.markerLabel ?? S.milestone}`;
+  const style: Record<string, string> = { '--value': String(pct / 100) };
+  if (marker !== undefined) style['--target'] = String(marker);
   return (
     <div class="bar" role="img" aria-label={aria}>
       <span class="bar__label">{p.label}</span>
-      <span class="bar__track">
-        <span class={`bar__fill chart-series--${p.series ?? 'accent'}`} style={{ width: `${pct}%` }} />
-        {p.marker !== undefined ? (
-          <span class="bar__marker" style={{ left: `${r1(Math.min(100, Math.max(0, p.marker * 100)))}%` }} title={p.markerLabel ?? S.milestone} />
-        ) : null}
+      <span class="bar__track meter" data-target={marker !== undefined ? '' : undefined} style={style}>
+        <span class={`bar__fill meter__fill chart-series--${p.series ?? 'accent'}`} />
       </span>
       <span class="bar__value">{p.valueText ?? fmtNum(v)}</span>
     </div>

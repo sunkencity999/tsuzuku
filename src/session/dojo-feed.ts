@@ -33,7 +33,7 @@ import { SHINSA_STATIONS, beltOfStation, forecastCounts, itemBeltOf, stationProg
 import { BELT_ORDER, poolMinutes, selectPool, type Scroll } from '../learn';
 import { S, fill, plural } from './engine-strings';
 import { isGrammar, isVocab, loadPlanContext, pickStories, poolRefs, scrollsForToday, withPools, type PlanContext } from './builder';
-import { jikaiYokoku, milestoneLine, omikuji } from './end-card';
+import { jikaiYokoku, milestoneLine, omikuji, type Omikuji } from './end-card';
 import { gateAvailable } from './gatekeeper';
 import { kageStanding, type KageStanding } from './kage';
 import { duelsReady } from './nemesis';
@@ -59,7 +59,7 @@ export interface DojoFeedFull extends DojoFeed {
   crammingCap: boolean;
   overtraining: boolean;
   teaser?: JikaiYokoku;
-  proverb: string;
+  proverb: Omikuji;
   /**
    * Minutes of pool sentences the learner can follow today (design 08 §4:
    * i+0 at the live known set over the pools ≤ station, `poolMinutes`),

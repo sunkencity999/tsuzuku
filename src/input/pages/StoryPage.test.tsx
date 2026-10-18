@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
@@ -122,7 +124,7 @@ describe('<StoryPage>', () => {
     expect(station.textContent).toContain('Station 4');
     expect(station.textContent).toContain('保土ヶ谷');
     expect(root.textContent).toContain(S.episodeLabel);
-    expect(q('.story-page__eyebrow')?.textContent).toBe(S.pageTitle);
+    expect(q('.eyebrow')?.textContent).toBe(S.pageTitle);
     expect(q('[data-field="standalone-note"]')?.textContent).toBe(S.standaloneNote);
     expect(q('.reader')).not.toBeNull();
     expect(q('.reader')?.getAttribute('data-mode')).toBe('read');
@@ -235,6 +237,8 @@ describe('<StoryPage> Read-along (#/story/:id/listen, design 08 §10.3)', () => 
     expect(q('.story-page')?.getAttribute('data-state')).toBe('listening');
     expect(q('[data-field="mode"]')?.textContent).toContain(S.listenTitle);
     expect(q('[data-field="mode"] [lang="ja"]')?.textContent).toBe(S.listenTitleJa);
+    // the kanji in the eyebrow ride --font-ja with no tracking (reader.css .reader__mode [lang='ja']), as inside <StoryReader>
+    expect(q('[data-field="mode"]')?.classList.contains('reader__mode')).toBe(true);
     expect(q('[data-field="standalone-note"]')?.textContent).toBe(S.listenStandaloneNote);
     expect(q('.reader')?.getAttribute('data-mode')).toBe('listen');
     expect(q('.reader [data-action="start"]')).not.toBeNull();
@@ -247,7 +251,7 @@ describe('<StoryPage> Read-along (#/story/:id/listen, design 08 §10.3)', () => 
     expect(q('.story-page')?.getAttribute('data-mode')).toBe('read');
     expect(q('.reader')?.getAttribute('data-mode')).toBe('read');
     expect(q('.reader [data-action="next"]')).not.toBeNull();
-    expect(q('.story-page__eyebrow')?.textContent).toBe(S.pageTitle);
+    expect(q('.eyebrow')?.textContent).toBe(S.pageTitle);
   });
 
   it('a finished Read-along emits one listen:played, 0 XP, never an episode read, names the minutes and offers the plain reader; without reducers the page writes no row itself', async () => {
@@ -390,5 +394,43 @@ describe('<StoryPage> Read-along (#/story/:id/listen, design 08 §10.3)', () => 
     expect(q('.story-page')?.getAttribute('data-mode')).toBe('listen');
     expect(q('[data-field="mode"]')?.textContent).toContain(S.listenTitle);
     expect((q('[data-link="station"]') as HTMLAnchorElement).getAttribute('href')).toBe('#/station/9');
+  });
+});
+
+/* ── design 09 (C4): .sheet cards, .eyebrow labels, the Mincho fence ───────── */
+describe('design 09 (C4): sheets, eyebrows and the Mincho fence', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/input/pages/StoryPage.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('the result and recap cards are .sheet, their heads .eyebrow; the page label is an .eyebrow', async () => {
+    mount();
+    await settle();
+    expect(q('.story-page__head > .eyebrow')?.textContent).toBe(S.pageTitle);
+    expect(q('[class*="__eyebrow"], [class*="__label"]')).toBeNull();
+    clock += 120_000;
+    finishRead();
+    const result = q('[data-field="result"]');
+    expect(result?.classList.contains('sheet')).toBe(true);
+    expect(result?.classList.contains('story-page__result')).toBe(true);
+    const recap = q('[data-field="recap"]');
+    expect(recap?.classList.contains('sheet')).toBe(true);
+    expect(recap?.querySelector('h2')?.classList.contains('eyebrow')).toBe(true);
+  });
+
+  it('the previous-episode recap is a .sheet with an .eyebrow head', async () => {
+    mount({ name: 'story', id: FIXTURE_DIALOGUE_ID });
+    await settle();
+    const prev = q('[data-field="previously"]');
+    expect(prev?.classList.contains('sheet')).toBe(true);
+    expect(prev?.querySelector('h2')?.classList.contains('eyebrow')).toBe(true);
+  });
+
+  it('StoryPage.css: no local card paper, no label rule, no Mincho (§3.1: the fence stops at the reader body; the title is chrome), no width/height tween', () => {
+    expect(css).not.toMatch(/__eyebrow|__label/);
+    expect(css).not.toMatch(/\.story-page__(recap|result)\s*\{[^}]*\b(background|padding|border-radius)\s*:/);
+    expect(css).not.toMatch(/^\.sheet\b/m);
+    expect(css).not.toMatch(/--font-mincho/);
+    expect(/\.story-page__title\s*\{[^}]*font-family/.test(css)).toBe(false); // lang="ja" → base.css --font-ja
+    expect(css).not.toMatch(/transition:[^;]*\b(width|height)\b/);
+    expect(css).not.toMatch(/prefers-reduced-motion|\.reduced-motion/);
   });
 });

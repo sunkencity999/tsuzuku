@@ -29,18 +29,6 @@
   font-size: var(--fs-4);
   line-height: 1.2;
 }
-
-.nemesis__intro,
-.nemesis__instruction,
-.nemesis__ja,
-.nemesis__en,
-.nemesis__surface,
-.nemesis__missing,
-.nemesis__none,
-.nemesis__line,
-.nemesis__hint {
-  margin: 0;
-}
 .nemesis__intro {
   line-height: var(--lh-latin);
   color: var(--fg-muted);
@@ -70,13 +58,6 @@
   gap: var(--sp-1);
 }
 .nemesis__facts dt,
-.nemesis__label {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
 .nemesis__facts dd {
   margin: 0;
   line-height: var(--lh-latin);
@@ -85,9 +66,9 @@
   font-family: var(--font-ja);
   line-height: var(--lh-ja);
 }
+/* the section heads are the shared .eyebrow (motion.css); only the spacing is local */
 .nemesis__label {
   margin: 0 0 var(--sp-2);
-  font-weight: 400;
 }
 
 .nemesis__section {
@@ -216,34 +197,6 @@
   gap: var(--sp-2);
   justify-items: start;
 }
-.nemesis__hint {
-  display: grid;
-  gap: var(--sp-1);
-  padding: var(--sp-2) var(--sp-3);
-  border-left: 4px solid var(--kin);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--kin) 10%, var(--surface));
-}
-.nemesis__hint small {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-}
-.nemesis__line {
-  padding: var(--sp-2) var(--sp-3);
-  border-left: 4px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--raised);
-}
-.nemesis__line[data-kind='correct'] {
-  border-left-color: var(--matcha);
-}
-.nemesis__line[data-kind='near'] {
-  border-left-color: var(--kin);
-}
-.nemesis__line[data-kind='wrong'] {
-  border-left-color: var(--shu);
-}
-
 @media (min-width: 600px) {
   .nemesis__facts {
     grid-template-columns: repeat(2, minmax(0, 1fr));

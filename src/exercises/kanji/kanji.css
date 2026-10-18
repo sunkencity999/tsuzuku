@@ -23,7 +23,7 @@
   place-items: center;
   min-height: calc(var(--touch) * 2.4);
   padding: var(--sp-3);
-  font-family: var(--font-mincho);
+  font-family: var(--font-ja);
   font-size: var(--fs-7);
   line-height: 1.1;
   color: var(--fg);
@@ -42,12 +42,6 @@
   margin: 0;
 }
 .kj__meta dt,
-.kj__label {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
 .kj__meta dd {
   margin: 0;
   font-size: var(--fs-4);
@@ -57,29 +51,6 @@
 }
 .kj__okurigana {
   color: var(--fg-muted);
-}
-.kj__reveal {
-  display: grid;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  border-left: 4px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--raised);
-}
-.kj__reveal[data-kind='correct'] {
-  border-left-color: var(--matcha);
-}
-.kj__reveal[data-kind='near'] {
-  border-left-color: var(--kin);
-}
-.kj__reveal[data-kind='wrong'] {
-  border-left-color: var(--shu);
-}
-.kj__reveal[data-kind='info'] {
-  border-left-color: var(--ai);
-}
-.kj__reveal p {
-  margin: 0;
 }
 .kj__why {
   color: var(--fg-muted);
@@ -160,7 +131,7 @@
   min-height: calc(var(--touch) * 1.4);
   padding: var(--sp-2);
   font: inherit;
-  font-family: var(--font-mincho);
+  font-family: var(--font-ja);
   font-size: var(--fs-5);
   line-height: 1;
   color: var(--fg-muted);
@@ -202,7 +173,7 @@
   min-height: calc(var(--touch) * 1.2);
   padding: var(--sp-2) var(--sp-1);
   font: inherit;
-  font-family: var(--font-mincho);
+  font-family: var(--font-ja);
   font-size: var(--fs-5);
   line-height: 1;
   color: var(--fg);
@@ -284,7 +255,7 @@
   display: grid;
   place-items: center;
   pointer-events: none;
-  font-family: var(--font-mincho);
+  font-family: var(--font-ja);
   font-size: 170px;
   line-height: 1;
   color: var(--fg);
@@ -340,21 +311,4 @@
   .kj-tiles {
     gap: var(--sp-3);
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .kj-tile,
-  .kj-slot {
-    transition: none;
-  }
-  .kj-tile:active:not(:disabled) {
-    transform: none;
-  }
-}
-.reduced-motion .kj-tile,
-.reduced-motion .kj-slot {
-  transition: none;
-}
-.reduced-motion .kj-tile:active:not(:disabled) {
-  transform: none;
 }

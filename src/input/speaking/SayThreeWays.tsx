@@ -259,7 +259,7 @@ function ThreeWaysBody(p: ExerciseProps): JSX.Element {
 
       {(showModel || done) && model ? (
         <p class="speak__en">
-          <span class="speak__label">{S.threeWaysModel}</span>
+          <span class="eyebrow">{S.threeWaysModel}</span>
           <span lang="ja">{model}</span>
           {modelRegister ? <span class="chip">{REGISTER_NAME[modelRegister]}</span> : null}
         </p>

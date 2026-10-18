@@ -2,6 +2,7 @@
  * TSUZUKU — 作文 Writing Dojo (src/input/writing, group F).
  * Tokens only (src/styles/tokens.css). Mobile-first: fits 360 px with the
  * 16 px gutter; 44 px targets; every state is shape + text, never color alone.
+ * .eyebrow comes from motion.css (design 09 §3.1).
  */
 .dojo-write {
   display: grid;
@@ -24,7 +25,7 @@
 .dojo-write__title-ja {
   font-family: var(--font-brush);
   font-size: var(--fs-5);
-  line-height: 1;
+  line-height: 1.1;
 }
 .dojo-write__prompt {
   margin: 0;
@@ -71,8 +72,8 @@
   display: grid;
   gap: var(--sp-2);
 }
-.dojo-write__label {
-  font-weight: 600;
+.dojo-write .eyebrow {
+  margin-inline-end: var(--sp-2);
 }
 .dojo-write__text {
   width: 100%;

@@ -53,6 +53,14 @@ describe('<Feedback>', () => {
     expect(root.querySelector('.feedback__diff')?.getAttribute('lang')).toBe('ja');
     expect(root.querySelector('.chip--tag')?.textContent).toBe('vowel length');
     expect(root.querySelector('.feedback')?.getAttribute('data-kind')).toBe('near');
+    // the card is THE result panel entering by the verb class (design 09 §7 I)
+    const card = root.querySelector('.feedback')!;
+    expect(card.classList.contains('reveal')).toBe(true);
+    expect(card.classList.contains('ink-nijimi')).toBe(true);
+    // a plain panel: the nijimi verb never rides a clipped .status-window (design 09 §6.7 rule 7)
+    expect(card.classList.contains('status-window')).toBe(false);
+    expect(card.querySelector('.eyebrow')).not.toBeNull();
+    expect(card.querySelector('.feedback__label')).toBeNull();
   });
 
   it('computes the diff when only given/correct are present', () => {
@@ -97,9 +105,18 @@ describe('<Feedback>', () => {
 
   it('Ippon / Kiai / XP / recovery / judge flourishes; Zen drops the Kiai ones', () => {
     mount(base({ ippon: true, kiai: true, xpDelta: 5, recovery: true, judge: 'pass' }), undefined, 'dojo');
-    expect(root.querySelector('.ippon')?.textContent).toBe('一本');
+    expect(root.querySelector('.ippon')?.textContent?.trim()).toBe('一本');
+    expect(root.querySelector('.ippon')?.getAttribute('aria-label')).toBe('Ippon');
+    // 一本 is written through a stroke mask (§3.4): the spine is an .ink-hiku[data-axis=stroke] inside the mask the text wears
+    const stroke = root.querySelector('.ippon mask .ippon__stroke.ink-hiku[data-axis="stroke"]');
+    expect(stroke).not.toBeNull();
+    expect(root.querySelector('.ippon .ippon__text')?.getAttribute('mask')).toMatch(/^url\(#.+-ippon\)$/);
     expect(root.querySelector('.chip--kiai')).not.toBeNull();
-    expect(root.querySelector('.xp-delta')?.textContent).toBe('+5 XP');
+    // the zero-Japanese rule: 気合 carries its English
+    expect(root.querySelector('.chip--kiai')?.textContent).toContain('Kiai');
+    // the XP delta ticks through <Ticker>: the final digits stand in the DOM and the label is honest
+    expect(root.querySelector('.xp-delta .ticker__value')?.textContent).toBe('+5 XP');
+    expect(root.querySelector('.xp-delta')?.getAttribute('aria-label')).toBe('+5 XP');
     expect(root.querySelector('.feedback__recovery')).not.toBeNull();
     expect(root.querySelector('.feedback__judge')?.getAttribute('data-judge')).toBe('pass');
 

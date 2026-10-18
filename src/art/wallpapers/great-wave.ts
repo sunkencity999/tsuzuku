@@ -42,7 +42,7 @@ function cubic(p0: Pt, c1: Pt, c2: Pt, p1: Pt, n: number): Pt[] {
 }
 
 /** The wave outline (closed polygon) for a crest at `apex` with curl radius `R`, rising from `backX` over a sea at `seaY`, on a `w`-wide canvas. */
-function wave(apex: Pt, R: number, seaY: number, backX: number, w: number, h: number, wobble: (x: number, y: number) => number): Wave {
+export function wave(apex: Pt, R: number, seaY: number, backX: number, w: number, h: number, wobble: (x: number, y: number) => number): Wave {
   const [ax, ay] = apex;
   const center: Pt = [ax, ay + R];
   const trough = seaY + R * 0.3;

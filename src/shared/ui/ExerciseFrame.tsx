@@ -32,6 +32,21 @@
  * Pause: the overlay is a focus-managed dialog (`useDialogFocus` — Resume
  * takes focus imperatively, Tab wraps, the opener gets focus back on resume)
  * and the head, body and controls are `inert` + `aria-hidden` while it is up.
+ * Resume is immediate (the runner and the inert flags flip at once, the opener
+ * is focused again); the overlay alone stays for its kasure exit
+ * (`data-leaving`, design 09 §6.3) — inert, hidden from assistive tech and no
+ * longer `aria-modal`, so nothing can land in it — unmounting on
+ * `animationend` or after `EXIT_FALLBACK_MS`, at once under reduced motion
+ * and where the engine runs no animations (`exitsPlay`). `held` (additive):
+ * the host holds the frame — the Leave slip is open — and the ring stops.
+ *
+ * Motion (design 09 §7 I): the ki bar is a `.meter` whose `--value` hiku-fills;
+ * a full bar charges the Continue hanko (`hanko--charged`, a static ring —
+ * CSS in ui.css); `.hanko.is-pressed` rides pointerdown / pointerup for the
+ * ink-bleed ring (§5.3) through one delegated listener on the frame.
+ *
+ * The exit helpers here (`animationsRun`, `exitsPlay`, `onExitEnd`,
+ * `pressRing`) are shared by TeachOnce, the Leave slip and the session view.
  */
 import { createContext, type JSX } from 'preact';
 import { useContext, useEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -39,8 +54,48 @@ import type { ExerciseFrameProps as ContractProps } from '../exercise-types';
 import { Feedback, feedbackAnnouncement } from './Feedback';
 import { S, fill } from './strings';
 import { useDialogFocus } from './use-dialog-focus';
+import { prefersReducedMotion } from './use-reveal';
 import { useTimer } from './use-timer';
 import './ui.css';
+
+/** Longest an exit (`data-leaving`) is held when no `animationend` arrives (a cancelled animation); the kasure itself is --dur-1. */
+export const EXIT_FALLBACK_MS = 200;
+
+/** The engine reports animations (Web Animations). jsdom and old WebViews do not: there an exit is instant, nothing waits on an event that never comes. */
+export function animationsRun(): boolean {
+  return typeof Element !== 'undefined' && typeof Element.prototype.getAnimations === 'function';
+}
+
+/** An exit may play: the engine animates and motion is not reduced (design 09 §6.6: reduced exits are instant). */
+export function exitsPlay(): boolean {
+  return animationsRun() && !prefersReducedMotion();
+}
+
+/** Calls `onGone` once when `el`'s own exit animation ends, or after `EXIT_FALLBACK_MS`. Returns a canceller. */
+export function onExitEnd(el: HTMLElement, onGone: () => void): () => void {
+  let done = false;
+  const finish = (): void => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    el.removeEventListener('animationend', onEnd);
+    onGone();
+  };
+  const onEnd = (e: Event): void => {
+    if (e.target === el) finish();
+  };
+  el.addEventListener('animationend', onEnd);
+  const timer = setTimeout(finish, EXIT_FALLBACK_MS);
+  return () => {
+    done = true;
+    clearTimeout(timer);
+    el.removeEventListener('animationend', onEnd);
+  };
+}
+
+/** `.hanko.is-pressed` on pointerdown (design 09 §5.3); the body lives in press-ring.ts so the shell can bind it too (d41). */
+import { pressRing } from './press-ring';
+export { pressRing };
 
 /* ── context: exercises register handlers instead of binding keys ───────── */
 
@@ -117,6 +172,8 @@ export interface ExerciseFrameProps extends ContractProps {
   onAgain?(): void;
   /** Resume after a pause (the frame keeps its own pause overlay). */
   onResume?(): void;
+  /** The host holds the frame (the Leave slip is open): the speed ring stops and nothing times out. */
+  held?: boolean;
 }
 
 const RING_R = 16;
@@ -151,13 +208,35 @@ const STEP_TAG_LABEL: Record<NonNullable<ContractProps['step']['stepTag']>, stri
  * is focused again on unmount. Escape is consumed earlier by the frame's
  * capture-phase listener (resume); the hook's own Escape path is a backstop.
  */
-function PauseOverlay(p: { onResume(): void }): JSX.Element {
+function PauseOverlay(p: { onResume(): void; leaving: boolean; onGone(): void }): JSX.Element {
   const ref = useRef<HTMLDivElement>(null);
+  // Read before the dialog hook moves focus: the opener gets focus back the moment the overlay starts leaving, not when it unmounts.
+  const opener = useRef<HTMLElement | null>(typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null);
   useDialogFocus(ref, { onClose: p.onResume, initial: '.hanko' });
+  const gone = useRef(p.onGone);
+  gone.current = p.onGone;
+  useEffect(() => {
+    if (!p.leaving || !ref.current) return;
+    const o = opener.current;
+    if (o && o.isConnected) o.focus();
+    return onExitEnd(ref.current, () => gone.current());
+  }, [p.leaving]);
+  const leaving = p.leaving;
   return (
-    <div ref={ref} tabIndex={-1} class="pause-overlay" role="dialog" aria-modal="true" aria-label={S.paused}>
+    <div
+      ref={ref}
+      tabIndex={-1}
+      class="pause-overlay ink-nijimi"
+      style="--from: 0 0"
+      role="dialog"
+      aria-modal={leaving ? undefined : 'true'}
+      aria-hidden={leaving ? 'true' : undefined}
+      inert={leaving || undefined}
+      aria-label={S.paused}
+      data-leaving={leaving ? '' : undefined}
+    >
       <div class="pause-overlay__card status-window">
-        <span class="pause-overlay__kanji" lang="ja">
+        <span class="pause-overlay__kanji" lang="ja" aria-hidden="true">
           休憩
         </span>
         <p>{S.paused}</p>
@@ -173,6 +252,8 @@ function PauseOverlay(p: { onResume(): void }): JSX.Element {
 
 export function ExerciseFrame(p: ExerciseFrameProps): JSX.Element {
   const [paused, setPaused] = useState(false);
+  /** The overlay's own life: `open` while paused, `leaving` for its kasure after resume, `null` gone. */
+  const [overlay, setOverlay] = useState<'open' | 'leaving' | null>(null);
   const [hasHint, setHasHint] = useState(false);
   const props = useRef(p);
   props.current = p;
@@ -218,7 +299,7 @@ export function ExerciseFrame(p: ExerciseFrameProps): JSX.Element {
   const hard = p.step.timed;
   const timer = useTimer({
     deadlineMs: p.timer?.ms,
-    running: showTimer && !paused && p.feedback === null,
+    running: showTimer && !paused && !p.held && p.feedback === null,
     now: p.now,
     startedAt: p.timer?.startedAt,
     onTimeout: () => {
@@ -234,13 +315,18 @@ export function ExerciseFrame(p: ExerciseFrameProps): JSX.Element {
   const pause = (): void => {
     if (pausedRef.current) return;
     setPaused(true);
+    setOverlay('open');
     props.current.onPause();
   };
+  // Resume at once; the overlay leaves the way it arrived (kasure) where an exit can play.
   const resume = (): void => {
     if (!pausedRef.current) return;
     setPaused(false);
+    setOverlay(exitsPlay() ? 'leaving' : null);
     props.current.onResume?.();
   };
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => (section.current ? pressRing(section.current) : undefined), []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -330,10 +416,12 @@ export function ExerciseFrame(p: ExerciseFrameProps): JSX.Element {
   const tag = p.step.stepTag;
   const hidden = paused ? 'true' : undefined;
   const inert = paused || undefined;
+  const kiFull = !zen && p.ki >= 100;
 
   return (
     <ExerciseFrameContext.Provider value={api}>
       <section
+        ref={section}
         class="exercise-frame"
         data-feel={p.feel}
         data-exercise={p.step.exercise}
@@ -356,20 +444,12 @@ export function ExerciseFrame(p: ExerciseFrameProps): JSX.Element {
           {zen ? (
             <span />
           ) : (
-            <div
-              class="ki-bar status-window"
-              role="meter"
-              aria-label={S.ki}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(p.ki)}
-              data-full={p.ki >= 100 ? 'true' : undefined}
-            >
-              <span class="ki-bar__label" lang="ja">
-                気
+            <div class="ki-bar status-window" role="meter" aria-label={S.ki} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(p.ki)} data-full={kiFull ? 'true' : undefined}>
+              <span class="ki-bar__label">
+                <span lang="ja">気</span> {S.ki}
               </span>
-              <div class="ki-bar__track">
-                <div class="ki-bar__fill" style={{ width: `${Math.max(0, Math.min(100, p.ki))}%` }} />
+              <div class="meter ki-bar__track" style={`--value:${Math.max(0, Math.min(100, p.ki)) / 100}`}>
+                <div class="meter__fill" />
               </div>
             </div>
           )}
@@ -429,14 +509,14 @@ export function ExerciseFrame(p: ExerciseFrameProps): JSX.Element {
             <kbd aria-hidden="true">Esc</kbd>
           </button>
           {fb ? (
-            <button type="button" class="hanko" onClick={() => p.onContinue()} aria-keyshortcuts="Enter">
+            <button type="button" class={kiFull ? 'hanko hanko--charged' : 'hanko'} onClick={() => p.onContinue()} aria-keyshortcuts="Enter">
               {S.continue}
               <kbd aria-hidden="true">↵</kbd>
             </button>
           ) : null}
         </footer>
 
-        {paused ? <PauseOverlay onResume={resume} /> : null}
+        {overlay ? <PauseOverlay onResume={resume} leaving={overlay === 'leaving'} onGone={() => setOverlay(null)} /> : null}
 
         <div class="sr-only" role="status" aria-live="polite">
           {announce}

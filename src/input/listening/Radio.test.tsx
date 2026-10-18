@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
@@ -6,6 +8,7 @@ import type { PoolRef, StationBundle, StoryItem } from '@/content/types';
 import { SPEED_TIER_RATES, installServices, nullAudio, resetServices, type AudioService, type ClipCue, type ClipPlayOptions, type ClipPlayback, type ClipPlayer, type ClipReady, type SpeakOptions, type TrackCue } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import { cardKey } from '@/shared/ids';
+import { EXIT_FALLBACK_MS } from '@/shared/ui/TeachOnce';
 import { store } from '@/store';
 import { captureEvents, card, makeTestStore } from '@/store/testing';
 import type { MediaSessionLike } from './media-session';
@@ -1024,12 +1027,16 @@ describe('<Radio> without the pack (device voice)', () => {
 /* ── teach card, notices, empty ──────────────────────────────────────────── */
 
 describe('<Radio> teach card and notices', () => {
-  it('shows the “radio-first” TeachOnce card once and writes progress.teachSeen on dismiss', () => {
+  it('shows the “radio-first” TeachOnce card once and writes progress.teachSeen on dismiss', async () => {
     mount(inputsOf([PIECE]), { clips: null });
     const card = root.querySelector(`[data-teach-id="${RADIO_TEACH_ID}"]`);
     expect(card).not.toBeNull();
     expect(card?.textContent).toContain(S.teachTitle);
     act(() => (card!.querySelector('.teach-once__dismiss') as HTMLButtonElement).click());
+    // design 09 §6.3: the card leaves (kasure) before onDismiss fires — on animationend, or TeachOnce's EXIT_FALLBACK_MS fallback where jsdom sends none
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, EXIT_FALLBACK_MS + 60));
+    });
     expect(store.progress.value.teachSeen).toContain(RADIO_TEACH_ID);
     expect(root.querySelector(`[data-teach-id="${RADIO_TEACH_ID}"]`)).toBeNull();
   });
@@ -1052,5 +1059,34 @@ describe('<Radio> teach card and notices', () => {
     expect(root.querySelector('.radio__state')).toBeNull();
     // the fixture's Station 4 dialogue is the one Radio text (the diary story is reading material)
     expect(root.querySelector('.radio__track-title')?.textContent).toContain(DIALOGUE.titleEn);
+  });
+});
+
+/* ── design 09 (C4): the --ai-dye band on the player ─────────────────────────── */
+describe('design 09 (C4): the indigo band on <Radio>', () => {
+  it('one static band tops the header; its title names the source (synthetic with the pack, device without) and it is aria-hidden — the chip is the one accessible source', () => {
+    mount(inputsOf([PIECE]), { clips: fakeClips({ texts: [PIECE] }), nav: fakeNav() });
+    let bands = root.querySelectorAll('.radio__head > .radio__band');
+    expect(bands).toHaveLength(1);
+    expect(bands[0]!.getAttribute('title')).toBe(S.chipSynthetic);
+    // the band explains itself once: a pointer tooltip; screen readers hear the source from the chip, not twice
+    expect(bands[0]!.getAttribute('aria-hidden')).toBe('true');
+    expect(bands[0]!.hasAttribute('aria-label')).toBe(false);
+    expect(bands[0]!.hasAttribute('role')).toBe(false);
+    expect(chip()).toBe(S.chipSynthetic);
+    render(null, root);
+    mount(inputsOf([PIECE]), { clips: null });
+    bands = root.querySelectorAll('.radio__head > .radio__band');
+    expect(bands).toHaveLength(1);
+    expect(bands[0]!.getAttribute('title')).toBe(S.chipDevice);
+  });
+
+  it('Radio.css: the band is --ai-dye and static; the file tweens nothing and keeps no reduced-motion block', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/input/listening/Radio.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const band = /\.radio__band\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(band).toMatch(/background:\s*var\(--ai-dye\)/);
+    expect(band).not.toMatch(/transition|animation/);
+    expect(css).not.toMatch(/transition|@keyframes|prefers-reduced-motion|\.reduced-motion/);
+    expect(/\.radio__title-ja\s*\{[^}]*line-height:\s*1\.1/.test(css)).toBe(true);
   });
 });

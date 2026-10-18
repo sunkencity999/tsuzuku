@@ -1,6 +1,8 @@
 /*
  * TSUZUKU — <MonGrid> styles (src/collections/MonGrid.tsx, group G).
- * Tokens only; mobile-first from 360 px (three 72 px crests per row).
+ * Tokens only; mobile-first from 360 px (three 72 px crests per row). The
+ * groups are .sheet (motion.css); moment E's beats ride the verb classes and
+ * the delays in CollectionsPage.css; reduced motion rides the zeroed tokens.
  */
 .mon-grid {
   display: flex;
@@ -21,10 +23,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-3) var(--sp-4);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
 }
 .mon-grid__h3 {
   display: flex;
@@ -54,6 +52,7 @@
   min-width: 0;
 }
 .mon-grid__button {
+  position: relative;
   display: block;
   width: 100%;
   min-height: var(--touch);
@@ -67,21 +66,29 @@
   cursor: pointer;
   transition:
     border-color var(--dur-1) var(--ease),
-    background var(--dur-1) var(--ease),
-    transform 60ms var(--ease);
+    background-color var(--dur-1) var(--ease);
 }
 .mon-grid__button:hover {
   border-color: var(--line);
-  background: var(--raised);
-}
-.mon-grid__button:active {
-  transform: scale(0.97);
+  background-color: var(--raised);
 }
 .mon-grid__button .mon {
   width: 100%;
 }
 .mon-grid__button .mon__caption {
   max-width: 100%;
+}
+/* the crest is round: the wet layer follows the seal */
+.mon-grid__button .mon__svg {
+  border-radius: 50%;
+}
+/* moment E's date lies over the caption, so the row never jumps */
+.mon-grid__cell .mon-grid__button .collections__seal {
+  position: absolute;
+  inset: auto var(--sp-1) var(--sp-2);
+  margin: 0;
+  padding: var(--sp-1) 0;
+  background: var(--surface-paper);
 }
 .mon-grid__cell[data-earned="false"] .mon__name {
   color: var(--fg-muted);
@@ -134,30 +141,10 @@
   font-size: var(--fs-2);
   color: var(--fg);
 }
-.mon-detail__label {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
 .mon-detail__state {
   color: var(--fg-muted);
 }
 .mon-detail .modal__actions {
   justify-content: center;
   width: 100%;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mon-grid__button,
-  .mon-grid__button:active {
-    transition: none;
-    transform: none;
-  }
-}
-.reduced-motion .mon-grid__button,
-.reduced-motion .mon-grid__button:active {
-  transition: none;
-  transform: none;
 }

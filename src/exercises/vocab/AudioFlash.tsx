@@ -132,7 +132,7 @@ function AudioFlashBody(p: ExerciseProps): JSX.Element {
           <WordHead item={item} mode={p.furigana} kana />
           {heardIn && hasVoice ? (
             <p class="drill__hint">
-              <span class="drill__label">{S.heardIn}</span>{' '}
+              <span class="eyebrow">{S.heardIn}</span>{' '}
               <span class="drill__ja" lang="ja">
                 {text}
               </span>

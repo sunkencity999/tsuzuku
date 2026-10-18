@@ -449,7 +449,7 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
 
   const replaysLeft = MAX_REPLAYS - replays;
   const bandLine = done ? (done.result.correct ? S.bandGood : done.result.nearMiss ? S.bandHard : S.bandAgain) : '';
-  const kind = done ? (done.result.correct ? 'correct' : done.result.nearMiss ? 'near' : 'wrong') : undefined;
+  const kind = done ? (done.result.nearMiss ? 'partial' : done.result.correct ? 'correct' : 'wrong') : undefined;
   const hintText = params.promptEn && clause === null ? `${S.hintMeaning}: ${params.promptEn}` : `${S.hintStart} ${moraSplit(target).slice(0, 2).join('')}…`;
 
   if (!sentence) {
@@ -530,7 +530,7 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
                 {S.hint}
               </button>
               {hint ? (
-                <p class="listen__hint" role="status">
+                <p class="listen__hint reveal ink-nijimi" data-kind="teach" role="status">
                   <span lang={params.promptEn && clause === null ? undefined : 'ja'}>{hintText}</span>
                   <small>{S.hintCeiling}</small>
                 </p>
@@ -541,16 +541,16 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
       )}
 
       {done ? (
-        <div class="listen__result" data-kind={kind} role="status">
+        <div class="listen__result reveal ink-nijimi" data-kind={kind} role="status">
           <p class="listen__line">{choiceMode ? (done.result.correct ? S.choiceCorrect : S.choiceMiss) : bandLine}</p>
           {!choiceMode ? (
             <p class="listen__score">
-              <span class="listen__label">{S.score}</span> {fill(S.scoreLine, { pct: Math.round(done.score * 100) })}
+              <span class="eyebrow listen__label">{S.score}</span> {fill(S.scoreLine, { pct: Math.round(done.score * 100) })}
             </p>
           ) : null}
           {!choiceMode && done.diff.length > 0 ? (
             <p class="listen__yours">
-              <span class="listen__label">{S.yours}</span>
+              <span class="eyebrow listen__label">{S.yours}</span>
               <span class="listen__diff" lang="ja" title={S.diffLegend}>
                 {done.diff.map((o, i) => (
                   <span key={i} class={`diff ${DIFF_CLASS[o.kind]}`} data-diff={o.kind} data-tag={o.tag} title={o.tag ? TAG_LABEL[o.tag] : undefined}>
@@ -562,12 +562,12 @@ export function SentenceListen(p: ExerciseProps<SentenceListenParams>): JSX.Elem
           ) : null}
           {clause !== null ? (
             <p class="listen__sentence listen__clause">
-              <span class="listen__label">{S.theClause}</span>
+              <span class="eyebrow listen__label">{S.theClause}</span>
               <span lang="ja">{clause}</span>
             </p>
           ) : null}
           <p class="listen__sentence">
-            <span class="listen__label">{S.theSentence}</span>
+            <span class="eyebrow listen__label">{S.theSentence}</span>
             <Ruby ja={sentence} mode="always" />
           </p>
           {done.result.errorTags.length > 0 ? (

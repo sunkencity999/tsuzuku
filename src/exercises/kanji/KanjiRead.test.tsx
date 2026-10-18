@@ -175,7 +175,7 @@ describe('<KanjiRead>', () => {
     type(input2, 'nomuu');
     enter(input2);
     expect(pr2.onResult.mock.calls[0]?.[0]).toMatchObject({ correct: false, nearMiss: true, errorTags: ['vowel-length'] });
-    expect(q('.kj__reveal')?.getAttribute('data-kind')).toBe('near');
+    expect(q('.kj__reveal')?.getAttribute('data-kind')).toBe('partial');
   });
 
   it('a particle slip is not tolerated for a reading', () => {

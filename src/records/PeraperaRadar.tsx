@@ -8,9 +8,14 @@
  * "(synthetic)" because every in-app voice is TTS; 口 is "(estimated)" on the
  * self-assessment path and "(no voice)" when speaking is off; ledger-fed
  * numbers are "(reported)". Each axis has one sentence saying what it is
- * made of (`explain`), so the number is never a mystery.
+ * made of (`explain`), so the number is never a mystery. The first Records
+ * visit of a month with a stored earlier snapshot morphs the polygon from last
+ * month to now over 600 ms (design 09 §8 "the month"; `Radar morph`): once per
+ * calendar month, the month key remembered in localStorage under its own key
+ * (and in memory) — never a save field — so a relaunch does not replay it.
  */
 import type { JSX } from 'preact';
+import { useState } from 'preact/hooks';
 import { store } from '../store';
 import { PERAPERA_LABELS_EN, peraperaHistory, peraperaNow, type PeraperaMonth, type PeraperaResult } from '../store/perapera';
 import { S as DEFS } from '../store/defs-strings';
@@ -28,6 +33,54 @@ function monthKeyOf(day: number): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
+/** Where the last morphed month key rests between launches (not the save). */
+export const RADAR_MORPH_KEY = 'tsuzuku:radar-morphed';
+/** The month whose radar has already morphed (memory mirror of the stored key). */
+let morphedMonth: string | null = null;
+
+/** `localStorage` when the host has one (never Node's flag-gated global, never a throwing private-mode getter). */
+function storage(): Storage | null {
+  try {
+    const ls = (globalThis as { localStorage?: Storage }).localStorage;
+    return ls && typeof ls.getItem === 'function' ? ls : null;
+  } catch {
+    return null;
+  }
+}
+
+function readMorphed(): string | null {
+  if (morphedMonth !== null) return morphedMonth;
+  try {
+    const raw = storage()?.getItem(RADAR_MORPH_KEY);
+    if (typeof raw === 'string' && /^\d{4}-\d{2}$/.test(raw)) morphedMonth = raw;
+  } catch {
+    /* no localStorage: memory only */
+  }
+  return morphedMonth;
+}
+
+/** Forgets the morph record (tests). */
+export function resetRadarMorphForTests(): void {
+  morphedMonth = null;
+  try {
+    storage()?.removeItem(RADAR_MORPH_KEY);
+  } catch {
+    /* nothing stored */
+  }
+}
+
+/** Whether this mount morphs: an earlier month exists and this month has not morphed yet (on this device). */
+export function claimRadarMorph(month: string, hasHistory: boolean): boolean {
+  if (!hasHistory || readMorphed() === month) return false;
+  morphedMonth = month;
+  try {
+    storage()?.setItem(RADAR_MORPH_KEY, month);
+  } catch {
+    /* memory only */
+  }
+  return true;
+}
+
 function flagLine(flag: string): string {
   if (flag === DEFS.flagSynthetic) return S.peraperaFlagSynthetic;
   if (flag === DEFS.flagEstimated) return S.peraperaFlagEstimated;
@@ -40,9 +93,11 @@ export function PeraperaRadar(): JSX.Element {
   store.cards.version.value;
   const meta = store.meta();
   const result: PeraperaResult = peraperaNow(meta, store.cards, store.now());
-  const history = earlierMonths(peraperaHistory(meta), monthKeyOf(store.today()));
+  const month = monthKeyOf(store.today());
+  const history = earlierMonths(peraperaHistory(meta), month);
   const historyVectors = history.map((h) => h.axes as number[]);
   const flags = [...result.flags, S.reported];
+  const [morph] = useState(() => claimRadarMorph(month, historyVectors.length > 0));
 
   return (
     <section class="perapera" aria-labelledby="perapera-title">
@@ -63,6 +118,7 @@ export function PeraperaRadar(): JSX.Element {
           axes={result.labels}
           values={result.axes}
           history={historyVectors.length ? historyVectors : undefined}
+          morph={morph}
           available={result.available}
           legend={{ now: S.peraperaNow, history: S.peraperaLastMonth }}
           tableLabels={PERAPERA_LABELS_EN.map((en, i) => `${result.labels[i] ?? ''} ${en}`)}

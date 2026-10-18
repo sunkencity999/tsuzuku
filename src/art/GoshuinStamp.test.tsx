@@ -5,6 +5,7 @@ import { hashSeed } from '../shared/hash';
 import { civilToDay, formatEraDate } from '../shared/time';
 import { store } from '../store';
 import { TEST_SEED, makeTestStore } from '../store/testing';
+import { PALETTE } from './color';
 import { goshuinSvg } from './goshuin';
 import { GOSHUIN_DEFAULT_SIZE, GOSHUIN_PRESS_CLASS, GoshuinStamp, goshuinSeed } from './GoshuinStamp';
 
@@ -132,5 +133,56 @@ describe('<GoshuinStamp>', () => {
       expect(host().getAttribute('aria-label')).toContain(st.nameJa);
       act(() => render(null, root));
     }
+  });
+
+  it('img renders the stamp as an <img> data URL: hex paints for the theme, no var(), no filter element in the DOM; its text is set over the image as inline <text> in the page fonts (design 09 §5.3, 07 §8)', () => {
+    act(() => render(<GoshuinStamp station={7} at={DAY} perfect assisted={false} img theme="dark" svgClass="ink-wet is-dry" printClass="ink-nijimi" />, root));
+    const img = host().querySelector<HTMLImageElement>('img.goshuin__img');
+    expect(img).not.toBeNull();
+    const src = img!.getAttribute('src')!;
+    expect(src.startsWith('data:image/svg+xml')).toBe(true);
+    const svg = decodeURIComponent(src.slice(src.indexOf(',') + 1));
+    expect(svg).not.toContain('var(');
+    expect(svg.toLowerCase()).toContain(PALETTE.dark.shu.toLowerCase());
+    expect(svg).toContain('goshuin__gold');
+    // webfonts never resolve inside an image: no <text> in the data URL …
+    expect(svg).not.toContain('<text');
+    expect(svg).not.toContain('平塚');
+    // … the ordinal, name, 奉拝 and date are inline <text> over it, brush and Mincho, no filter
+    const overlay = host().querySelector('svg.goshuin__text')!;
+    expect(overlay).not.toBeNull();
+    expect(overlay.getAttribute('viewBox')).toBe('0 0 320 320');
+    const texts = Array.from(overlay.querySelectorAll('text')).map((t) => t.textContent);
+    expect(texts.join('')).toContain('平塚');
+    expect(texts.join('')).toContain('奉拝');
+    expect(texts.join('')).toContain('第七宿');
+    const families = Array.from(overlay.querySelectorAll('[font-family]')).map((e) => e.getAttribute('font-family') ?? '');
+    expect(families.some((f) => f.includes('Yuji Syuku'))).toBe(true);
+    expect(families.some((f) => f.includes('Shippori Mincho B1'))).toBe(true);
+    expect(overlay.querySelector('filter')).toBeNull();
+    expect(host().querySelectorAll('svg')).toHaveLength(1);
+    expect(root.querySelectorAll('filter')).toHaveLength(0);
+    const print = host().querySelector('.goshuin__print')!;
+    expect(print.classList.contains('ink-nijimi')).toBe(true);
+    expect(print.contains(img)).toBe(true);
+    expect(print.contains(overlay)).toBe(true);
+    expect(host().classList.contains('ink-wet')).toBe(true);
+    expect(host().getAttribute('role')).toBe('img');
+    expect(host().getAttribute('aria-label')).toContain('平塚');
+    expect(img!.getAttribute('alt')).toBe('');
+    act(() => render(<GoshuinStamp station={7} at={DAY} perfect={false} assisted={false} img />, root));
+    expect(decodeURIComponent(host().querySelector('img')!.getAttribute('src')!).toLowerCase()).toContain(PALETTE.light.shu.toLowerCase());
+    expect(host().querySelector('.goshuin__print')?.classList.contains('ink-nijimi')).toBe(false);
+  });
+
+  it('dateGloss sets the Latin reading under the era date, in the label and in the tooltip (design 09 §3.3)', () => {
+    act(() => render(<GoshuinStamp station={7} at={DAY} perfect={false} assisted={false} caption dateGloss="Reiwa 8 · Oct 17" />, root));
+    const gloss = figure().querySelector('.goshuin__gloss')!;
+    expect(gloss.textContent).toBe('Reiwa 8 · Oct 17');
+    expect(gloss.previousElementSibling?.classList.contains('goshuin__date')).toBe(true);
+    expect(figure().getAttribute('title')).toBe(`Station 7 · Hiratsuka · ${formatEraDate(DAY)} · Reiwa 8 · Oct 17`);
+    expect(host().getAttribute('aria-label')).toContain(`${formatEraDate(DAY)}. Reiwa 8 · Oct 17.`);
+    act(() => render(<GoshuinStamp station={7} at={DAY} perfect={false} assisted={false} caption />, root));
+    expect(figure().querySelector('.goshuin__gloss')).toBeNull();
   });
 });

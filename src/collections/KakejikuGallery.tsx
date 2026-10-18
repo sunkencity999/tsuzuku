@@ -7,7 +7,9 @@
  * Chips mark living pieces and the reforge count; the card links to the
  * Print Studio. Thumbnails are composed one per idle tick (the generators
  * are pure and fast, but 28 at once would stall the first paint) and shown
- * as `<img>` data URLs so the page DOM stays small.
+ * as `<img>` data URLs so the page DOM stays small. The cards hang on a
+ * horizontal rail in --wood with scroll-snap (design 09 §5.4, §9 C3): each
+ * scroll is a .sheet hung from the rail by a .hairline cord, static — no swing.
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
@@ -200,7 +202,8 @@ export function KakejikuGallery(p: KakejikuGalleryProps = {}): JSX.Element {
           const alt = fill(state === 'unlocked' ? S.previewAlt : S.silhouetteAlt, { name: names.en });
           const eyes = def.id === 'daruma' && def.upgrade ? DARUMA_EYES[def.upgrade(meta)] : undefined;
           return (
-            <li key={def.id} class={`kakejiku-card kakejiku-card--${state}`} data-wallpaper={def.id} data-state={state} data-revealed={revealed}>
+            <li key={def.id} class={`kakejiku-card sheet kakejiku-card--${state}`} data-wallpaper={def.id} data-state={state} data-revealed={revealed}>
+              <span class="kakejiku-card__cord hairline" aria-hidden="true" />
               <a class="kakejiku-card__link" href={studio} aria-label={`${names.en} · ${S.openStudio}`}>
                 <figure class={`kakejiku-card__scroll kakejiku-card__scroll--${size}`}>
                   <span class="kakejiku-card__jiku" aria-hidden="true" />

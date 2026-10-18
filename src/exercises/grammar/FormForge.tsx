@@ -125,11 +125,11 @@ export function FormForge(p: ExerciseProps): JSX.Element {
     const defective = Boolean(built?.defective);
     return (
       <div class="gr gr-forge" data-state={defective ? 'defective' : 'unavailable'}>
-        <div class="gr__reveal status-window" data-kind="info" role="status">
+        <div class="gr__reveal reveal ink-nijimi" data-kind="info" role="status">
           <p>{defective ? S.forgeNoForm : S.cannotBuild}</p>
           {dictionary ? (
             <p>
-              <span class="gr__label">{S.forgeDictionary}</span> <span lang="ja">{dictionary}</span>
+              <span class="eyebrow">{S.forgeDictionary}</span> <span lang="ja">{dictionary}</span>
               {dictionaryKana && dictionaryKana !== dictionary ? (
                 <>
                   {' '}
@@ -141,7 +141,7 @@ export function FormForge(p: ExerciseProps): JSX.Element {
               {label ? (
                 <>
                   {' '}
-                  <span class="gr__label">{S.forgeTarget}</span> <span>{label}</span>
+                  <span class="eyebrow">{S.forgeTarget}</span> <span>{label}</span>
                 </>
               ) : null}
             </p>
@@ -158,13 +158,13 @@ export function FormForge(p: ExerciseProps): JSX.Element {
   }
 
   const revealed = phase === 'done';
-  const kind = result ? (result.correct ? (result.nearMiss ? 'near' : 'correct') : result.nearMiss ? 'near' : 'wrong') : 'info';
+  const kind = result ? (result.nearMiss ? 'partial' : result.correct ? 'correct' : 'wrong') : 'info';
 
   return (
     <div class="gr gr-forge" data-phase={phase} data-form={form}>
       <p class="gr__prompt">{fill(S.forgePrompt, { form: label })}</p>
       <div class="gr__word">
-        <span class="gr__label">{S.forgeDictionary}</span>
+        <span class="eyebrow">{S.forgeDictionary}</span>
         <span class="gr__word-ja" lang="ja" data-dictionary="true">
           {dictionary ?? '—'}
         </span>
@@ -181,7 +181,7 @@ export function FormForge(p: ExerciseProps): JSX.Element {
         ) : null}
       </div>
       <p class="gr__gloss">
-        <span class="gr__label">{S.forgeTarget}</span> <span class="gr__target" data-target-form="true">{label}</span>
+        <span class="eyebrow">{S.forgeTarget}</span> <span class="gr__target" data-target-form="true">{label}</span>
       </p>
 
       {phase === 'answer' ? (
@@ -194,9 +194,9 @@ export function FormForge(p: ExerciseProps): JSX.Element {
         </div>
       ) : null}
       {hintShown && phase === 'answer' ? (
-        <div class="gr__reveal status-window" data-kind="info" data-hint="true">
+        <div class="gr__reveal reveal ink-nijimi" data-kind="info" data-hint="true">
           <p>
-            <span class="gr__label">{S.forgeRule}</span> <span>{FORM_HINT[form]}</span>
+            <span class="eyebrow">{S.forgeRule}</span> <span>{FORM_HINT[form]}</span>
           </p>
           <p class="gr__why">{S.hintUsedNote}</p>
         </div>
@@ -205,9 +205,9 @@ export function FormForge(p: ExerciseProps): JSX.Element {
       <TextAnswer mode="ja" accept={built.accept} onSubmit={onSubmit} autoFocus label={SD.answerField} particleSlip={false} kanaOnlyPolicy="good" missTags={['conjugation']} />
 
       {revealed ? (
-        <div class="gr__reveal status-window" data-kind={kind}>
+        <div class="gr__reveal reveal ink-nijimi" data-kind={kind}>
           <p>
-            <span class="gr__label">{S.forgeTarget}</span> <span>{label}</span>
+            <span class="eyebrow">{S.forgeTarget}</span> <span>{label}</span>
           </p>
           {result && !result.correct ? (
             <p class="gr__why" data-rule="true">

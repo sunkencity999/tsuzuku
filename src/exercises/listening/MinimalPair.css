@@ -65,21 +65,6 @@
   font-size: var(--fs-5);
   color: var(--fg);
 }
-
-.pair__result {
-  display: grid;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  border-left: 4px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--raised);
-}
-.pair__result[data-kind='correct'] {
-  border-left-color: var(--matcha);
-}
-.pair__result[data-kind='wrong'] {
-  border-left-color: var(--shu);
-}
 .pair__why {
   font-size: var(--fs-2);
   color: var(--fg-muted);
@@ -98,13 +83,4 @@
 }
 .pair__note {
   color: var(--fg-muted);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pair__play {
-    transition: none;
-  }
-}
-.reduced-motion .pair__play {
-  transition: none;
 }

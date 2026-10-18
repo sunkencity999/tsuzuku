@@ -12,7 +12,7 @@ import type { CardTuple } from '../shared/store-types';
 import { resetStoreForTests, store } from '../store';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../store/testing';
 import { S, fill } from './engine-strings';
-import { endCardNotes, gateNameOf, jikaiYokoku, kanaOf, ledgerPromptDue, maskLine, omikuji, pickMaskedLine, tally, trackCeremonies } from './end-card';
+import { endCardNotes, gateNameOf, withVista, glossOf, jikaiYokoku, kanaOf, ledgerPromptDue, loadVistaLookup, maskLine, omikuji, pickMaskedLine, resetVistaLookupForTests, sentenceGloss, tally, trackCeremonies } from './end-card';
 import { ES } from './end-card-strings';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
@@ -120,11 +120,11 @@ describe('jikaiYokoku', () => {
     expect(y.milestone).toContain('ready');
   });
 
-  it('line 3 carries the next-station vista INSIDE the Gatekeeper line when a lookup knows one — never a fourth line (design 09 §10 B2)', async () => {
+  it('line 3 carries the next-station vista as a second sentence after the Gatekeeper line when a lookup knows one — never a fourth line (design 09 §10 B2, d38)', async () => {
     expect(gateNameOf(4)).toBe('坂の関守 Hill Keeper');
-    expect(gateNameOf(4, () => null)).toBe('坂の関守 Hill Keeper');
-    expect(gateNameOf(4, () => 'Fuji view')).toBe('坂の関守 Hill Keeper · Fuji view');
-    expect(ES.gateWithVista).toBe('{gate} · {vista}');
+    expect(withVista('The gate is ready.', 4, () => null)).toBe('The gate is ready.');
+    expect(withVista('The gate is ready.', 4, () => 'Fuji view')).toBe('The gate is ready. Beyond the gate: Fuji view.');
+    expect(ES.gateWithVista).toBe('{line} Beyond the gate: {vista}.');
     const cards: Record<CardKey, CardTuple> = {};
     for (const id of FIXTURE_IDS.vocab) if (id !== V.おはよう && id !== V.はい) cards[`${id}#rec`] = live(30);
     cards[`${V.おはよう}#prod`] = live(30);
@@ -144,12 +144,37 @@ describe('jikaiYokoku', () => {
       },
     });
     expect(seen).toEqual([4]);
-    expect(y.milestone).toBe(fill(S.milestoneGateReady, { gate: '坂の関守 Hill Keeper · Fuji view' }));
-    expect(y.milestone).toContain('坂の関守 Hill Keeper · Fuji view');
+    expect(y.milestone).toBe(`${fill(S.milestoneGateReady, { gate: '坂の関守 Hill Keeper' })} Beyond the gate: Fuji view.`);
+    expect(y.milestone).toContain('Beyond the gate: Fuji view.');
     expect(y.milestone.split('\n')).toHaveLength(1);
-    // without a lookup the line is exactly as before
-    const plain = await jikaiYokoku({ station: 4, today: TODAY, loader });
+    // `vista: null` forces the plain line
+    const plain = await jikaiYokoku({ station: 4, today: TODAY, loader, vista: null });
     expect(plain.milestone).toBe(fill(S.milestoneGateReady, { gate: '坂の関守 Hill Keeper' }));
+  });
+
+  it('by default line 3 reads the road’s own vista table (src/art/road/vistas.ts): Hodogaya’s name rides inside the gate line; a station without a vista keeps the plain line (design 09 §10 C2)', async () => {
+    resetVistaLookupForTests();
+    const lookup = await loadVistaLookup();
+    expect(typeof lookup).toBe('function');
+    expect(lookup!(4)).toBe('Shinmachi bridge');
+    expect(lookup!(13)).toBe('Fuji view');
+    expect(lookup!(0)).toBeNull();
+    expect(lookup!(54)).toBeNull();
+    const cards: Record<CardKey, CardTuple> = {};
+    for (const id of FIXTURE_IDS.vocab) if (id !== V.おはよう && id !== V.はい) cards[`${id}#rec`] = live(30);
+    cards[`${V.おはよう}#prod`] = live(30);
+    cards[`${V.はい}#prod`] = live(30);
+    for (const id of FIXTURE_IDS.kanji) cards[`${id}#comp`] = live(30);
+    for (const id of FIXTURE_IDS.grammar) cards[`${id}#cloze`] = live(30);
+    for (const id of FIXTURE_IDS.component) cards[`${id}#rec`] = live(30);
+    await makeTestStore({ save: { progress: { station: 4 } }, cards });
+    const y = await jikaiYokoku({ station: 4, today: TODAY, loader });
+    expect(y.milestone).toBe(withVista(fill(S.milestoneGateReady, { gate: gateNameOf(4) }), 4, lookup));
+    expect(y.milestone).toContain('Beyond the gate: Shinmachi bridge.');
+    expect(y.milestone.split('\n')).toHaveLength(1);
+    // the gate name alone when the lookup has nothing: Station 54 is off the road
+    expect(gateNameOf(54)).toBe('Station 54');
+    expect(withVista('x', 54, lookup)).toBe('x');
   });
 
   it('every milestone string in the catalog avoids countdown pressure', () => {
@@ -201,6 +226,29 @@ describe('kanaOf and ceremonies', () => {
     expect(kanaOf(loader.get(G.です))).toBe('です');
     expect(kanaOf(loader.get('c-eat'))).toBe('食');
     expect(kanaOf(undefined)).toBeNull();
+  });
+
+  it('glossOf gives the English beside each word kind (design 09 §12.1 d33: never kana alone)', () => {
+    expect(glossOf(loader.get(V.飲む))).toBe('to drink');
+    expect(glossOf(loader.get('k-h-a'))).toBe('a');
+    expect(typeof glossOf(loader.get('j-食'))).toBe('string');
+    expect(glossOf(loader.get('j-食'))!.length).toBeGreaterThan(0);
+    // a kanji's gloss follows kanaOf: the first example word's English (never one word's kana beside another's sense)
+    const k = loader.get('j-食') as { examples: { en: string }[]; meanings: string[] };
+    expect(glossOf(loader.get('j-食'))).toBe(k.examples[0]?.en ?? k.meanings[0]);
+    expect(typeof glossOf(loader.get(G.です))).toBe('string');
+    expect(glossOf(loader.get('c-eat'))).toBe('eat');
+    expect(glossOf(undefined)).toBeNull();
+  });
+
+  it('sentenceGloss finds the preview line again by its kana (masking leaves the kana whole) and gives its English', () => {
+    const story = loader.get(FIXTURE_STORY_ID) as { lines: { ja: string; kana: string; en: string }[] };
+    const line = story.lines[0]!;
+    const get = (id: string) => loader.get(id);
+    expect(sentenceGloss({ storyId: FIXTURE_STORY_ID, ja: line.ja, kana: line.kana, maskedToken: 0 }, get)).toBe(line.en);
+    expect(sentenceGloss({ storyId: FIXTURE_STORY_ID, ja: `${line.ja}???`, kana: line.kana, maskedToken: 0 }, get)).toBe(line.en);
+    expect(sentenceGloss({ storyId: 's-99-9', ja: line.ja, kana: line.kana, maskedToken: 0 }, get)).toBeNull();
+    expect(sentenceGloss(undefined, get)).toBeNull();
   });
 
   it('trackCeremonies records reward events until stopped', () => {

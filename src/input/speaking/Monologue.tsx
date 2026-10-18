@@ -398,8 +398,8 @@ function MonologueBody(p: ExerciseProps & MonologueExtraProps): JSX.Element {
           <span class="monologue__seconds" data-remaining={remaining}>
             {phase === 'waiting' ? 0 : remaining}
           </span>
-          <div class="monologue__track" aria-hidden="true">
-            <div class="monologue__fill" style={{ width: `${Math.round(progress * 100)}%` }} />
+          <div class="meter" aria-hidden="true" style={{ '--value': progress, '--meter-tone': 'var(--ai)' } as JSX.CSSProperties}>
+            <span class="meter__fill" />
           </div>
           <p class="speak__status" role="status">
             {phase === 'waiting' ? S.monologueTime : fill(S.monologueSpeaking, { n: remaining })}
@@ -452,7 +452,7 @@ function MonologueBody(p: ExerciseProps & MonologueExtraProps): JSX.Element {
           <p class="speak__verdict">{S.monologueTime}</p>
           {transcript ? (
             <>
-              <p class="speak__label">{S.monologueTranscript}</p>
+              <p class="eyebrow">{S.monologueTranscript}</p>
               <p class="monologue__transcript" lang="ja" data-transcript="true">
                 {transcript}
               </p>

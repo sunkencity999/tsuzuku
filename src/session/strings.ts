@@ -18,6 +18,8 @@ export const S = {
   // ── Hud ───────────────────────────────────────────────────────────────
   hudLabel: 'Session status',
   forgeLabel: '百錬',
+  /** The English beside 百錬 (a zero-Japanese learner reads the bar). */
+  forgeEn: 'reviews',
   forgeAria: 'Reviews left in this session',
   forgeLeft: '{left} of {total} left',
   forgeDone: 'All reviews done',
@@ -39,6 +41,9 @@ export const S = {
   leaveBody: 'Your place is kept. Resume from the dojo whenever you like; a resumed session still earns its card.',
   leaveKeep: 'Keep my place and leave',
   leaveStay: 'Stay',
+  /** The slip's small vermilion mark (design 09 §7 F): what is left, as a count, never a deadline. */
+  leaveLeft: '{n} reps left',
+  leaveLeftOne: '1 rep left',
   drillMissingTitle: 'This drill is not built yet.',
   drillMissingBody: 'The rep cannot be shown. Count it as a don’t-know, or leave and keep your place.',
   drillMissingGuard: 'Count as don’t know',

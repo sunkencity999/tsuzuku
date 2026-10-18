@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import type { Progress } from '../store-types';
-import { TEACH_ID_RE, TeachOnce, isTeachId, isTeachSeen, markTeachSeen, type TeachSeen } from './TeachOnce';
+import { TEACH_ID_RE, TeachOnce, isTeachId, isTeachSeen, markTeachSeen, type TeachSeen, EXIT_FALLBACK_MS } from './TeachOnce';
 import { S } from './strings';
 
 let root: HTMLDivElement;
@@ -27,6 +27,25 @@ const progress = (teachSeen?: string[]): Progress => ({
   ...(teachSeen ? { teachSeen } : {}),
 });
 
+/** jsdom runs no animations, so exits are instant there; these tests lend it an engine (`getAnimations`) and end the exit by hand. */
+let restoreEngine: (() => void) | null = null;
+const withAnimations = (): void => {
+  const proto = Element.prototype as { getAnimations?: () => Animation[] };
+  const had = proto.getAnimations;
+  proto.getAnimations = () => [];
+  restoreEngine = () => {
+    if (had) proto.getAnimations = had;
+    else delete proto.getAnimations;
+    restoreEngine = null;
+  };
+};
+afterEach(() => restoreEngine?.());
+const endAnimation = (): void => {
+  act(() => {
+    root.querySelector('.teach-once')?.dispatchEvent(new Event('animationend', { bubbles: true }));
+  });
+};
+
 function mount(seen: TeachSeen, onDismiss: (id: string) => void, extra: { dismissLabel?: string; title?: string } = {}): void {
   act(() =>
     render(
@@ -48,13 +67,22 @@ describe('<TeachOnce>', () => {
     expect(root.querySelector('.teach-once__dismiss')?.textContent).toBe(S.continue);
     // English copy carries no lang="ja"
     expect(root.querySelector('.teach-once__title')?.getAttribute('lang')).toBeNull();
+    // the verb rides the landmark; the clipped cartouche is the inner card and is never transformed (design 09 §6.7 rule 7)
+    expect(card?.classList.contains('status-window')).toBe(false);
+    const window = root.querySelector('.teach-once > .teach-once__card.status-window');
+    expect(window).not.toBeNull();
+    expect(window?.querySelector('.teach-once__title')).not.toBeNull();
+    expect(window?.querySelector('.teach-once__dismiss')).not.toBeNull();
   });
 
   it('dismiss calls onDismiss with the id, and markTeachSeen writes it into progress.teachSeen once', () => {
     const dismissed: string[] = [];
     mount([], (id) => dismissed.push(id));
+    expect(root.querySelector('.teach-once')?.classList.contains('ink-nijimi')).toBe(true);
     act(() => (root.querySelector('.teach-once__dismiss') as HTMLButtonElement).click());
     expect(dismissed).toEqual(['arena-first']);
+    // jsdom runs no animations, so the dismissed card is gone at once (no exit to wait on)
+    expect(root.querySelector('.teach-once')).toBeNull();
 
     const before = progress();
     const after = markTeachSeen(before, dismissed[0]!);
@@ -90,6 +118,63 @@ describe('<TeachOnce>', () => {
     act(() => (root.querySelector('.teach-once__dismiss') as HTMLButtonElement).click());
     expect(p.teachSeen).toEqual(['arena-first']);
     expect(root.querySelector('.teach-once')).toBeNull();
+  });
+
+  it('with an animation engine the card leaves the way it arrived: onDismiss at once, data-leaving until animationend, then nothing — even before the parent marks it seen', () => {
+    withAnimations();
+    const dismissed: string[] = [];
+    mount([], (id) => dismissed.push(id));
+    act(() => (root.querySelector('.teach-once__dismiss') as HTMLButtonElement).click());
+    expect(dismissed).toEqual(['arena-first']);
+    const card = root.querySelector('.teach-once')!;
+    expect(card.hasAttribute('data-leaving')).toBe(true);
+    // a second tap during the exit dismisses nothing twice
+    act(() => (root.querySelector('.teach-once__dismiss') as HTMLButtonElement).click());
+    expect(dismissed).toEqual(['arena-first']);
+    endAnimation();
+    expect(root.querySelector('.teach-once')).toBeNull();
+    // the store round trip: the parent re-renders with the id seen while the exit plays, and the card still finishes it
+    render(null, root);
+    let p = progress();
+    mount(p.teachSeen, (id) => {
+      p = markTeachSeen(p, id);
+      mount(p.teachSeen, () => {});
+    });
+    act(() => (root.querySelector('.teach-once__dismiss') as HTMLButtonElement).click());
+    expect(p.teachSeen).toEqual(['arena-first']);
+    expect(root.querySelector('.teach-once')?.hasAttribute('data-leaving')).toBe(true);
+    endAnimation();
+    expect(root.querySelector('.teach-once')).toBeNull();
+  });
+
+  it('the exit falls back to a timer (≤ 200 ms) without animationend, and is immediate under reduced motion', () => {
+    withAnimations();
+    vi.useFakeTimers();
+    try {
+      const dismissed: string[] = [];
+      mount([], (id) => dismissed.push(id));
+      act(() => (root.querySelector('.teach-once__dismiss') as HTMLButtonElement).click());
+      expect(dismissed).toEqual(['arena-first']);
+      expect(root.querySelector('.teach-once')?.hasAttribute('data-leaving')).toBe(true);
+      act(() => {
+        vi.advanceTimersByTime(EXIT_FALLBACK_MS);
+      });
+      expect(root.querySelector('.teach-once')).toBeNull();
+      expect(EXIT_FALLBACK_MS).toBeLessThanOrEqual(200);
+    } finally {
+      vi.useRealTimers();
+    }
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), media: q }));
+    try {
+      render(null, root);
+      const dismissed: string[] = [];
+      mount([], (id) => dismissed.push(id));
+      act(() => (root.querySelector('.teach-once__dismiss') as HTMLButtonElement).click());
+      expect(dismissed).toEqual(['arena-first']);
+      expect(root.querySelector('.teach-once')).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('Japanese title / body carry lang="ja"; the dismiss label can be overridden', () => {

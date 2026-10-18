@@ -334,8 +334,11 @@ export default function LedgerPage(_p: LedgerPageProps): JSX.Element {
   return (
     <article class="ledger">
       <header class="ledger__head">
-        <h1 class="ledger__h1">
-          <span lang="ja">{S.ledgerTitleJa}</span> <span class="ledger__h1-en">{S.ledgerTitle}</span>
+        <h1 class="title-lockup">
+          <span class="title-lockup__ja" lang="ja">
+            {S.ledgerTitleJa}
+          </span>
+          <span class="title-lockup__en">{S.ledgerTitle}</span>
         </h1>
         <p class="ledger__muted">{S.ledgerLede}</p>
       </header>
@@ -376,19 +379,19 @@ export default function LedgerPage(_p: LedgerPageProps): JSX.Element {
           {S.lifetimeTitle}
         </h2>
         <div class="ledger__tiles">
-          <div class="tile">
+          <div class="status-window tile">
             <span class="tile__value">{hoursText(sum.hours.total)}</span>
-            <span class="tile__label">{S.lifetimeTotal}</span>
+            <span class="eyebrow">{S.lifetimeTotal}</span>
           </div>
-          <div class="tile" data-tile-external>
+          <div class="status-window tile" data-tile-external>
             <span class="tile__value">{hoursText(ext.total)}</span>
-            <span class="tile__label">
+            <span class="eyebrow">
               {S.sourceExternal} <span class="tag">{S.reported}</span>
             </span>
           </div>
-          <div class="tile">
+          <div class="status-window tile">
             <span class="tile__value">{hoursText(app.total)}</span>
-            <span class="tile__label">{S.sourceApp}</span>
+            <span class="eyebrow">{S.sourceApp}</span>
           </div>
         </div>
         <h3 class="ledger__h3">{S.lifetimeGoal}</h3>

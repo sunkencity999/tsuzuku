@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { V, createFakeLoader } from '@/content/fixtures';
@@ -221,5 +223,32 @@ describe('<FieldMission>', () => {
     await click('[data-action="report"]');
     expect(onResult).toHaveBeenCalledTimes(1);
     expect(store.ledger.value.entries).toEqual([[TODAY, 10, 3, 1]]);
+  });
+});
+
+/* ── design 09 (C4): the report form and result are .sheet, field labels are .eyebrow ── */
+describe('design 09 (C4): mission sheets and eyebrows', () => {
+  it('the gaps fieldset and the result are .sheet; every field label is an .eyebrow; no __label class remains', async () => {
+    await setup();
+    await mount(step());
+    await click('[data-action="did-it"]');
+    expect(q('.mission__gaps')?.classList.contains('sheet')).toBe(true);
+    const labels = Array.from(root.querySelectorAll('.mission__field > .eyebrow'));
+    expect(labels.length).toBeGreaterThanOrEqual(3);
+    expect(labels[0]?.textContent).toBe(S.missionMinutes);
+    expect(q('[class*="__label"]')).toBeNull();
+    await click('[data-action="report"]');
+    const result = q('.mission__result');
+    expect(result?.classList.contains('sheet')).toBe(true);
+    expect(result?.getAttribute('data-reported')).toBe('true');
+  });
+
+  it('missions.css: no label rule, no local card paper on the sheets, no Mincho outside the reading fence (§3.1), nothing tweens', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/input/missions/missions.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).not.toMatch(/__label|__eyebrow/);
+    expect(css).not.toMatch(/\.mission__(gaps|result)\s*\{[^}]*\b(background|padding(-left)?|border-radius)\s*:/);
+    expect(css).not.toMatch(/^\.sheet\b/m);
+    expect(css).not.toMatch(/--font-mincho/);
+    expect(css).not.toMatch(/transition|@keyframes|prefers-reduced-motion|\.reduced-motion/);
   });
 });

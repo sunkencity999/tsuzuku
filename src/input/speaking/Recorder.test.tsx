@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { installServices, nullAudio, resetServices, type SpeakOptions } from '@/shared/audio';
@@ -87,6 +89,7 @@ describe('<Recorder> without media devices', () => {
     expect(onSelfGrade).toHaveBeenCalledWith({ mora: true, longVowels: false, pitch: true });
     expect(q<HTMLButtonElement>('[data-action="grade"]')?.disabled).toBe(true);
     expect(q<HTMLFieldSetElement>('.recorder__checklist')?.disabled).toBe(true);
+    expect(q('.recorder__checklist legend')?.classList.contains('eyebrow')).toBe(true);
     click('[data-action="grade"]');
     expect(onSelfGrade).toHaveBeenCalledTimes(1);
     expect(q('.recorder__actions .recorder__note')?.textContent).toBe(S.gradedLine);
@@ -244,5 +247,28 @@ describe('<Recorder> model clip (design 08 §8)', () => {
       await Promise.resolve();
     });
     expect(spoken).toEqual([{ text: '飲む', o: { kana: 'のむ', clip: 'v-n5-0007', speaker: 'ケン' } }]);
+  });
+});
+
+/* ── design 09 (C4): speaking.css tweens no width or height; the level meter rides scaleY ── */
+describe('speaking.css (design 09 §6.6, §6.7)', () => {
+  const css = readFileSync(resolve(process.cwd(), 'src/input/speaking/speaking.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('no transition or keyframe touches width or height; recorder-level animates transform (scaleY) from the bars\' foot', () => {
+    expect(css).not.toMatch(/transition:[^;]*\b(width|height)\b/);
+    const level = /@keyframes recorder-level\s*\{([\s\S]*?)\}\s*\}/.exec(css)?.[1] ?? '';
+    expect(level).toMatch(/transform:\s*scaleY\(/);
+    expect(level).not.toMatch(/\bheight\s*:/);
+    expect(/\.recorder__bar\s*\{[^}]*transform-origin:\s*bottom/.test(css)).toBe(true);
+    expect(css).not.toMatch(/\.monologue__(track|fill)|\.speak__label/);
+  });
+
+  it('every duration is a token; the live loop is ≥ 1,400 ms (§6.8); no local reduced-motion block (§6.6)', () => {
+    expect(css).not.toMatch(/\b\d+(\.\d+)?m?s\b/);
+    expect(css).toMatch(/recorder-level calc\(var\(--dur-4\) \* 5 \/ 3\)/);
+    // base.css's reduced rule runs the loop once at 0.01 ms; `both` holds the `to` frame, so live bars stay lit (scaleY(1)), static
+    expect(css).toMatch(/recorder-level calc\(var\(--dur-4\) \* 5 \/ 3\) var\(--ease\) infinite alternate both;/);
+    expect(css).toMatch(/recorder-blink calc\(var\(--dur-4\) \* 5 \/ 3\)/);
+    expect(css).not.toMatch(/prefers-reduced-motion|\.reduced-motion/);
   });
 });

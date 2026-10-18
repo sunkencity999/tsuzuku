@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { BADGE_IDS } from '../shared/catalog';
@@ -129,6 +131,89 @@ describe('<MonCrest>', () => {
       expect(figure().querySelector('.mon__condition')?.textContent?.length).toBeGreaterThan(0);
       act(() => render(null, root));
     }
+  });
+});
+
+describe('<MonCrest> stone (design 09 §7 E, §6.7 rule 2)', () => {
+  it('stoneImg renders a locked crest as an <img> data URL of the stone art with the glyph set over it as inline text in the brush face — no filter element in the DOM', () => {
+    act(() => render(<MonCrest id="zen" earned={false} stoneImg />, root));
+    const img = host().querySelector<HTMLImageElement>('img.mon__img');
+    expect(img).not.toBeNull();
+    const src = img!.getAttribute('src')!;
+    expect(src.startsWith('data:image/svg+xml')).toBe(true);
+    const image = decodeURIComponent(src);
+    expect(image).toContain('mon__art--locked');
+    expect(image).toContain('feSpecularLighting');
+    // webfonts never resolve inside an image: the glyph is not in the data URL …
+    expect(image).not.toContain('<text');
+    expect(image).not.toContain(ZEN.nameJa);
+    // … it is inline <text> over the image, in the page's Yuji face, with no filter
+    const overlay = host().querySelector('svg.mon__text')!;
+    expect(overlay).not.toBeNull();
+    expect(overlay.getAttribute('viewBox')).toBe('0 0 256 256');
+    const text = overlay.querySelector('text')!;
+    expect(text.textContent).toBe(ZEN.nameJa);
+    expect(text.getAttribute('font-family')).toContain('Yuji Syuku');
+    expect(overlay.querySelector('filter')).toBeNull();
+    expect(host().querySelectorAll('svg')).toHaveLength(1);
+    expect(root.querySelectorAll('filter')).toHaveLength(0);
+    expect(figure().hasAttribute('data-stone')).toBe(true);
+    expect(figure().classList.contains('mon--locked')).toBe(true);
+    expect(host().getAttribute('aria-label')).toContain(ZEN.describe);
+    expect(img!.getAttribute('alt')).toBe('');
+  });
+
+  it('stone draws the stone art for an earned crest while the caption and label stay true; svgClass reaches the art box', () => {
+    act(() => render(<MonCrest id="seven" earned earnedOn={DAY} stone stoneImg svgClass="ink-osu ink-wet is-dry" />, root));
+    expect(figure().classList.contains('mon--earned')).toBe(true);
+    expect(figure().hasAttribute('data-stone')).toBe(true);
+    expect(host().querySelector('img.mon__img')).not.toBeNull();
+    expect(host().classList.contains('ink-osu')).toBe(true);
+    expect(host().classList.contains('ink-wet')).toBe(true);
+    expect(host().getAttribute('aria-label')).toContain(`earned ${formatEraDate(DAY)}`);
+    expect(figure().querySelector('time.mon__date')?.textContent).toBe(formatEraDate(DAY));
+    expect(figure().querySelector('.mon__condition')).toBeNull();
+    // colour: inline svg, no stone attribute, no stone layer
+    act(() => render(<MonCrest id="seven" earned earnedOn={DAY} stoneImg />, root));
+    expect(figure().hasAttribute('data-stone')).toBe(false);
+    expect(host().querySelector('svg.mon-svg--earned')).not.toBeNull();
+    expect(host().querySelector('img')).toBeNull();
+    expect(host().querySelector('.mon__stone')).toBeNull();
+  });
+
+  it('stoneLeaving keeps the stone layer over the colour art under kasure (in place: --to 0 0), so the reveal reads as stone turning to colour', () => {
+    act(() => render(<MonCrest id="seven" earned earnedOn={DAY} stoneImg stoneLeaving svgClass="ink-osu ink-wet is-dry" />, root));
+    expect(figure().hasAttribute('data-stone')).toBe(false);
+    expect(host().querySelector('.mon__colour svg.mon-svg--earned')).not.toBeNull();
+    const stone = host().querySelector('.mon__stone')!;
+    expect(stone.classList.contains('ink-kasure')).toBe(true);
+    expect(stone.hasAttribute('data-leaving')).toBe(true);
+    expect(stone.querySelector('img.mon__img')).not.toBeNull();
+    expect(stone.querySelector('svg.mon__text text')?.textContent).toBe('七');
+    expect(root.querySelectorAll('filter')).toHaveLength(0);
+    const css = readFileSync(resolve(process.cwd(), 'src/art/MonCrest.css'), 'utf8');
+    expect(/\.mon__stone\.ink-kasure\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/--to:\s*0 0/);
+    expect(/\.mon__stone\.ink-kasure\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/animation-duration:\s*var\(--dur-3\)/);
+    // without stoneLeaving the colour art stands alone
+    act(() => render(<MonCrest id="seven" earned earnedOn={DAY} stoneImg />, root));
+    expect(host().querySelector('.mon__stone')).toBeNull();
+  });
+
+  it('dateGloss sets the Latin reading under the era date, in the label and in the tooltip (design 09 §3.3: never an unglossed 令和)', () => {
+    act(() => render(<MonCrest id="seven" earned earnedOn={DAY} dateGloss="Reiwa 8 · Oct 17" />, root));
+    const gloss = figure().querySelector('.mon__gloss')!;
+    expect(gloss.textContent).toBe('Reiwa 8 · Oct 17');
+    expect(gloss.previousElementSibling?.classList.contains('mon__date')).toBe(true);
+    expect(figure().getAttribute('title')).toBe(`Earned ${formatEraDate(DAY)} · Reiwa 8 · Oct 17`);
+    expect(host().getAttribute('aria-label')).toContain(`${formatEraDate(DAY)} · Reiwa 8 · Oct 17`);
+    expect(monCrestText({ id: 'seven', earned: true, earnedOn: DAY, dateGloss: 'Reiwa 8 · Oct 17' }).tooltip).toBe(`Earned ${formatEraDate(DAY)} · Reiwa 8 · Oct 17`);
+    // the gloss never prints without a date, and a locked crest ignores it
+    act(() => render(<MonCrest id="seven" earned dateGloss="Reiwa 8 · Oct 17" />, root));
+    expect(figure().querySelector('.mon__gloss')).toBeNull();
+    act(() => render(<MonCrest id="zen" earned={false} dateGloss="Reiwa 8 · Oct 17" />, root));
+    expect(figure().querySelector('.mon__gloss')).toBeNull();
+    const css = readFileSync(resolve(process.cwd(), 'src/art/MonCrest.css'), 'utf8');
+    expect(/\}\n\.mon__gloss\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/font-family:\s*var\(--font-pixel\)/);
   });
 });
 

@@ -18,25 +18,9 @@
   flex-direction: column;
   gap: var(--sp-1);
 }
-.ledger__h1 {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--sp-2);
-  margin: 0;
-  font-size: var(--fs-5);
-  font-weight: 600;
-  line-height: 1.2;
-}
-.ledger__h1 [lang="ja"] {
-  font-family: var(--font-brush);
+/* the ledger's brush word keeps the listening dye (design 09 §4.1 --ai) */
+.ledger .title-lockup__ja {
   color: var(--ai);
-}
-.ledger__h1-en {
-  font-size: var(--fs-3);
-  color: var(--fg-muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
 }
 .ledger__block,
 .ledger__form {
@@ -177,29 +161,20 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--sp-2);
 }
+/* the tiles are .status-window (components.css); hours in Dela, the number that matters (09 §3.1) */
 .ledger .tile {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-height: var(--touch);
-  padding: var(--sp-3);
-  background: color-mix(in srgb, var(--raised) 92%, transparent);
-  border: 2px double var(--fg-muted);
-  border-radius: 2px;
-  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
 }
 .ledger .tile__value {
+  font-family: var(--font-neon);
   font-size: var(--fs-4);
-  font-weight: 600;
-  line-height: 1.1;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
-}
-.ledger .tile__label {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
 }
 .ledger__bars {
   display: flex;

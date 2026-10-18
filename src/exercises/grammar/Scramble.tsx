@@ -32,6 +32,7 @@ import { useExerciseKeys } from '@/shared/ui/ExerciseFrame';
 import { Ruby } from '@/shared/ui/Ruby';
 import { store } from '@/store';
 import { gradeOrdering } from '../check';
+import { useFlip } from '../flip';
 import { S } from '../strings';
 import { S as S2, fill } from './strings-2';
 import './Scramble.css';
@@ -146,6 +147,9 @@ export function Scramble(p: ExerciseProps): JSX.Element {
   }, [step.id]);
 
   const complete = placed.length === expected.length && expected.length > 0;
+  // reorder = FLIP (design 09 §10 C1): the row's pieces glide when one before them is taken out
+  const row = useRef<HTMLDivElement>(null);
+  useFlip(row, placed.join(','));
   const placedSet = new Set(placed);
 
   const place = (idx: number): void => {
@@ -207,7 +211,7 @@ export function Scramble(p: ExerciseProps): JSX.Element {
 
   useExerciseKeys({ onChoice: placeByKey, onSubmit: check, onHint: !outcome && !complete && expected.length > 0 ? hint : undefined });
 
-  const kind = outcome ? (outcome.result.correct ? (outcome.result.nearMiss ? 'near' : 'correct') : outcome.result.nearMiss ? 'near' : 'wrong') : undefined;
+  const kind = outcome ? (outcome.result.nearMiss ? 'partial' : outcome.result.correct ? 'correct' : 'wrong') : undefined;
 
   if (expected.length === 0) {
     return (
@@ -229,13 +233,14 @@ export function Scramble(p: ExerciseProps): JSX.Element {
       <p class="scramble__prompt">{S2.scramblePrompt}</p>
       {step.params.promptEn ? <p class="scramble__en">{step.params.promptEn}</p> : null}
 
-      <div class="scramble__row status-window" role="group" aria-label={S2.answerRow} data-complete={complete ? 'true' : undefined}>
+      <div class="scramble__row status-window" role="group" aria-label={S2.answerRow} data-complete={complete ? 'true' : undefined} ref={row}>
         {placed.length === 0 ? <span class="scramble__placeholder">{S2.emptyRow}</span> : null}
         {placed.map((idx, pos) => (
           <button
-            key={`${pos}:${idx}`}
+            key={idx}
             type="button"
             class="scramble__placed"
+            data-flip={idx}
             lang="ja"
             disabled={outcome !== null}
             aria-label={fill(S2.removeTile, { tile: expected[idx] as string })}
@@ -296,11 +301,11 @@ export function Scramble(p: ExerciseProps): JSX.Element {
           </span>
         </div>
       ) : (
-        <div class="scramble__result" data-kind={kind} role="status">
+        <div class="scramble__result reveal ink-nijimi" data-kind={kind} role="status">
           <p class="scramble__line">{outcome.line}</p>
           {!outcome.result.correct || outcome.result.nearMiss ? (
             <p class="scramble__correct">
-              <span class="scramble__label">{S2.correctOrder}</span>
+              <span class="eyebrow">{S2.correctOrder}</span>
               <span class="scramble__sentence">
                 {step.params.sentence ? <Ruby ja={step.params.sentence} mode={p.furigana} /> : <span lang="ja">{[...expected, ...tail].join('')}</span>}
               </span>

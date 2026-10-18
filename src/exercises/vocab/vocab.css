@@ -236,11 +236,3 @@
 /* .pitch-contrast__note — the source line (synthetic voice (VOICEVOX) or the dictionary
    pattern) is two full sentences, so it keeps .drill__hint's UI face at fs-2 / --fg-muted;
    --font-pixel stays on the short chip / label hooks (design 01: DotGothic16 for labels). */
-
-@media (prefers-reduced-motion: reduce) {
-  .vocab__speaker,
-  .judge-rate__btn,
-  .pitch-choice {
-    transition: none;
-  }
-}

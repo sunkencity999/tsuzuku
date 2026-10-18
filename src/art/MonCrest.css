@@ -1,7 +1,8 @@
 /*
  * TSUZUKU — <MonCrest> styles (src/art/MonCrest.tsx, group G).
  * Colours from tokens.css only; the SVG inside carries its own paint
- * (theme tokens via inline var() with hex fallbacks).
+ * (theme tokens via inline var() with hex fallbacks). Reduced motion rides the
+ * zeroed --dur-* tokens and base.css's global rule: the slam lands at once.
  */
 .mon {
   display: inline-flex;
@@ -14,15 +15,32 @@
   color: var(--fg);
 }
 .mon__svg {
+  position: relative;
   display: block;
   max-width: 100%;
   line-height: 0;
 }
-.mon__svg svg {
+.mon__svg svg,
+.mon__img,
+.mon__stone,
+.mon__colour {
   display: block;
   width: 100%;
   height: 100%;
   overflow: visible;
+}
+/* the stone image's glyph: inline text over it, in the page's brush face */
+.mon__text {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* stone → colour: the stone layer dries out in place */
+.mon__stone.ink-kasure {
+  --to: 0 0;
+  position: absolute;
+  inset: 0;
+  animation-duration: var(--dur-3);
 }
 .mon--locked .mon__svg {
   opacity: 0.92;
@@ -45,7 +63,8 @@
   color: var(--fg-muted);
 }
 .mon__condition,
-.mon__date {
+.mon__date,
+.mon__gloss {
   display: block;
   margin-top: 2px;
   color: var(--fg-muted);
@@ -53,11 +72,15 @@
 .mon__date {
   font-family: var(--font-ja);
 }
+.mon__gloss {
+  margin-top: 0;
+  font-family: var(--font-pixel);
+}
 
 /* ── hanko slam: the crest comes down at −6° and stays pressed (design 06 §2) ── */
 .mon--slam .mon__svg {
   transform-origin: 50% 50%;
-  animation: mon-slam 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: mon-slam calc(var(--dur-3) * 0.75) var(--ease) both;
 }
 @keyframes mon-slam {
   0% {
@@ -72,22 +95,4 @@
     opacity: 1;
     transform: scale(1) rotate(-6deg);
   }
-}
-@keyframes mon-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .mon--slam .mon__svg {
-    animation: mon-fade 300ms linear both;
-    transform: rotate(-6deg);
-  }
-}
-.reduced-motion .mon--slam .mon__svg {
-  animation: mon-fade 300ms linear both;
-  transform: rotate(-6deg);
 }

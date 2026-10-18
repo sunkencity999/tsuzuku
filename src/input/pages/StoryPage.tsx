@@ -147,11 +147,11 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
   };
 
   const eyebrow = listen ? (
-    <p class="story-page__eyebrow" data-field="mode">
+    <div class="eyebrow reader__mode" data-field="mode">
       <span lang="ja">{S.listenTitleJa}</span> {S.listenTitle}
-    </p>
+    </div>
   ) : (
-    <p class="story-page__eyebrow">{S.pageTitle}</p>
+    <div class="eyebrow">{S.pageTitle}</div>
   );
   const pageLabel = listen ? S.listenTitle : S.pageTitle;
 
@@ -242,8 +242,8 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
       </header>
 
       {prev ? (
-        <aside class="story-page__recap" data-field="previously" aria-label={S.previously}>
-          <h2>{S.previously}</h2>
+        <aside class="story-page__recap sheet" data-field="previously" aria-label={S.previously}>
+          <h2 class="eyebrow">{S.previously}</h2>
           <p class="story-page__recap-title">{prev.titleEn}</p>
           <p>{prev.recapEn}</p>
         </aside>
@@ -251,7 +251,7 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
 
       {listen && heard ? (
         <>
-          <section class="story-page__result" aria-label={S.listenResultTitle} data-heard={heard.heard ? 'true' : 'false'} data-field="listen-result">
+          <section class="story-page__result sheet" aria-label={S.listenResultTitle} data-heard={heard.heard ? 'true' : 'false'} data-field="listen-result">
             <h2>{S.listenResultTitle}</h2>
             <p class="story-page__score" data-field="heard">
               {formatHeard(heard.seconds)}
@@ -290,8 +290,8 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
               {navLinks}
             </div>
           </section>
-          <aside class="story-page__recap" data-field="recap">
-            <h2>{S.recapLabel}</h2>
+          <aside class="story-page__recap sheet" data-field="recap">
+            <h2 class="eyebrow">{S.recapLabel}</h2>
             <p>{story.recapEn}</p>
           </aside>
         </>
@@ -299,7 +299,7 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
 
       {!listen && result ? (
         <>
-          <section class="story-page__result" aria-label={S.resultTitle} data-passed={result.passed ? 'true' : 'false'} data-field="result">
+          <section class="story-page__result sheet" aria-label={S.resultTitle} data-passed={result.passed ? 'true' : 'false'} data-field="result">
             <h2>{S.resultTitle}</h2>
             <p class="story-page__score" aria-label={fill(S.questionsScore, { correct: result.correct, total: result.total })}>
               {result.correct}/{result.total}
@@ -333,8 +333,8 @@ export default function StoryPage(p: StoryPageProps): JSX.Element {
               {navLinks}
             </div>
           </section>
-          <aside class="story-page__recap" data-field="recap">
-            <h2>{S.recapLabel}</h2>
+          <aside class="story-page__recap sheet" data-field="recap">
+            <h2 class="eyebrow">{S.recapLabel}</h2>
             <p>{story.recapEn}</p>
           </aside>
         </>

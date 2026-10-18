@@ -252,7 +252,7 @@ function PitchEarBody(p: ExerciseProps): JSX.Element {
           {gaPlayed ? <p class="drill__hint pitch-contrast__ga">{gaNoteFor(correctType)}</p> : null}
           {pair ? (
             <>
-              <span class="drill__label">{S.pitchContrast}</span>
+              <span class="eyebrow">{S.pitchContrast}</span>
               <div class="pitch-contrast__row" data-pair={pair.id} role="group" aria-label={S.pitchCompareLabel}>
                 <span class="drill__ja" lang="ja">
                   {pair.word}
@@ -266,7 +266,7 @@ function PitchEarBody(p: ExerciseProps): JSX.Element {
           <p class="drill__hint pitch-contrast__note">{useClips ? S.pitchClipNote : S.pitchDatasetNote}</p>
           {item.collocations && item.collocations.length > 0 ? (
             <div>
-              <span class="drill__label">{X.collocations}</span>
+              <span class="eyebrow">{X.collocations}</span>
               <ul class="vocab__collocations">
                 {item.collocations.slice(0, 3).map((c) => (
                   <li key={c} class="vocab__collocation" lang="ja">

@@ -7,6 +7,8 @@ import { civilToDay } from '../shared/time';
 import { WALLPAPER_DEFS, store } from '../store';
 import { resetStoreForTests } from '../store/store';
 import { TEST_SEED, makeTestStore } from '../store/testing';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { KakejikuGallery, cardStateOf, isUnlocked, progressFor, revealedFor, thumbnailFor } from './KakejikuGallery';
 
 const DAY = civilToDay({ year: 2026, month: 10, day: 17 });
@@ -147,5 +149,33 @@ describe('<KakejikuGallery>', () => {
       });
     }
     expect(card('kana-grid').querySelector('img')?.getAttribute('alt')).toBe('Sumi silhouette of Gojūon Select');
+  });
+
+  it('is a kakejiku rail (design 09 §5.4): every scroll a .sheet hung by a .hairline cord; the strip snaps horizontally under a --wood rail', async () => {
+    await mount(false);
+    const cards = Array.from(root.querySelectorAll('.kakejiku-card'));
+    expect(cards.length).toBe(WALLPAPER_IDS.length);
+    for (const c of cards) {
+      expect(c.classList.contains('sheet')).toBe(true);
+      expect(c.querySelector('.kakejiku-card__cord.hairline')).not.toBeNull();
+    }
+    const css = readFileSync(resolve(process.cwd(), 'src/collections/KakejikuGallery.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const rail = /\.kakejiku-gallery__cards\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(rail).toMatch(/scroll-snap-type:\s*x mandatory/);
+    expect(rail).toMatch(/overflow-x:\s*auto/);
+    expect(rail).toMatch(/var\(--wood\)/);
+    expect(/\.kakejiku-card\s*\{([^}]*)\}/.exec(css)?.[1]).toMatch(/scroll-snap-align:\s*start/);
+    // the cord bridges the 30 px between the rail and the scroll: a 32 px hairline centred 16 px above the card
+    const cord = /\.kakejiku-card__cord\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(cord).toMatch(/rotate:\s*90deg/);
+    const top = Number(/top:\s*(-?\d+)px/.exec(cord)?.[1]);
+    const width = Number(/width:\s*(\d+)px/.exec(cord)?.[1]);
+    const pad = Number(/padding:\s*(\d+)px/.exec(rail)?.[1]);
+    expect(top - width / 2 + 0.5).toBeLessThanOrEqual(-pad);
+    expect(top + width / 2 + 0.5).toBeGreaterThanOrEqual(0);
+    // nothing swings, nothing tweens a paint property, no per-file reduced-motion block
+    expect(css).not.toMatch(/transition:/);
+    expect(css).not.toMatch(/prefers-reduced-motion|\.reduced-motion/);
+    expect(css).not.toMatch(/font-size:\s*\d+px/);
   });
 });

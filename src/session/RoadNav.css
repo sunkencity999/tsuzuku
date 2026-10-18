@@ -1,4 +1,7 @@
-/* TSUZUKU — <RoadNav>: vertical Tōkaidō (group E). Tokens from tokens.css; .seal / .belt / [data-belt] from components.css. */
+/* TSUZUKU — <RoadNav>: the vertical Tōkaidō (group E; design 09 §7 D, §3.3, C2). Tokens from tokens.css; .seal /
+   .belt / [data-belt] from components.css; .sign and the ink verbs from motion.css; .sr-only from base.css. The spine
+   is ONE SVG path in --belt-color; the --road band (10 %, d16) sits behind each row's vignette, never under .sign
+   text. Reduced motion is the global rule (base.css + zeroed tokens). */
 
 .tokaido {
   position: relative;
@@ -24,6 +27,38 @@
   margin: 0 0 var(--sp-3);
 }
 
+.tokaido__road {
+  position: relative;
+}
+
+.tokaido__defs {
+  position: absolute;
+}
+
+/* the spine: the walked road in the belt colour over the grey road ahead */
+.tokaido__spine {
+  position: absolute;
+  top: 0;
+  left: 14px;
+  width: 6px;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tokaido__spine path {
+  fill: none;
+  stroke-width: 6px;
+}
+
+.tokaido__spine-ahead {
+  stroke: var(--line);
+}
+
+.tokaido__spine-walked {
+  stroke: var(--belt-color, var(--belt-white));
+}
+
 .tokaido__list {
   position: relative;
   margin: 0;
@@ -31,25 +66,11 @@
   list-style: none;
 }
 
-/* the road: each row paints its own belt-coloured segment */
 .tokaido__row,
 .tokaido__band,
 .tokaido__node {
   position: relative;
   padding-left: 40px;
-}
-
-.tokaido__row::before,
-.tokaido__band::before,
-.tokaido__node::before {
-  content: "";
-  position: absolute;
-  left: 14px;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  background: var(--belt-color, var(--belt-white));
-  border-inline: 1px solid var(--line);
 }
 
 .tokaido__node {
@@ -60,14 +81,6 @@
   padding-block: var(--sp-2);
   font-size: var(--fs-2);
   color: var(--fg-muted);
-}
-
-.tokaido__node--start::before {
-  top: 50%;
-}
-
-.tokaido__node--arrival::before {
-  bottom: 50%;
 }
 
 .tokaido__band {
@@ -86,7 +99,7 @@
 .tokaido__station {
   position: relative;
   display: grid;
-  grid-template-columns: 40px 48px 1fr auto;
+  grid-template-columns: 40px 48px minmax(0, 1fr);
   align-items: center;
   gap: var(--sp-2);
   min-height: 72px;
@@ -94,7 +107,6 @@
   color: var(--fg);
   text-decoration: none;
   border-radius: var(--radius-sm);
-  transition: background var(--dur-1) var(--ease);
 }
 
 .tokaido__station:hover {
@@ -105,8 +117,9 @@
   color: var(--hai);
 }
 
-.tokaido__station[data-state="locked"] .tokaido__name {
-  color: var(--fg-muted);
+/* the arrived row keeps a gold hairline for the visit (reduced motion's mark; a ring, never a glow) */
+.tokaido__row[data-arrived] .tokaido__station {
+  box-shadow: inset 0 0 0 1px var(--kin);
 }
 
 .tokaido__marker {
@@ -125,141 +138,105 @@
   border-color: var(--shu);
 }
 
-.tokaido__lantern {
-  display: inline-grid;
-  place-items: center;
+/* the seal's osu then kawaku on arrival (§7 D 900): 180 ms press, 500 ms drying after it */
+.tokaido__marker .ink-osu {
+  animation-duration: calc(var(--dur-1) * 1.5);
+}
+
+.tokaido__marker .ink-wet.is-dry::after {
+  animation-duration: calc(var(--dur-3) * 1.25);
+  animation-delay: calc(var(--dur-1) * 1.5);
+}
+
+/* the lantern: the kit's chōchin on a .seal span (the station-seal hero); a --kin ring, the Night glow on ::before
+   rising to --lamp-alpha like every lamp (§6.2; Arcade Night by day stays dark, d29) */
+.tokaido__marker .tokaido__lantern {
+  --lamp: var(--surface);
+  position: relative;
+  isolation: isolate;
   width: 32px;
   height: 32px;
-  font-family: var(--font-brush);
-  font-size: var(--fs-2);
-  line-height: 1;
-  color: var(--bg);
-  background: var(--kin);
-  border: 2px solid var(--kin);
-  border-radius: 10px 10px 6px 6px;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--kin) 25%, transparent);
+  background: transparent;
+  border: 0;
+  transform: none;
+  box-shadow: 0 0 0 2px var(--kin);
+  border-radius: 50%;
+}
+
+.tokaido__lantern svg {
+  display: block;
+  overflow: visible;
+}
+
+.tokaido__lantern svg * {
+  transition: fill var(--dur-2) var(--ease);
+}
+
+.tokaido__lantern[data-lit] {
+  --lamp: var(--kin);
+}
+
+.tokaido__lantern::before {
+  --to-alpha: var(--lamp-alpha);
+  content: "";
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: var(--glow-kin);
+  opacity: 0;
+}
+
+.tokaido__lantern[data-lit]::before {
+  opacity: var(--lamp-alpha);
+}
+
+.tokaido__lantern.ink-tomosu {
+  animation: none;
+}
+
+.tokaido__lantern.ink-tomosu::before {
+  animation: tomosu var(--dur-3) var(--ease-draw) both;
+}
+
+/* the vignette on the --road band; ahead rows are an ink wash in --hai (the picture's own colour) */
+.tokaido__row {
+  --road: color-mix(in oklab, var(--belt-color, var(--belt-white)) 10%, var(--bg));
 }
 
 .tokaido__art {
   display: block;
   color: var(--kon);
+  background: var(--road);
+  border-radius: var(--radius-paper);
 }
 
-.tokaido__station[data-state="locked"] .tokaido__art {
-  color: var(--hai);
-}
-
-.tokaido__hill {
-  fill: currentColor;
-  opacity: 0.25;
-}
-
-.tokaido__fill {
-  fill: currentColor;
-  opacity: 0.8;
-}
-
-.tokaido__stroke {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-
-.tokaido__art--torii .tokaido__stroke {
-  stroke: var(--shu);
-}
-
-.tokaido__station[data-state="locked"] .tokaido__art--torii .tokaido__stroke {
-  stroke: currentColor;
-}
-
-.tokaido__text {
-  display: flex;
-  flex-direction: column;
+.tokaido__sign {
   min-width: 0;
-  line-height: 1.3;
-}
-
-.tokaido__name {
-  font-family: var(--font-brush);
-  font-size: var(--fs-4);
-}
-
-.tokaido__romaji {
-  font-size: var(--fs-2);
-}
-
-.tokaido__keeper {
-  font-size: var(--fs-1);
-  color: var(--fg-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.tokaido__you {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  font-family: var(--font-pixel);
-  color: var(--bg);
-  background: var(--shu);
-  border-radius: 50%;
-}
-
-.tokaido__gate {
-  position: absolute;
-  left: 9px;
-  bottom: -8px;
-  z-index: 1;
-  font-family: var(--font-brush);
-  font-size: var(--fs-1);
-  line-height: 1;
-  padding: 1px 2px;
-  color: var(--hai);
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 2px;
-}
-
-.tokaido__row[data-state="cleared"] .tokaido__gate,
-.tokaido__row[data-state="perfect"] .tokaido__gate,
-.tokaido__row[data-state="assisted"] .tokaido__gate {
-  color: var(--shu);
-  border-color: var(--shu);
-}
-
-.tokaido__row[data-state="current"] .tokaido__gate {
-  color: var(--kin);
-  border-color: var(--kin);
-}
-
-.tokaido .sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 @media (min-width: 600px) {
   .tokaido__station {
-    grid-template-columns: 40px 64px 1fr auto;
+    grid-template-columns: 40px 64px minmax(0, 1fr);
   }
   .tokaido__art {
     width: 64px;
     height: 53px;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tokaido__station {
-    transition: none;
+  /* the current row's 160 px bokashi band (§7 D 1,500): the box is laid out from mount, the picture wipes in */
+  .tokaido__row[data-band] .tokaido__station {
+    grid-template-columns: 40px 160px minmax(0, 1fr);
+    background: linear-gradient(90deg, var(--road), transparent 70%);
+  }
+  .tokaido__art--band {
+    width: 160px;
+    height: 160px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--sky-mid) 30%, var(--bg)), var(--road));
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path var(--dur-3) var(--ease-out);
+  }
+  .tokaido__art--band[data-shown] {
+    clip-path: inset(0);
   }
 }

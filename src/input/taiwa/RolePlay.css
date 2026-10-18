@@ -3,7 +3,8 @@
  * Tokens only (src/styles/tokens.css). Mobile-first: fits 360 px with the
  * 16 px gutter; 44 px targets; the learner's controls sit lowest so they land
  * in the bottom third on phones. States are shape + text, never color alone.
- * Motion removed under prefers-reduced-motion and body.reduced-motion.
+ * .eyebrow and .meter come from motion.css (design 09 §3.1, §5.7); reduced
+ * motion is base.css's global rule plus the zeroed --dur-* tokens (§6.6).
  */
 .taiwa {
   display: grid;
@@ -28,7 +29,7 @@
 .taiwa__title-ja {
   font-family: var(--font-brush);
   font-size: var(--fs-5);
-  line-height: 1;
+  line-height: 1.1;
 }
 .taiwa__meta {
   display: flex;
@@ -59,13 +60,6 @@
   color: var(--fg);
   font-size: var(--fs-3);
 }
-.taiwa__label {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
 .taiwa__notice {
   margin: 0;
 }
@@ -93,7 +87,6 @@
   display: grid;
   gap: var(--sp-2);
   border-left: 4px solid var(--sakura);
-  transition: background var(--dur-2) var(--ease);
 }
 .taiwa__npc[data-speaking='true'] {
   background: color-mix(in srgb, var(--sakura) 14%, var(--raised));
@@ -190,7 +183,6 @@
   border: 2px solid var(--line);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: border-color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
 }
 .taiwa__chip:hover,
 .taiwa__chip:focus-visible,
@@ -304,7 +296,6 @@
   display: grid;
   gap: var(--sp-2);
   border-left: 4px solid var(--line);
-  animation: taiwa-in var(--dur-2) var(--ease) both;
 }
 .taiwa__feedback[data-kind='best'] {
   border-left-color: var(--matcha);
@@ -352,37 +343,6 @@
   font-family: var(--font-pixel);
   font-size: var(--fs-3);
 }
-.taiwa__meter {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--sp-1) var(--sp-2);
-  align-items: center;
-}
-.taiwa__meter-label {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--fg-muted);
-}
-.taiwa__meter-track {
-  display: block;
-  height: 8px;
-  overflow: hidden;
-  background: var(--line);
-  border-radius: 4px;
-}
-.taiwa__meter-fill {
-  display: block;
-  height: 100%;
-  background: var(--matcha);
-  transition: width var(--dur-2) var(--ease);
-}
-.taiwa__meter-text {
-  grid-column: 1 / -1;
-  font-size: var(--fs-2);
-  color: var(--fg-muted);
-}
 .taiwa__corrections {
   display: grid;
   gap: var(--sp-2);
@@ -425,9 +385,6 @@
 .taiwa__slots .chip[data-hit='false'] {
   border-style: dashed;
 }
-.taiwa__closing {
-  font-family: var(--font-mincho);
-}
 
 /* ── states ───────────────────────────────────────────────────────────── */
 .taiwa__state {
@@ -437,38 +394,4 @@
   border-left: 4px solid var(--hai);
   border-radius: var(--radius-sm);
   background: var(--raised);
-}
-
-/* ── motion ───────────────────────────────────────────────────────────── */
-@keyframes taiwa-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .taiwa__feedback {
-    animation: none;
-  }
-  .taiwa__npc,
-  .taiwa__chip,
-  .taiwa__tile,
-  .taiwa__option,
-  .taiwa__meter-fill {
-    transition: none;
-  }
-}
-.reduced-motion .taiwa__feedback {
-  animation: none;
-}
-.reduced-motion .taiwa__npc,
-.reduced-motion .taiwa__chip,
-.reduced-motion .taiwa__tile,
-.reduced-motion .taiwa__option,
-.reduced-motion .taiwa__meter-fill {
-  transition: none;
 }

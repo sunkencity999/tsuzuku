@@ -113,7 +113,7 @@ function ProductionForgeBody(p: ExerciseProps): JSX.Element {
     <div class="drill production-forge" data-exercise="production-forge" data-policy={policy} ref={root}>
       <p class="drill__prompt">{X.typeJapanese}</p>
       <p class="drill__prompt forge__gloss-row">
-        <span class="drill__label">{S.glossLabel}</span> <span class="forge__gloss">{prompt.en}</span>
+        <span class="eyebrow">{S.glossLabel}</span> <span class="forge__gloss">{prompt.en}</span>
       </p>
       <p class="forge__sentence" lang="ja">
         {hasBlank ? (

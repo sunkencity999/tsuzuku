@@ -148,6 +148,10 @@ describe('<TrainPage>', () => {
     store.session.save(snapshot(3));
     expect(snapshotStepsLeft(snapshot(3))).toBe(0);
     expect(snapshotStepsLeft(null)).toBe(0);
+    // ungraded steps (a michikusa, an output prompt) are not reps: the count matches the Leave slip (d37)
+    const withPrompt = snapshot(0);
+    withPrompt.plan.steps.push({ ...step('d', `${V.犬}#rec`), id: 'd', cardKey: null });
+    expect(snapshotStepsLeft(withPrompt)).toBe(3);
     mount('kata');
     await settle();
     expect(root.querySelector('.train')?.getAttribute('data-phase')).toBe('preroll');

@@ -172,17 +172,18 @@ export const S = {
   topics: ['your morning', 'the last station', 'a meal you remember', 'the weather today', 'a place you want to see', 'what you did yesterday', 'a friend', 'your work', 'a word you like', 'the road so far'],
 
   // Omikuji proverbs (seeded, deterministic, no XP effect)
+  /** Proverbs in ruby markup (`{base|reading}`, content/ruby.ts) so a zero-Japanese learner can read them; the gloss rides beside (design 09 §12.1 d36). */
   omikuji: [
-    '継続は力なり — Continuation is strength.',
-    '七転び八起き — Fall seven times, rise eight.',
-    '塵も積もれば山となる — Dust, piled up, becomes a mountain.',
-    '千里の道も一歩から — A thousand-ri road begins with one step.',
-    '石の上にも三年 — Three years on a cold stone, and it warms.',
-    '雨降って地固まる — After the rain, the ground hardens.',
-    '初心忘るべからず — Keep the beginner’s heart.',
-    '猿も木から落ちる — Even monkeys fall from trees.',
-    '明日は明日の風が吹く — Tomorrow’s wind blows tomorrow.',
-    '習うより慣れろ — Practice over study; let the hands remember.',
+    { ja: '{継続|けいぞく}は{力|ちから}なり', en: 'Continuation is strength.' },
+    { ja: '{七転|ななころ}び{八起|やお}き', en: 'Fall seven times, rise eight.' },
+    { ja: '{塵|ちり}も{積|つ}もれば{山|やま}となる', en: 'Dust, piled up, becomes a mountain.' },
+    { ja: '{千里|せんり}の{道|みち}も{一歩|いっぽ}から', en: 'A thousand-ri road begins with one step.' },
+    { ja: '{石|いし}の{上|うえ}にも{三年|さんねん}', en: 'Three years on a cold stone, and it warms.' },
+    { ja: '{雨降|あめふ}って{地固|じかた}まる', en: 'After the rain, the ground hardens.' },
+    { ja: '{初心|しょしん}{忘|わす}るべからず', en: 'Keep the beginner’s heart.' },
+    { ja: '{猿|さる}も{木|き}から{落|お}ちる', en: 'Even monkeys fall from trees.' },
+    { ja: '{明日|あした}は{明日|あした}の{風|かぜ}が{吹|ふ}く', en: 'Tomorrow’s wind blows tomorrow.' },
+    { ja: '{習|なら}うより{慣|な}れろ', en: 'Practice over study; let the hands remember.' },
   ],
 } as const;
 

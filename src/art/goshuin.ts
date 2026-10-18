@@ -29,7 +29,7 @@ import { PRESSURE, bristles, brushStroke, inkBleed, sealFrame } from './brush';
 import { INK, PALETTE, STONE, WASHI, mix, normalizeHex, type Theme } from './color';
 import type { Pt } from './geom';
 import { FONTS, columnHeight, splitColumns, textEl, type TextLayer } from './jtext';
-import { A, L, M, Z, circlePath, defs, el, filter, fmt, g, mask, path, pattern, polyPath, rect, roundedRectPath, safeRect, sizeOf, title, url, type Attrs } from './svg';
+import { A, L, M, Z, circlePath, defs, el, filter, fmt, g, mask, path, pattern, polyPath, rect, roundedRectPath, safeRect, sizeOf, svgDataUrl, title, url, type Attrs } from './svg';
 import { S } from './mon-strings';
 import { fill as fillTemplate } from './strings';
 
@@ -420,10 +420,9 @@ export function goshuinParts(o: GoshuinOptions): GoshuinParts {
   return { defs: defsOut, body, texts, view: GOSHUIN_VIEW, round, motif, columns: cols.length };
 }
 
-/** A complete, self-contained stamp SVG (`viewBox 0 0 320 320`, `width`/`height` = size px). */
-export function goshuinSvg(o: GoshuinOptions): string {
+/** The `<svg>` wrapper around `parts`: `viewBox 0 0 320 320`, `width`/`height` = size px. */
+function wrapGoshuin(o: GoshuinOptions, parts: GoshuinParts): string {
   const size = clampGoshuinSize(o.size);
-  const parts = goshuinParts(o);
   return el(
     'svg',
     {
@@ -440,9 +439,46 @@ export function goshuinSvg(o: GoshuinOptions): string {
   );
 }
 
+/** A complete, self-contained stamp SVG (`viewBox 0 0 320 320`, `width`/`height` = size px). */
+export function goshuinSvg(o: GoshuinOptions): string {
+  return wrapGoshuin(o, goshuinParts(o));
+}
+
 /** Station lookup by number (1–53), or undefined. */
 export function stationByNumber(n: number): StationDef | undefined {
   return STATIONS.find((s) => s.number === n);
+}
+
+/**
+ * The stamp as an `<img>`-ready data URL (design 09 §5.3): hex paints resolved
+ * for `theme` — no `var()` resolves inside an image — and the seal's turbulence
+ * rasterised once by the decoder, so a book of fifty-three stamps holds no live
+ * SVG filter (§6.7 rule 2). `cssVars` is forced off; everything else is
+ * `goshuinSvg`'s.
+ */
+export function goshuinDataUrl(o: GoshuinOptions): string {
+  return svgDataUrl(goshuinSvg({ ...o, cssVars: false }));
+}
+
+export interface GoshuinImage {
+  /** The stamp without its text, `<img>`-ready (hex paints for `theme`). */
+  url: string;
+  /** Ordinal, name columns, 奉拝 and the era date in 320-space (tilt applied), for the host's inline `<text>` overlay. */
+  texts: TextLayer[];
+  view: number;
+}
+
+/**
+ * The stamp split for an `<img>` host: webfonts never resolve inside an image
+ * (design 07 §8), so the brush and Mincho text stays out of the data URL and
+ * comes back as `TextLayer`s that the host sets as inline `<text>` over the
+ * image (`jtext.ts textLayersSvg`) in the page's own Yuji / Shippori faces.
+ * The seal's turbulence still rasterises once; the overlay carries no filter.
+ */
+export function goshuinImage(o: GoshuinOptions): GoshuinImage {
+  const opts: GoshuinOptions = { ...o, cssVars: false, textInSvg: false };
+  const parts = goshuinParts(opts);
+  return { url: svgDataUrl(wrapGoshuin(opts, parts)), texts: parts.texts, view: GOSHUIN_VIEW };
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */

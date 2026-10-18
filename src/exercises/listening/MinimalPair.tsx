@@ -266,7 +266,7 @@ export function MinimalPair(p: ExerciseProps): JSX.Element {
       <ChoiceGrid choices={[...pair.choices]} onPick={pick} picked={picked} correct={result ? pair.target : undefined} columns={2} ja size="lg" label={S.pairGroupLabel} />
 
       {result ? (
-        <div class="pair__result" data-kind={result.correct ? 'correct' : 'wrong'} role="status">
+        <div class="pair__result reveal ink-nijimi" data-kind={result.correct ? 'correct' : 'wrong'} role="status">
           <p class="pair__line">{result.correct ? S.pairCorrect : S.pairMiss}</p>
           <p class="pair__why">{why}</p>
           <div class="pair__compare" role="group" aria-label={S.compareLabel}>

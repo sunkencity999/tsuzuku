@@ -47,8 +47,9 @@ export const S = {
   stateCurrent: 'you are here',
   stateLocked: 'ahead',
   youAreHere: 'You are here',
-  startNode: '日本橋 Nihonbashi · the start',
-  arrivalNode: '三条大橋 Sanjō Ōhashi · the Shodan Shinsa',
+  // the two end nodes: the names come from NIHONBASHI / SANJO_OHASHI (content/types) with the belt-gated reading; only the English lives here
+  startNodeEn: '· the start',
+  arrivalNodeEn: '· the Shodan Shinsa',
   keyboardHint: 'Arrow keys walk the road; Enter opens a station.',
   jumpToCurrent: 'Go to your station',
   bandLabel: '{belt} belt · Stations {from} to {to} · {level}',

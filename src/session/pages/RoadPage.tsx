@@ -25,7 +25,7 @@ import { effectiveNewPerDay, newPerDayTotal, store } from '../../store';
 import { SHINSA_STATIONS, activeDaysIn, beltOfStation, bundleItemIds, itemsIntroducedIn, lifetimeActiveDays } from '../../store/derived';
 import { BELT_NAME, fill } from '../engine-strings';
 import { KageStrip } from '../KageView';
-import { RoadNav } from '../RoadNav';
+import { RoadNav, kanaReading, romajiAllowed } from '../RoadNav';
 import { S } from './strings';
 import './pages.css';
 
@@ -157,11 +157,13 @@ export function spanLabel(days: number): string {
   return days === 1 ? S.arrivalDay : fill(S.arrivalDays, { n: Math.max(0, days) });
 }
 
-export function targetLabel(target: number): string {
+/** `Yellow belt (小田原 Odawara)`; the reading follows the kana rule (design 09 §3.3): romaji below Green, kana after. */
+export function targetLabel(target: number, romaji = true): string {
   if (target >= 53) return S.arrivalKyoto;
   const st = STATIONS.find((s) => s.number === target);
   const belt = beltOfStation(target);
-  return fill(S.arrivalBelt, { belt: BELT_NAME[belt], station: st ? `${st.nameJa} ${st.nameRomaji}` : fill(S.stationShort, { n: target }) });
+  const name = st ? `${st.nameJa} ${romaji ? st.nameRomaji : kanaReading(st.nameRomaji)}`.trim() : fill(S.stationShort, { n: target });
+  return fill(S.arrivalBelt, { belt: BELT_NAME[belt], station: name });
 }
 
 export default function RoadPage(p: RoadPageProps): JSX.Element {
@@ -169,6 +171,7 @@ export default function RoadPage(p: RoadPageProps): JSX.Element {
   const progress = store.progress.value;
   const collections = store.collections.value;
   const profile = store.profile.value;
+  const romaji = romajiAllowed(profile.belt);
   const cardsVersion = store.cards.version.value;
   const [bundle, setBundle] = useState<StationBundle | null>(null);
   const [lines, setLines] = useState<EstimateLine[] | null>(null);
@@ -223,11 +226,11 @@ export default function RoadPage(p: RoadPageProps): JSX.Element {
             {lines.map((l) =>
               l.kind === 'pace' ? (
                 <p key={l.target} class="road-page__line" data-kind="pace">
-                  {fill(S.arrivalPace, { target: targetLabel(l.target), pace: monthYear(l.atPace), daily: monthYear(l.daily) })}
+                  {fill(S.arrivalPace, { target: targetLabel(l.target, romaji), pace: monthYear(l.atPace), daily: monthYear(l.daily) })}
                 </p>
               ) : (
                 <p key={l.target} class="road-page__line" data-kind="onboarding">
-                  {fill(S.arrivalOnboarding, { target: targetLabel(l.target), full: spanLabel(l.full), seventy: spanLabel(l.seventy) })}
+                  {fill(S.arrivalOnboarding, { target: targetLabel(l.target, romaji), full: spanLabel(l.full), seventy: spanLabel(l.seventy) })}
                 </p>
               ),
             )}
@@ -248,7 +251,7 @@ export default function RoadPage(p: RoadPageProps): JSX.Element {
       </section>
 
       <section class="page__section" aria-label={S.roadNavAria}>
-        <RoadNav current={station} cleared={progress.stationsCleared} assisted={progress.assisted} perfect={perfect} onPick={(n) => navigate({ name: 'station', n })} />
+        <RoadNav current={station} cleared={progress.stationsCleared} assisted={progress.assisted} perfect={perfect} stationSeen={progress.stationSeen} onPick={(n) => navigate({ name: 'station', n })} />
       </section>
 
       {danOpen ? (

@@ -10,13 +10,43 @@
  *   - Zen hides everything but the progress.
  * `plan.steps` should be the runner's live queue (re-queues included) so the
  * counts stay honest; `index` is the runner's cursor into it.
+ *
+ * Motion (design 09 §5.7, §6.3, §7 J): both bars are `.meter`s whose `--value`
+ * hiku-fills (motion.css); the current block's vermilion dot is a real
+ * `.hud__dot` that glides from the previous block by FLIP — measured with
+ * `getBoundingClientRect` relative to the Hud itself, so a page that scrolled
+ * between two commits is not read as movement; transform only, --dur-2 —
+ * skipped when nothing moved (jsdom measures zeros) or motion is reduced.
+ * The 百錬 label carries its English beside it (the zero-Japanese rule).
  */
 import type { JSX } from 'preact';
+import { useLayoutEffect, useRef } from 'preact/hooks';
 import type { SessionBlock, SessionPlan, Step } from '../shared/session-types';
 import type { Settings } from '../shared/store-types';
+import { prefersReducedMotion } from '../shared/ui/use-reveal';
 import { BLOCK_LABEL } from './engine-strings';
 import { S, fill } from './strings';
 import './Hud.css';
+
+/**
+ * FLIP's last two letters: `el` is already in its new place; start it `dx, dy`
+ * back (no transition), flush, then let the transform transition to none.
+ * Returns whether anything moved.
+ */
+export function glide(el: HTMLElement, dx: number, dy: number): boolean {
+  if (!dx && !dy) return false;
+  el.style.transition = 'none';
+  el.style.transform = `translate(${dx}px, ${dy}px)`;
+  el.getBoundingClientRect();
+  el.style.transition = 'transform var(--dur-2) var(--ease)';
+  el.style.transform = '';
+  const clear = (): void => {
+    el.style.transition = '';
+    el.removeEventListener('transitionend', clear);
+  };
+  el.addEventListener('transitionend', clear);
+  return true;
+}
 
 export interface HudProps {
   plan: SessionPlan;
@@ -87,13 +117,30 @@ export function Hud(p: HudProps): JSX.Element {
   const fillPct = reviewsTotal > 0 ? Math.round((reviewsLeft / reviewsTotal) * 100) : 0;
 
   const blocks = blockProgress(p.plan, index);
-  const current = blocks.find((b) => b.state === 'current');
+  const currentIndex = blocks.findIndex((b) => b.state === 'current');
+  const current = currentIndex >= 0 ? blocks[currentIndex] : undefined;
+
+  // The dot's last measured place (relative to the Hud); when the current block changes, the new dot glides from it.
+  const hud = useRef<HTMLDivElement>(null);
+  const dot = useRef<HTMLSpanElement>(null);
+  const dotAt = useRef<{ left: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = dot.current;
+    const prev = dotAt.current;
+    const base = hud.current?.getBoundingClientRect();
+    const r = el ? el.getBoundingClientRect() : null;
+    const next = r ? { left: r.left - (base?.left ?? 0), top: r.top - (base?.top ?? 0) } : null;
+    dotAt.current = next;
+    if (!el || !prev || !next || prefersReducedMotion()) return;
+    glide(el, prev.left - next.left, prev.top - next.top);
+  }, [currentIndex]);
 
   return (
-    <div class="hud" data-feel={p.feel} data-backlog={p.backlog ? 'true' : undefined} role="group" aria-label={S.hudLabel}>
+    <div ref={hud} class="hud" data-feel={p.feel} data-backlog={p.backlog ? 'true' : undefined} role="group" aria-label={S.hudLabel}>
       <div class="hud__progress">
         <div
-          class="progress progress--matcha hud__bar"
+          class="meter hud__bar"
+          style={`--value:${pct / 100}`}
           role="progressbar"
           aria-label={S.progressAria}
           aria-valuemin={0}
@@ -101,7 +148,7 @@ export function Hud(p: HudProps): JSX.Element {
           aria-valuenow={index}
           aria-valuetext={fill(S.repOf, { i: Math.min(index + 1, Math.max(total, 1)), n: total })}
         >
-          <div class="progress__fill" style={{ width: `${pct}%` }} />
+          <div class="meter__fill" />
         </div>
         <span class="hud__count" aria-hidden="true">
           {Math.min(index + 1, Math.max(total, 1))} / {total}
@@ -112,6 +159,7 @@ export function Hud(p: HudProps): JSX.Element {
         <ol class="hud__blocks" aria-label={S.blocksAria}>
           {blocks.map((b, i) => (
             <li key={`${b.block.kind}-${i}`} class="hud__block" data-state={b.state} aria-current={b.state === 'current' ? 'step' : undefined}>
+              {b.state === 'current' ? <span class="hud__dot" ref={dot} aria-hidden="true" /> : null}
               <span class="hud__block-label">{b.block.label || BLOCK_LABEL[b.block.kind]}</span>
               <span class="sr-only">
                 {' '}
@@ -134,7 +182,7 @@ export function Hud(p: HudProps): JSX.Element {
 
       {!zen && !p.backlog && reviewsTotal > 0 ? (
         <div
-          class="forge-bar hud__forge"
+          class="hud__forge"
           role="meter"
           aria-label={S.forgeAria}
           aria-valuemin={0}
@@ -145,8 +193,9 @@ export function Hud(p: HudProps): JSX.Element {
           <span class="forge-bar__label" lang="ja">
             {S.forgeLabel}
           </span>
-          <div class="forge-bar__track">
-            <div class="forge-bar__fill" style={{ width: `${fillPct}%` }} />
+          <span class="eyebrow">{S.forgeEn}</span>
+          <div class="meter forge-bar" style={`--value:${fillPct / 100}`}>
+            <div class="meter__fill" />
           </div>
           <span class="forge-bar__count" aria-hidden="true">
             {reviewsLeft}

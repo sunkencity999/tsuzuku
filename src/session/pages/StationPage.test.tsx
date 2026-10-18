@@ -4,7 +4,7 @@
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { CardKey, ListeningPool, StoryItem } from '../../content/types';
 import { DIALOGUE, FIXTURE, STATION_1, STATION_4, STORY, V, G, createFakeLoader, type Fixture } from '../../content/fixtures';
 import { installServices, nullAudio, resetServices, type AudioService } from '../../shared/audio';
@@ -17,6 +17,7 @@ import { resetStoreForTests, store } from '../../store';
 import { knownIds } from '../../store/derived';
 import { DEFAULT_TEST_NOW, card, makeTestStore } from '../../store/testing';
 import { poolMinutes, selectPool } from '../../learn';
+import { loadRoadArt } from '../RoadNav';
 import StationPage, { EAR_PANEL_TEACH_ID, earChip, earMinutes, earReadAlongFor, earTextFor, groupItems } from './StationPage';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
@@ -41,6 +42,10 @@ function stationCards(o: { greenCount?: number; only?: number } = {}): Record<Ca
 }
 
 let root: HTMLDivElement;
+// the headpiece is art-tier, loaded lazily (~0.6 s on its first load here): resolve it once so the header renders whole
+beforeAll(async () => {
+  expect(await loadRoadArt()).not.toBeNull();
+});
 beforeEach(() => {
   root = document.createElement('div');
   document.body.appendChild(root);
@@ -78,6 +83,69 @@ describe('<StationPage>', () => {
     const chips = Array.from(root.querySelectorAll('.station-quotas .chip')).map((c) => c.textContent);
     expect(chips).toEqual(['60 words', '8 kanji', '8 patterns', '3 texts']);
     expect(root.querySelector('.station-head')?.getAttribute('data-belt')).toBe('yellow');
+  });
+
+  it('the headpiece (design 09 §7 D): a 160 px picture over the .sign--head plate — the station-seal hero lands on `.station-head .sign` — with the Mincho ordinal, one sumi filter, the road in --road and the keeper lift', async () => {
+    await makeTestStore({ save: { progress: { station: 13, stationsCleared: Array.from({ length: 12 }, (_, i) => i + 1) }, profile: { belt: 'orange' } } });
+    await mount(13);
+    const head = root.querySelector('.station-head')!;
+    const piece = head.querySelector('.headpiece')!;
+    expect(piece).not.toBeNull();
+    const svg = piece.querySelector('svg.headpiece__svg')!;
+    expect(svg).not.toBeNull();
+    expect(svg.getAttribute('viewBox')).toBe('0 0 720 160'); // unmeasured in jsdom → the widest composition
+    expect(svg.querySelectorAll('*').length).toBeLessThanOrEqual(120);
+    expect(svg.querySelectorAll('filter').length).toBe(1);
+    expect(svg.querySelectorAll('[filter]').length).toBe(1);
+    expect(svg.innerHTML).toContain('var(--road)');
+    expect(svg.querySelector('.headpiece__tone')).not.toBeNull();
+    expect(piece.getAttribute('role')).toBe('img');
+    expect(piece.getAttribute('aria-label')).toBe('Fuji view. Fuji at its tallest over the Hara marshes.');
+    // the sign: the hero's landing, with number, ordinal, brush name, romaji (Orange belt) and the state word
+    const sign = head.querySelector('.sign')!;
+    expect(sign.classList.contains('sign--head')).toBe(true);
+    expect(sign.tagName).toBe('H2');
+    expect(sign.querySelector('.sign__number')?.textContent).toBe('Station 13');
+    expect(sign.querySelector('.sign__ordinal')?.textContent).toBe('第十三宿');
+    expect(sign.querySelector('.sign__ordinal')?.getAttribute('aria-hidden')).toBe('true');
+    expect(sign.querySelector('.sign__ja')?.textContent).toBe('原');
+    expect(sign.querySelector('.sign__reading')?.textContent).toBe('Hara');
+    expect(sign.querySelector('.sign__en')?.textContent).toBe('you are here');
+    expect(root.querySelector('.station-head__number')).toBeNull();
+    // never under the sign: the plate is its own element beside the picture
+    expect(sign.querySelector('.headpiece')).toBeNull();
+  });
+
+  it('the romaji line follows the kana rule: shown below Green, removed (kana ruby instead) at and after Green (design 09 §3.3)', async () => {
+    await makeTestStore({ save: { progress: { station: 16 }, profile: { belt: 'orange' } } });
+    await mount(16);
+    expect(root.querySelector('.station-head .sign__reading')?.textContent).toBe('Yui');
+    expect(root.querySelector('.station-head .sign__ja ruby')).toBeNull();
+    await makeTestStore({ save: { progress: { station: 16 }, profile: { belt: 'green' }, settings: { furigana: 'always' } } });
+    await mount(16);
+    expect(root.querySelector('.station-head .sign__reading')).toBeNull();
+    expect(root.querySelector('.station-head .sign__ja rt')?.textContent).toBe('ゆい');
+    expect(root.querySelector('.station-head .sign__ja')?.textContent).toContain('由比');
+    // `tap` furigana: signage shows the reading outright, never a tap-to-reveal ruby
+    await makeTestStore({ save: { progress: { station: 53 }, profile: { belt: 'green' }, settings: { furigana: 'tap' } } });
+    await mount(53);
+    expect(root.querySelector('.station-head .sign__ja rt')?.textContent).toBe('おおつ');
+    expect(root.querySelectorAll('.station-head [role="button"], .station-head .ruby__seg--fog').length).toBe(0);
+    await makeTestStore({ save: { progress: { station: 40 }, profile: { belt: 'brown' }, settings: { furigana: 'off' } } });
+    await mount(40);
+    expect(root.querySelector('.station-head .sign__reading')).toBeNull();
+    expect(root.querySelector('.station-head .sign__ja')?.textContent).toBe('鳴海');
+    expect(root.querySelector('.station-head .sign__en')?.textContent).toBe('you are here');
+  });
+
+  it('reduced motion: the headpiece carries no lifting class and marks itself; a cleared station says cleared', async () => {
+    await makeTestStore({ save: { settings: { reducedMotion: true }, progress: { station: 5, stationsCleared: [1, 2, 3, 4] } } });
+    await mount(4);
+    const svg = root.querySelector('.headpiece svg')!;
+    expect(svg.hasAttribute('data-reduced')).toBe(true);
+    expect(svg.querySelector('.headpiece__tone')).toBeNull();
+    expect(root.querySelectorAll('.station-head [class*="ink-"]').length).toBe(0);
+    expect(root.querySelector('.station-head .sign__en')?.textContent).toBe('cleared');
   });
 
   it('kana stations say "the kana" and no kanji / patterns', async () => {

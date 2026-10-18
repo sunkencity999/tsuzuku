@@ -27,7 +27,7 @@ const SHU = PALETTE.light.shu;
 const DAYS = 90;
 
 /** Concave Fuji envelope over u ∈ [-1, 1] with a flat crater rim (|u| < 0.045). */
-function fujiProfile(u: number): number {
+export function fujiProfile(u: number): number {
   const a = Math.min(1, Math.abs(u));
   const e = (1 - a) ** 1.7;
   const rim = (1 - 0.045) ** 1.7;

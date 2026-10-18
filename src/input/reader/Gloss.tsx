@@ -194,7 +194,7 @@ export function Gloss(p: GlossProps): JSX.Element {
           <dl class="gloss__body">
             {vocab.pitch !== undefined ? (
               <>
-                <dt>{S.glossPitch}</dt>
+                <dt class="eyebrow">{S.glossPitch}</dt>
                 <dd>
                   <span class="gloss__pitch" data-field="pitch">
                     <span>
@@ -213,7 +213,7 @@ export function Gloss(p: GlossProps): JSX.Element {
             ) : null}
             {jjDefinition ? (
               <>
-                <dt>{S.glossDefinition}</dt>
+                <dt class="eyebrow">{S.glossDefinition}</dt>
                 <dd lang="ja" data-field="definition">
                   <Ruby ja={jjDefinition.ja} mode="always" />
                 </dd>
@@ -221,7 +221,7 @@ export function Gloss(p: GlossProps): JSX.Element {
             ) : null}
             {showMeanings ? (
               <>
-                <dt>{S.glossMeaning}</dt>
+                <dt class="eyebrow">{S.glossMeaning}</dt>
                 <dd data-field="meanings">{vocab.meanings.join(' · ')}</dd>
               </>
             ) : (
@@ -233,7 +233,7 @@ export function Gloss(p: GlossProps): JSX.Element {
             )}
             {vocab.collocations && vocab.collocations.length > 0 ? (
               <>
-                <dt>{S.glossCollocations}</dt>
+                <dt class="eyebrow">{S.glossCollocations}</dt>
                 <dd>
                   <ul class="gloss__list" lang="ja" data-field="collocations">
                     {vocab.collocations.map((c) => (
@@ -247,22 +247,22 @@ export function Gloss(p: GlossProps): JSX.Element {
             ) : null}
             {vocab.notes ? (
               <>
-                <dt>{S.glossNotes}</dt>
+                <dt class="eyebrow">{S.glossNotes}</dt>
                 <dd data-field="notes">{vocab.notes}</dd>
               </>
             ) : null}
           </dl>
         ) : grammar ? (
           <dl class="gloss__body">
-            <dt>{S.glossPattern}</dt>
+            <dt class="eyebrow">{S.glossPattern}</dt>
             <dd lang="ja" data-field="pattern">
               <Ruby ja={grammar.pattern} mode="always" />
             </dd>
-            <dt>{S.glossMeaning}</dt>
+            <dt class="eyebrow">{S.glossMeaning}</dt>
             <dd data-field="meanings">{grammar.meaning}</dd>
             {grammar.formation[0] ? (
               <>
-                <dt>{S.glossFormation}</dt>
+                <dt class="eyebrow">{S.glossFormation}</dt>
                 <dd lang="ja" data-field="formation">
                   {grammar.formation[0]}
                 </dd>
@@ -271,9 +271,9 @@ export function Gloss(p: GlossProps): JSX.Element {
           </dl>
         ) : kanji ? (
           <dl class="gloss__body">
-            <dt>{S.glossMeaning}</dt>
+            <dt class="eyebrow">{S.glossMeaning}</dt>
             <dd data-field="meanings">{kanji.meanings.join(' · ')}</dd>
-            <dt>{S.glossReading}</dt>
+            <dt class="eyebrow">{S.glossReading}</dt>
             <dd lang="ja" data-field="readings">
               {[...kanji.on, ...kanji.kun].join('・')}
             </dd>

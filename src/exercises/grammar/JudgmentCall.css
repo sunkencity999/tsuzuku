@@ -22,21 +22,6 @@
   line-height: var(--lh-ja);
   overflow-wrap: anywhere;
 }
-
-.judgment__explain {
-  display: grid;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  border-left: 4px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--raised);
-}
-.judgment__explain[data-kind='correct'] {
-  border-left-color: var(--matcha);
-}
-.judgment__explain[data-kind='wrong'] {
-  border-left-color: var(--shu);
-}
 .judgment__line,
 .judgment__label,
 .judgment__why,
@@ -44,13 +29,6 @@
 .judgment__detail,
 .judgment__empty {
   margin: 0;
-}
-.judgment__label {
-  font-family: var(--font-pixel);
-  font-size: var(--fs-1);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
 }
 .judgment__right {
   display: flex;

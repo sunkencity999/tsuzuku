@@ -15,6 +15,9 @@
  * `JudgeRequest` from the exercise does not carry. The card is a
  * `role="dialog"` with `tabIndex={-1}` and takes focus when it mounts, so the
  * 目付 title and prompt are read before the options; hosts need not focus it.
+ * It enters as `.ink-nijimi` from the right (`--from: 24px 0`, design 09 §6.2)
+ * on a plain `.judge-card__wrap`: the `.status-window` card inside is clipped
+ * and is never transformed itself (§6.7 rule 7).
  */
 import type { JSX } from 'preact';
 import { useEffect, useId, useMemo, useRef } from 'preact/hooks';
@@ -121,60 +124,64 @@ export function JudgeCard(p: JudgeCardProps): JSX.Element {
   if ('rubric' in p) {
     const m = rubricMatches(p.answer, p.regex);
     return (
-      <aside ref={rootRef} tabIndex={-1} class="judge-card status-window" role="dialog" aria-labelledby={`${id}-t`} data-shape="rubric">
-        {title}
-        <p class="judge-card__line">{S.judgeLine}</p>
-        <p class="judge-card__prompt">
-          {S.judgeRubricPrompt} <strong lang={containsJapanese(p.rubric) ? 'ja' : undefined}>{p.rubric}</strong>
-        </p>
-        <p class="judge-card__answer" lang="ja">
-          {highlight(p.answer, m.ranges)}
-        </p>
-        <div class="judge-card__actions">
-          <button type="button" class="btn" data-verdict="yes" onClick={() => pick(m.ok)}>
-            <kbd>1</kbd>
-            <span lang="ja">はい</span> {S.judgeYes}
-          </button>
-          <button type="button" class="btn btn--ghost" data-verdict="no" onClick={() => pick(false)}>
-            <kbd>2</kbd>
-            <span lang="ja">いいえ</span> {S.judgeNo}
-          </button>
-        </div>
-      </aside>
+      <div class="judge-card__wrap ink-nijimi" style="--from: 24px 0">
+        <aside ref={rootRef} tabIndex={-1} class="judge-card status-window" role="dialog" aria-labelledby={`${id}-t`} data-shape="rubric">
+          {title}
+          <p class="judge-card__line">{S.judgeLine}</p>
+          <p class="judge-card__prompt">
+            {S.judgeRubricPrompt} <strong lang={containsJapanese(p.rubric) ? 'ja' : undefined}>{p.rubric}</strong>
+          </p>
+          <p class="judge-card__answer" lang="ja">
+            {highlight(p.answer, m.ranges)}
+          </p>
+          <div class="judge-card__actions">
+            <button type="button" class="btn" data-verdict="yes" onClick={() => pick(m.ok)}>
+              <kbd>1</kbd>
+              <span lang="ja">はい</span> {S.judgeYes}
+            </button>
+            <button type="button" class="btn btn--ghost" data-verdict="no" onClick={() => pick(false)}>
+              <kbd>2</kbd>
+              <span lang="ja">いいえ</span> {S.judgeNo}
+            </button>
+          </div>
+        </aside>
+      </div>
     );
   }
 
   const perception = 'minimalPair' in p;
   return (
-    <aside
-      ref={rootRef}
-      tabIndex={-1}
-      class="judge-card status-window"
-      role="dialog"
-      aria-labelledby={`${id}-t`}
-      data-shape={perception ? 'perception' : 'meaning'}
-    >
-      {title}
-      <p class="judge-card__line">{S.judgeLine}</p>
-      <p class="judge-card__prompt">{perception ? S.judgePairPrompt : S.judgeMeaningPrompt}</p>
-      <ol class="judge-card__options">
-        {options.map((opt, i) => (
-          <li key={i}>
-            <button type="button" class="judge-card__option" data-index={i} onClick={() => choose(i)}>
-              <kbd>{i + 1}</kbd>
-              <span lang={containsJapanese(opt) ? 'ja' : undefined}>{opt}</span>
+    <div class="judge-card__wrap ink-nijimi" style="--from: 24px 0">
+      <aside
+        ref={rootRef}
+        tabIndex={-1}
+        class="judge-card status-window"
+        role="dialog"
+        aria-labelledby={`${id}-t`}
+        data-shape={perception ? 'perception' : 'meaning'}
+      >
+        {title}
+        <p class="judge-card__line">{S.judgeLine}</p>
+        <p class="judge-card__prompt">{perception ? S.judgePairPrompt : S.judgeMeaningPrompt}</p>
+        <ol class="judge-card__options">
+          {options.map((opt, i) => (
+            <li key={i}>
+              <button type="button" class="judge-card__option" data-index={i} onClick={() => choose(i)}>
+                <kbd>{i + 1}</kbd>
+                <span lang={containsJapanese(opt) ? 'ja' : undefined}>{opt}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+        {perception && p.onReplay ? (
+          <div class="judge-card__actions">
+            <button type="button" class="btn btn--ghost" onClick={() => p.onReplay?.()} aria-keyshortcuts="Space">
+              {S.replay}
+              <kbd>Space</kbd>
             </button>
-          </li>
-        ))}
-      </ol>
-      {perception && p.onReplay ? (
-        <div class="judge-card__actions">
-          <button type="button" class="btn btn--ghost" onClick={() => p.onReplay?.()} aria-keyshortcuts="Space">
-            {S.replay}
-            <kbd>Space</kbd>
-          </button>
-        </div>
-      ) : null}
-    </aside>
+          </div>
+        ) : null}
+      </aside>
+    </div>
   );
 }

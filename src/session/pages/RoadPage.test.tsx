@@ -103,6 +103,8 @@ describe('roadEstimate', () => {
     expect(quotaTotal(99)).toBe(0);
     expect(targetLabel(53)).toBe('Kyoto (N1 core)');
     expect(targetLabel(9)).toBe('Yellow belt (小田原 Odawara)');
+    expect(targetLabel(9, false)).toBe('Yellow belt (小田原 おだわら)'); // from Green on: kana, no romaji (design 09 §3.3)
+    expect(targetLabel(53, false)).toBe('Kyoto (N1 core)');
     expect(spanLabel(3)).toBe('3 days');
     expect(spanLabel(21)).toBe('3 weeks');
     expect(spanLabel(365)).toBe('12 months');
@@ -134,7 +136,8 @@ describe('<RoadPage>', () => {
     const lines = root.querySelectorAll('.road-page__line');
     expect(lines.length).toBe(2);
     expect(lines[0]?.getAttribute('data-kind')).toBe('pace');
-    expect(lines[0]?.textContent).toMatch(/^Yellow belt \(小田原 Odawara\): [A-Z][a-z]+ \d{4} at your current pace · [A-Z][a-z]+ \d{4} at daily practice\.$/);
+    // a Black belt: kana are Green, so the target's reading is kana, not romaji (design 09 §3.3)
+    expect(lines[0]?.textContent).toMatch(/^Yellow belt \(小田原 おだわら\): [A-Z][a-z]+ \d{4} at your current pace · [A-Z][a-z]+ \d{4} at daily practice\.$/);
     expect(text()).toContain('Give or take twenty percent');
     expect(root.querySelector('a[href="#/dan"]')).not.toBeNull();
     expect(root.querySelector('.tokaido__station[data-state="current"]')?.getAttribute('data-station')).toBe('4');

@@ -15,6 +15,8 @@
  * Input mode (`onPick`): the learner taps the mora where the pitch drops,
  * or 「no drop」; digits 1..n pick a mora and n+1 picks 平板 through the
  * enclosing `<ExerciseFrame>`. The true contour is hidden until `revealed`.
+ * The contour polyline hiku-draws when it mounts (`.ink-hiku[data-axis="stroke"]`,
+ * stroke-dashoffset over --dur-3; shown complete under reduced motion).
  */
 import type { JSX } from 'preact';
 import { useRef } from 'preact/hooks';
@@ -114,7 +116,7 @@ function ContourSvg(p: ContourSvgProps): JSX.Element {
       data-drop={drop ?? 'none'}
       data-neutral={p.neutral ? 'true' : undefined}
     >
-      {!p.neutral ? <polyline class="pitch-svg__line" points={points} fill="none" /> : null}
+      {!p.neutral ? <polyline class="pitch-svg__line ink-hiku" data-axis="stroke" pathLength={1} points={points} fill="none" /> : null}
       {!p.neutral ? (
         <line class="pitch-svg__particle-line" x1={lastX} y1={y(high[n - 1] ?? false)} x2={partX} y2={y(particleHigh)} />
       ) : null}

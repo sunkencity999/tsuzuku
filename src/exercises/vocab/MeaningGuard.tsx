@@ -202,7 +202,7 @@ export function VocabAfter(p: VocabAfterProps): JSX.Element {
       {p.item.pitch !== undefined ? <PitchLine kana={p.item.kana} pitch={p.item.pitch} /> : null}
       {def ? (
         <div>
-          <span class="drill__label">{S.jjLabel}</span>
+          <span class="eyebrow">{S.jjLabel}</span>
           <p class="vocab__definition">
             <Ruby ja={def.ja} mode={p.furigana} />
           </p>
@@ -213,13 +213,13 @@ export function VocabAfter(p: VocabAfterProps): JSX.Element {
         </div>
       ) : (p.meaning ?? true) ? (
         <p class="vocab__meaning-en">
-          <span class="drill__label">{S.meaningLabel}</span> <span>{meanings}</span>
+          <span class="eyebrow">{S.meaningLabel}</span> <span>{meanings}</span>
           {p.jj ? <span class="drill__hint"> · {S.noDefinition}</span> : null}
         </p>
       ) : null}
       {p.item.collocations && p.item.collocations.length > 0 ? (
         <div>
-          <span class="drill__label">{X.collocations}</span>
+          <span class="eyebrow">{X.collocations}</span>
           <ul class="vocab__collocations">
             {p.item.collocations.slice(0, 3).map((c) => (
               <li key={c} class="vocab__collocation" lang="ja">

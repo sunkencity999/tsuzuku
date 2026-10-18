@@ -229,7 +229,7 @@ export function placeLanterns(seed: number, count: number, layout: LanternLayout
   return out;
 }
 
-function chochin(l: Lantern, sway: number): string {
+export function chochin(l: Lantern, sway: number): string {
   const { x, y, s } = l;
   const rx = s;
   const ry = s * 1.22;
@@ -257,7 +257,7 @@ function chochin(l: Lantern, sway: number): string {
 /* Scenery                                                                    */
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function pine(x: number, base: number, size: number, fill: string): string {
+export function pine(x: number, base: number, size: number, fill: string): string {
   const trunk = rect(x - size * 0.06, base - size * 0.3, size * 0.12, size * 0.3, { fill });
   const tiers: string[] = [];
   for (let k = 0; k < 3; k++) {

@@ -455,7 +455,7 @@ function KanaFlashBody(p: ExerciseProps): JSX.Element {
       {done ? (
         <div class="drill__after" data-correct={afterKind}>
           <p>
-            <span class="drill__label">{S.romajiLabel}</span> <span class="kana-flash__romaji">{romajiLabel(item)}</span>
+            <span class="eyebrow">{S.romajiLabel}</span> <span class="kana-flash__romaji">{romajiLabel(item)}</span>
             {showTarget && inTime !== null ? (
               <span class="chip kana-flash__reaction" data-in-time={inTime ? 'true' : 'false'}>
                 {fill(S.flashReaction, { s: fmtSeconds(done.ms) })} · {inTime ? S.flashInTime : S.flashOverTime}
@@ -465,7 +465,7 @@ function KanaFlashBody(p: ExerciseProps): JSX.Element {
           {why ? <p class="drill__hint">{why}</p> : null}
           {!done.correct || done.nearMiss ? (
             <p>
-              <span class="drill__label">{S.seenIn}</span>{' '}
+              <span class="eyebrow">{S.seenIn}</span>{' '}
               <span class="drill__ja" lang="ja">
                 {item.exampleWord.word}
               </span>{' '}

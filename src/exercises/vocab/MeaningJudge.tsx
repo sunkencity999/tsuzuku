@@ -163,7 +163,7 @@ function MeaningJudgeBody(p: ExerciseProps): JSX.Element {
         <div class="drill__after vocab__after" data-correct={done ? (done.correct ? (done.nearMiss ? 'near' : 'true') : 'false') : undefined}>
           {def ? (
             <div>
-              <span class="drill__label">{S.jjLabel}</span>
+              <span class="eyebrow">{S.jjLabel}</span>
               <p class="vocab__definition">
                 <Ruby ja={def.ja} mode={p.furigana} />
               </p>
@@ -174,7 +174,7 @@ function MeaningJudgeBody(p: ExerciseProps): JSX.Element {
             </div>
           ) : (
             <p class="vocab__meaning-en">
-              <span class="drill__label">{S.meaningLabel}</span> <span>{item.meanings.join(' · ')}</span>
+              <span class="eyebrow">{S.meaningLabel}</span> <span>{item.meanings.join(' · ')}</span>
               <span class="drill__hint"> · {S.noDefinition}</span>
             </p>
           )}
@@ -184,7 +184,7 @@ function MeaningJudgeBody(p: ExerciseProps): JSX.Element {
       {phase !== 'recall' ? (
         <div>
           <div class="drill__row drill__row--between">
-            <span class="drill__label">{S.rateLabel}</span>
+            <span class="eyebrow">{S.rateLabel}</span>
             <span class="drill__hint">{S.rateHint}</span>
           </div>
           <div class="judge-rate" role="group" aria-label={S.rateLabel}>

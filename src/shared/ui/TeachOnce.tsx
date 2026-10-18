@@ -19,12 +19,25 @@
  * Copy comes from the surface's own `strings.ts` (Sensei voice, linted); the
  * dismiss label defaults to the shared `S.continue` and can be overridden.
  * Japanese in `title` / `body` is marked `lang="ja"` automatically.
+ *
+ * Motion (design 09 §6.3 "every surface that enters also exits"): the card
+ * enters as `.ink-nijimi`; dismiss calls `onDismiss(id)` at once (the store
+ * write and the drill's follow-up never wait on decoration) while the card
+ * stays under `data-leaving` (kasure) until its exit ends — `animationend`,
+ * or `EXIT_FALLBACK_MS` — and is gone at once under reduced motion or where
+ * the engine runs no animations (`exitsPlay`). The verb rides the outer
+ * `.teach-once` (the `role="note"` landmark); the `.status-window` cartouche
+ * is the inner `.teach-once__card`, clipped and never transformed (§6.7 rule 7).
  */
 import type { ComponentChildren, JSX } from 'preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { containsJapanese } from '../jp';
 import type { Progress } from '../store-types';
+import { EXIT_FALLBACK_MS, exitsPlay, onExitEnd } from './ExerciseFrame';
 import { S } from './strings';
 import './ui.css';
+
+export { EXIT_FALLBACK_MS };
 
 /** A seen set as the store holds it (`Progress.teachSeen`) or as a page may pre-build it. */
 export type TeachSeen = ReadonlySet<string> | readonly string[] | undefined;
@@ -105,18 +118,38 @@ function Text(p: { text: string; class: string; as: 'h3' | 'p' }): JSX.Element {
 
 export function TeachOnce(p: TeachOnceProps): JSX.Element | null {
   assertTeachId(p.id);
-  if (isTeachSeen(p.seen, p.id)) return null;
+  const ref = useRef<HTMLElement>(null);
+  /** `leaving`: the dismissed card is still playing its exit; `gone`: the id whose card has left (renders nothing from then on). */
+  const [leaving, setLeaving] = useState<string | null>(null);
+  const [gone, setGone] = useState<string | null>(null);
+  useEffect(() => {
+    if (!leaving || !ref.current) return;
+    return onExitEnd(ref.current, () => {
+      setGone(leaving);
+      setLeaving(null);
+    });
+  }, [leaving]);
+  if (gone === p.id) return null;
+  if (isTeachSeen(p.seen, p.id) && leaving !== p.id) return null;
+  const dismiss = (): void => {
+    if (leaving) return;
+    if (exitsPlay()) setLeaving(p.id);
+    else setGone(p.id);
+    p.onDismiss(p.id);
+  };
   return (
-    <aside class={`teach-once status-window${p.class ? ` ${p.class}` : ''}`} role="note" data-teach-id={p.id} aria-labelledby={`teach-once-${p.id}`}>
-      <h3 class="teach-once__title" id={`teach-once-${p.id}`} lang={containsJapanese(p.title) ? 'ja' : undefined}>
-        {p.title}
-      </h3>
-      <Text text={p.body} class="teach-once__body" as="p" />
-      {p.children}
-      <div class="teach-once__actions">
-        <button type="button" class="btn btn--sm teach-once__dismiss" onClick={() => p.onDismiss(p.id)}>
-          {p.dismissLabel ?? S.continue}
-        </button>
+    <aside ref={ref} class={`teach-once ink-nijimi${p.class ? ` ${p.class}` : ''}`} role="note" data-teach-id={p.id} data-leaving={leaving ? '' : undefined} aria-labelledby={`teach-once-${p.id}`}>
+      <div class="teach-once__card status-window">
+        <h3 class="teach-once__title" id={`teach-once-${p.id}`} lang={containsJapanese(p.title) ? 'ja' : undefined}>
+          {p.title}
+        </h3>
+        <Text text={p.body} class="teach-once__body" as="p" />
+        {p.children}
+        <div class="teach-once__actions">
+          <button type="button" class="btn btn--sm teach-once__dismiss" onClick={dismiss}>
+            {p.dismissLabel ?? S.continue}
+          </button>
+        </div>
       </div>
     </aside>
   );

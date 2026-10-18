@@ -173,7 +173,7 @@ export function Transform(p: ExerciseProps): JSX.Element {
       <p class="transform__instruction">{instruction}</p>
       {source ? (
         <div class="transform__source status-window">
-          <span class="transform__label">{S2.original}</span>
+          <span class="eyebrow">{S2.original}</span>
           <span class="transform__sentence">
             <Ruby ja={source} mode={p.furigana} />
             {sourceKana ? (
@@ -186,7 +186,7 @@ export function Transform(p: ExerciseProps): JSX.Element {
       ) : null}
 
       <div class="transform__answer">
-        <span class="transform__label">{S2.target}</span>
+        <span class="eyebrow">{S2.target}</span>
         {accept.length > 0 ? (
           <TextAnswer
             key={step.id}
@@ -201,7 +201,7 @@ export function Transform(p: ExerciseProps): JSX.Element {
             onSubmit={onSubmit}
           />
         ) : (
-          <p class="transform__missing" role="status">
+          <p class="transform__missing reveal ink-nijimi" data-kind="info" role="status">
             {S.itemMissing}
           </p>
         )}
@@ -214,7 +214,7 @@ export function Transform(p: ExerciseProps): JSX.Element {
           </button>
         ) : null}
         {hint ? (
-          <p class="transform__hint" role="status">
+          <p class="transform__hint reveal ink-nijimi" data-kind="teach" role="status">
             <span lang={isGrammar(item) ? 'ja' : undefined}>{hintText}</span>
             <small>{S2.hintCeiling}</small>
           </p>

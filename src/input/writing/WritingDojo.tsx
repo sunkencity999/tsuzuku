@@ -290,7 +290,7 @@ function WritingDojoBody(p: ExerciseProps & WritingDojoExtraProps): JSX.Element 
         </h2>
         {params.promptEn ? (
           <p class="dojo-write__prompt">
-            <span class="speak__label">{S.writingPrompt}</span>
+            <span class="eyebrow">{S.writingPrompt}</span>
             {params.promptEn}
           </p>
         ) : null}
@@ -321,7 +321,7 @@ function WritingDojoBody(p: ExerciseProps & WritingDojoExtraProps): JSX.Element 
 
       {!done ? (
         <div class="dojo-write__field">
-          <label class="dojo-write__label" for={`${p.step.id}-text`}>
+          <label class="eyebrow" for={`${p.step.id}-text`}>
             {S.writingField}
           </label>
           <textarea
@@ -345,7 +345,7 @@ function WritingDojoBody(p: ExerciseProps & WritingDojoExtraProps): JSX.Element 
 
       {!done ? (
         <section class="dojo-write__checks" aria-label={S.writingChecks}>
-          <h3 class="speak__label">{S.writingChecks}</h3>
+          <h3 class="eyebrow">{S.writingChecks}</h3>
           {findings.length === 0 ? (
             <p class="dojo-write__status">{S.writingChecksClean}</p>
           ) : (

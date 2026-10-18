@@ -3,7 +3,7 @@ import { useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import type { FeedbackState } from '../exercise-types';
 import type { Step } from '../session-types';
-import { ExerciseFrame, useExerciseKeys, type ExerciseFrameProps } from './ExerciseFrame';
+import { ExerciseFrame, useExerciseKeys, type ExerciseFrameProps, EXIT_FALLBACK_MS } from './ExerciseFrame';
 
 let root: HTMLDivElement;
 beforeEach(() => {
@@ -101,6 +101,24 @@ function HintChild(p: { hint: () => void }) {
 }
 
 const hintButton = (): HTMLButtonElement | null => root.querySelector<HTMLButtonElement>('.exercise-frame__hint');
+/** jsdom runs no animations, so exits are instant there; these tests lend it an engine (`getAnimations`) and end the exit by hand. */
+let restoreEngine: (() => void) | null = null;
+const withAnimations = (): void => {
+  const proto = Element.prototype as { getAnimations?: () => Animation[] };
+  const had = proto.getAnimations;
+  proto.getAnimations = () => [];
+  restoreEngine = () => {
+    if (had) proto.getAnimations = had;
+    else delete proto.getAnimations;
+    restoreEngine = null;
+  };
+};
+afterEach(() => restoreEngine?.());
+const endAnimation = (el: Element): void => {
+  act(() => {
+    el.dispatchEvent(new Event('animationend', { bubbles: true }));
+  });
+};
 const isInert = (el: Element | null): boolean => !!el && (el.hasAttribute('inert') || (el as HTMLElement & { inert?: boolean }).inert === true);
 
 describe('<ExerciseFrame> keys', () => {
@@ -472,6 +490,84 @@ describe('<ExerciseFrame> pause overlay', () => {
     }
   });
 
+  it('with an animation engine the overlay enters as .ink-nijimi and leaves on data-leaving: resume is immediate, the frame is live again, the overlay goes on animationend', () => {
+    withAnimations();
+    const s = spies();
+    mount(props(s));
+    const guard = root.querySelector('.exercise-frame__controls button') as HTMLButtonElement;
+    guard.focus();
+    press('Escape');
+    const overlay = root.querySelector('.pause-overlay') as HTMLElement;
+    expect(overlay.classList.contains('ink-nijimi')).toBe(true);
+    expect(overlay.hasAttribute('data-leaving')).toBe(false);
+    press('Escape');
+    expect(s.onResume).toHaveBeenCalledTimes(1);
+    expect(root.querySelector('.exercise-frame')?.getAttribute('data-paused')).toBeNull();
+    for (const sel of ['.exercise-frame__head', '.exercise-frame__body', '.exercise-frame__controls']) expect(isInert(root.querySelector(sel)), sel).toBe(false);
+    expect(overlay.hasAttribute('data-leaving')).toBe(true);
+    expect(root.querySelector('.pause-overlay')).toBe(overlay);
+    // a leaving overlay is no modal: inert, hidden from assistive tech, aria-modal gone, the opener focused already
+    expect(isInert(overlay)).toBe(true);
+    expect(overlay.getAttribute('aria-hidden')).toBe('true');
+    expect(overlay.hasAttribute('aria-modal')).toBe(false);
+    expect(document.activeElement).toBe(guard);
+    endAnimation(overlay);
+    expect(root.querySelector('.pause-overlay')).toBeNull();
+    expect(document.activeElement).toBe(guard);
+  });
+
+  it('held (the Leave slip is open): the ring stops and nothing times out; released, it runs on', () => {
+    vi.useFakeTimers();
+    try {
+      let t = 0;
+      const s = spies();
+      const onTimeout = vi.fn();
+      mount(props(s, { now: () => t, timer: { ms: 1000, startedAt: 0 }, onTimeout, held: true }));
+      t = 1200;
+      act(() => {
+        vi.advanceTimersByTime(1200);
+      });
+      expect(onTimeout).not.toHaveBeenCalled();
+      expect(root.querySelector('.speed-ring')?.getAttribute('data-expired')).toBeNull();
+      mount(props(s, { now: () => t, timer: { ms: 1000, startedAt: 0 }, onTimeout, held: false }));
+      t = 2400;
+      act(() => {
+        vi.advanceTimersByTime(1200);
+      });
+      expect(onTimeout).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('the overlay exit falls back to a timer (≤ 200 ms) when no animationend arrives, and is skipped under reduced motion', () => {
+    withAnimations();
+    vi.useFakeTimers();
+    try {
+      const s = spies();
+      mount(props(s));
+      press('Escape');
+      press('Escape');
+      expect(root.querySelector('.pause-overlay')?.hasAttribute('data-leaving')).toBe(true);
+      act(() => {
+        vi.advanceTimersByTime(EXIT_FALLBACK_MS);
+      });
+      expect(root.querySelector('.pause-overlay')).toBeNull();
+      expect(EXIT_FALLBACK_MS).toBeLessThanOrEqual(200);
+    } finally {
+      vi.useRealTimers();
+    }
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), media: q }));
+    try {
+      press('Escape');
+      expect(root.querySelector('.pause-overlay')).not.toBeNull();
+      press('Escape');
+      expect(root.querySelector('.pause-overlay')).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('the Pause button opens the same overlay and Enter on the focused Resume falls through to its click', () => {
     const s = spies();
     mount(props(s));
@@ -489,5 +585,58 @@ describe('<ExerciseFrame> pause overlay', () => {
     });
     expect(root.querySelector('.pause-overlay')).toBeNull();
     expect(document.activeElement).toBe(pauseBtn);
+  });
+});
+
+describe('<ExerciseFrame> ki meter and the charged hanko (design 09 §7 I)', () => {
+  it('the ki track is a .meter whose --value is the ki fraction; a full bar marks data-full and charges Continue', () => {
+    const s = spies();
+    mount(props(s));
+    const track = root.querySelector('.ki-bar .meter.ki-bar__track') as HTMLElement;
+    expect(track).not.toBeNull();
+    expect(track.style.getPropertyValue('--value')).toBe('0.4');
+    expect(track.querySelector('.meter__fill')).not.toBeNull();
+    expect(root.querySelector('.ki-bar')?.hasAttribute('data-full')).toBe(false);
+    expect(root.querySelector('[style*="width"]')).toBeNull();
+    const fb = { kind: 'correct' as const, correct: 'x', errorTags: [], rating: 3 as const, ippon: false, kiai: false, xpDelta: 2 };
+    mount(props(s, { ki: 100, feedback: fb }));
+    expect(root.querySelector('.ki-bar')?.getAttribute('data-full')).toBe('true');
+    expect((root.querySelector('.ki-bar .meter') as HTMLElement).style.getPropertyValue('--value')).toBe('1');
+    const hanko = root.querySelector('.exercise-frame__controls .hanko');
+    expect(hanko?.classList.contains('hanko--charged')).toBe(true);
+    mount(props(s, { ki: 60, feedback: fb }));
+    expect(root.querySelector('.exercise-frame__controls .hanko')?.classList.contains('hanko--charged')).toBe(false);
+    mount(props(s, { ki: 100, feedback: fb, feel: 'zen' }));
+    expect(root.querySelector('.ki-bar')).toBeNull();
+    expect(root.querySelector('.exercise-frame__controls .hanko')?.classList.contains('hanko--charged')).toBe(false);
+  });
+
+  it('.hanko.is-pressed rides pointerdown and clears on pointerup, delegated from the frame (the ink-bleed ring, §5.3)', () => {
+    const s = spies();
+    const fb = { kind: 'correct' as const, correct: 'x', errorTags: [], rating: 3 as const, ippon: false, kiai: false, xpDelta: 2 };
+    mount(props(s, { feedback: fb }));
+    const hanko = root.querySelector('.exercise-frame__controls .hanko') as HTMLButtonElement;
+    act(() => {
+      hanko.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    });
+    expect(hanko.classList.contains('is-pressed')).toBe(true);
+    act(() => {
+      hanko.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    });
+    expect(hanko.classList.contains('is-pressed')).toBe(false);
+    // a finger that slides off the seal releases it too: the pointerup lands outside the frame
+    act(() => {
+      hanko.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    });
+    expect(hanko.classList.contains('is-pressed')).toBe(true);
+    act(() => {
+      document.body.dispatchEvent(new Event('pointerup', { bubbles: true }));
+    });
+    expect(hanko.classList.contains('is-pressed')).toBe(false);
+    // a press elsewhere never rings a seal
+    act(() => {
+      document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    });
+    expect(root.querySelector('.hanko.is-pressed')).toBeNull();
   });
 });
