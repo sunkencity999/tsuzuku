@@ -385,7 +385,10 @@ export function eraDate(day: EpochDay): string {
 export function katakanaName(name: string): string {
   const t = name.trim();
   if (t === '') return '';
-  return wkToKatakana(t);
+  const k = wkToKatakana(t);
+  // Only a full conversion is a kana name: an English spelling that is not romaji (Christopher → chリsトpヘr)
+  // stays as the learner wrote it, since Station 0 now keeps Latin names (profile.nameKana === '' → name).
+  return /[A-Za-z]/.test(k) ? t : k;
 }
 
 /** Up to `n` katakana initials (first glyphs), the arcade hi-score way. */

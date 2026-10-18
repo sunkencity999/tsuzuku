@@ -392,7 +392,7 @@ export function buildData(store: Store, get: ItemResolver, o: BuildDataOptions =
   for (let d = today - 89; d <= today; d++) minutes90.push(m.daily[d]?.minutes ?? 0);
 
   const data: WallpaperData = {
-    nameKana: m.profile.nameKana,
+    nameKana: m.profile.nameKana || m.profile.name,
     belt: m.profile.belt,
     streak: Math.max(m.streak.longest, m.streak.current),
     totalDays: m.streak.totalDays,

@@ -22,6 +22,16 @@ vi.mock('@/learn/apply', async (importOriginal) => {
   };
 });
 
+// The names dictionary is another agent's data (its tables may be empty here): the page's lookup runs over a fixture table.
+vi.mock('../names', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('../names')>();
+  const FIXTURE: import('../names').NameTable = [
+    ['hana', 'ハナ', 'hana'],
+    ['christopher', 'クリストファー', 'kurisutofa-'],
+  ];
+  return { ...mod, suggestName: (input: string) => mod.lookupName(FIXTURE, input) };
+});
+
 const ROUTE = { name: 'onboarding' } as const;
 
 let root: HTMLDivElement;
@@ -60,10 +70,14 @@ const setInput = (input: HTMLInputElement, v: string): void => {
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
 };
-const typeKanaName = (v: string): void => {
+/** Types (or pastes) into the English name field. */
+const typeName = (v: string): void => setInput(q<HTMLInputElement>('[data-name-input]'), v);
+/** Types into the kana-mode IME one key at a time (after "Type it by sound"). */
+const typeBySound = (keys: string): void => {
   const input = q<HTMLInputElement>('.kana-input__field');
-  for (const ch of v) setInput(input, input.value + ch);
+  for (const ch of keys) setInput(input, input.value + ch);
 };
+const nameValue = (): string => q<HTMLInputElement>('[data-name-input]').value;
 const stepIs = (name: string): void => expect(root.querySelector('.onb')?.getAttribute('data-step')).toBe(name);
 
 /** Answer the current kana card: correctly, wrongly, or with "Not yet". */
@@ -86,7 +100,12 @@ describe('<OnboardingPage>', () => {
     expect(store.profile.value.onboardedAt).toBeUndefined();
     mount();
     stepIs('name');
-    typeKanaName('hana');
+    // English by default: a plain field, the dictionary suggests the katakana, Use accepts it.
+    expect(root.querySelector('.kana-input')).toBeNull();
+    typeName('Hana');
+    expect(q('[data-name-kana]').textContent).toBe('ハナ');
+    click('[data-name-accept]');
+    expect(nameValue()).toBe('ハナ');
     click('[data-next]');
 
     stepIs('kana');
@@ -105,12 +124,12 @@ describe('<OnboardingPage>', () => {
     click('[data-next]');
 
     stepIs('done');
-    expect(root.textContent).toContain(fmt(S.onbNameSummary, { name: 'はな' }));
+    expect(root.textContent).toContain(fmt(S.onbNameSummary, { name: 'ハナ' }));
     click('[data-finish]');
 
     const profile = store.profile.value;
-    expect(profile.name).toBe('はな');
-    expect(profile.nameKana).toBe('はな');
+    expect(profile.name).toBe('ハナ');
+    expect(profile.nameKana).toBe('ハナ');
     expect(profile.goals.length).toBeGreaterThan(0);
     // The store's clock, so the stamp agrees with createdAt / the ledger (never Date.now in a page).
     expect(profile.onboardedAt).toBe(DEFAULT_TEST_NOW);
@@ -139,16 +158,16 @@ describe('<OnboardingPage>', () => {
     expect(store.profile.value.onboardedAt).toBe(DEFAULT_TEST_NOW);
   });
 
-  it('a pasted 100-glyph name is cut to NAME_MAX_GLYPHS (the shared cap, via KanaInput maxLength) as typed and in the save', async () => {
+  it('a pasted 100-glyph name is cut to NAME_MAX_GLYPHS (the shared cap, in the field\'s input path) as typed and in the save', async () => {
     await makeTestStore();
     mount();
-    const field = q<HTMLInputElement>('.kana-input__field');
-    // The cap rides the IME path, not a native attribute (it would count UTF-16 units of kana + pending romaji).
+    const field = q<HTMLInputElement>('[data-name-input]');
+    // The cap rides the input path, not a native attribute (code points, the same count the art tier uses).
     expect(field.getAttribute('maxlength')).toBeNull();
     const long = 'あいうえおかきくけこ'.repeat(10);
     expect(Array.from(long).length).toBe(100);
     setInput(field, long);
-    expect(Array.from(q<HTMLInputElement>('.kana-input__field').value).length).toBe(NAME_MAX_GLYPHS);
+    expect(Array.from(nameValue()).length).toBe(NAME_MAX_GLYPHS);
     click('[data-next]');
     click('[data-choice="kana-none"]');
     click('[data-next]');
@@ -172,6 +191,105 @@ describe('<OnboardingPage>', () => {
     click('[data-finish]');
     expect(store.profile.value.name).toBe('無名');
     expect(store.profile.value.nameKana).toBe('むめい');
+  });
+
+  /** Blank-name steps from the kana check to the summary. */
+  const walkToSummary = (): void => {
+    click('[data-choice="kana-none"]');
+    click('[data-next]');
+    click('[data-next]');
+    click('[data-next]');
+    stepIs('done');
+  };
+
+  it('a Latin name with no katakana spelling saves as the display name with nameKana empty (Latin letters never reach nameKana)', async () => {
+    await makeTestStore();
+    mount();
+    typeName('Xylophone');
+    expect(root.querySelector('[data-name-suggest]')).toBeNull();
+    expect(q('[data-name-nomatch]').textContent).toContain(fmt(S.onbNameNoMatch, { name: 'Xylophone' }));
+    click('[data-name-keep]');
+    expect(q('[data-name-kept]').textContent).toContain(fmt(S.onbNameKeptNote, { name: 'Xylophone' }));
+    click('[data-next]');
+    walkToSummary();
+    expect(root.textContent).toContain(fmt(S.onbNameSummary, { name: 'Xylophone' }));
+    click('[data-finish]');
+    expect(store.profile.value.name).toBe('Xylophone');
+    expect(store.profile.value.nameKana).toBe('');
+  });
+
+  it('a Latin name left as typed (Next without choosing) saves the same way', async () => {
+    await makeTestStore();
+    mount();
+    typeName('Christopher Bradford');
+    expect(q('[data-name-kana]').textContent).toBe('クリストファー');
+    // Enter with a suggestion shown accepts it; Enter again is Next.
+    act(() => {
+      q('[data-name-input]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    });
+    expect(nameValue()).toBe('クリストファー');
+    stepIs('name');
+    click('[data-name-change]');
+    expect(nameValue()).toBe('Christopher Bradford');
+    typeName('Bradford');
+    act(() => {
+      q('[data-name-input]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    });
+    stepIs('kana');
+    walkToSummary();
+    click('[data-finish]');
+    expect(store.profile.value.name).toBe('Bradford');
+    expect(store.profile.value.nameKana).toBe('');
+  });
+
+  it('a name typed by sound saves as kana: name = nameKana = the katakana (a trailing n finalises to ン)', async () => {
+    await makeTestStore();
+    mount();
+    typeName('Jon');
+    click('[data-name-sound]');
+    expect(q('.kana-input').getAttribute('data-katakana')).toBe('true');
+    typeBySound('jon');
+    expect(q<HTMLInputElement>('.kana-input__field').value).toBe('ジョn');
+    expect(root.querySelector('[data-name-pending]')).toBeNull();
+    click('[data-next]');
+    walkToSummary();
+    expect(root.textContent).toContain(fmt(S.onbNameSummary, { name: 'ジョン' }));
+    click('[data-finish]');
+    expect(store.profile.value.name).toBe('ジョン');
+    expect(store.profile.value.nameKana).toBe('ジョン');
+  });
+
+  it('an English word typed into the IME (chリsトpヘr) is no longer saved as kana: name keeps the text, nameKana is empty', async () => {
+    await makeTestStore();
+    mount();
+    typeName('Christopher');
+    click('[data-name-accept]');
+    click('[data-name-change]');
+    typeName('Xylophone');
+    click('[data-name-sound]');
+    typeBySound('christopher');
+    expect(q<HTMLInputElement>('.kana-input__field').value).toBe('chリsトpヘr');
+    expect(q('[data-name-pending]').textContent).toBe(fmt(S.onbNamePending, { letters: 'r' }));
+    click('[data-next]');
+    walkToSummary();
+    click('[data-finish]');
+    expect(store.profile.value.name).toBe('chリsトpヘr');
+    expect(store.profile.value.nameKana).toBe('');
+  });
+
+  it('Back from the kana check brings the whole name draft back (mode, accepted katakana, Change)', async () => {
+    await makeTestStore();
+    mount();
+    typeName('Christopher');
+    click('[data-name-accept]');
+    click('[data-next]');
+    stepIs('kana');
+    click('[data-back]');
+    stepIs('name');
+    expect(nameValue()).toBe('クリストファー');
+    expect(q('[data-name-confirm]').textContent).toContain(fmt(S.onbNameConfirm, { ja: 'クリストファー' }));
+    click('[data-name-change]');
+    expect(nameValue()).toBe('Christopher');
   });
 
   it('shows the install guide when no Japanese voice exists, and hides it when one does', async () => {

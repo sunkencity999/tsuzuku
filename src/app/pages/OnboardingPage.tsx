@@ -1,7 +1,7 @@
 /**
  * TSUZUKU — 日本橋 Station 0, onboarding (group A, design 01 §2, 02 §1/§6.1, 03 §4, 06 §7 #10).
  *
- * Under two minutes: name in kana → kana check (46 Kana Flash, a 12-tile
+ * Under two minutes: name (`<NameField>`, src/app/names) → kana check (46 Kana Flash, a 12-tile
  * confirmation for "I read all kana", or none) → pace with the honest road
  * (months at 100 % / 70 %, in-app hours COMPUTED from the preset, the
  * ≈ 1,200 external hours, TTS notice) → voice test + speech-recognition
@@ -22,12 +22,22 @@
  * taught at Shinagawa. `settings.speaking` stays `'self'` unless the learner
  * opts into recognition after the network notice.
  *
+ * The name step is beginner-first (design 02, Station 0): a plain English
+ * input with a katakana suggestion from the names dictionary, kana mode only
+ * on request — see `src/app/names/NameField.tsx`. The page keeps the whole
+ * `NameDraft` so Back restores it, and `finish()` writes `profile.name` =
+ * `resolveName(draft)` (the katakana, the Latin spelling, or 無名 when blank)
+ * and `profile.nameKana` = that name ONLY when it is pure kana (`isKanaName`),
+ * else '' — Latin letters are never saved as kana; a blank name keeps the
+ * むめい placeholder. Every art reader falls back to `name` when `nameKana`
+ * is empty.
+ *
  * The name is capped at `NAME_MAX_GLYPHS` code points (`@/store`: the one
  * constant onboarding, `fillMeta` and the art tier share) both as it is typed
- * (`<KanaInput maxLength>`, since IME composition and paste bypass a native
- * maxlength) and once more in `finish()` with `shared/jp.clampGlyphs`: every
- * piece of art lays the name out glyph by glyph inside a fixed plate (06 §3
- * safe zones).
+ * (the field clamps in its input path, since IME composition and paste bypass
+ * a native maxlength) and once more in `resolveName` with
+ * `shared/jp.clampGlyphs`: every piece of art lays the name out glyph by glyph
+ * inside a fixed plate (06 §3 safe zones).
  */
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
@@ -36,13 +46,13 @@ import { markKnown } from '@/learn/apply';
 import { PRESET_RETENTION, presetRate, steadyStateReviews } from '@/learn';
 import { services, speak } from '@/shared/audio';
 import { rngFor, shuffle } from '@/shared/hash';
-import { clampGlyphs, containsJapanese, equivalentJa } from '@/shared/jp';
-import { finalizeIme, romajiToKana } from '@/shared/kana-ime';
+import { containsJapanese, equivalentJa } from '@/shared/jp';
+import { romajiToKana } from '@/shared/kana-ime';
 import { navigate, type Route } from '@/shared/routes';
 import type { Intensity, SpeakingMode, Theme } from '@/shared/store-types';
-import { KanaInput } from '@/shared/ui/KanaInput';
 import { INTENSITY_PRESETS, INTENSITY_SCALE, NAME_MAX_GLYPHS, newPerDayFor, store } from '@/store';
 import { onboardingEstimate, type OnboardingEstimate } from '@/store/derived';
+import { EMPTY_NAME_DRAFT, NameField, isKanaName, resolveName, type NameDraft } from '../names/NameField';
 import { S, fmt, num } from './strings';
 import './pages.css';
 
@@ -214,8 +224,8 @@ export default function OnboardingPage(_p: { route: Route }): JSX.Element {
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx] ?? 'name';
 
-  // name
-  const [name, setName] = useState('');
+  // name (the whole draft, so Back brings mode and acceptance back with it)
+  const [name, setName] = useState<NameDraft>(EMPTY_NAME_DRAFT);
 
   // kana check
   const [kanaMode, setKanaMode] = useState<KanaMode>('ask');
@@ -309,14 +319,15 @@ export default function OnboardingPage(_p: { route: Route }): JSX.Element {
     void speak(HELLO, { kana: HELLO }).finally(() => setVoiceState('done'));
   };
 
-  /** The typed name, finalised and cut to the shared cap (the field caps it too; this is the second guard). */
-  const finalName = clampGlyphs(finalizeIme(name).trim(), NAME_MAX_GLYPHS);
+  /** The display name: kana mode finalised through the IME, trimmed and cut to the shared cap (the field caps it too; this is the second guard). */
+  const finalName = resolveName(name, NAME_MAX_GLYPHS);
 
   /* ── finish ──────────────────────────────────────────────────────── */
   const finish = (): void => {
     if (saving) return;
     setSaving(true);
-    const nameKana = finalName.length > 0 ? finalName : S.onbNamePlaceholder;
+    // Kana only: a Latin display name leaves nameKana empty (the art falls back to `name`); blank keeps the placeholder.
+    const nameKana = finalName.length > 0 ? (isKanaName(finalName) ? finalName : '') : S.onbNamePlaceholder;
     const display = finalName.length > 0 ? finalName : S.onbNameDefault;
     const preset = INTENSITY_PRESETS[pace];
     const speakingMode: SpeakingMode = speaking;
@@ -363,11 +374,10 @@ export default function OnboardingPage(_p: { route: Route }): JSX.Element {
           <>
             <h2>{S.onbNameLabel}</h2>
             <p class="page__lead">{S.onbIntro}</p>
-            <label class="field">
-              <span class="field__label">{S.onbNameKanaLabel}</span>
-              <KanaInput value={name} onChange={setName} onSubmit={() => next()} placeholder={S.onbNamePlaceholder} label={S.onbNameKanaLabel} maxLength={NAME_MAX_GLYPHS} autoFocus />
-              <span class="field__hint">{S.onbNameHint}</span>
-            </label>
+            <NameField value={name} onChange={setName} onSubmit={next} maxLength={NAME_MAX_GLYPHS} autoFocus />
+            <p class="field__hint" data-name-blank-hint>
+              {S.onbNameHint}
+            </p>
           </>
         ) : null}
 

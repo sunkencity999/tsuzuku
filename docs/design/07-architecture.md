@@ -9,7 +9,7 @@ Stack (fixed): Vite 7 · Preact 10 + `@preact/signals` 2 · TypeScript 5 strict 
 | Route | Screen | Notes |
 |---|---|---|
 | `#/` | 道場 Dojo (home) | procedural scene, forecast line, Hanko Button (Kata / Kumite / Shugyō), quests, flame, tategaki column |
-| `#/onboarding` | 日本橋 Nihonbashi | name (default 無名 Mumei), kana check, pace, honest timeline, voice test |
+| `#/onboarding` | 日本橋 Nihonbashi | name — an English input with a katakana suggestion from `app/names`, kana by sound on request, default 無名 Mumei (`02 §1`) — then kana check, pace, honest timeline, voice test |
 | `#/train/:mode` | session runner | `kata · kumite · shugyo · kage · weak · rapid · gojuon` |
 | `#/scroll/:id` | Scroll (lesson) | also reachable from a station |
 | `#/road` | 東海道 Road | 53 stations, stamps, Projected Arrival |
@@ -37,7 +37,7 @@ The authoritative tree is `docs/ARCHITECTURE.md` §0–§8 (tiers, import rule, 
 
 ```
 src/
-  main.tsx · app/ (A: router, pages, Dojo/Onboarding/Settings/Backup/About) · styles/tokens.css
+  main.tsx · app/ (A: router, pages, Dojo/Onboarding/Settings/Backup/About; names/ — the onboarding `NameField` + the katakana name dictionary) · styles/tokens.css
   shared/     contract tier: store-types · events · catalog · routes · session-types · exercise-types · audio · hash · ids · jp · kana-ime · ui/{Ruby,KanaInput,ExerciseFrame,Feedback,JudgeCard}
   content/    types.ts · loader.ts · ruby.ts · fixtures/           (C)
   learn/      fsrs · scheduler · item-belt · known · governors · intro-policy · queue · grading · judge · kiai · leech · distractors · conjugate · apply   (C, pure except apply)

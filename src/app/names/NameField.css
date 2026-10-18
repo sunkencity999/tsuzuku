@@ -1,0 +1,72 @@
+/* TSUZUKU — onboarding name field (Station 0): tokens only, 44 px targets via .btn, phone-first. */
+.name-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.name-field__input {
+  font-size: var(--fs-4);
+}
+.name-field__help,
+.name-field__card p {
+  margin: 0;
+}
+.name-field__live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.name-field__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--raised);
+  border-left: 4px solid var(--ai);
+  border-radius: var(--radius-sm);
+}
+.name-field__card--kana {
+  border-left-color: var(--kon);
+}
+.name-field__kana {
+  font-family: var(--font-ja);
+  font-size: var(--fs-7);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.name-field__guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-1) var(--sp-2);
+  font-size: var(--fs-2);
+  color: var(--fg-muted);
+}
+.name-field__guide-text {
+  font-family: var(--font-pixel);
+  letter-spacing: 0.04em;
+  color: var(--fg);
+}
+.name-field__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  width: 100%;
+}
+.name-field__row .btn {
+  flex: 1 1 auto;
+}
+.name-field__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-2);
+}
+.name-field__pending {
+  font-weight: 600;
+}
+/* The guide explains any pending letters inline; the IME's own lone letter under the field stays hidden here. */
+.name-field .kana-input__pending {
+  display: none;
+}

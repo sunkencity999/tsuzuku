@@ -192,5 +192,9 @@ describe('Japanese helpers', () => {
     expect(initials('takeshi')).toBe('タケシ');
     expect(initials('ハナ・ミヤ', 3)).toBe('ハナミ');
     expect(initials('a', 0)).toBe('ア');
+    // an English spelling that is not romaji stays as written (the onboarding keeps Latin names; no chリsトpヘr on a kakejiku)
+    expect(katakanaName('Christopher')).toBe('Christopher');
+    expect(katakanaName(' Mary Ann ')).toBe('Mary Ann');
+    expect(initials('Christopher')).toBe('Chr');
   });
 });
