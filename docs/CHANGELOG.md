@@ -2,6 +2,10 @@
 
 Contract-tier changes (ARCHITECTURE §0) after day 0. One line each; the module header carries the detail.
 
+## 2026-10-18 · Voice pack pool tier published (a-3467889b1f) + honest-share re-pin — no contract-tier change
+
+- 2026-10-18 · `public/audio-pack.json`: pointer → `audio-a-3467889b1f` (core 207.9 MB + pool 163.4 MB; 33.7 h, 22 voices); CI fetches both tars. `src/app/pages/strings.ts` HONEST_SHARE and `src/records/strings.ts` honestShare re-pinned from the measured pack (31 h / 3 h / 60–75 h; per-belt coverage White–Yellow ⅔, Orange full, Green ¼, Blue–Purple ⅙, Brown–Black ⅒); design 08 §12 and 01 §2 quote the new text; three test pins moved.
+
 ## 2026-10-18 · Design 09 Phase C (session loop, input surfaces, Road + Station, Collections + Records) — no contract-tier change
 
 Four owners (C1 session-loop, C4 input-surfaces, C2 road-station, C3 collections-records), three skeptic lenses each, fixers, one integrator census, a headless frame-protocol runner, then the lead's §12.1 decisions 35–61 (`docs/design/09-design-language-and-motion.md`). CSS tree 420,792 → 413,399 B (net −7,393 with the lead's fixes; `CSS_CEILING_PHASE` 414,000); the 13 result panels, the per-file reduced-motion blocks and the `src/input` `__label` clones are gone; `motion.test.ts`'s ALLOW_LIST holds only D1's two entries.

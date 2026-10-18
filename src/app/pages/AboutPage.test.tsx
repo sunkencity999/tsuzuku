@@ -225,14 +225,14 @@ describe('<AboutPage> voices (design 08 §6 / §12)', () => {
     expect(root.querySelector('[data-no-pack]')?.textContent).toBe(S.aboutVoicesNone);
   });
 
-  it('the honest-share paragraph names the 24 hours of texts, the 13 hours of drill clips and the 70–90 hours over the road; the heading is glossed', async () => {
+  it('the honest-share paragraph names the 31 hours of texts, the 3 hours of drill clips and the 60–75 hours over the road (re-pinned from the published pack); the heading is glossed', async () => {
     await makeTestStore();
     mount();
     const p = root.querySelector('[data-honest-share]')?.textContent ?? '';
     expect(p).toBe(S.honestShare);
-    expect(p).toMatch(/24 hours/);
-    expect(p).toMatch(/13 hours/);
-    expect(p).toMatch(/70–90 hours/);
+    expect(p).toMatch(/31 hours/);
+    expect(p).toMatch(/3 hours/);
+    expect(p).toMatch(/60–75 hours/);
     expect(p).toMatch(/synthetic/i);
     expect(p).toContain('VOICEVOX');
     expect(p).not.toMatch(/recorded/i);

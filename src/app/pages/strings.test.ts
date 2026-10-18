@@ -19,12 +19,12 @@ describe('shell page copy (design 01 §3)', () => {
     expect(S.sourcePack).toBe('synthetic voice (VOICEVOX)');
     expect(S.sourceDevice).toBe('device voice');
     expect(S.sourceNone).toBe('text only');
-    expect(S.honestShare).toMatch(/24 hours/);
-    expect(S.honestShare).toMatch(/13 hours/);
-    expect(S.honestShare).toMatch(/70–90 hours/);
+    expect(S.honestShare).toMatch(/31 hours/);
+    expect(S.honestShare).toMatch(/3 hours/);
+    expect(S.honestShare).toMatch(/60–75 hours/);
     expect(S.honestShare).toMatch(/1,500-hour goal/);
-    // Design 08 §12: the weekly target is covered through Orange from Station 9, not through the whole belt.
-    expect(S.honestShare).toMatch(/through Orange \(from Station 9\)/);
+    // Design 08 §12 (re-pinned from the published pack a-3467889b1f): two-thirds of the weekly target at White and Yellow, all of it at Orange.
+    expect(S.honestShare).toMatch(/two-thirds of the weekly listening target at White and Yellow and all of it at Orange/);
     // The Ledger (records tier, which cannot import app strings) carries the same words.
     expect(RECORDS.honestShare).toBe(S.honestShare);
     // The pace step's honesty clause is the honest share, not the old device-TTS sentence.

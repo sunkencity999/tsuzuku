@@ -1,14 +1,20 @@
 {
   "schema": "tsuzuku.audio-pack/1",
   "repo": "sunkencity999/tsuzuku",
-  "audioVersion": "a-d2d42f75c3",
-  "tag": "audio-a-d2d42f75c3",
+  "audioVersion": "a-3467889b1f",
+  "tag": "audio-a-3467889b1f",
   "assets": [
     {
       "tier": "core",
-      "name": "tsuzuku-audio-a-d2d42f75c3-core.tar",
-      "sha256": "7dd5f3a7f0e63402e8a6f8f2f004fd202a015a44ba33073805d72e00ff50894e",
-      "bytes": 206598656
+      "name": "tsuzuku-audio-a-3467889b1f-core.tar",
+      "sha256": "a7b2ab686b929ee7dd4cdc8c0c5aa0915afb2e87842709bbf265b1ad66e90a12",
+      "bytes": 207897088
+    },
+    {
+      "tier": "pool",
+      "name": "tsuzuku-audio-a-3467889b1f-pool.tar",
+      "sha256": "0c8efa9f3b7ac11d6a885945ce4f00c3f3b9da94e8c2429fb18997527d5134f1",
+      "bytes": 163431936
     }
   ],
   "credits": [

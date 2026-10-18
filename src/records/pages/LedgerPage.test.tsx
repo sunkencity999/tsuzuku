@@ -260,9 +260,9 @@ describe('<LedgerPage> the dojo’s share (design 08 §12)', () => {
     expect(share?.textContent).toContain(S.honestShare);
     expect(share?.querySelector('[lang="ja"]')?.textContent).toBe('声');
     expect(share?.textContent).toContain(S.dojoVoicesTitle);
-    expect(S.honestShare).toMatch(/24 hours/);
-    expect(S.honestShare).toMatch(/13 hours/);
-    expect(S.honestShare).toMatch(/70–90 hours/);
+    expect(S.honestShare).toMatch(/31 hours/);
+    expect(S.honestShare).toMatch(/3 hours/);
+    expect(S.honestShare).toMatch(/60–75 hours/);
     expect(S.peraperaFlagSynthetic).toBe("Synthetic: every voice in the dojo is a VOICEVOX character voice. The ledger's outside hours are real people.");
 
     const text = root.textContent ?? '';

@@ -653,9 +653,9 @@ describe('<OnboardingPage>', () => {
     expect(root.textContent).toContain(S.honestShare);
     expect(S.onbTtsNotice).toBe(S.honestShare);
     expect(root.textContent).not.toMatch(/device’s text-to-speech|real listening comes from the hours you log/i);
-    expect(S.honestShare).toMatch(/24 hours/);
-    expect(S.honestShare).toMatch(/13 hours/);
-    expect(S.honestShare).toMatch(/70–90 hours/);
+    expect(S.honestShare).toMatch(/31 hours/);
+    expect(S.honestShare).toMatch(/3 hours/);
+    expect(S.honestShare).toMatch(/60–75 hours/);
   });
 
   /* ── the rest of the flow ────────────────────────────────────────────── */

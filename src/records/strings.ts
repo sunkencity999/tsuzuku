@@ -149,7 +149,7 @@ export const S = {
   dojoVoicesTitle: 'The dojo’s voices',
   dojoVoicesTitleJa: '声',
   honestShare:
-    'Every voice in the dojo is synthetic: VOICEVOX character voices, pre-rendered, clear and consistent on purpose. The dojo holds about 24 hours of sentences and texts, plus about 13 hours of word and phrase clips for drills, and gives you about 70–90 hours of worthwhile listening over the road, because each piece returns at rising speed. That covers the weekly listening target through Orange (from Station 9), about a quarter of it from Green to Purple and an eighth at Brown and Black. Real people mumble, overlap and joke; the ledger’s outside hours exist for that, and the 1,500-hour goal still needs the world.',
+    'Every voice in the dojo is synthetic: VOICEVOX character voices, pre-rendered, clear and consistent on purpose. The dojo holds about 31 hours of sentences and texts, plus about 3 hours of word and phrase clips for drills, and gives you about 60–75 hours of worthwhile listening over the road, because each piece returns at rising speed. That covers about two-thirds of the weekly listening target at White and Yellow and all of it at Orange, about a quarter at Green, a sixth at Blue and Purple and a tenth at Brown and Black. Real people mumble, overlap and joke; the ledger’s outside hours exist for that, and the 1,500-hour goal still needs the world.',
 
   // Lifetime
   lifetimeTitle: 'Lifetime',
