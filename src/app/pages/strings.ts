@@ -14,10 +14,11 @@ export { fmt, BELT_NAME, WEEKDAYS };
 /**
  * The honest share (design 08 §12): stated on the Ledger page (`records/strings.ts`
  * carries the same words), in onboarding's honesty clause and on the About page.
- * The hours are the corpus figures: ≈ 24 h of connected speech, ≈ 13 h of drill clips.
+ * The hours are measured from the published pack (a-754179a939, three tiers, 2026-10-18): ≈ 39 h of
+ * connected speech, ≈ 7 h of drill clips; design 08 §12 holds the derivation and the per-belt sentence.
  */
 const HONEST_SHARE =
-  'Every voice in the dojo is synthetic: VOICEVOX character voices, pre-rendered, clear and consistent on purpose. The dojo holds about 31 hours of sentences and texts, plus about 3 hours of word and phrase clips for drills, and gives you about 60–75 hours of worthwhile listening over the road, because each piece returns at rising speed. That covers about two-thirds of the weekly listening target at White and Yellow and all of it at Orange, about a quarter at Green, a sixth at Blue and Purple and a tenth at Brown and Black. Real people mumble, overlap and joke; the ledger’s outside hours exist for that, and the 1,500-hour goal still needs the world.';
+  'Every voice in the dojo is synthetic: VOICEVOX character voices, pre-rendered, clear and consistent on purpose. The dojo holds about 39 hours of sentences and texts, plus about 7 hours of word and phrase clips for drills, and gives you about 75–95 hours of worthwhile listening over the road, because each piece returns at rising speed. That covers about two-thirds of the weekly listening target at White and Yellow and all of it at Orange, about a quarter at Green, a fifth at Blue and Purple, a sixth at Brown and a seventh at Black. Real people mumble, overlap and joke; the ledger’s outside hours exist for that, and the 1,500-hour goal still needs the world.';
 
 const PAGE = {
   /* ── shared ───────────────────────────────────────────────────────── */
