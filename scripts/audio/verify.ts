@@ -8,6 +8,12 @@
  *    hiragana, は/わ, へ/え, を/お, ぢ/じ, づ/ず, and long vowels canonical (おう /
  *    おお / えい / ええ / いい and ー all become ー so とうきょう ≡ トオキョオ).
  *    The fold is applied per mora on BOTH sides, so alignment is kept 1:1.
+ *    KANA-NAME clips (`strict`: a lone kana spoken as itself — the `k-*` items
+ *    and the row / pair track segments that reuse them) keep は and へ as
+ *    themselves: OpenJTalk tags the lone character as the particle and the
+ *    engine says ワ / エ, which the lenient fold accepted and the pack shipped
+ *    (2026-10-18). を/ぢ/づ still fold — お / じ / ず ARE their readings and
+ *    what the content teaches.
  *  - **Accent.** For a `pitchConfidence: high` word `accent_phrases[0].accent`
  *    must equal `pitch`, with VOICEVOX's convention for heiban: 0 ↔ the mora
  *    count. `withAccent()` returns the override query (design 08 §15: the only
@@ -92,10 +98,10 @@ function vowelOf(mora: string): string | undefined {
 }
 
 /** Lenient fold of ONE mora (hiragana in, hiragana out): は→わ, へ→え, を→お, ぢ→じ, づ→ず. */
-export function foldMora(mora: string): string {
+export function foldMora(mora: string, strict = false): string {
   const h = toHiragana(mora);
-  if (h === 'は') return 'わ';
-  if (h === 'へ') return 'え';
+  if (!strict && h === 'は') return 'わ';
+  if (!strict && h === 'へ') return 'え';
   if (h === 'を') return 'お';
   if (h === 'ぢ') return 'じ';
   if (h === 'づ') return 'ず';
@@ -109,12 +115,12 @@ export function foldMora(mora: string): string {
  * い after い, う after う) becomes ー. The same fold runs on both sides, so
  * とうきょう and the engine's トオキョオ compare equal.
  */
-export function foldMorae(morae: readonly string[]): string[] {
+export function foldMorae(morae: readonly string[], strict = false): string[] {
   const out: string[] = [];
   // The vowel the running sound currently ends in (survives a folded ー, so とおい keeps its い).
   let prevVowel: string | undefined;
   for (const raw of morae) {
-    const m = foldMora(raw);
+    const m = foldMora(raw, strict);
     if (out.length > 0 && 'あいうえお'.includes(m)) {
       const extends_ = prevVowel === m || (prevVowel === 'お' && m === 'う') || (prevVowel === 'え' && m === 'い');
       if (extends_) {
@@ -129,8 +135,20 @@ export function foldMorae(morae: readonly string[]): string[] {
 }
 
 /** The content kana as folded morae: NFKC, punctuation and spaces dropped, `moraSplit`, lenient fold. */
-export function lenientMorae(kana: string): string[] {
-  return foldMorae(moraSplit(normalizeJa(kana)));
+export function lenientMorae(kana: string, strict = false): string[] {
+  return foldMorae(moraSplit(normalizeJa(kana)), strict);
+}
+
+/**
+ * True when the strict (kana-name) fold reads `kana` differently from the
+ * lenient one — it carries は or へ as a mora. A kana-name clip of such a kana
+ * takes its own clip id (`readingOverride`), so the cache entry the lenient
+ * fold accepted is never reused for it; every other clip id is unchanged.
+ */
+export function kanaNameFoldDiffers(kana: string): boolean {
+  const a = lenientMorae(kana);
+  const b = lenientMorae(kana, true);
+  return a.length !== b.length || a.some((m, i) => m !== b[i]);
 }
 
 /**
@@ -145,10 +163,10 @@ export function engineMorae(kana: string): string[] {
 }
 
 /** The engine's moras in order (`pause_mora` dropped), folded the same way. */
-export function queryMorae(q: AudioQuery): string[] {
+export function queryMorae(q: AudioQuery, strict = false): string[] {
   const raw: string[] = [];
   for (const p of q.accent_phrases) for (const m of p.moras) raw.push(m.text);
-  return foldMorae(raw);
+  return foldMorae(raw, strict);
 }
 
 /** Raw mora texts of the query (katakana, as the engine returns them), `pause_mora` dropped. */
@@ -166,10 +184,10 @@ export interface MoraVerdict {
   want: string[];
 }
 
-/** Step (a) of design 08 §7: the query speaks exactly the content kana under the lenient fold. */
-export function verifyMorae(q: AudioQuery, kana: string): MoraVerdict {
-  const got = queryMorae(q);
-  const want = lenientMorae(kana);
+/** Step (a) of design 08 §7: the query speaks exactly the content kana under the lenient fold (`strict` for a kana-name clip: は / へ unfolded). */
+export function verifyMorae(q: AudioQuery, kana: string, strict = false): MoraVerdict {
+  const got = queryMorae(q, strict);
+  const want = lenientMorae(kana, strict);
   return { ok: got.length === want.length && got.every((m, i) => m === want[i]), got, want };
 }
 
@@ -235,14 +253,14 @@ export function toAquesTalk(q: Pick<AudioQuery, 'accent_phrases'>): string {
  * covered phrase's accent (clamped) and the last one's pause. Returns `null`
  * when the morae already match (nothing to patch).
  */
-export function kanaPatch(q: AudioQuery, kana: string): string | null {
-  const v = verifyMorae(q, kana);
+export function kanaPatch(q: AudioQuery, kana: string, strict = false): string | null {
+  const v = verifyMorae(q, kana, strict);
   if (v.ok) return null;
   // Engine notation: ー expanded, so the patch never carries a mark the is_kana parser rejects.
   const want = engineMorae(kana);
   const gotRaw = rawQueryMorae(q);
   const gotF = v.got;
-  const wantF = foldMorae(want);
+  const wantF = foldMorae(want, strict);
   let pre = 0;
   while (pre < gotF.length && pre < wantF.length && gotF[pre] === wantF[pre]) pre++;
   let suf = 0;

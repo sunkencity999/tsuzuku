@@ -13,6 +13,7 @@ import {
   type StoriesIndex,
   type TracksIndex,
   audioVersionOf,
+  RENDER_RULES_VERSION,
   beltOfStation,
   beltTotals,
   buildIndexes,
@@ -371,5 +372,10 @@ describe('indexes — manifest helpers', () => {
     expect(audioVersionOf({ ...base, contentVersion: 'c-2' }, sha256Hex)).not.toBe(v);
     expect(audioVersionOf({ ...base, dictVersion: 'd-2' }, sha256Hex)).not.toBe(v);
     expect(audioVersionOf({ ...base, tiers: ['pool', 'core'] }, sha256Hex)).not.toBe(v);
+    // The renderer's rule set joins the identity from 2 on; rule set 1 (the two published packs) hashes exactly as before.
+    expect(audioVersionOf({ ...base, rules: 1 }, sha256Hex)).toBe(v);
+    expect(audioVersionOf({ ...base, rules: 2 }, sha256Hex)).not.toBe(v);
+    expect(audioVersionOf({ ...base, rules: 3 }, sha256Hex)).not.toBe(audioVersionOf({ ...base, rules: 2 }, sha256Hex));
+    expect(RENDER_RULES_VERSION).toBeGreaterThanOrEqual(2);
   });
 });

@@ -6,6 +6,7 @@ import {
   engineMorae,
   expectedAccent,
   foldMorae,
+  kanaNameFoldDiffers,
   kanaPatch,
   kanaText,
   lenientMorae,
@@ -32,6 +33,64 @@ interface Fixture {
 }
 
 const fixture = (name: string): Fixture => JSON.parse(readFileSync(join(here, '__fixtures__', 'queries', `${name}.json`), 'utf8')) as Fixture;
+
+/** A one-phrase query the engine would return for `moras` (katakana), with its own AquesTalk kana. */
+const queryOf = (moras: string[], kana: string): AudioQuery =>
+  ({
+    accent_phrases: [{ moras: moras.map((text) => ({ text, consonant: null, consonant_length: null, vowel: 'a', vowel_length: 0.1, pitch: 5 })), accent: 1, pause_mora: null, is_interrogative: false }],
+    speedScale: 1,
+    pitchScale: 0,
+    intonationScale: 1,
+    volumeScale: 1,
+    prePhonemeLength: 0.1,
+    postPhonemeLength: 0.1,
+    outputSamplingRate: 24000,
+    outputStereo: false,
+    kana,
+  }) as AudioQuery;
+
+describe('verify — strict fold for kana-name clips (the は / へ misread shipped in a-3467889b1f)', () => {
+  it('the engine read the lone は as the particle ワ: lenient accepts it, strict refuses it and the kana patch forces ハ', () => {
+    const ha = queryOf(['ワ'], "ワ'");
+    expect(verifyMorae(ha, 'は').ok).toBe(true); // the fold that let the clip ship
+    const strict = verifyMorae(ha, 'は', true);
+    expect(strict.ok).toBe(false);
+    expect(strict.got).toEqual(['わ']);
+    expect(strict.want).toEqual(['は']);
+    expect(kanaPatch(ha, 'は')).toBeNull();
+    expect(kanaPatch(ha, 'は', true)).toBe("ハ'");
+    const he = queryOf(['エ'], "エ'");
+    expect(verifyMorae(he, 'へ', true).ok).toBe(false);
+    expect(kanaPatch(he, 'へ', true)).toBe("ヘ'");
+    // the forced reading verifies under both folds
+    expect(verifyMorae(queryOf(['ハ'], "ハ'"), 'は', true).ok).toBe(true);
+    expect(verifyMorae(queryOf(['ハ'], "ハ'"), 'は').ok).toBe(true);
+  });
+
+  it('を / ぢ / づ still fold under strict: お / じ / ず are their readings and what the content teaches', () => {
+    expect(verifyMorae(queryOf(['オ'], "オ'"), 'を', true).ok).toBe(true);
+    expect(verifyMorae(queryOf(['ジ'], "ジ'"), 'ぢ', true).ok).toBe(true);
+    expect(verifyMorae(queryOf(['ズ'], "ズ'"), 'づ', true).ok).toBe(true);
+    expect(verifyMorae(queryOf(['オ'], "オ'"), 'ヲ', true).ok).toBe(true);
+    expect(foldMorae(['ハ', 'ヘ', 'ヲ'], true)).toEqual(['は', 'へ', 'お']);
+    expect(lenientMorae('はなぢ', true)).toEqual(['は', 'な', 'じ']);
+  });
+
+  it('kanaNameFoldDiffers names exactly the kana whose strict reading differs: は and へ (and words carrying them), nothing else', () => {
+    expect(kanaNameFoldDiffers('は')).toBe(true);
+    expect(kanaNameFoldDiffers('へ')).toBe(true);
+    expect(kanaNameFoldDiffers('ハ')).toBe(true);
+    for (const k of ['あ', 'を', 'ぢ', 'づ', 'ん', 'きゃ', 'ば', 'ぱ', 'ヲ', 'わ', 'え']) expect(kanaNameFoldDiffers(k), k).toBe(false);
+    expect(kanaNameFoldDiffers('はな')).toBe(true);
+  });
+
+  it('strict keeps the long-vowel canon and the 1:1 alignment the kana patch relies on', () => {
+    for (const k of ['コーヒー', 'とうきょう', 'おねえさん', 'へや', 'はは', 'ラーメンをたべる。']) {
+      expect(foldMorae(engineMorae(k), true), k).toEqual(lenientMorae(k, true));
+      expect(engineMorae(k).length, k).toBe(lenientMorae(k, true).length);
+    }
+  });
+});
 
 describe('verify — lenient mora fold', () => {
   it('accepts は/わ, を/お, へ/え, ヅ/ズ, ヂ/ジ and katakana against hiragana', () => {

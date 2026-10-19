@@ -200,6 +200,18 @@ describe('render-audio — inventory and clip ids', () => {
     expect(wordText('〜', 'なにか')).toBe('なにか');
   });
 
+  it('kana names are flagged (the k-* items and the row / pair track segments that reuse them), their example words and the word tracks are not', () => {
+    const one = (k: string) => specs.find((s) => s.key === k);
+    expect(one('k-h-a')?.kanaName).toBe(true);
+    expect(one('k-h-a#ex0')?.kanaName).toBeUndefined();
+    const names = specs.filter((s) => s.kind === 'track' && s.kanaName === true);
+    const words = specs.filter((s) => s.kind === 'track' && s.track?.startsWith('words-'));
+    expect(names.length).toBeGreaterThan(0);
+    expect(words.length).toBeGreaterThan(0);
+    for (const s of names) expect(s.track, s.key).toMatch(/^(row|pairs|pair)-/);
+    for (const s of words) expect(s.kanaName, s.key).toBeUndefined();
+  });
+
   it('kanji example words reuse the vocab clip only when word AND kana match', () => {
     const ex = (k: string) => specs.find((s) => s.key === k);
     expect(ex('j-日#ex0')?.reuseOf).toBe('v-n5-0004'); // 日曜日 / にちようび matches
@@ -268,6 +280,13 @@ describe('render-audio — inventory and clip ids', () => {
     const candy = specs.find((s) => s.key === 'v-n5-0003')!;
     expect(clipIdOf(rain, voices, dictVersion)).not.toBe(clipIdOf(candy, voices, dictVersion)); // same surface sound, different pitch → different clips
     expect(clipIdOf(rain, voices, dictVersion)).toBe(clipIdOf({ ...rain }, voices, dictVersion));
+    // A kana NAME of は / へ takes its own id (the strict-fold re-render); every other kana name keeps the id it had.
+    const kana = (key: string, k: string, kanaName?: boolean): ClipSpec => ({ key, kind: 'word', tier: 'core', level: 'kana', station: 1, text: k, kana: k, speaker: 'ハナ', rate: 1, group: 's01/words', ...(kanaName ? { kanaName } : {}) });
+    expect(clipIdOf(kana('k-h-ha', 'は', true), voices, dictVersion)).not.toBe(clipIdOf(kana('k-h-ha', 'は'), voices, dictVersion));
+    expect(clipIdOf(kana('k-h-he', 'へ', true), voices, dictVersion)).not.toBe(clipIdOf(kana('k-h-he', 'へ'), voices, dictVersion));
+    expect(clipIdOf(kana('k-h-a', 'あ', true), voices, dictVersion)).toBe(clipIdOf(kana('k-h-a', 'あ'), voices, dictVersion));
+    expect(clipIdOf(kana('k-h-wo', 'を', true), voices, dictVersion)).toBe(clipIdOf(kana('k-h-wo', 'を'), voices, dictVersion));
+    expect(clipId({ styleId: 16, dictVersion, text: 'は', kana: 'は', speedScale: 1, readingOverride: '' })).toBe(clipId({ styleId: 16, dictVersion, text: 'は', kana: 'は', speedScale: 1 }));
   });
 
   it('dictionary entries: the words the app grades (high) by default, with accent_type = pitch; the version hashes them', () => {

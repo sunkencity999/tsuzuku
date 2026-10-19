@@ -593,9 +593,19 @@ export interface AudioManifest {
   reusedBytesShare: number | null;
 }
 
-/** `a-` + 10 hex of sha256 over the inputs that change the pack's identity (design 08 §7 step 7). */
-export function audioVersionOf(parts: { contentVersion: string; castSha: string; engine: string; dictVersion: string; tiers: readonly string[] }, sha256Hex: (s: string) => string): string {
-  return `a-${sha256Hex([parts.contentVersion, parts.castSha, parts.engine, parts.dictVersion, [...parts.tiers].sort().join(',')].join('|')).slice(0, 10)}`;
+/**
+ * The renderer's verification rules, part of the pack's identity since rule set 2:
+ *  1 — the lenient mora fold for every clip (packs a-d2d42f75c3 and a-3467889b1f, whose lone は / へ said ワ / エ);
+ *  2 — the strict fold for kana-name clips (`ClipSpec.kanaName`, 2026-10-18).
+ * Rule set 1 adds nothing to the hash, so the two published ids are still reproducible from their inputs.
+ */
+export const RENDER_RULES_VERSION = 2;
+
+/** `a-` + 10 hex of sha256 over the inputs that change the pack's identity (design 08 §7 step 7): content, cast, engine, dictionary, tiers — and the renderer's rule set from 2 on. */
+export function audioVersionOf(parts: { contentVersion: string; castSha: string; engine: string; dictVersion: string; tiers: readonly string[]; rules?: number }, sha256Hex: (s: string) => string): string {
+  const fields = [parts.contentVersion, parts.castSha, parts.engine, parts.dictVersion, [...parts.tiers].sort().join(',')];
+  if ((parts.rules ?? 1) > 1) fields.push(`rules=${parts.rules}`);
+  return `a-${sha256Hex(fields.join('|')).slice(0, 10)}`;
 }
 
 /** Sums `files` into `belts` and `totals`. */

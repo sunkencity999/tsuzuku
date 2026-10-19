@@ -70,6 +70,7 @@ import {
   type RenderedClip,
   type TrackRecord,
   audioVersionOf,
+  RENDER_RULES_VERSION,
   beltOfStation,
   beltTotals,
   FILES_SIDECAR,
@@ -92,6 +93,7 @@ import {
   type VvAccentPhrase,
   engineMorae,
   expectedAccent,
+  kanaNameFoldDiffers,
   kanaPatch,
   kanaText,
   queryDuration,
@@ -276,6 +278,14 @@ export interface ClipSpec {
   /** Track segments: track name and index. */
   track?: string;
   segment?: number;
+  /**
+   * A kana NAME: a lone kana spoken as itself (the `k-*` items and the row /
+   * pair track segments that reuse them). Verified under the strict fold —
+   * は / へ must come back as ハ / ヘ, not the particle readings ワ / エ the
+   * lenient fold accepts for words and sentences (the ladder's kana patch
+   * forces them); such a clip of は or へ takes its own clip id.
+   */
+  kanaName?: boolean;
 }
 
 const LEVEL_OF_JLPT: Record<number, Level> = { 5: 'n5', 4: 'n4', 3: 'n3', 2: 'n2', 1: 'n1' };
@@ -330,7 +340,7 @@ export function inventory(corpus: Corpus, o: InventoryOptions): ClipSpec[] {
     // Kana items and their example words (Stations 1–3).
     for (const k of corpus.kana) {
       const station = k.station ?? FIRST_STATION_OF_LEVEL.kana ?? 1;
-      push({ key: k.id, kind: 'word', tier: 'core', level: 'kana', station, text: k.kana, kana: k.kana, speaker: NARRATOR, rate: 1, group: `${scope(station)}/words` });
+      push({ key: k.id, kind: 'word', tier: 'core', level: 'kana', station, text: k.kana, kana: k.kana, speaker: NARRATOR, rate: 1, group: `${scope(station)}/words`, kanaName: true });
       push({ key: `${k.id}#ex0`, kind: 'word', tier: 'core', level: 'kana', station, text: wordText(k.exampleWord.word, k.exampleWord.kana), kana: k.exampleWord.kana, speaker: NARRATOR, rate: 1, group: `${scope(station)}/words` });
     }
     // Vocab words, keyed by item id, rendered from the surface with the dictionary accent.
@@ -400,7 +410,9 @@ export function inventory(corpus: Corpus, o: InventoryOptions): ClipSpec[] {
     // Generated kana tracks.
     for (const t of kanaTracks(corpus.kana)) {
       t.segments.forEach((seg, i) => {
-        push({ key: `track:${t.name}#${i}`, kind: 'track', tier: 'core', level: 'kana', station: 1, text: textToSpeak(seg.text, seg.kana), kana: seg.kana, speaker: t.voice, rate: t.rate, group: `kana/${t.name}`, track: t.name, segment: i });
+        // A segment that duplicates a kana item's own clip (`clip: 'k-h-ha'`, no `#`) is that kana's name.
+        const kanaName = typeof seg.clip === 'string' && !seg.clip.includes('#');
+        push({ key: `track:${t.name}#${i}`, kind: 'track', tier: 'core', level: 'kana', station: 1, text: textToSpeak(seg.text, seg.kana), kana: seg.kana, speaker: t.voice, rate: t.rate, group: `kana/${t.name}`, track: t.name, segment: i, ...(kanaName ? { kanaName } : {}) });
       });
     }
   }
@@ -479,18 +491,34 @@ export interface ClipIdParts {
   intonationScale?: number;
   /** The accent the query is forced to (pitchConfidence: high words), '' otherwise. */
   accentOverride?: string;
+  /**
+   * `kana-name` for a kana-name clip whose kana the strict fold reads differently
+   * (は / へ, `kanaNameFoldDiffers`), '' otherwise. Appended to the hash input
+   * ONLY when set, so every other clip keeps the id it has had since the first
+   * pack (the cache stays warm).
+   */
+  readingOverride?: string;
 }
 
 /** Design 08 §7 step 2: the first 16 hex of sha256 over the render inputs. */
 export function clipId(p: ClipIdParts): string {
-  const s = [ENGINE_NAME, ENGINE_VERSION, p.styleId, p.dictVersion, p.text, p.kana, p.speedScale, p.pitchScale ?? 0, p.intonationScale ?? 1, p.accentOverride ?? ''].join('|');
-  return sha256Hex(s).slice(0, 16);
+  const parts = [ENGINE_NAME, ENGINE_VERSION, p.styleId, p.dictVersion, p.text, p.kana, p.speedScale, p.pitchScale ?? 0, p.intonationScale ?? 1, p.accentOverride ?? ''];
+  if (p.readingOverride) parts.push(p.readingOverride);
+  return sha256Hex(parts.join('|')).slice(0, 16);
 }
 
 /** The id parts of a spec under a voice table and dictionary version. */
 export function clipIdOf(spec: ClipSpec, voices: Map<string, Voice>, dictVersion: string): string {
   const v = voiceOf(spec, voices);
-  return clipId({ styleId: v.styleId, dictVersion, text: spec.text, kana: spec.kana, speedScale: spec.rate, accentOverride: spec.pitchHigh && spec.pitch !== undefined ? `accent=${spec.pitch}` : '' });
+  return clipId({
+    styleId: v.styleId,
+    dictVersion,
+    text: spec.text,
+    kana: spec.kana,
+    speedScale: spec.rate,
+    accentOverride: spec.pitchHigh && spec.pitch !== undefined ? `accent=${spec.pitch}` : '',
+    readingOverride: spec.kanaName && kanaNameFoldDiffers(spec.kana) ? 'kana-name' : '',
+  });
 }
 
 export function voiceOf(spec: ClipSpec, voices: Map<string, Voice>): Voice & { styleId: number } {
@@ -728,8 +756,10 @@ export async function renderOne(e: Engine, spec: ClipSpec, voice: Voice & { styl
   };
   let q = applySpeed(await e.audioQuery(spec.text, voice.styleId));
   let step: CachedClip['step'] = 'surface';
+  // A kana name is verified strictly: は / へ must be ハ / ヘ, not the particle readings (the kana patch forces them).
+  const strict = spec.kanaName === true;
   if (spec.kana) {
-    let v = verifyMorae(q, spec.kana);
+    let v = verifyMorae(q, spec.kana, strict);
     // Step 1: user-dict the offending word (a temporary entry; removed afterwards so the dictionary stays the version we hashed).
     if (!v.ok && spec.tokens && spec.ja) {
       const word = offendingWord(spec, v.got, v.want, lookupWord);
@@ -742,7 +772,7 @@ export async function renderOne(e: Engine, spec: ClipSpec, voice: Voice & { styl
             await e.deleteWord(id);
           }
         });
-        const v1 = verifyMorae(q1, spec.kana);
+        const v1 = verifyMorae(q1, spec.kana, strict);
         if (v1.ok) {
           q = q1;
           v = v1;
@@ -752,12 +782,12 @@ export async function renderOne(e: Engine, spec: ClipSpec, voice: Voice & { styl
     }
     // Step 2: patch the engine's own kana and re-query with is_kana=true.
     if (!v.ok) {
-      const patch = kanaPatch(q, spec.kana);
+      const patch = kanaPatch(q, spec.kana, strict);
       if (patch) {
         try {
           const phrases = await e.accentPhrases(patch, voice.styleId, true);
           const q2 = applySpeed(withAccentPhrases(q, phrases));
-          const v2 = verifyMorae(q2, spec.kana);
+          const v2 = verifyMorae(q2, spec.kana, strict);
           if (v2.ok) {
             q = q2;
             v = v2;
@@ -771,7 +801,7 @@ export async function renderOne(e: Engine, spec: ClipSpec, voice: Voice & { styl
     // Step 3: the content kana as plain text.
     if (!v.ok) {
       const q3 = applySpeed(await e.audioQuery(kanaText(spec.kana), voice.styleId));
-      const v3 = verifyMorae(q3, spec.kana);
+      const v3 = verifyMorae(q3, spec.kana, strict);
       if (v3.ok) {
         q = q3;
         v = v3;
@@ -795,7 +825,7 @@ export async function renderOne(e: Engine, spec: ClipSpec, voice: Voice & { styl
       try {
         const phrases = await e.accentPhrases(one, voice.styleId, true);
         const q4 = applySpeed(withAccentPhrases(q, phrases));
-        if (verifyMorae(q4, spec.kana).ok && q4.accent_phrases.length === 1) q = q4;
+        if (verifyMorae(q4, spec.kana, strict).ok && q4.accent_phrases.length === 1) q = q4;
       } catch {
         /* keep q */
       }
@@ -1064,9 +1094,9 @@ export async function renderAudio(o: RenderOptions): Promise<RenderResult> {
       if (spec.rate !== 1) q.pauseLengthScale = SLOW_PAUSE_SCALE;
       let pitchVerified = false;
       if (spec.kana && fx) {
-        const v = verifyMorae(q, spec.kana);
+        const v = verifyMorae(q, spec.kana, spec.kanaName === true);
         if (!v.ok) {
-          const patch = kanaPatch(q, spec.kana);
+          const patch = kanaPatch(q, spec.kana, spec.kanaName === true);
           // Without an engine the patch cannot be re-queried: a fixture misread is a skip (so skipped.jsonl exercises the path).
           skips.push({ key: spec.key, id, text: spec.text, kana: spec.kana, got: v.got.join(''), want: v.want.join(''), step: 'skip', reason: `dry run: misread (patch would be ${patch ?? '—'})` });
           return;
@@ -1122,7 +1152,7 @@ export async function renderAudio(o: RenderOptions): Promise<RenderResult> {
 
   // Sprites.
   const castSha = cast.sha;
-  const audioVersion = audioVersionOf({ contentVersion: corpus.contentVersion, castSha, engine: ENGINE_LABEL, dictVersion, tiers: [...tiers] }, sha256Hex);
+  const audioVersion = audioVersionOf({ contentVersion: corpus.contentVersion, castSha, engine: ENGINE_LABEL, dictVersion, tiers: [...tiers], rules: RENDER_RULES_VERSION }, sha256Hex);
   const groups = new Map<string, Produced[]>();
   for (const spec of specs) {
     if (spec.reuseOf) continue;
