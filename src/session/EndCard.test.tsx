@@ -475,7 +475,7 @@ describe('<EndCard> — moment B Shūhitsu (design 09 §7 B, fake timers)', () =
     expect(root.querySelector('[data-best], .best, .hiscore')).toBeNull();
   });
 
-  it('Zen: the gliss and the koto pairs stay silent; combo and Ippon rows are hidden', async () => {
+  it('Zen: the bowl and the koto pairs stay silent; combo and Ippon rows are hidden', async () => {
     await makeTestStore();
     const sfx = vi.fn();
     installServices({ audio: { ...nullAudio, sfx } });
@@ -509,7 +509,7 @@ describe('<EndCard> — moment B Shūhitsu (design 09 §7 B, fake timers)', () =
     expect(root.querySelector('.end-card__flame .lantern')?.getAttribute('data-state')).toBe('lit');
     expect(root.querySelector('.end-card__flame .lantern')?.classList.contains('ink-tomosu')).toBe(false);
     expect(root.querySelector('.end-card__belt')?.hasAttribute('data-flip')).toBe(true);
-    // the gliss still plays: sound is effort, not motion
+    // the bowl still plays: sound is effort, not motion
     expect(sfx).toHaveBeenCalledWith('tsuzuku');
     toTheEnd();
     expect(root.querySelector('.end-card__flame .lantern')?.classList.contains('ink-tomosu')).toBe(false);

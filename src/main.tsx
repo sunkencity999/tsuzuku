@@ -157,8 +157,10 @@ async function installAudio(o: BootOptions): Promise<void> {
   if (!clips) return;
   const player = clips;
   const station = Math.max(1, store.progress.value.station);
-  // The station's small indexes load now, data saver or not, so the first speak() hits the pack (design 08 §13
-  // limits data saver to sprites); the 1–3 MB sprite prefetch waits for an idle moment and re-checks the setting.
+  // The station's small indexes — and, past the white belt, the kana level's — load now, data saver or not, so the
+  // first speak() hits the pack (design 08 §13 limits data saver to sprites; a speak() that lands before the index
+  // arrives on a cold first visit still falls to the device voice, by design); the 1–3 MB sprite prefetch waits for
+  // an idle moment and re-checks the setting.
   try {
     void Promise.resolve(player.loadStation(station)).catch(() => undefined);
   } catch (err) {

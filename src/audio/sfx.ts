@@ -1,10 +1,11 @@
 /**
  * TSUZUKU — synthesized sound effects (design 01 §5: Web Audio, zero samples).
  *
- * Every `SfxName` has a recipe built from oscillators, filtered noise, a
- * Karplus–Strong delay line (koto) and a generated-impulse convolver (つづく
- * gliss). One lazily created `AudioContext`, unlocked on the first gesture;
- * master volume per call; the caller (tts.ts) mutes in Zen.
+ * Every `SfxName` has a recipe built from oscillators, filtered noise and a
+ * Karplus–Strong delay line (koto); the つづく card ends on a struck bowl (rin:
+ * inharmonic sine partials over a detuned pair that beats, 09 §12.1 d76). One
+ * lazily created `AudioContext`, unlocked on the first gesture; master volume
+ * per call; the caller (tts.ts) mutes in Zen.
  *
  * Headroom: every source passes through a gain whose peak is listed in
  * `GAIN_BUDGET`; the budgets of simultaneously sounding voices sum to ≤ 1,
@@ -32,7 +33,7 @@ export const SFX_DURATION_MS: Record<SfxName, number> = {
   stamp: 350,
   ceremony: 12000,
   wallpaper: 2500,
-  tsuzuku: 1200,
+  tsuzuku: 2400,
 };
 
 /** Haptics (design 01 §5): 10 ms correct, 30 ms wrong, 10-30-10 badge. */
@@ -176,21 +177,6 @@ function pluck(ctx: AudioContext, out: AudioNode, freq: number, t: number, end: 
   burst.stop(t + 0.02);
 }
 
-/** Generated exponentially decaying noise impulse for the つづく convolver. */
-export function impulseBuffer(ctx: AudioContext, seconds: number, decay: number, seed = 0x7f4a7c15): AudioBuffer {
-  const rate = ctx.sampleRate;
-  const n = Math.max(1, Math.floor(seconds * rate));
-  const buf = ctx.createBuffer(2, n, rate);
-  for (let ch = 0; ch < 2; ch++) {
-    const data = buf.getChannelData(ch);
-    const rng = mulberry32(seed + ch);
-    for (let i = 0; i < n; i++) {
-      data[i] = (rng() * 2 - 1) * Math.pow(1 - i / n, decay);
-    }
-  }
-  return buf;
-}
-
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Recipes (design 01 §5)                                                     */
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -217,8 +203,10 @@ export const GAIN_BUDGET = {
   shakuhachi: 0.25,
   breath: 0.08,
   chime: 0.2,
-  gliss: 0.55,
-  tail: 0.3,
+  bowl: 0.24,
+  bowlBeat: 0.12,
+  bowlPartial: 0.16,
+  mallet: 0.08,
 } as const;
 
 function correct(tier: 1 | 2 | 3): Recipe {
@@ -389,24 +377,58 @@ const wallpaper: Recipe = (ctx, t, out) => {
   });
 };
 
-const tsuzuku: Recipe = (ctx, t, out) => {
-  const end = t + ms(SFX_DURATION_MS.tsuzuku);
-  // single rising triangle gliss through a generated-impulse convolver
-  const o = osc(ctx, 'triangle', 220, t);
-  o.frequency.exponentialRampToValueAtTime(NOTE.A5 as number, t + 0.9);
-  const dry = ctx.createGain();
-  envelope(dry, t, GAIN_BUDGET.gliss, 0.02, t + 1.0);
-  const conv = ctx.createConvolver();
-  conv.buffer = impulseBuffer(ctx, 0.6, 3);
-  const wet = ctx.createGain();
-  envelope(wet, t, GAIN_BUDGET.tail, 0.02, end);
-  o.connect(dry);
-  dry.connect(out);
-  dry.connect(conv);
-  conv.connect(wet);
-  wet.connect(out);
+/**
+ * Partials of a struck bowl (rin), as ratios to the fundamental: the first
+ * four flexural modes of a singing bowl (measured ≈ 1 : 2.76 : 5.40 : 8.93 —
+ * not a string's 1 : 2 : 3, which is why a bowl rings rather than sings a
+ * note). Each mode of a real bowl is a doublet a hair apart, so the
+ * fundamental is a detuned pair whose beat (`BOWL_BEAT_HZ`) is the slow
+ * "wah" of the ring — at UNEQUAL amplitudes (`bowl` 0.24 against `bowlBeat`
+ * 0.12): two in-phase sines of equal amplitude cancel to silence twice a
+ * second, a tremolo with holes in it; 2 : 1 gives a wah of −9.5 dB.
+ * `EndCard.tsx` writes つづく over the first 1,200 ms of it.
+ */
+export const BOWL_RATIOS = [1, 2.76, 5.4, 8.93] as const;
+/** E4: low enough to be a "bong", high enough for a phone speaker to carry it. */
+export const BOWL_FUNDAMENTAL_HZ = 329.63;
+export const BOWL_BEAT_HZ = 1.5;
+
+/**
+ * A ringing voice: `tone()`'s envelope falls from `peak` to `EPS` (1e-4: −64 dB from the 0.16 partial budget) by `end`,
+ * which is a pluck's decay — the 2.76 partial is −20 dB by ≈ 0.53 s, and the fundamental run that way over 2.4 s would be
+ * −20 dB by ≈ 0.74 s. A bowl's fundamental falls only to `RING_FLOOR` × peak (−40 dB) over the ring — −20 dB near 1.2 s —
+ * and is faded to `EPS` in the last 60 ms.
+ */
+const RING_FLOOR = 0.01;
+function ring(ctx: AudioContext, out: AudioNode, freq: number, t: number, end: number, peak: number): void {
+  const o = osc(ctx, 'sine', freq, t);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(EPS, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(peak * RING_FLOOR, end - 0.06);
+  g.gain.exponentialRampToValueAtTime(EPS, end);
+  o.connect(g);
+  g.connect(out);
   o.start(t);
   o.stop(end);
+}
+
+const tsuzuku: Recipe = (ctx, t, out) => {
+  const end = t + ms(SFX_DURATION_MS.tsuzuku);
+  // the mallet: one short band-passed tap (wood meeting the rim)
+  noise(ctx, out, t, t + 0.07, GAIN_BUDGET.mallet, { filter: { type: 'bandpass', freq: 2600, q: 1.2 }, attack: 0.002 });
+  // the bowl: four partials, each higher one quieter and shorter; the fundamental is a beating pair that rings to the end
+  const decays = [end, t + 1.7, t + 1.1, t + 0.7] as const;
+  BOWL_RATIOS.forEach((r, i) => {
+    const f = BOWL_FUNDAMENTAL_HZ * r;
+    const stop = decays[i] ?? end;
+    if (i === 0) {
+      ring(ctx, out, f, t, stop, GAIN_BUDGET.bowl);
+      ring(ctx, out, f + BOWL_BEAT_HZ, t, stop, GAIN_BUDGET.bowlBeat);
+    } else {
+      tone(ctx, out, 'sine', f, t, stop, GAIN_BUDGET.bowlPartial * (1 - (i - 1) * 0.3), 0.004);
+    }
+  });
 };
 
 export const RECIPES: Record<SfxName, Recipe> = {

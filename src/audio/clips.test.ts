@@ -55,11 +55,14 @@ class FakeAudio implements MediaLike {
   rejectPlay = false;
   /** Elements constructed while this is true refuse their first play (the gesture did not count). */
   static refuseNext = false;
+  /** Elements constructed while this is true keep every play() pending until `startPlaying()` (a real engine's latency). */
+  static deferNext = false;
   private listeners = new Map<string, Set<Fn>>();
   constructor() {
     FakeAudio.created++;
     FakeAudio.all.push(this);
     this.rejectPlay = FakeAudio.refuseNext;
+    this.deferPlay = FakeAudio.deferNext;
   }
   get src(): string {
     return this._src;
@@ -73,36 +76,37 @@ class FakeAudio implements MediaLike {
    * and `pause()` rejects it with `AbortError`, as the HTML spec has browsers do.
    */
   deferPlay = false;
-  private pending: { resolve: () => void; reject: (e: unknown) => void } | null = null;
+  /** Every pending play() promise (the HTML spec keeps a list: a second play() before `playing` joins it). */
+  private pending: { resolve: () => void; reject: (e: unknown) => void }[] = [];
   play(): Promise<void> | void {
     this.plays++;
     this.paused = false;
     if (this.rejectPlay) return Promise.reject(Object.assign(new Error("play() failed because the user didn't interact with the document first."), { name: 'NotAllowedError' }));
     if (!this.deferPlay) return Promise.resolve();
     return new Promise<void>((resolve, reject) => {
-      this.pending = { resolve, reject };
+      this.pending.push({ resolve, reject });
     });
+  }
+  private takePending(): { resolve: () => void; reject: (e: unknown) => void }[] {
+    const p = this.pending;
+    this.pending = [];
+    return p;
   }
   pause(): void {
     this.pauses++;
     this.paused = true;
-    const p = this.pending;
-    this.pending = null;
-    if (p) p.reject(Object.assign(new Error('The play() request was interrupted by a call to pause().'), { name: 'AbortError' }));
+    for (const p of this.takePending()) p.reject(Object.assign(new Error('The play() request was interrupted by a call to pause().'), { name: 'AbortError' }));
+    this.dispatch('timeupdate'); // the HTML spec's internal pause steps fire timeupdate, then pause
     this.dispatch('pause');
   }
-  /** The `playing` event: the deferred `play()` promise resolves. */
+  /** The `playing` event: every deferred `play()` promise resolves. */
   startPlaying(): void {
-    const p = this.pending;
-    this.pending = null;
-    p?.resolve();
+    for (const p of this.takePending()) p.resolve();
   }
   /** The engine refuses the deferred `play()` (no gesture counted): `NotAllowedError`. */
   refusePlaying(): void {
-    const p = this.pending;
-    this.pending = null;
     this.paused = true;
-    p?.reject(Object.assign(new Error("play() failed because the user didn't interact with the document first."), { name: 'NotAllowedError' }));
+    for (const p of this.takePending()) p.reject(Object.assign(new Error("play() failed because the user didn't interact with the document first."), { name: 'NotAllowedError' }));
   }
   canPlayType(): string {
     return 'probably';
@@ -319,6 +323,20 @@ const WORDS_N5 = {
     'v-n5-0002': [{ f: 0, s: 3.0, e: 3.9, v: 0, r: 1, k: '00000002' }],
     'v-n5-0003': [{ f: 7, s: 4, e: 5, v: 0, r: 1, k: '00000003' }], // file index outside the table: dropped
     'j-日#ex0': [{ f: 0, s: 5.0, e: 5.8, v: 0, r: 1, k: '00000004' }],
+  },
+};
+
+/** The kana level's word index: the lone kana (`k-*`) the drills' Listen button plays. */
+const WORDS_KANA = {
+  schema: 'tsuzuku.audio-index/1',
+  audioVersion: V,
+  scope: 'kana',
+  kind: 'words',
+  files: [REL.kana],
+  voices: [HANA],
+  cues: {
+    'k-h-a': [{ f: 0, s: 0.3, e: 0.8, v: 0, r: 1, k: '0000000a' }],
+    'k-h-a#ex0': [{ f: 0, s: 1.0, e: 1.9, v: 0, r: 1, k: '0000000b' }],
   },
 };
 
@@ -860,6 +878,21 @@ describe('indexes and cueFor / cueForText', () => {
     expect(hz.player.cueFor('s-09-1#L0')).toBeUndefined();
   });
 
+  it('loadStation past the white belt also loads the kana index (the kana cards outlive the kana stations): the first kana cue after boot hits', async () => {
+    const files = packFiles();
+    files[`audio/${V}/kana/words.json`] = WORDS_KANA;
+    const manifest = { ...MANIFEST, indexes: [...MANIFEST.indexes, { path: `${V}/kana/words.json`, bytes: 100, sha256: 'y'.repeat(64) }] };
+    files['audio/manifest.json'] = manifest;
+    const hz = track(await readyPlayer({ files }));
+    await hz.player.loadStation(4); // yellow belt: level n5, and the kana level beside it
+    expect(hz.player.cueFor('k-h-a')).toMatchObject({ file: FILES.kana, start: 0.3, end: 0.8 });
+    expect(hz.player.cueFor('v-n5-0001')).toBeDefined();
+    expect(hz.calls.filter((u) => u.endsWith(`/${V}/kana/words.json`))).toHaveLength(1);
+    // a white-belt station loads the kana level as its own level: still one fetch
+    await hz.player.loadStation(1);
+    expect(hz.calls.filter((u) => u.endsWith(`/${V}/kana/words.json`))).toHaveLength(1);
+  });
+
   it("a text with `whole: null` has no Radio track (cueFor(storyId) undefined) while its present lines play by key; a skipped line [] misses to the device voice", async () => {
     const files = packFiles();
     files[`audio/${V}/s04/stories.json`] = {
@@ -964,6 +997,32 @@ describe('pool and playback', () => {
     expect(slotEl(FILES.examples, h.urls).paused).toBe(false);
     pb.stop();
     expect((await pb.done).source).toBe('clips');
+  });
+
+  it("the silent unlock take settling late never pauses a real clip that took its element in the meantime", async () => {
+    const h = track(await readyPlayer());
+    FakeAudio.deferNext = true; // the engine answers the six silent play() calls only after the gesture returned
+    h.player.unlock();
+    FakeAudio.deferNext = false;
+    expect(FakeAudio.created).toBe(POOL_SIZE);
+    // the same gesture speaks: the clip takes a pool element (src swapped, play() pending behind the silent take)
+    const pb = h.player.play(cue({ start: 0, end: 10 }), { rate: 1, volume: 1 });
+    await settle();
+    const el = slotEl(FILES.examples, h.urls);
+    expect(el.paused).toBe(false);
+    const pausesBefore = el.pauses;
+    // now the engine starts playing: every pending play() on every element resolves, the silent one included
+    for (const e of FakeAudio.all) e.startPlaying();
+    await settle();
+    expect(h.player.unlocked()).toBe(true);
+    expect(el.pauses).toBe(pausesBefore); // the live clip was left alone
+    expect(el.paused).toBe(false);
+    expect(pb.playing()).toBe(true);
+    // the untaken elements were paused as before
+    for (const e of FakeAudio.all) if (e !== el) expect(e.paused).toBe(true);
+    el.tick(3);
+    pb.stop();
+    expect((await pb.done).seconds).toBe(3);
   });
 
   it('two live playbacks of one sprite never share an element: the second re-wraps the held bytes onto a free slot without a fetch; with every slot busy the oldest playback is stopped first', async () => {
@@ -1101,6 +1160,46 @@ describe('pool and playback', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('the precise stop is armed at begin() and re-aimed from the media clock: a clip shorter than a timeupdate period stops on its cue with no timeupdate at all', async () => {
+    const h = track(await readyPlayer());
+    h.player.unlock();
+    // a lone kana: 0.4 s of media, shorter than the 250 ms timeupdate period can resolve
+    const pb = h.player.play(cue({ start: 10, end: 10.4 }), { rate: 1, volume: 1 });
+    await settle();
+    const el = slotEl(FILES.examples, h.urls);
+    expect(el.currentTime).toBe(10);
+    expect(vi.getTimerCount()).toBe(2); // backstop + precise stop
+    // the engine started 100 ms late: at the first aim (400 ms) the clock reads 10.3
+    el.currentTime = 10.3;
+    vi.advanceTimersByTime(400);
+    expect(el.paused).toBe(false); // short of the cue: re-aimed, not stopped
+    expect(vi.getTimerCount()).toBe(2);
+    el.currentTime = 10.4;
+    vi.advanceTimersByTime(100);
+    expect(el.paused).toBe(true);
+    const r = await pb.done;
+    expect(r.source).toBe('clips');
+    expect(r.seconds).toBeCloseTo(0.4, 3);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('a stalled element never spins the precise stop: with no progress since the last aim it stands down and leaves the stall to the backstop', async () => {
+    const h = track(await readyPlayer());
+    h.player.unlock();
+    const pb = h.player.play(cue({ start: 0, end: 0.5 }), { rate: 1, volume: 1 });
+    await settle();
+    const el = slotEl(FILES.examples, h.urls);
+    expect(vi.getTimerCount()).toBe(2);
+    vi.advanceTimersByTime(500); // the aim fires; the clock has not moved from 0
+    expect(el.paused).toBe(false);
+    expect(vi.getTimerCount()).toBe(1); // the backstop alone remains
+    vi.advanceTimersByTime(STOP_BACKSTOP_MS + 1);
+    await settle();
+    expect(el.paused).toBe(true);
+    expect((await pb.done).source).toBe('clips');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('a wholeTrack cue sets no timer and ends on `ended`', async () => {
     const h = track(await readyPlayer());
     h.player.unlock();
@@ -1126,7 +1225,7 @@ describe('pool and playback', () => {
     h.player.unlock();
     const pb = h.player.play(cue({ start: 0, end: 2 }), { rate: 2, volume: 1 });
     await settle();
-    expect(vi.getTimerCount()).toBe(1);
+    expect(vi.getTimerCount()).toBe(2); // the backstop and the precise stop, both armed at begin()
     const el = slotEl(FILES.examples, h.urls);
     let settled = false;
     void pb.done.then(() => {
@@ -1293,7 +1392,7 @@ describe('pool and playback', () => {
     const pb = h.player.play(cue({ start: 0, end: 2 }), { rate: 1, volume: 1 });
     await settle();
     const el = slotEl(FILES.examples, h.urls);
-    expect(vi.getTimerCount()).toBe(1);
+    expect(vi.getTimerCount()).toBe(2); // the backstop and the precise stop
     el.tick(0.5);
     pb.pause();
     expect(el.paused).toBe(true);
@@ -1303,7 +1402,7 @@ describe('pool and playback', () => {
     expect(pb.playing()).toBe(true);
     pb.resume();
     expect(el.paused).toBe(false);
-    expect(vi.getTimerCount()).toBe(1);
+    expect(vi.getTimerCount()).toBe(2); // the backstop and the precise stop, both re-armed
     // frozen after resume: the re-armed backstop ((2 − 0.5) / 1 + 1 s) finishes it with the seconds heard
     vi.advanceTimersByTime(1500 + STOP_BACKSTOP_MS);
     await settle();
@@ -1364,7 +1463,7 @@ describe('pool and playback', () => {
     expect(el.plays).toBe(2);
     expect(el.paused).toBe(false);
     expect(pb.playing()).toBe(true);
-    expect(vi.getTimerCount()).toBe(1); // the stop backstop
+    expect(vi.getTimerCount()).toBe(2); // the stop backstop and the precise stop
     expect(h.raf.queue).toHaveLength(1);
     el.tick(0.6);
     h.raf.tick();

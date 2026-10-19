@@ -12,8 +12,10 @@
  *  - **Indexes.** `audio/<audioVersion>/<level>/{words,sentences,ear}.json`,
  *    `audio/<audioVersion>/sNN/stories.json` and `audio/<audioVersion>/kana/tracks.json`
  *    are small, versioned and loaded on demand (`loadLevel`, `loadStation`,
- *    `kanaTracks`); a cache miss in `cueFor()` kicks the matching load off in
- *    the background so the next call hits. Parsers are tolerant: unknown
+ *    `kanaTracks`; `loadStation(n)` loads the station's level and
+ *    `sNN/stories.json` and, past the kana stations, `kana/words.json` too —
+ *    the kana cards outlive the white belt); a cache miss in `cueFor()` kicks
+ *    the matching load off in the background so the next call hits. Parsers are tolerant: unknown
  *    fields are ignored, a missing index file means that level simply misses.
  *  - **Cues.** `cueFor(key, { rate, speaker })` picks the variant whose native
  *    rate is nearest the requested one (a natural-slow take is a second cue at
@@ -40,9 +42,12 @@
  *    30 s stretch the OS throttled arrives as one delta and counts whole; a
  *    programmatic seek (`seeking`) only moves the reference. No division by
  *    the playback rate: `listen:played.seconds` and Radio's `cue.end − cue.start`
- *    count the same unit. The stop at `cue.end` is detected on `timeupdate`; a
- *    `(end − start) / rate + 1 s` timer is a foreground backstop only
- *    (cleared by `pause()`, re-armed by `resume()`; a `pause()` that lands
+ *    count the same unit. The stop at `cue.end` is detected on `timeupdate` and,
+ *    in the foreground, by a precise one-shot aimed at the cue end from the media
+ *    clock — armed at `begin()` (a lone kana is shorter than a `timeupdate`
+ *    period) and re-aimed from every `timeupdate` and its own early fire; a
+ *    `(end − start) / rate + 1 s` timer is the backstop for a stalled element
+ *    (both cleared by `pause()`, re-armed by `resume()`; a `pause()` that lands
  *    while the sprite is still arriving sets the element up silent and
  *    `resume()` starts it). A `wholeTrack` cue (Radio)
  *    schedules no timer and ends on `ended`. `requestAnimationFrame` drives
@@ -98,6 +103,10 @@ export const PREFETCH_BUDGET_BYTES = 3 * 1024 * 1024;
 export const STOP_BACKSTOP_MS = 1000;
 /** A `timeupdate` this close to `cue.end` (seconds) stops the clip. */
 export const END_EPSILON_S = 0.02;
+/** The precise stop timer fires no sooner than this (ms); a re-aim from a late start never spins. */
+export const FINE_STOP_MIN_MS = 10;
+/** The precise stop timer's own tolerance below `cue.end` (seconds) when it fires. */
+export const FINE_STOP_SLACK_S = 0.05;
 /** `download()` rejects with this message when the browser has no Cache API (nothing could be kept). */
 export const CACHE_UNAVAILABLE = 'audio cache unavailable';
 /** The manifest schema this player reads. */
@@ -1123,6 +1132,7 @@ export function createClipPlayer(o: ClipPlayerOptions = {}): ClipPlayerEx {
       } catch {
         break;
       }
+      const slot: Slot = { el, file: null, url: null, blob: null, used: now(), seq: ++seq, busy: false, owner: null };
       try {
         el.preservesPitch = true;
         el.webkitPreservesPitch = true;
@@ -1131,7 +1141,9 @@ export function createClipPlayer(o: ClipPlayerOptions = {}): ClipPlayerEx {
         const p = el.play();
         if (p && typeof (p as Promise<void>).then === 'function') {
           (p as Promise<void>).then(() => {
-            el.pause();
+            // The silent take settles a tick later than the gesture: a real clip may have taken this element since
+            // (`slotFor` swapped its src and it is playing) — the pause is for the silent clip only.
+            if (slot.file === null && !slot.busy) el.pause();
             accepted();
           }, rejected);
         } else {
@@ -1141,7 +1153,7 @@ export function createClipPlayer(o: ClipPlayerOptions = {}): ClipPlayerEx {
       } catch {
         /* an element that refuses the silent clip still joins the pool */
       }
-      slots.push({ el, file: null, url: null, blob: null, used: now(), seq: ++seq, busy: false, owner: null });
+      slots.push(slot);
     }
   };
 
@@ -1216,6 +1228,8 @@ export function createClipPlayer(o: ClipPlayerOptions = {}): ClipPlayerEx {
     let rafId: number | null = null;
     /** `currentTime` when the backstop was last armed: no progress since → the element stalled, finish. */
     let backstopT = 0;
+    /** `currentTime` when the precise stop was last aimed: no progress since → a stall, which is the backstop's. */
+    let fineStopT = 0;
 
     /** Media seconds: every positive `currentTime` delta since the last reference (a hidden stretch arrives as one delta and counts whole). */
     const reconcile = (): void => {
@@ -1239,6 +1253,29 @@ export function createClipPlayer(o: ClipPlayerOptions = {}): ClipPlayerEx {
       rafId = null;
     };
 
+    /**
+     * Foreground precision: a one-shot aimed at `cue.end` from the media clock. Armed at `begin()` — so a clip shorter
+     * than a `timeupdate` period (a lone kana, ≈ 0.4 s against 250 ms) still stops on its cue, not on the next tick —
+     * and re-aimed from every `timeupdate` and from its own early fire (`play()` starts a little late, so the first aim
+     * lands short). An element that made no progress since the last aim is stalled: left to the backstop.
+     * `timeupdate` still owns the stop in the background, where timers are throttled.
+     */
+    const armFineStop = (): void => {
+      if (opt.wholeTrack || !slot || settled) return;
+      if (fineStop) clearTimeout(fineStop);
+      const t = slot.el.currentTime;
+      fineStopT = t;
+      const remainingMs = ((endS - t) / (slot.el.playbackRate || rate)) * 1000;
+      fineStop = setTimeout(() => {
+        fineStop = null;
+        if (settled || !slot) return;
+        reconcile(); // the stretch since the last timeupdate counts before the stop detaches the listeners
+        const at = slot.el.currentTime;
+        if (at >= endS - END_EPSILON_S - FINE_STOP_SLACK_S) finish('clips');
+        else if (!slot.el.paused && at > fineStopT) armFineStop();
+      }, Math.max(FINE_STOP_MIN_MS, remainingMs));
+    };
+
     const onTimeUpdate = (): void => {
       reconcile();
       if (opt.wholeTrack || !slot) return;
@@ -1247,14 +1284,8 @@ export function createClipPlayer(o: ClipPlayerOptions = {}): ClipPlayerEx {
         finish('clips');
         return;
       }
-      // Foreground precision: a one-shot for the last stretch; `timeupdate` still owns the stop in the background.
-      const remainingMs = ((endS - t) / (slot.el.playbackRate || rate)) * 1000;
-      if (remainingMs < 400 && !fineStop) {
-        fineStop = setTimeout(() => {
-          fineStop = null;
-          if (!settled && slot && slot.el.currentTime >= endS - END_EPSILON_S - 0.05) finish('clips');
-        }, Math.max(0, remainingMs));
-      }
+      // The UA's own pause steps queue a `timeupdate` before `pause`: a paused element re-aims nothing.
+      if (!slot.el.paused) armFineStop();
     };
     const onEnded = (): void => {
       reconcile();
@@ -1364,6 +1395,7 @@ export function createClipPlayer(o: ClipPlayerOptions = {}): ClipPlayerEx {
       started = true;
       watchPlay(p);
       armBackstop();
+      armFineStop();
       if (opt.onProgress && raf && rafId === null) rafId = raf.request(tick);
     };
 
@@ -1411,6 +1443,7 @@ export function createClipPlayer(o: ClipPlayerOptions = {}): ClipPlayerEx {
           /* ignore */
         }
         if (!backstop) armBackstop();
+        armFineStop();
         if (opt.onProgress && raf && rafId === null) rafId = raf.request(tick);
       },
       // The seconds `reconcile()` would report right now, without the `onPlayed` side effect (a read, not an event).
@@ -1524,12 +1557,17 @@ export function createClipPlayer(o: ClipPlayerOptions = {}): ClipPlayerEx {
       await readyPromise;
       if (!manifest || disposed) return;
       const v = manifest.info.audioVersion;
-      const level = loadLevel(levelOfStation(station));
+      const stationLevel = levelOfStation(station);
+      const level = loadLevel(stationLevel);
+      // The kana cards outlive the kana stations (FSRS keeps reviewing them): a learner past the white belt would
+      // otherwise miss the first kana cue after boot to the device voice while `ensureLoadedFor` fetched kana/words.json.
+      const kana = stationLevel === 'kana' ? Promise.resolve() : loadLevel('kana');
       if (station >= 1) {
         const json = await fetchIndex(`${AUDIO_ROOT}${v}/s${String(station).padStart(2, '0')}/stories.json`);
         if (json !== null) absorb(parseIndex(json));
       }
       await level;
+      await kana;
     })().catch(() => undefined);
     stationLoads.set(station, p);
     return p;

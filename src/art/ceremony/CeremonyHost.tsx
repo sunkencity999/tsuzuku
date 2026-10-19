@@ -69,7 +69,7 @@ export type Ceremony =
   | { kind: 'level'; level: number }
   | { kind: 'summary'; badges: number; wallpapers: number; stamps: number; levels: number };
 
-/** After `session:finished`: let the つづく card and its gliss land first. */
+/** After `session:finished`: let the つづく card land and its bowl strike first (the ring's tail, ≈ −20 dB by then, may run on under a ceremony — 09 §12.1 d76). */
 export const CEREMONY_GRACE_MS = 1600;
 /** Outside a session: let the page's own feedback settle. */
 export const CEREMONY_SETTLE_MS = 250;

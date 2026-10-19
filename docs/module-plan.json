@@ -1728,7 +1728,7 @@
  {
   "path": "src/session/EndCard.tsx",
   "kind": "component",
-  "responsibility": "[P1] つづく end card: sumi background, brush つづく, 1.2 s gliss via services.audio.sfx('tsuzuku'), tally with belt-flip animations, 次回予告, one-tap ledger prompt (10/20/30/60 -> addLedgerEntry), 'Good training. Rest.' and Another Kata? only if due remain.",
+  "responsibility": "[P1] つづく end card: sumi background, brush つづく, 2.4 s struck bowl via services.audio.sfx('tsuzuku') (09 d76), つづく written over its first 1.2 s, tally with belt-flip animations, 次回予告, one-tap ledger prompt (10/20/30/60 -> addLedgerEntry), 'Good training. Rest.' and Another Kata? only if due remain.",
   "api": "export function EndCard(p:{result:SessionResult;yokoku:JikaiYokoku;notes:string[];onAnother():void;onRest():void}):JSX.Element",
   "depends_on": [
    "src/shared/session-types.ts",
@@ -2108,7 +2108,7 @@
  {
   "path": "src/audio/sfx.ts",
   "kind": "service",
-  "responsibility": "[P1] Web Audio synthesized SFX recipes from design 01 §5 (correct/combo tiers/wrong donk/submit click/ippon/kiai gong/promote koto/scroll fanfare/badge thump/belt taiko+shakuhachi/wallpaper chime/tsuzuku gliss); one lazily created AudioContext unlocked on gesture; master volume; muted in Zen.",
+  "responsibility": "[P1] Web Audio synthesized SFX recipes from design 01 §5 (correct/combo tiers/wrong donk/submit click/ippon/kiai gong/promote koto/scroll fanfare/badge thump/belt taiko+shakuhachi/wallpaper chime/tsuzuku bowl, 09 d76); one lazily created AudioContext unlocked on gesture; master volume; muted in Zen.",
   "api": "export function createSfx(ctxFactory:()=>AudioContext):{play(name:SfxName,volume:number):void;unlock():void}; export const RECIPES:Record<SfxName,(ctx:AudioContext,t:number,out:AudioNode)=>void>",
   "depends_on": [
    "src/shared/audio.ts",

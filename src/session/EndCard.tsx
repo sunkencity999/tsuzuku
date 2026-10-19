@@ -9,8 +9,8 @@
  *          stage layer; the card itself is transparent so phones dim too)
  *   300    つづく is WRITTEN — the brush glyphs sit under an SVG `<mask>` whose
  *          brush-shaped stroke draws itself (stroke-dasharray / dashoffset, the
- *          `hiku` verb at 4/3 × `--dur-4` = 1,200 ms) synced to `sfx('tsuzuku')`
- *          (silent in Zen). Under reduced motion the mask is absent and the glyphs
+ *          `hiku` verb at 4/3 × `--dur-4` = 1,200 ms) started on the strike of
+ *          `sfx('tsuzuku')` — a bowl that rings 2,400 ms (silent in Zen). Under reduced motion the mask is absent and the glyphs
  *          fade in whole at `--dur-fade`. `.end-card__brush` is the `tsuzuku-mark`
  *          hero `transitions.ts` carries into the Dojo hearth on "Rest." (§7 C).
  *   1,500  tally tiles (`.sheet`) nijimi in with `--i`; every value is a Dela
@@ -280,7 +280,7 @@ export function EndCard(p: EndCardProps): JSX.Element {
   const pend = (b: number): string => (beat >= b ? '' : ' is-pending');
   const arrive = (b: number): string => (beat >= b ? ' ink-nijimi' : '');
 
-  // beat 300: the gliss, once, never in Zen
+  // beat 300: the bowl, once, never in Zen (09 §12.1 d76)
   const played = useRef(false);
   useEffect(() => {
     if (beat < BEAT.brush || played.current) return;

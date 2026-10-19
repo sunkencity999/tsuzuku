@@ -5,7 +5,7 @@
  * the tests can measure each recipe's length and its summed envelope peak.
  */
 import { SFX_NAMES, type SfxName } from '../shared/catalog';
-import { CEREMONY_TAIKO_AT_MS, GAIN_BUDGET, RECIPES, SFX_DURATION_MS, VIBRATION, createSfx, impulseBuffer, missingRecipes, noiseBuffer } from './sfx';
+import { BOWL_BEAT_HZ, BOWL_FUNDAMENTAL_HZ, BOWL_RATIOS, CEREMONY_TAIKO_AT_MS, GAIN_BUDGET, RECIPES, SFX_DURATION_MS, VIBRATION, createSfx, missingRecipes, noiseBuffer } from './sfx';
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* Fake Web Audio                                                             */
@@ -259,7 +259,7 @@ describe('RECIPES coverage', () => {
       badge: 300,
       ceremony: 12000,
       wallpaper: 2500,
-      tsuzuku: 1200,
+      tsuzuku: 2400, // 09 §12.1 d76: the struck bowl rings twice the old gliss
     });
   });
 });
@@ -323,7 +323,7 @@ describe('recipe lengths and headroom', () => {
     expect(filter.frequency.events[0]?.value).toBe(600);
   });
 
-  it('promotion uses a Karplus–Strong loop (delay with feedback) and tsuzuku a convolver', () => {
+  it('promotion uses a Karplus–Strong loop (delay with feedback)', () => {
     const promo = run('promotion').ctx;
     const delays = promo.nodes.filter((n) => n instanceof FakeDelay);
     expect(delays.length).toBe(2);
@@ -331,10 +331,46 @@ describe('recipe lengths and headroom', () => {
       // feedback: something connects back into the delay
       expect(promo.nodes.some((n) => n !== d && n.connections.includes(d) && n.kind === 'gain')).toBe(true);
     }
-    const tz = run('tsuzuku').ctx;
-    const conv = tz.nodes.find((n): n is FakeConvolver => n instanceof FakeConvolver) as FakeConvolver;
-    expect(conv).toBeDefined();
-    expect(conv.buffer?.length).toBeGreaterThan(0);
+  });
+
+  it('tsuzuku is a struck bowl (09 §12.1 d76): sine partials at the bowl ratios over a beating pair, one mallet tap, no pitch ramp, no convolver', () => {
+    const { ctx, t } = run('tsuzuku');
+    const end = t + SFX_DURATION_MS.tsuzuku / 1000;
+    const oscs = ctx.nodes.filter((n): n is FakeOsc => n instanceof FakeOsc);
+    // the old recipe was a rising triangle gliss (a "shriek" at the end of every scroll): every oscillator is now a
+    // sine whose frequency is SET once and never ramped
+    expect(oscs.length).toBe(BOWL_RATIOS.length + 1);
+    for (const o of oscs) {
+      expect(o.type).toBe('sine');
+      expect(o.frequency.events.map((e) => e.kind)).toEqual(['set']);
+    }
+    const freqs = oscs.map((o) => o.frequency.events[0]?.value as number).sort((a, b) => a - b);
+    const want = [BOWL_FUNDAMENTAL_HZ, BOWL_FUNDAMENTAL_HZ + BOWL_BEAT_HZ, ...BOWL_RATIOS.slice(1).map((r) => BOWL_FUNDAMENTAL_HZ * r)].sort((a, b) => a - b);
+    for (let i = 0; i < want.length; i++) expect(freqs[i]).toBeCloseTo(want[i] as number, 6);
+    // a bowl, not a string: the partials are inharmonic (none sits on an integer multiple of the fundamental)
+    for (const r of BOWL_RATIOS.slice(1)) expect(Math.abs(r - Math.round(r))).toBeGreaterThan(0.05);
+    // the fundamental pair rings to the end; each higher partial stops sooner than the one below it
+    const oscOf = (f: number): FakeOsc => oscs.find((o) => o.frequency.events[0]?.value === f) as FakeOsc;
+    const stopOf = (f: number): number => oscOf(f).stopAt as number;
+    expect(stopOf(BOWL_FUNDAMENTAL_HZ)).toBeCloseTo(end, 6);
+    expect(stopOf(BOWL_FUNDAMENTAL_HZ + BOWL_BEAT_HZ)).toBeCloseTo(end, 6);
+    // the pair beats at UNEQUAL amplitudes (2 : 1): equal in-phase sines would cancel to silence every 1 / BOWL_BEAT_HZ s
+    const peakOf = (o: FakeOsc): number => Math.max(...ctx.nodes.filter((n): n is FakeGain => n instanceof FakeGain && o.connections.includes(n)).map((g) => g.gain.peak()));
+    expect(peakOf(oscOf(BOWL_FUNDAMENTAL_HZ))).toBeCloseTo(GAIN_BUDGET.bowl, 9);
+    expect(peakOf(oscOf(BOWL_FUNDAMENTAL_HZ + BOWL_BEAT_HZ))).toBeCloseTo(GAIN_BUDGET.bowlBeat, 9);
+    expect(GAIN_BUDGET.bowl / GAIN_BUDGET.bowlBeat).toBeGreaterThanOrEqual(2);
+    const partialStops = BOWL_RATIOS.slice(1).map((r) => stopOf(BOWL_FUNDAMENTAL_HZ * r));
+    for (let i = 0; i < partialStops.length; i++) {
+      expect(partialStops[i]).toBeLessThan(i === 0 ? end : (partialStops[i - 1] as number));
+      expect(partialStops[i]).toBeGreaterThan(t + 0.5);
+    }
+    // one mallet tap: a single short filtered-noise burst at the strike, nothing else from a buffer
+    const bursts = ctx.nodes.filter((n) => n.kind === 'buffer');
+    expect(bursts.length).toBe(1);
+    expect(bursts[0]?.startAt).toBeCloseTo(t, 9);
+    expect((bursts[0]?.stopAt as number) - t).toBeLessThanOrEqual(0.1);
+    expect(ctx.nodes.some((n) => n instanceof FakeConvolver)).toBe(false);
+    expect(ctx.nodes.some((n) => n instanceof FakeDelay)).toBe(false);
   });
 
   it('ceremony: three taiko hits then a vibrato flute', () => {
@@ -350,7 +386,7 @@ describe('recipe lengths and headroom', () => {
   });
 });
 
-describe('noise and impulse buffers', () => {
+describe('noise buffers', () => {
   it('noise is deterministic, normalised to peak 1 and within [-1, 1]', () => {
     const ctx = new FakeContext();
     const a = noiseBuffer(asCtx(ctx), 0.1);
@@ -364,16 +400,6 @@ describe('noise and impulse buffers', () => {
     expect(peak).toBeCloseTo(1, 5);
     const brown = noiseBuffer(asCtx(ctx), 0.1, 'brown');
     expect(Array.from(brown.getChannelData(0))).not.toEqual(Array.from(a.getChannelData(0)));
-  });
-
-  it('impulse decays toward zero and has two channels', () => {
-    const ctx = new FakeContext();
-    const imp = impulseBuffer(asCtx(ctx), 0.2, 3) as unknown as FakeBuffer;
-    expect(imp.channels.length).toBe(2);
-    const d = imp.getChannelData(0);
-    const head = Math.max(...Array.from(d.slice(0, 50)).map(Math.abs));
-    const tail = Math.max(...Array.from(d.slice(d.length - 50)).map(Math.abs));
-    expect(tail).toBeLessThan(head);
   });
 });
 

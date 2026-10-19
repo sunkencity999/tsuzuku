@@ -154,7 +154,7 @@ All sounds synthesized at runtime from one lazily created `AudioContext` unlocke
 | Badge | hanko thump: 80 Hz sine + paper-slap noise | 300 ms |
 | Belt ceremony | taiko ×3 (55 Hz sine pitch-drop + brown noise) then shakuhachi-like sine with 5 Hz vibrato and breath noise | 12 s |
 | Wallpaper unlock | wind chime: 4 pentatonic sine partials, long decay | 2.5 s |
-| つづく end card | single rising triangle gliss through a generated-impulse convolver | 1.2 s |
+| つづく end card | struck bowl (rin 鈴): four sine partials at a singing bowl's inharmonic ratios 1 : 2.76 : 5.40 : 8.93 over E4, the fundamental a detuned pair beating at 1.5 Hz, one band-passed mallet tap; the つづく stroke is written over its first 1.2 s (replaced the rising triangle gliss, 09 §12.1 d76) | 2.4 s |
 
 ---
 

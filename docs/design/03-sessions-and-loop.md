@@ -157,7 +157,7 @@ Zen (禅) hides timers, ki, combo, glow and sound; scheduling and XP are identic
 
 ## 10. The つづく end card and 次回予告
 
-Every session, every size, ends on a black card (`--bg` sumi) with つづく in Yuji Syuku and a 1.2 s rising gliss. Below it, in order:
+Every session, every size, ends on a black card (`--bg` sumi) with つづく in Yuji Syuku and the strike of a bowl (`tsuzuku`, 2.4 s; the stroke is written over its first 1.2 s). Below it, in order:
 
 1. **Tally** — reps, accuracy, best combo, Ippon count, item promotions (belt flips animate), XP earned, quests ticked.
 2. **次回予告 Jikai Yokoku (next-episode preview)** — three lines, all informational, no countdowns:

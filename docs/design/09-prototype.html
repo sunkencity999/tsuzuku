@@ -1318,7 +1318,7 @@ ${chochin(236, 36, 'lantern-a lantern-breath')}${chochin(566, 36, 'lantern-b')}
     const show = (sel, cls = 'ink-nijimi') => { for (const el of $$(sel, endStage)) { el.style.opacity = ''; replay(el, cls); } };
     setReadout(endTl.readout, 'beat', r ? 'stage cut at 0' : '0 · controls kasure 120 ms · page dims to the stage over 300 ms (sfx: none yet)');
     endTl.beat(0, null, () => { for (const el of $$('#ec-controls .pill', endStage)) replay(el, 'ink-kasure'); });
-    endTl.beat(300, r ? 'つづく whole after 200 ms' : '300 · つづく is written (dashWrite mask, 1,200 ms) · sfx tsuzuku gliss', () => { $('#ec-brush', endStage).innerHTML = tsuzukuSvg('calc(1200ms * var(--slow))'); }, 200);
+    endTl.beat(300, r ? 'つづく whole after 200 ms' : '300 · つづく is written (dashWrite mask, 1,200 ms) · sfx tsuzuku bowl', () => { $('#ec-brush', endStage).innerHTML = tsuzukuSvg('calc(1200ms * var(--slow))'); }, 200);
     endTl.beat(r ? 200 : 1500, r ? 'tiles and final numbers at once' : '1500 · tally tiles nijimi 60 ms apart · Dela tickers count up in 400 ms', () => { show('#ec-tally .tile'); for (const t of $$('#ec-tally .ticker', endStage)) tick(t, Number(t.dataset.to), 400, t.dataset.prefix || ''); });
     endTl.beat(r ? 200 : 2100, '2100 · item belts flip · sfx promotion koto pair', () => { show('#ec-belts .belt-chip'); $$('#ec-belts .belt-chip', endStage).forEach((c, i) => { setTimeout(() => { replay(c, 'is-flipping'); setTimeout(() => { $('i', c).style.background = 'var(--belt-yellow)'; }, at(200)); }, at(i * 90)); }); });
     endTl.beat(r ? 200 : 2400, '2400 · a lantern for today: the tongue catches (tomosu)', () => { show('#ec-lantern'); setTimeout(() => { $('#ec-lantern .lantern', endStage).dataset.state = 'lit'; }, at(80)); });

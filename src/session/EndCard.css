@@ -10,7 +10,7 @@
 .end-card .eyebrow { color: var(--stage-muted); }
 .end-card .sheet .eyebrow { color: var(--fg-muted); }
 
-/* beat 300: つづく written — the mask stroke is hiku at 4/3 × --dur-4 (the gliss); the h1 hugs the glyphs (the hero), the svg is 1.2em tall so they sit at --fs-7 */
+/* beat 300: つづく written — the mask stroke is hiku at 4/3 × --dur-4 = 1,200 ms, started on the strike of the `tsuzuku` bowl (09 §7 B / d76); the h1 hugs the glyphs (the hero), the svg is 1.2em tall so they sit at --fs-7 */
 .end-card__head { text-align: center; }
 .end-card__brush { width: fit-content; margin: 0 auto; font-size: var(--fs-7); line-height: 1.1; }
 .end-card__brush-svg { display: block; height: 1.2em; width: auto; max-width: 100%; aspect-ratio: 17 / 6; overflow: visible; }
