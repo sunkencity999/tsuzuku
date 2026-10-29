@@ -13,7 +13,8 @@ import { S as PS } from '@/app/pages/strings';
  * 07 §9 budget measured from the files on disk — and the glyphs the home screen actually sets in
  * brush and Mincho (the strings files, public/calendar/koyomi.json) are inside the two shells, so
  * that sum is real rather than a paper number — and every slice file on disk is one the
- * stylesheet uses. The glyph lists that carry 09 §3.5's additions are written as \u escapes
+ * stylesheet uses — and, since the CSS fence cannot see a class applied in TSX, that no .tsx in the fenced
+ * directories mounts the `.mincho` / `.neon` utility classes. The glyph lists that carry 09 §3.5's additions are written as \u escapes
  * (this file is outside the inventory walk, but no kanji should enter src by way of a test).
  */
 const ROOT = process.cwd();
@@ -203,7 +204,7 @@ const UI_KANJI_ALLOWED = new Set<number>(
 
 /* ── 09 §10 A4 acceptance: in shell-level CSS, Mincho and Neon only on the shell-covered classes,
  * so the Dojo's first paint cannot quietly pull a `base` slice again. ── */
-const FONT_FENCE_DIRS = ['src/styles', 'src/app', 'src/art/dojo'];
+const FONT_FENCE_DIRS = ['src/styles', 'src/app', 'src/art/dojo', 'src/art/prints']; // prints: the Dojo hero and its caption (d77)
 const FONT_FENCE_RE = /var\(\s*--font-(mincho|neon)\s*\)/;
 /**
  * The classes the two `shell` slices were cut for (09 §3.3, §5.3, §5.9), tested against the LAST
@@ -247,7 +248,7 @@ const lastCompound = (sel: string): string => {
  */
 const FONT_FENCE_ALLOW_LANDED: Record<string, string> = {
   '.tategaki--mincho': 'src/styles/components.css — the pre-09 tategaki modifier, mounted by no .tsx; A1 folds it into .tategaki-column and deletes this entry',
-  '.mincho': 'src/styles/base.css — utility class, mounted by no .tsx; A1 deletes or fences it, then deletes this entry',
+  '.mincho': 'src/styles/base.css — utility class; mounted by no .tsx in the fenced directories (the TSX walk below checks it: prints B1 put it on the hero title for a day, and the manifest glyphs pulled the Shippori rest and level slices — docs/ART_PACK.md §9); A1 deletes or fences it, then deletes this entry',
   '.neon': 'src/styles/base.css — utility class, mounted by no .tsx; A1 deletes or fences it, then deletes this entry',
 };
 /**
@@ -311,6 +312,28 @@ function fontFence(): { files: string[]; offenders: string[]; used: Set<string> 
     }
   }
   return { files, offenders, used };
+}
+
+/* ── the same fence for TSX: a utility class is a declaration the CSS walk cannot see. PrintFigure.tsx's hero title
+ * wore `.mincho` for a day, and the manifest's title glyphs — outside every shell slice — pulled ShipporiMinchoB1-base,
+ * `rest` and the level slices (238–830 KB a day, docs/ART_PACK.md §9) onto the Dojo's first paint while this file
+ * stayed green. Every whitespace-separated word inside a string or template literal counts, class or not: the fence
+ * over-approximates by design, and `[lang="ja"]` / `--font-ja` is the answer either way. ── */
+const CLASS_FENCE_RE = /^(mincho|neon)$/;
+/** The words a .tsx could mount as classes: string and template literals (`${…}` holes blanked), comments stripped first. */
+function literalTokens(source: string): string[] {
+  const text = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[ \t])\/\/[^\n]*/gm, '$1');
+  const out: string[] = [];
+  for (const m of text.matchAll(/"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g)) {
+    for (const tok of (m[1] ?? m[2] ?? m[3] ?? '').replace(/\$\{[^}]*\}/g, ' ').split(/\s+/)) if (tok) out.push(tok);
+  }
+  return out;
+}
+function classFence(): { files: string[]; offenders: string[] } {
+  const files = FONT_FENCE_DIRS.flatMap((d) => walk(resolve(ROOT, d))).filter((p) => p.endsWith('.tsx') && !p.includes('.test.'));
+  const offenders: string[] = [];
+  for (const file of files) for (const tok of literalTokens(readFileSync(file, 'utf8'))) if (CLASS_FENCE_RE.test(tok)) offenders.push(`${relPath(file)} → .${tok}`);
+  return { files, offenders };
 }
 
 describe('fonts.css slices', () => {
@@ -472,10 +495,11 @@ describe('shell faces (design 09 §3.5) and the first-paint budget (07 §9)', ()
 describe('font fence (09 §10 A4): Mincho and Neon in shell-level CSS only on the shell-covered classes', () => {
   const fence = fontFence();
 
-  it('walks src/styles/*.css, src/app/**/*.css and src/art/dojo/**/*.css', () => {
-    expect(fence.files.length).toBeGreaterThanOrEqual(8);
+  it('walks src/styles/*.css, src/app/**/*.css, src/art/dojo/**/*.css and src/art/prints/**/*.css', () => {
+    expect(fence.files.length).toBeGreaterThanOrEqual(9);
     expect(fence.files.some((p) => p.endsWith('src/styles/base.css'))).toBe(true);
     expect(fence.files.some((p) => p.endsWith('src/app/pages/pages.css'))).toBe(true);
+    expect(fence.files.some((p) => p.endsWith('src/art/prints/PrintFigure.css'))).toBe(true);
   });
 
   it('no selector sets var(--font-mincho) or var(--font-neon) outside .tategaki-column / .sign__ordinal / .seal-date and the allow-list', () => {
@@ -505,5 +529,23 @@ describe('font fence (09 §10 A4): Mincho and Neon in shell-level CSS only on th
     expect(SHELL_COVERED.test(lastCompound('.sign .sign__ordinal'))).toBe(true);
     expect(SHELL_COVERED.test(lastCompound('.tategaki-column .sentence'))).toBe(false);
     expect(SHELL_COVERED.test(lastCompound('.seal-date__day'))).toBe(false);
+  });
+
+  it('no .tsx in the fenced directories mounts the .mincho or .neon utility class (the CSS walk cannot see a class applied in TSX: the prints hero title did — docs/ART_PACK.md §9)', () => {
+    const classes = classFence();
+    expect(classes.files.some((p) => p.endsWith('src/art/prints/PrintFigure.tsx'))).toBe(true);
+    expect(classes.files.some((p) => p.endsWith('src/app/pages/DojoPage.tsx'))).toBe(true);
+    expect(classes.files.some((p) => p.includes('.test.'))).toBe(false);
+    expect(classes.offenders, 'a utility face on first-paint glyphs outside the shells — [lang="ja"] gives --font-ja for no bytes').toEqual([]);
+  });
+
+  it('the literal walk sees a class attribute, a template with holes and a class built in a const; it ignores comments and compound names, and keeps a URL whole', () => {
+    const sample = '// brush/mincho text\n/* .neon in a comment */\nconst cls = `print ${variant} mincho`;\n<span class="print__title-ja neon-c" data-face={\'neon\'} />\n<a href="https://x.test/y" class={`a ${b} neon`} /> // trailing mincho';
+    const toks = literalTokens(sample);
+    expect(toks.filter((t) => CLASS_FENCE_RE.test(t))).toEqual(['mincho', 'neon', 'neon']);
+    expect(toks).toContain('neon-c');
+    expect(toks).toContain('https://x.test/y');
+    expect(toks).not.toContain('text');
+    expect(toks).not.toContain('trailing');
   });
 });

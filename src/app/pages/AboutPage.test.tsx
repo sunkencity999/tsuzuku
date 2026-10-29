@@ -3,12 +3,13 @@ import { resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { loadArtManifest, makeFixtureManifest, resetArtForTests, type ArtManifest } from '@/art/prints';
 import { installServices, nullAudio, resetServices, servicesVersion, type AudioPackInfo, type ClipPlayer, type ClipReady } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import { href } from '@/shared/routes';
 import { resetStoreForTests } from '@/store';
 import { makeTestStore } from '@/store/testing';
-import AboutPage, { APP_VERSION, RULES, contentVersionLine, voiceCredits } from './AboutPage';
+import AboutPage, { APP_VERSION, RULES, contentVersionLine, printCredits, voiceCredits } from './AboutPage';
 import { S, fmt } from './strings';
 
 const ROUTE = { name: 'about' } as const;
@@ -17,15 +18,34 @@ let root: HTMLDivElement;
 beforeEach(() => {
   root = document.createElement('div');
   document.body.appendChild(root);
+  resetArtForTests();
 });
 afterEach(() => {
   render(null, root);
   root.remove();
   resetStoreForTests();
   resetServices();
+  resetArtForTests();
   vi.useRealTimers();
   bus.reset();
 });
+
+type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
+const asFetch = (f: FetchFn): typeof fetch => f as unknown as typeof fetch;
+/** Settles the print manifest before a mount: a pack with this document, or none on a 404. */
+const settleArt = (m: ArtManifest | null): Promise<ArtManifest | null> =>
+  loadArtManifest(asFetch(async () => (m ? ({ ok: true, json: async () => JSON.parse(JSON.stringify(m)) as unknown } as unknown as Response) : ({ ok: false, status: 404 } as unknown as Response))));
+
+/** The fixture pack with a second artist and series on two of its four prints (fixtures carry no Japanese glyph). */
+function twoArtistPack(): ArtManifest {
+  const m = makeFixtureManifest();
+  const second = { ja: 'Niban Eshi', reading: 'Niban Eshi', en: 'Second Artist' };
+  const seriesTwo = { id: 'fx2', ja: 'Niban no uchi', reading: 'Nibanme no uchi', en: 'The second series' };
+  m.prints[2]!.artist = second;
+  m.prints[2]!.series = seriesTwo;
+  m.prints[3]!.series = seriesTwo;
+  return m;
+}
 
 /** A `ClipPlayer` double with only what About reads: `ready` and `info.credits`. */
 function clipsWith(ready: ClipReady, credits: string[]): ClipPlayer {
@@ -240,5 +260,94 @@ describe('<AboutPage> voices (design 08 §6 / §12)', () => {
     const h2 = root.querySelector('#about-voices');
     expect(h2?.textContent).toContain(S.aboutVoicesTitle);
     expect(h2?.querySelector('[lang="ja"]')?.textContent).toBe('声');
+  });
+});
+
+describe('<AboutPage> prints (design 09 §12.1 d77–d78)', () => {
+  it('lists every artist of the pack with the series they contribute — Japanese, reading, gloss — and the count, then the museum line with its open-access link; the licences carry the prints line', async () => {
+    await makeTestStore();
+    const pack = twoArtistPack();
+    await settleArt(pack);
+    mount();
+    const h2 = root.querySelector('#about-prints');
+    expect(h2?.textContent).toContain(S.aboutPrintsTitle);
+    expect(h2?.querySelector('[lang="ja"]')?.textContent).toBe(S.aboutPrintsTitleJa);
+    expect(root.textContent).toContain(S.aboutPrintsIntro);
+    // the pure grouping: manifest order, distinct series per artist, counts summing to the pack
+    const credits = printCredits(pack);
+    expect(credits.map((c) => [c.artist.en, c.series.map((s) => s.id), c.count])).toEqual([
+      ['Fixture Artist', ['fx', 'fx2'], 3],
+      ['Second Artist', ['fx2'], 1],
+    ]);
+    expect(credits.reduce((n, c) => n + c.count, 0)).toBe(pack.prints.length);
+    expect(printCredits(null)).toEqual([]);
+    expect(credits[0]!.series[0]).toEqual({ id: 'fx', ja: 'Fixture no uchi', reading: 'Fikusucha no uchi', en: 'The fixture series' });
+    const rows = Array.from(root.querySelectorAll('[data-print-artists] [data-print-artist]'));
+    expect(rows.map((li) => li.getAttribute('data-print-artist'))).toEqual(['Fixture Artist', 'Second Artist']);
+    const first = rows[0]!;
+    expect(first.querySelector('[lang="ja"]')?.textContent).toBe('Fixture Eshi');
+    expect(first.textContent).toContain('Fixture Artist');
+    expect(Array.from(first.querySelectorAll('[data-print-series]')).map((s) => s.getAttribute('data-print-series'))).toEqual(['fx', 'fx2']);
+    expect(first.textContent).toContain('Fixture no uchi');
+    expect(first.textContent).toContain('The fixture series');
+    expect(first.textContent).toContain('Niban no uchi');
+    // every series span: the Japanese, its reading, the English gloss (the house rule for every Japanese string the learner meets)
+    const fx = first.querySelector('[data-print-series="fx"]');
+    expect(fx?.textContent).toBe(`Fixture no uchi Fikusucha no uchi${S.separator}The fixture series`);
+    expect(fx?.querySelector('[lang="ja"]')?.textContent).toBe('Fixture no uchi');
+    expect(first.querySelector('[data-print-series="fx2"]')?.textContent).toBe(`${S.separator}Niban no uchi Nibanme no uchi${S.separator}The second series`);
+    expect(first.textContent).toContain(fmt(S.aboutPrintCount, { n: 3 }));
+    expect(rows[1]!.textContent).toContain(S.aboutPrintCountOne);
+    expect(rows[1]!.textContent).toContain('Niban Eshi');
+    // the museum line: "<museum> · <license>", the museum linked to its open-access page
+    const sources = root.querySelector('[data-print-sources]');
+    expect(sources?.textContent).toBe(`Fixture Museum${S.separator}CC0 1.0`);
+    const link = sources?.querySelector('a');
+    expect(link?.getAttribute('href')).toBe('https://example.invalid/open-access');
+    expect(link?.getAttribute('rel')).toContain('noopener');
+    expect(root.querySelector('[data-no-prints]')).toBeNull();
+    expect(root.querySelector('[data-prints-loading]')).toBeNull();
+    const licences = Array.from(root.querySelectorAll('[data-licenses] li')).map((li) => li.textContent);
+    expect(licences).toContain(S.aboutLicensePrints);
+    expect(S.aboutLicensePrints).toMatch(/not CC BY-SA/);
+  });
+
+  it('without a pack (404, a build without the release) the section says the drawn room stands and lists nothing', async () => {
+    await makeTestStore();
+    await settleArt(null);
+    mount();
+    expect(root.querySelector('[data-no-prints]')?.textContent).toBe(S.aboutPrintsNone);
+    expect(root.querySelectorAll('[data-print-artist]')).toHaveLength(0);
+    expect(root.querySelector('[data-print-sources]')).toBeNull();
+    expect(root.querySelector('[data-prints-loading]')).toBeNull();
+    // the licences line stands whether or not a pack is built: the terms do not change with the release
+    expect(Array.from(root.querySelectorAll('[data-licenses] li')).map((li) => li.textContent)).toContain(S.aboutLicensePrints);
+  });
+
+  it('a cold About says it is looking until the manifest lands, then lists the artists without a remount (signals, no interval)', async () => {
+    await makeTestStore();
+    const intervals = vi.spyOn(globalThis, 'setInterval');
+    let land: ((r: Response) => void) | null = null;
+    const pending = loadArtManifest(
+      asFetch(
+        () =>
+          new Promise<Response>((resolve) => {
+            land = resolve;
+          }),
+      ),
+    );
+    mount();
+    expect(root.querySelector('[data-prints-loading]')?.textContent).toBe(S.aboutPrintsLoading);
+    expect(root.querySelector('[data-no-prints]')).toBeNull();
+    expect(root.querySelectorAll('[data-print-artist]')).toHaveLength(0);
+    await act(async () => {
+      land!({ ok: true, json: async () => JSON.parse(JSON.stringify(makeFixtureManifest())) as unknown } as unknown as Response);
+      await pending;
+    });
+    expect(root.querySelector('[data-prints-loading]')).toBeNull();
+    expect(Array.from(root.querySelectorAll('[data-print-artist]')).map((li) => li.getAttribute('data-print-artist'))).toEqual(['Fixture Artist']);
+    expect(root.querySelector('[data-print-artist]')?.textContent).toContain(fmt(S.aboutPrintCount, { n: 4 }));
+    expect(intervals).not.toHaveBeenCalled();
+    intervals.mockRestore();
   });
 });

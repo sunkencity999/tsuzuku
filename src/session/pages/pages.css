@@ -72,6 +72,33 @@
   min-height: 160px;
 }
 
+/* the print band (prints B3): the box waits in --surface at the band's exact size while the manifest loads — the same
+   1 px border and content-box ratio as .print, never the 160 px .headpiece — so the station's own print lands without a
+   procedural flash or a shift; Nihonbashi hangs its print above its title */
+.station-head__piece[data-wait] {
+  box-sizing: content-box;
+  width: calc(100% - 2px);
+  aspect-ratio: 4 / 1;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.station-zero__print {
+  margin-bottom: var(--sp-3);
+}
+
+/* the print's caption under the sign plate (prints B3, the credit rule): one muted line, the title in --fg */
+.station-cap {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-1);
+  color: var(--fg-muted);
+}
+
+.station-cap__ja {
+  color: var(--fg);
+}
+
 .station-head__sign {
   position: relative;
   width: max-content;

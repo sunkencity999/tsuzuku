@@ -172,6 +172,23 @@
   "owner_group": "A"
  },
  {
+  "path": "src/app/pages/DojoShelf.tsx",
+  "kind": "component",
+  "responsibility": "[P1] (prints B2; design 06 §5 'The print is the room'; 09 §12.1 d77; §7 A since yesterday) <DojoShelf/>: the shelf of seals beneath the Dojo's print of the day — the room's state moved out of the drawn scene: six seals in a row (three per row under 640 px) — belt 帯 with its tatami count, lanterns 灯 (one per ten levels), days trained 日, goshuin 印, mon 紋, word-spirits 霊 — each a kanji the UI already carries (aria-hidden; a visually-hidden reading and meaning precede the value), the value in the pixel face, a muted label, each a link to the room the matching DojoScene hotspot opened. On the arrival in print mode the persisted progress.sceneSeen is diffed ONCE against durableFieldsOf(sceneInputs()) and every seal whose value grew carries data-since and one .ink-nijimi (--i staggered; reduced motion: a static 1 px --kin ring, data-ring); a loss is never marked and a first visit marks nothing; the shelf then persists sceneSeen exactly as DojoScene does, and only the mounted path writes, so the drawn room (the fallback) keeps its own pulse and the two never double-count. The phase word, the kō column, the sessions and the hanko stay on the page where they were.",
+  "api": "export function DojoShelf(p:DojoShelfProps):JSX.Element; export function sealsOf(v:ShelfValues):Seal[]; shelfSince(seen:SceneSeen|undefined,now:SceneSeen):SealId[]; spiritTotal(counts):number; stampCount(stamps):number; lanternLabel(level):string; export const SEAL_IDS:readonly SealId[]; types SealId Seal ShelfValues DojoShelfProps",
+  "depends_on": [
+   "src/art/dojo/DojoScene.tsx",
+   "src/art/dojo/room.ts",
+   "src/content/types.ts",
+   "src/shared/routes.ts",
+   "src/shared/store-types.ts",
+   "src/store/index.ts",
+   "src/app/pages/strings.ts"
+  ],
+  "tests": "DojoShelf.test.tsx: shelfSince marks only growth (a first visit and an unchanged picture mark nothing; a loss — fewer days, a level or belt behind, fewer spirits, a goshuin gone, a cooled hearth — is never marked); spiritTotal / stampCount; sealsOf's six seals and their words, singulars and caps, every seal kanji in the UI inventory; the component renders six seals from the store, each a link to its room; the arrival marks grown seals with data-since / .ink-nijimi and persists sceneSeen once; reduced motion draws data-ring; the shelf CSS ≤ 1,200 B, tokens only, seals ≥ 44 px, six across from 640 px, the kanji off Mincho",
+  "owner_group": "A"
+ },
+ {
   "path": "src/app/pages/OnboardingPage.tsx",
   "kind": "page",
   "responsibility": "[P1] 日本橋 Station 0: name (default 無名), full 46-kana Kana Flash self-check (≈ 2 min) -> profile.kanaKnown with markKnown only on the kana answered correctly (the rest are introduced at Station 1 normally; a 12-tile quick version exists only as the \"skip kana entirely\" confirmation and still seeds S₀ per kana from the full check), pace (casual/standard/intense with the steady-state review warning for intense), honest timeline (≈ 22 months at 100% / ≈ 31 at 70%; in-app hours COMPUTED from the chosen preset as Σ expectedMinutes(belt, preset) × days(belt) / 60 — ≈ 450 h Standard, ≈ 300 Casual, ≈ 650 Intense — with the plain statement that ≈ 1,200+ external hours remain and that the app's audio is TTS; the 1,500 h ledger goal is framed as running past Kyoto), network notice for speech recognition (settings.speaking stays 'self' until opted in), voice test via services.audio (install guide when no ja voice), theme pick. Writes store then navigates to dojo.",
@@ -2758,6 +2775,101 @@
   "owner_group": "G"
  },
  {
+  "path": "src/art/prints/index.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (prints B1; design 09 §12.1 d77–d78) The prints barrel `@/art/prints`, imported statically by the Dojo, Station, Road and About surfaces (the art tier is open, d64): it reaches nothing in art/dojo, wallpapers or ceremony, so a surface that hangs a print never pays for the drawn room. src/art/index.ts (the boot barrel) is unchanged.",
+  "api": "re-exports types.ts, select.ts, load.ts, PrintFigure.tsx, strings.ts (as PRINT_S) and fixtures.ts",
+  "depends_on": [
+   "src/art/prints/types.ts",
+   "src/art/prints/select.ts",
+   "src/art/prints/load.ts",
+   "src/art/prints/PrintFigure.tsx",
+   "src/art/prints/strings.ts",
+   "src/art/prints/fixtures.ts"
+  ],
+  "tests": "covered by the module tests below",
+  "owner_group": "G"
+ },
+ {
+  "path": "src/art/prints/types.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (prints B1; design 09 §12.1 d78; docs/ART_PACK.md §3) The print pack's runtime types and strict parser: parseArtManifest checks the schema string, every print row (non-empty id; a relative file with no leading slash, scheme, `..` or whitespace; positive bytes / width / height; 64-hex sha lower-cased; orientation; lqip matching data:image/<type>;base64,…; focus = two finite numbers clamped to 0..1; artist / title / series ja + en non-empty; source museum + licence non-empty; roles in range), duplicate ids, stations '0'..'54' complete and resolving, calendar.day exactly 72 and calendar.night exactly 12 resolving; unknown fields dropped; any defect → null, so a surface has a complete gallery or none. parseArtPackPointer for the pointer. No Japanese glyph in the file: artists, titles and series are data in the manifest.",
+  "api": "export const ART_SCHEMA='tsuzuku.art/1', ART_PACK_SCHEMA='tsuzuku.art-pack/1', STATION_FIRST=0, STATION_LAST=54, STATION_COUNT=55, NIGHT_MONTHS=12; export function parseArtManifest(raw:unknown):ArtManifest|null; parsePrintEntry(x:unknown):PrintEntry|null; parseArtPackPointer(raw:unknown):ArtPackPointer|null; types PrintOrientation PrintText PrintSeries PrintSource PrintRoles PrintEntry ArtEncoder ArtSourceCredit ArtCalendar ArtManifest ArtPackAsset ArtPackPointer",
+  "depends_on": [
+   "src/shared/koyomi.ts"
+  ],
+  "tests": "types.test.ts: the fixture manifest parses; a bad schema, a duplicate id, an absolute / scheme / ../ file, a non-data lqip, a missing stop, a 71-entry day table and an out-of-range role each yield null; focus is clamped; unknown fields dropped; the pointer parses",
+  "owner_group": "G"
+ },
+ {
+  "path": "src/art/prints/select.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (prints B1; design 06 §5 'The print is the room') Deterministic selection, no RNG: koIndexOf(today) 0..71 via koOf(day, null).index (no koyomi names needed; clamped; Feb 4 → 0, Feb 3 → 71); printForToday(m, today, phase) = calendar.day[kō] for day / dawn / dusk and calendar.night[month − 1] at night, falling back to the day print; printForStation(m, n) = stations[String(n)] for an integer 0..54; printById WeakMap-cached per manifest; captionOf / sourceLine ('<museum>, <creditLine> <accession> · <license>', blanks dropped cleanly) / altOf ('<artist en>, <title en>').",
+  "api": "export function koIndexOf(today:EpochDay):number; printForToday(m:ArtManifest,today:EpochDay,phase:SkyPhase):PrintEntry|null; printForStation(m:ArtManifest,n:number):PrintEntry|null; printById(m:ArtManifest,id:string|undefined):PrintEntry|null; captionOf(p:PrintEntry):PrintCaption; sourceLine(s:PrintSource):string; altOf(p:PrintEntry):string; type PrintCaption",
+  "depends_on": [
+   "src/shared/koyomi.ts",
+   "src/shared/time.ts",
+   "src/art/prints/types.ts"
+  ],
+  "tests": "select.test.ts: koIndexOf equals koOf over 2026 and 2028 and pins Feb 4 → 0, Feb 3 → 71, Jan 20–24 → 69, Oct 28 2026 → 51, Nov 7 → 54; night picks the month print and falls back to the day print; stations 0 and 54 resolve, 55 and −1 are null; sourceLine drops a blank credit / accession",
+  "owner_group": "G"
+ },
+ {
+  "path": "src/art/prints/load.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (prints B1) One page-relative fetch of ./art/manifest.json per session (concurrent callers share the promise, later callers get the settled result; settled for the session after 'ready', a 404 or a bad body, like the audio manifest — but a thrown fetch or a 5xx (offline, the worker's 504) settles 'none' and forgets the request, so the next caller retries, the status staying 'none' — never back to 'loading' — until it succeeds; plain fetch, no force-cache, so the worker's network-first rule hands it the republished pack on the first load): artManifest / artStatus signals ('idle' | 'loading' | 'ready' | 'none'); 404 / throw / non-JSON / wrong shape / no global fetch → 'none', never a throw, never a console line; useArtManifest() starts the load in a mount effect and subscribes the caller; resetArtForTests().",
+  "api": "export const ART_MANIFEST_URL='./art/manifest.json'; export const artManifest:Signal<ArtManifest|null>, artStatus:Signal<ArtStatus>; export function loadArtManifest(fetchImpl?:typeof fetch,url?:string):Promise<ArtManifest|null>; resetArtForTests():void; useArtManifest():ArtManifest|null; type ArtStatus",
+  "depends_on": [
+   "src/art/prints/types.ts"
+  ],
+  "tests": "load.test.tsx: one fetch shared by concurrent callers and settled for later ones; 404 / network / bad JSON / wrong shape / no global fetch settle 'none' with no console output; the global fetch is used by default; useArtManifest re-renders when the manifest lands and a second mount does not refetch; a thrown fetch and a 5xx settle 'none' and the next call asks again without showing 'loading', while a 404 / bad body never asks again; resetArtForTests forgets the result",
+  "owner_group": "G"
+ },
+ {
+  "path": "src/art/prints/PrintFigure.tsx",
+  "kind": "component",
+  "responsibility": "[P1] (prints B1; design 09 §12.1 d77) <PrintFigure print variant state? caption? eager? dataSaver? decorative? onLoaded? class?>: <figure class='print print--<hero|band|thumb> print--<orientation>' data-state=passed|here|ahead data-loaded> → .print__box with the LQIP as background-image (aspect-ratio w / h for a landscape hero; background-position = focus for band / thumb) → <img class='print__img' src='./art/<file>' alt width height loading=eager|lazy decoding=async fetchpriority=high when eager, object-position = focus for band / thumb>; dataSaver renders no img but a 44 px .btn--ghost 'Show the print' whose tap loads that print eagerly; the hero caption (default on for the hero): artistJa《titleJa》 (lang=ja → --font-ja; never .mincho: the title glyphs are outside every shell slice and Mincho pulled 238–830 KB of Shippori onto first paint, ART_PACK §9), artistEn · titleReading · titleEn, 'from seriesJa seriesReading · seriesEn, date', the source line; loaded / failed / asked state keyed by print.id so a swap resets all three; a cache-complete image is marked loaded by an effect, and a complete image with no natural width is marked failed by it; an image error (a 404 after a republished pack, a 504 offline) sets data-failed on the figure — the LQIP stays as the picture, the image keeps opacity 0, onLoaded is not called. PrintFigure.css (1,588 B, tokens only): mat --surface / --line / --radius, hero padding --sp-3, portrait hero 3/2 contain, band 4/1 cover min-height 160px, thumb 4/3 cover, [data-state=ahead] .print__box grayscale + opacity .4 (LQIP and image together), [data-state=here] a 2 px --shu outline inset −2px; the only transition is opacity var(--dur-2) var(--ease) on .print__img.",
+  "api": "export function PrintFigure(p:PrintFigureProps):JSX.Element; export const ART_ROOT='./art/'; export function printSrc(p:PrintEntry):string; focusPosition(p:PrintEntry):string; types PrintVariant='hero'|'band'|'thumb', PrintState='passed'|'here'|'ahead', PrintFigureProps",
+  "depends_on": [
+   "src/art/prints/types.ts",
+   "src/art/prints/select.ts",
+   "src/art/prints/strings.ts",
+   "src/art/prints/img-loading.ts"
+  ],
+  "tests": "PrintFigure.test.tsx: hero / band / thumb markup, classes and inline styles; the caption on the hero by default and off elsewhere; eager vs deferred loading attributes and fetchpriority; dataSaver shows the button and the tap loads the print; data-loaded after load, data-failed after error (onLoaded silent), both reset on a swap; focusPosition rounding; no literal colour or size in the CSS",
+  "owner_group": "G"
+ },
+ {
+  "path": "src/art/prints/strings.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (prints B1) The three English strings the figure shows: printShow 'Show the print', printFrom 'from', printSource 'Source' (the barrel re-exports them as PRINT_S). A strings module, so banned.test.ts lints its values.",
+  "api": "export const S:{printShow:string;printFrom:string;printSource:string}",
+  "depends_on": [],
+  "tests": "banned.test.ts (values); PrintFigure.test.tsx (rendered)",
+  "owner_group": "G"
+ },
+ {
+  "path": "src/art/prints/img-loading.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (prints B1) IMG_LOADING = { eager: 'eager', deferred: 'lazy' } — the <img loading> values kept out of .tsx text because banned.test.ts's \\blazy\\b guilt rule reads every .tsx as text. The integrator may prefer a lint exemption for the attribute, after which this file can go.",
+  "api": "export const IMG_LOADING:{eager:'eager';deferred:'lazy'}",
+  "depends_on": [],
+  "tests": "PrintFigure.test.tsx (the attribute values)",
+  "owner_group": "G"
+ },
+ {
+  "path": "src/art/prints/fixtures.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (prints B1) A complete fixture pack for tests and dry mounts: four ASCII-named prints (two landscapes, one portrait, one night scene), the full 55-stop station table and the 72-day / 12-night calendar filled cyclically; FIXTURE_LQIP is a real 1 × 1 WebP. No Japanese glyph (fonts.test.ts walks this file). Used by types / select / load / PrintFigure tests, AboutPage.test.tsx and the Dojo / Station / Road tests.",
+  "api": "export const FIXTURE_LQIP, FIXTURE_IDS={river,bridge,pine,snow}; export function makeFixturePrint(over:Partial<PrintEntry>&{id:string}):PrintEntry; makeFixtureManifest():ArtManifest; makeFixtureManifestJson():Record<string,unknown>",
+  "depends_on": [
+   "src/shared/koyomi.ts",
+   "src/art/prints/types.ts"
+  ],
+  "tests": "types.test.ts (the fixture parses and stays valid under the parser)",
+  "owner_group": "G"
+ },
+ {
   "path": "src/art/wallpapers/spec.ts",
   "kind": "lib",
   "responsibility": "[P1] Wallpaper generator contract: WallpaperSpec {id, compose(seed, data, size) -> {svg, texts}}, personalization data shape, size variants, post-pass choice.",
@@ -3897,6 +4009,88 @@
    "scripts/audio/indexes.ts"
   ],
   "tests": "check-audio.test.ts: stale contentVersion warns; index kana ≠ content kana fails; dist over 900 MB fails; reusedBytesShare computed from two fixture manifests and the warning gated on the content diff; no pack exits 0",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/art/schema.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (design 09 §12.1 d78; docs/ART_PACK.md §1–§3) The print pipeline's shapes and the pure helpers every scripts/art/* script shares: ArtManifest (tsuzuku.art/1), ArtPackPointer (tsuzuku.art-pack/1 — the audio pointer's shape with artVersion), CurationFile (tsuzuku.art-curation/1); artVersionOf = p- + 10 hex of sha256(stableStringify(merged curation) ⏎ encoder string 'cwebp q82 w1400 lqip24'); webpDimensions reads VP8 / VP8L / VP8X headers so the pipeline needs no image library; printId / slugify (Ōtsu → otsu) / printFile (prints/<id>-<sha8>.webp); manifestProblems — every check that needs no files (schema and version, trilingual title / artist / series, source accession + credit line, lqip ≤ 1,000 chars, bytes ≤ 400,000, stations 0..54 complete and nothing else, calendar 72 / 12, every id resolving, roles agreeing with the tables, total ≤ 30 MB); buildPointer / emptyPointer; NONE_MESSAGE 'art pack: none — the drawn room stands'. Japanese titles live in the curation data, never here; nothing under src/ imports this file.",
+  "api": "export const MANIFEST_SCHEMA, PACK_SCHEMA, CURATION_SCHEMA, PACK_REPO, PACK_TIER, STATION_COUNT=55, KO_COUNT=72, MONTH_COUNT=12, ENCODER, MAX_LQIP_CHARS=1000, MAX_PRINT_BYTES=400000, MAX_PACK_BYTES=30000000, AIC_MUSEUM, AIC_LICENSE, AIC_SOURCE, CREDITS, NONE_MESSAGE, ART_VERSION_RE, ID_RE; releaseTag(v) assetName(v) artworkUrl(objectId) sha256Hex(buf) sha8(buf) stableStringify(v) encoderString(e?) artVersionOf(curationJson,encoder) webpDimensions(buf):{width;height} orientationOf(w,h) slugify(s) printId(series,nn,name) parsePrintId(id) printFile(id,sha256) manifestProblems(m):string[] buildPointer(artVersion,{sha256,bytes},repo?) emptyPointer(repo?); types Trilingual ArtEncoder ArtSource Orientation PrintRoles PrintSource PrintSeries ArtPrint ArtManifest ArtPackAsset ArtPackPointer CurationSeries CurationEntry CurationCalendar CurationFile",
+  "depends_on": [],
+  "tests": "schema.test.ts: artVersionOf is p- + 10 hex, the same whatever the key order, different when the curation or the encoder changes; webpDimensions reads VP8 / VP8L / VP8X and a real cwebp preview and rejects a JPEG, a short buffer, a broken signature, an unknown chunk; slugify / printId / parsePrintId / printFile; buildPointer and emptyPointer; manifestProblems: the fixture pack is sound and a gap, a stray key, a short table, an unknown id, each broken print field, a roles / table disagreement and a total over 30 MB are named one line each",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/art/source-prints.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (design 09 §12.1 d78; docs/ART_PACK.md §4) art:source — curation → museum record → IIIF JPEG → cwebp → manifest. Merges scripts/art/curation/*.json (a duplicate id, a series that differs between files, two prints on one station or kō: error) and checks the three tables for gaps BEFORE the first download; fetches each Art Institute of Chicago record (recordProblems: is_public_domain must be true, an image_id, an accession number and a credit line, or it cannot ship); streams the JPEG at full/1600, into .art-cache/raw/<aicId>.jpg (≤ 4 in flight; a present file is reused); encodes with the local cwebp CLI (-q 82 -m 6 -resize 1400 0, plus a 24 px -q 40 preview that becomes the lqip data URI) into .art-cache/webp keyed by sha256(raw) + the encoder string; measures the WebP header; copies to public/art/prints/<id>-<sha8>.webp and writes the manifest last, after manifestProblems found nothing; a full run prunes unnamed prints; --only / --limit write a PARTIAL manifest (full tables, some prints) that art:check fails and art:pack refuses and never overwrite a complete pack without --force; --dry-run lists the merged curation, the tables and the artVersion and touches no network. The IIIF host rejects a User-Agent carrying a URL, so images go as the bare token tsuzuku-art/1 while the API gets the full USER_AGENT. Downloaded bytes are hashed, header-read and handed to cwebp — never executed or imported.",
+  "api": "CLI: node scripts/art/source-prints.ts [--dry-run] [--only <id,…>] [--limit N] [--force] [--curation scripts/art/curation] [--dest public/art] [--cache .art-cache] [--cwebp cwebp]; export async function sourcePrints(o:SourceOptions):Promise<SourceOutcome>; export function readCurationDir(dir):CurationInput[]; mergeCuration(files):MergedCuration; tableGaps(c):string[]; recordProblems(record,aicId):string[]; fetchRecord(fetch,aicId):Promise<AicRecord>; ensureRaw(fetch,record,rawDir); pool(items,n,fn); cwebpArgs(input,output,quality,width):string[]; encodePrint(cwebp,id,rawPath,webpDir):Encoded; buildPrint(entry,series,record,enc):ArtPrint; export const USER_AGENT, IMAGE_USER_AGENT, API, IIIF, IMAGE_WIDTH=1600, CONCURRENCY=4, LQIP_QUALITY=40, AIC_FIELDS, recordUrl(aicId), imageUrl(imageId,width?); types AicRecord CurationInput MergedCuration SourceOptions SourceOutcome Encoded",
+  "depends_on": [
+   "scripts/art/schema.ts",
+   "scripts/audio/fetch-audio-pack.ts"
+  ],
+  "tests": "source-prints.test.ts: mergeCuration (entries sorted by id, stations and calendar from the roles, an explicit calendar laid over the gaps, the hash independent of authoring order; a duplicate id, a differing series, an unknown series, two prints on one station / kō, a bad table and a malformed entry refused); recordProblems; the API URL, the IIIF URL, the cwebp arguments and the two user agents; pool keeps order and bounds flight; end to end with a stub cwebp and a canned museum: a dry run touches no network, a full run fetches every record and JPEG, encodes, measures, hashes and writes a sound manifest, a --only / --limit run is partial and refused over a complete manifest without --force, and a curation with gaps, a non-CC0 record, a challenge page, an HTTP error or a missing cwebp stops the run",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/art/check-art.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (docs/ART_PACK.md §5; deploy.yml's last step) art:check — no manifest → NONE_MESSAGE (exit 0 with --optional, else 1); manifestProblems (schema.ts); every file the manifest names present with its bytes and sha256 and its own WebP header saying the manifest's width × height; each failure one FAIL: line, exit 1 on any.",
+  "api": "CLI: node scripts/art/check-art.ts [--optional] [--art public/art]; export function checkArt(o:CheckOptions):{code:number;findings:Finding[]}; export function checkFiles(artDir,manifest):Finding[]; export const NONE_MESSAGE; types Finding CheckOptions",
+  "depends_on": [
+   "scripts/art/schema.ts"
+  ],
+  "tests": "check-art.test.ts: no manifest exits 0 with --optional and 1 without; the fixture pack passes (55 prints of the three header kinds, every file hashed and measured); a missing file, a wrong sha256, a wrong byte count, a header that disagrees, a missing station and a long lqip each fail on their own line",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/art/pack.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (docs/ART_PACK.md §6) art:pack — one tar tsuzuku-art-<artVersion>.tar from manifest.json and every prints/** file the manifest names (the system tar, -C public/art -T <list>; GNU tar and bsdtar both take a list file); refuses a manifest with problems (a --only / --limit run, a gap) or a file missing on disk, so only a whole, checked pack ships; rewrites the committed pointer public/art-pack.json (tsuzuku.art-pack/1, tier prints, tag art-<artVersion>, sha256, bytes, credits) through buildPointer.",
+  "api": "CLI: node scripts/art/pack.ts [--art public/art] [--out .art-cache/release] [--pointer public/art-pack.json] [--tar tar]; export function pack(o:PackOptions):ArtPackPointer; export function tarPaths(manifest):string[]; re-exports buildPointer, emptyPointer; types PackOptions",
+  "depends_on": [
+   "scripts/art/schema.ts"
+  ],
+  "tests": "pack.test.ts: tarPaths is the manifest and every print, sorted; public/art-pack.json is the placeholder or a well-formed release pointer; the fixture pack tars with the system tar and the tar lists exactly tarPaths, the pointer carrying its sha256 and bytes; a missing manifest, a partial manifest and a file missing on disk are refused before any tar runs",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/art/publish.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (docs/ART_PACK.md §6) art:publish — a DRY RUN unless --yes (the npm script passes --dry-run by design): verifyAssets checks the local tar's sha256 and bytes against the pointer, publishCommands plans `gh release create art-<artVersion> --notes <museum, licence, assets>` then `gh release upload … --clobber`; with --yes it runs them (an existing release is only uploaded to). The lead publishes the release.",
+  "api": "CLI: node scripts/art/publish.ts [--dry-run] [--yes] [--pointer public/art-pack.json] [--assets .art-cache/release] [--repo owner/name]; export function publish(o:PublishOptions):number; export function publishCommands(pointer,assetsDir,repo?):PublishPlan; export function verifyAssets(pointer,assetsDir):string[]; types PublishPlan PublishOptions",
+  "depends_on": [
+   "scripts/art/schema.ts"
+  ],
+  "tests": "publish.test.ts: publishCommands creates art-<artVersion> with the credit in the notes and uploads the tar with --clobber, the placeholder has no release; verifyAssets wants the tar present with the pointer bytes and sha256; publish is a dry run unless --yes and exits 1 on a mismatch",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/art/fetch-art-pack.ts",
+  "kind": "lib",
+  "responsibility": "[P1] (docs/ART_PACK.md §7; deploy.yml) art:fetch — scripts/audio/fetch-audio-pack.ts's fetchAudioPack with the art pointer (public/art-pack.json, artVersion in place of audioVersion), public/art as the destination, NONE_MESSAGE and the label 'art pack': the release art-<artVersion> is looked up through the GitHub API, the asset streamed to a temp file and sha256-verified against the pointer, then tar -xf. No pack (no pointer, an empty asset list, a 404 release) exits 0 with 'art pack: none — the drawn room stands'; every other failure exits 1 whatever the flags and leaves public/art untouched.",
+  "api": "CLI: node scripts/art/fetch-art-pack.ts [--optional] [--pointer public/art-pack.json] [--dest public/art] [--repo owner/name]; export function fetchArtPack(o?:Partial<FetchOptions>):Promise<FetchOutcome>; export function defaultPointerPath():string; defaultDest():string; export const NONE_MESSAGE, LABEL",
+  "depends_on": [
+   "scripts/audio/fetch-audio-pack.ts",
+   "scripts/art/schema.ts"
+  ],
+  "tests": "fetch-art-pack.test.ts: defaults to public/art-pack.json → public/art; no pointer and the committed placeholder are 'none' without a network call; a streamed asset is verified and extracted with the art label; a sha256 mismatch exits 1 and extracts nothing; a 404 release is 'none'",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/art/curation/tokaido.json",
+  "responsibility": "[P1] (docs/ART_PACK.md §2) tsuzuku.art-curation/1 — the 55 stops of the Hōeidō Tōkaidō (Utagawa Hiroshige, 東海道五拾三次之内, c. 1833–34): one entry per station 0 Nihonbashi … 54 Kyoto (Sanjō Ōhashi) with the Art Institute of Chicago artwork id, the title as ja + reading + en, the focal point for the band and thumb crops and the station role; `why` names the impression chosen (first-state Buckingham or Gookin where the museum holds several) and the alternates. Station headpieces and the Road's thumbs come from here.",
+  "api": "data: { schema: \"tsuzuku.art-curation/1\", series: { hoeido: { ja, reading, en, artist: { ja, reading, en }, date } }, entries: [55 × { id, aicId, title: { ja, reading, en }, series: \"hoeido\", focus: [x, y], roles: { station }, why }] }",
+  "depends_on": [],
+  "tests": "curation.test.ts: the merged tables serve every station, kō and month with nothing claimed twice; every museum object id is used once across the files; every title and series carries a Latin reading beside the Japanese",
+  "owner_group": "C"
+ },
+ {
+  "path": "scripts/art/curation/calendar.json",
+  "responsibility": "[P1] (docs/ART_PACK.md §2) tsuzuku.art-curation/1 — the 72 day prints (one per kō 0..71, Risshun first) and 12 night prints (one per month) of the Dojo: Thirty-six Views of Mount Fuji (Katsushika Hokusai), One Hundred Famous Views of Edo, Sixty-nine Stations of the Kisokaidō and Eight Views of Ōmi (Utagawa Hiroshige), plus the Hōeidō sheets that fit a season (at most twelve borrowed); an explicit `calendar` block names both tables in full; each entry carries the matching kos / nightMonths role.",
+  "api": "data: { schema: \"tsuzuku.art-curation/1\", series: { fugaku36, edo100, kisokaido, omi8 }, entries: [72 × { id, aicId, title, series, focus, roles: { kos | nightMonths }, why }], calendar: { day: [72 ids], night: [12 ids] } }",
+  "depends_on": [],
+  "tests": "curation.test.ts: the file names the whole calendar explicitly and defines no series another file owns; every entry has a calendar role the tables honour; no print sits on both the day and the night table; the day table is at least two-thirds landscape",
   "owner_group": "C"
  },
  {

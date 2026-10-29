@@ -9,6 +9,10 @@ on:
         description: 'Fetch the voice pack named in public/audio-pack.json into the build (false rehearses the no-pack path: the site speaks through the device voice)'
         type: boolean
         default: true
+      art:
+        description: 'Fetch the print pack named in public/art-pack.json into the build (false rehearses the no-pack path: the drawn room stands)'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -40,11 +44,23 @@ jobs:
         run: npm run audio:fetch -- --optional
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The print pack is a release asset too (tag art-<artVersion>, docs/ART_PACK.md §7): fetch-art-pack.ts runs the voice pack's
+      # streaming fetch + sha256 check with the art pointer, into public/art. No pointer, an empty asset list or a missing release
+      # exits 0 with "art pack: none — the drawn room stands"; a hash or size mismatch exits 1 whatever the flags.
+      # Cost with the pack: ≈ 20 MB download here + ≈ 20 MB more in the Pages artifact below (≤ 30 MB by the pack budget).
+      - name: Fetch the print pack
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.art == true }}
+        run: npm run art:fetch -- --optional
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm test
       - run: npm run build
       # Stale contentVersion warns; an index kana that differs from the content fails; dist over 900 MB fails.
       - name: Check the voice pack against the content and the dist budget
         run: npm run audio:check -- --optional
+      # Every print the manifest names is present with its bytes, sha256 and header size; the station and calendar tables are complete.
+      - name: Check the print pack
+        run: npm run art:check -- --optional
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

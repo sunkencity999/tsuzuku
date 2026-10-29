@@ -1,10 +1,15 @@
 /**
- * StationPage.tsx — quotas from STATIONS, progress bars, scrolls, texts, Michikusa count, gate button disabled with its reason until ready, Shinsa link.
+ * StationPage.tsx — quotas from STATIONS, progress bars, scrolls, texts, Michikusa count, gate button disabled with its reason until ready, Shinsa link;
+ * the print band (prints B3): the station's print in the headpiece's place with the pack, its caption under the sign plate, the data saver's
+ * preview-and-button, the waiting box while it loads, the procedural piece without one.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { signal } from '@preact/signals';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FIXTURE_IDS, FIXTURE_LQIP, PRINT_S, altOf, captionOf, makeFixtureManifest, makeFixtureManifestJson, printForStation, printSrc, resetArtForTests } from '@/art/prints';
 import type { CardKey, ListeningPool, StoryItem } from '../../content/types';
 import { DIALOGUE, FIXTURE, STATION_1, STATION_4, STORY, V, G, createFakeLoader, type Fixture } from '../../content/fixtures';
 import { installServices, nullAudio, resetServices, type AudioService } from '../../shared/audio';
@@ -55,6 +60,9 @@ afterEach(() => {
   root.remove();
   resetStoreForTests();
   bus.reset();
+  // the print manifest is fetched once per session: forget it (and any fetch stub) between tests
+  resetArtForTests();
+  vi.unstubAllGlobals();
 });
 
 const settle = async (rounds = 5): Promise<void> => {
@@ -380,5 +388,195 @@ describe('耳 Ear panel (design 08 §10.1)', () => {
     await settle();
     expect(Array.from(root.querySelectorAll('.station-ear__row')).map((r) => r.getAttribute('data-row'))).toEqual(['set', 'readalong', 'radio']);
     expect(root.querySelector('.station-ear__row[data-row="readalong"] a')?.getAttribute('href')).toBe('#/story/s-04-4/listen');
+  });
+});
+
+describe('the print band (prints B3)', () => {
+  type FetchFn = (url: string) => Promise<Response>;
+  const packFetch: FetchFn = async () => ({ ok: true, json: async () => makeFixtureManifestJson() }) as unknown as Response;
+  const noPack: FetchFn = async () => ({ ok: false, status: 404 }) as unknown as Response;
+  const M = makeFixtureManifest();
+  const piece = (): HTMLElement => root.querySelector<HTMLElement>('.station-head__piece')!;
+
+  beforeEach(() => resetArtForTests());
+
+  it("hangs the station's own print as an eager band in the headpiece's place — alt-named, cropped about its focus — with the sign plate over its foot, the print's caption under the plate (title, reading, series, museum line) and no procedural piece", async () => {
+    const f = vi.fn(packFetch);
+    vi.stubGlobal('fetch', f);
+    await makeTestStore({ save: { progress: { station: 13 }, profile: { belt: 'orange' } } });
+    await mount(13);
+    const expected = printForStation(M, 13)!;
+    expect(expected.id).toBe(FIXTURE_IDS.bridge);
+    const fig = piece().querySelector('figure.print--band')!;
+    expect(fig).not.toBeNull();
+    const img = fig.querySelector<HTMLImageElement>('img.print__img')!;
+    expect(img.getAttribute('src')).toBe(printSrc(expected));
+    expect(img.getAttribute('alt')).toBe(altOf(expected));
+    expect(img.getAttribute('loading')).toBe('eager');
+    expect(img.getAttribute('fetchpriority')).toBe('high');
+    expect(img.style.objectPosition).toBe('40% 50%');
+    expect(root.querySelectorAll('.station-head figure.print')).toHaveLength(1);
+    // the caption hangs under the sign plate, not inside the band (the plate rides the band's foot): the Japanese title
+    // (set by [lang="ja"] in --font-ja, never .mincho — the manifest's glyphs are outside the shell slices, 09 §3.5), then
+    // artist · reading · English, the series with its reading and date, the museum line — each Japanese span with its gloss
+    expect(fig.querySelector('figcaption')).toBeNull();
+    const cap = piece().nextElementSibling!.nextElementSibling!;
+    expect(cap.tagName).toBe('P');
+    expect(cap.classList.contains('station-cap')).toBe(true);
+    const c = captionOf(expected);
+    const ja = cap.querySelector<HTMLElement>('.station-cap__ja')!;
+    expect(ja.getAttribute('lang')).toBe('ja');
+    expect(ja.classList.contains('mincho')).toBe(false);
+    expect(cap.querySelector('.mincho')).toBeNull();
+    expect(ja.textContent).toBe(`${c.artistJa}《${c.titleJa}》`);
+    expect(cap.textContent).toBe(`${c.artistJa}《${c.titleJa}》 · Fixture Artist · Hashi no yu · Evening at the bridge · ${PRINT_S.printFrom} Fixture no uchi Fikusucha no uchi · The fixture series, c. 1833-34 · Fixture Museum, Fixture collection 0000.2 · CC0 1.0`);
+    expect(cap.textContent).toContain(c.source);
+    expect(cap.querySelectorAll('[lang="ja"]')).toHaveLength(2);
+    expect(root.querySelectorAll('.station-cap')).toHaveLength(1);
+    // no procedural headpiece, no role or label on the box (the image's alt carries the picture), no waiting mark
+    expect(piece().querySelector('svg.headpiece__svg')).toBeNull();
+    expect(piece().classList.contains('headpiece')).toBe(false);
+    expect(piece().hasAttribute('role')).toBe(false);
+    expect(piece().hasAttribute('aria-label')).toBe(false);
+    expect(piece().hasAttribute('data-wait')).toBe(false);
+    // the sign plate follows the band exactly as before, and the keeper row below is unchanged
+    const sign = piece().nextElementSibling!;
+    expect(sign.classList.contains('sign--head')).toBe(true);
+    expect(sign.querySelector('.sign__reading')?.textContent).toBe('Hara');
+    expect(sign.querySelector('.headpiece, figure')).toBeNull();
+    expect(root.querySelector('.station-head__keeper .station-head__gate-glyph')).not.toBeNull();
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+
+  it('a session without a pack (404) draws the procedural headpiece as before', async () => {
+    vi.stubGlobal('fetch', vi.fn(noPack));
+    await makeTestStore({ save: { progress: { station: 13 } } });
+    await mount(13);
+    expect(piece().querySelector('svg.headpiece__svg')).not.toBeNull();
+    expect(piece().classList.contains('headpiece')).toBe(true);
+    expect(piece().getAttribute('role')).toBe('img');
+    expect(piece().querySelector('figure.print')).toBeNull();
+    expect(piece().hasAttribute('data-wait')).toBe(false);
+    expect(root.querySelector('.station-cap')).toBeNull();
+  });
+
+  it('while the manifest loads the band box waits (data-wait, empty: no procedural flash); the print lands when it settles', async () => {
+    let settleFetch!: (r: Response) => void;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((r) => {
+            settleFetch = r;
+          }),
+      ),
+    );
+    await makeTestStore({ save: { progress: { station: 13 } } });
+    await mount(13);
+    expect(piece().hasAttribute('data-wait')).toBe(true);
+    expect(piece().children).toHaveLength(0);
+    expect(piece().hasAttribute('role')).toBe(false);
+    // never the 160 px procedural `.headpiece` (road.css, loaded by useRoadArt): the wait box is the band's own box — 4 / 1,
+    // the same 1 px border, content-box so the two measure alike at every width — and the print lands with no shift
+    expect(piece().classList.contains('headpiece')).toBe(false);
+    expect(piece().className).toBe('station-head__piece');
+    const css = readFileSync(resolve(process.cwd(), 'src/session/pages/pages.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    const wait = /\.station-head__piece\[data-wait\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(wait).toMatch(/box-sizing:\s*content-box/);
+    expect(wait).toMatch(/width:\s*calc\(100% - 2px\)/);
+    expect(wait).toMatch(/aspect-ratio:\s*4 \/ 1/);
+    expect(wait).toMatch(/border:\s*1px solid var\(--line\)/);
+    expect(wait).not.toMatch(/height:/);
+    expect(root.querySelector('.station-head .sign--head .sign__number')?.textContent).toBe('Station 13');
+    expect(root.querySelector('.station-cap')).toBeNull();
+    settleFetch({ ok: true, json: async () => makeFixtureManifestJson() } as unknown as Response);
+    await settle();
+    expect(piece().hasAttribute('data-wait')).toBe(false);
+    expect(piece().classList.contains('headpiece')).toBe(false);
+    const band = piece().querySelector('figure.print--band')!;
+    expect(band.querySelector('img')?.getAttribute('src')).toBe(printSrc(printForStation(M, 13)!));
+    // an uncaptioned figure is presentational: nothing announces an unnamed "figure" over the sign plate
+    expect(band.getAttribute('role')).toBe('presentation');
+    expect(piece().querySelector('svg')).toBeNull();
+    expect(root.querySelector('.station-cap')).not.toBeNull();
+  });
+
+  it('Nihonbashi (station 0) hangs its print above its title with the caption under the title; without a pack its head is the plain one', async () => {
+    vi.stubGlobal('fetch', vi.fn(packFetch));
+    await makeTestStore();
+    await mount(0);
+    const fig = root.querySelector('.page__head > figure.print--band.station-zero__print')!;
+    expect(fig).not.toBeNull();
+    expect(fig.querySelector('img')?.getAttribute('src')).toBe(printSrc(printForStation(M, 0)!));
+    expect(fig.querySelector('img')?.getAttribute('loading')).toBe('eager');
+    expect(fig.nextElementSibling?.classList.contains('page__title')).toBe(true);
+    expect(text()).toContain('Nihonbashi');
+    // the caption: under the title, before the Nihonbashi line, the same four parts as a station's
+    const cap = root.querySelector('.page__head > .station-cap')!;
+    expect(cap).not.toBeNull();
+    expect(cap.previousElementSibling?.classList.contains('page__title')).toBe(true);
+    expect(cap.nextElementSibling?.classList.contains('page__sub')).toBe(true);
+    const c = captionOf(printForStation(M, 0)!);
+    expect(cap.querySelector('.station-cap__ja')?.textContent).toBe(`${c.artistJa}《${c.titleJa}》`);
+    expect(cap.textContent).toContain('Fixture Artist · Kawa no asa · Morning on the river');
+    expect(cap.textContent).toContain(c.source);
+    render(null, root);
+    resetArtForTests();
+    vi.stubGlobal('fetch', vi.fn(noPack));
+    await mount(0);
+    expect(root.querySelector('figure.print')).toBeNull();
+    expect(root.querySelector('.station-cap')).toBeNull();
+    expect(root.querySelector('.page__head')?.firstElementChild?.classList.contains('page__title')).toBe(true);
+    expect(text()).toContain('Nihonbashi');
+  });
+
+  it('under the data saver (the setting, or the browser\'s Save-Data) the band keeps its preview and a "Show the print" button — no eager image — with the caption still under the plate; the tap loads that one print; Nihonbashi the same', async () => {
+    vi.stubGlobal('fetch', vi.fn(packFetch));
+    await makeTestStore({ save: { progress: { station: 13 }, settings: { dataSaver: true } } });
+    await mount(13);
+    const expected = printForStation(M, 13)!;
+    const fig = piece().querySelector<HTMLElement>('figure.print--band')!;
+    expect(fig).not.toBeNull();
+    expect(root.querySelectorAll('img')).toHaveLength(0);
+    expect(fig.querySelector<HTMLElement>('.print__box')!.style.backgroundImage).toContain(FIXTURE_LQIP);
+    const btn = fig.querySelector<HTMLButtonElement>('button.print__show')!;
+    expect(btn).not.toBeNull();
+    expect(btn.textContent).toBe(PRINT_S.printShow);
+    expect(root.querySelector('.station-cap')?.textContent).toContain(captionOf(expected).source);
+    expect(piece().querySelector('svg.headpiece__svg')).toBeNull();
+    act(() => {
+      btn.click();
+    });
+    const img = fig.querySelector<HTMLImageElement>('img.print__img')!;
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('src')).toBe(printSrc(expected));
+    expect(img.getAttribute('loading')).toBe('eager');
+    expect(root.querySelectorAll('img')).toHaveLength(1);
+    // Nihonbashi
+    render(null, root);
+    await makeTestStore({ save: { settings: { dataSaver: true } } });
+    await mount(0);
+    expect(root.querySelector('figure.print--band img')).toBeNull();
+    expect(root.querySelector('figure.print--band button.print__show')).not.toBeNull();
+    expect(root.querySelector('.page__head > .station-cap')).not.toBeNull();
+    // the browser's own signal with the setting off (design 08 §13: either one is the data saver)
+    render(null, root);
+    await makeTestStore({ save: { progress: { station: 13 } } });
+    expect(store.settings.value.dataSaver).toBe(false);
+    const nav = globalThis.navigator as { connection?: unknown };
+    Object.defineProperty(nav, 'connection', { value: { saveData: true }, configurable: true });
+    try {
+      await mount(13);
+      expect(root.querySelector('figure.print--band img')).toBeNull();
+      expect(root.querySelector('figure.print--band button.print__show')).not.toBeNull();
+    } finally {
+      delete nav.connection;
+    }
+    // and with neither, the eager image as before
+    render(null, root);
+    await makeTestStore({ save: { progress: { station: 13 } } });
+    await mount(13);
+    expect(root.querySelector('figure.print--band img')?.getAttribute('loading')).toBe('eager');
+    expect(root.querySelector('button.print__show')).toBeNull();
   });
 });

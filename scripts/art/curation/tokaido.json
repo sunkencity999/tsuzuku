@@ -1,0 +1,509 @@
+{
+  "schema": "tsuzuku.art-curation/1",
+  "series": {
+    "hoeido": {
+      "ja": "東海道五拾三次之内",
+      "reading": "Tōkaidō gojūsan tsugi no uchi",
+      "en": "Fifty-three Stations of the Tōkaidō (Hōeidō edition)",
+      "artist": { "ja": "歌川広重", "reading": "Utagawa Hiroshige", "en": "Utagawa Hiroshige" },
+      "date": "c. 1833–34"
+    }
+  },
+  "entries": [
+    {
+      "id": "hoeido-00-nihonbashi",
+      "aicId": 25544,
+      "title": { "ja": "日本橋 朝之景", "reading": "Nihonbashi, asa no kei", "en": "Nihon Bridge: Morning Scene" },
+      "series": "hoeido",
+      "focus": [0.5, 0.48],
+      "roles": { "station": 0 },
+      "why": "First state (1925.3498, Buckingham): the sparse dawn bridge with the procession and fish sellers. Alternate: 47850 (1943.720), the later crowded state titled 行列振出 gyōretsu furidashi."
+    },
+    {
+      "id": "hoeido-01-shinagawa",
+      "aicId": 25548,
+      "title": { "ja": "品川 諸侯出立", "reading": "Shinagawa, shokō detachi", "en": "Shinagawa: Departure of the Daimyo" },
+      "series": "hoeido",
+      "focus": [0.55, 0.6],
+      "roles": { "station": 1 },
+      "why": "First-state impression (1925.3499, Buckingham) with the deeper sea and sky bands; pairs with the first-state Nihonbashi. Alternate: 25551 (1925.3500), the later state titled 日之出 hinode, paler."
+    },
+    {
+      "id": "hoeido-02-kawasaki",
+      "aicId": 33894,
+      "title": { "ja": "川崎 六郷渡舟", "reading": "Kawasaki, Rokugō watashibune", "en": "Kawasaki: The Rokugo Ferry" },
+      "series": "hoeido",
+      "focus": [0.45, 0.6],
+      "roles": { "station": 2 },
+      "why": "Gookin impression (1939.1365): clearer Fuji and richer river blue. Alternate: 25555 (1925.3501, Buckingham), toned paper."
+    },
+    {
+      "id": "hoeido-03-kanagawa",
+      "aicId": 25558,
+      "title": { "ja": "神奈川 台之景", "reading": "Kanagawa, dai no kei", "en": "Kanagawa: View of the Embankment" },
+      "series": "hoeido",
+      "focus": [0.55, 0.5],
+      "roles": { "station": 3 },
+      "why": "Only impression at AIC (1925.3502, Buckingham); the teahouse hill on the right with the bay below."
+    },
+    {
+      "id": "hoeido-04-hodogaya",
+      "aicId": 25561,
+      "title": { "ja": "保土ヶ谷 新町橋", "reading": "Hodogaya, Shinmachibashi", "en": "Hodogaya: Shinmachi Bridge" },
+      "series": "hoeido",
+      "focus": [0.55, 0.6],
+      "roles": { "station": 4 },
+      "why": "Only impression at AIC (1925.3503, Buckingham); the procession crossing the bridge at lower right."
+    },
+    {
+      "id": "hoeido-05-totsuka",
+      "aicId": 25566,
+      "title": { "ja": "戸塚 元町別道", "reading": "Totsuka, Motomachi betsudō", "en": "Totsuka: The Fork at Motomachi" },
+      "series": "hoeido",
+      "focus": [0.38, 0.6],
+      "roles": { "station": 5 },
+      "why": "The brighter of two Buckingham impressions (1925.3505): fresher blues and greens. Alternate: 25563 (1925.3504), paler."
+    },
+    {
+      "id": "hoeido-06-fujisawa",
+      "aicId": 25569,
+      "title": { "ja": "藤沢 遊行寺", "reading": "Fujisawa, Yugyōji", "en": "Fujisawa: Yugyo Temple" },
+      "series": "hoeido",
+      "focus": [0.4, 0.55],
+      "roles": { "station": 6 },
+      "why": "Only impression at AIC (1925.3506, Buckingham); the torii and bridge at lower left, the temple on the hill."
+    },
+    {
+      "id": "hoeido-07-hiratsuka",
+      "aicId": 25574,
+      "title": { "ja": "平塚 縄手道", "reading": "Hiratsuka, Nawate michi", "en": "Hiratsuka: Nawate Road" },
+      "series": "hoeido",
+      "focus": [0.45, 0.5],
+      "roles": { "station": 7 },
+      "why": "Only impression at AIC (1925.3507, Buckingham); the rounded hill with the two runners meeting below it."
+    },
+    {
+      "id": "hoeido-08-oiso",
+      "aicId": 25579,
+      "title": { "ja": "大磯 虎ヶ雨", "reading": "Ōiso, Tora ga ame", "en": "Oiso: Tora's Rain" },
+      "series": "hoeido",
+      "focus": [0.6, 0.6],
+      "roles": { "station": 8 },
+      "why": "The fresher of two Buckingham impressions (1925.3508): stronger sea blue under the rain. Alternate: 25580 (1925.3509), paler."
+    },
+    {
+      "id": "hoeido-09-odawara",
+      "aicId": 18253,
+      "title": { "ja": "小田原 酒匂川", "reading": "Odawara, Sakawagawa", "en": "Odawara: The Sakawa River" },
+      "series": "hoeido",
+      "focus": [0.45, 0.6],
+      "roles": { "station": 9 },
+      "why": "Henderson impression (1963.665): the pink and blue mountain colours intact, full margins. Alternates: 25584 (1925.3510, similar), 23745 (1937.199, muted later state)."
+    },
+    {
+      "id": "hoeido-10-hakone",
+      "aicId": 33884,
+      "title": { "ja": "箱根 湖水図", "reading": "Hakone, kosui no zu", "en": "Hakone: View of the Lake" },
+      "series": "hoeido",
+      "focus": [0.55, 0.45],
+      "roles": { "station": 10 },
+      "why": "Gookin impression (1939.1362): whiter Fuji and deeper lake. Alternate: 25585 (1925.3511, Buckingham), paler."
+    },
+    {
+      "id": "hoeido-11-mishima",
+      "aicId": 10926,
+      "title": { "ja": "三島 朝霧", "reading": "Mishima, asagiri", "en": "Mishima: Morning Mist" },
+      "series": "hoeido",
+      "focus": [0.42, 0.55],
+      "roles": { "station": 11 },
+      "why": "Warner gift (1932.170), the impression the approved concept page and the pack contract example already use; soft grey mist well preserved. Alternates: 149126 (1997.757, greener), 33891 (1939.1364), 25588 (1925.3512)."
+    },
+    {
+      "id": "hoeido-12-numazu",
+      "aicId": 25594,
+      "title": { "ja": "沼津 黄昏図", "reading": "Numazu, tasogare zu", "en": "Numazu: Twilight" },
+      "series": "hoeido",
+      "focus": [0.55, 0.55],
+      "roles": { "station": 12 },
+      "why": "Only impression at AIC (1925.3513, Buckingham); the full moon over the river and the pilgrim with the tengu mask."
+    },
+    {
+      "id": "hoeido-13-hara",
+      "aicId": 13219,
+      "title": { "ja": "原 朝之富士", "reading": "Hara, asa no Fuji", "en": "Hara: Mount Fuji in the Morning" },
+      "series": "hoeido",
+      "focus": [0.5, 0.4],
+      "roles": { "station": 13 },
+      "why": "Wright gift (1961.156), the impression the approved concept page uses; Fuji breaks the upper border. Alternate: 25597 (1925.3514, Buckingham), cooler."
+    },
+    {
+      "id": "hoeido-14-yoshiwara",
+      "aicId": 10929,
+      "title": { "ja": "吉原 左富士", "reading": "Yoshiwara, hidari Fuji", "en": "Yoshiwara: Mount Fuji on the Left" },
+      "series": "hoeido",
+      "focus": [0.6, 0.5],
+      "roles": { "station": 14 },
+      "why": "Warner gift (1932.171), sibling of the Mishima impression; clean sky and the Fuji seen through the pines. Alternates: 25600 (1925.3516), 25599 (1925.3515)."
+    },
+    {
+      "id": "hoeido-15-kanbara",
+      "aicId": 25613,
+      "title": { "ja": "蒲原 夜之雪", "reading": "Kanbara, yoru no yuki", "en": "Kanbara: Evening Snow" },
+      "series": "hoeido",
+      "focus": [0.5, 0.6],
+      "roles": { "station": 15 },
+      "why": "Buckingham impression (1925.3517), the one the approved concept page uses as the night print. Alternate: 33881 (1939.1361, Gookin), darker sky."
+    },
+    {
+      "id": "hoeido-16-yui",
+      "aicId": 18255,
+      "title": { "ja": "由比 薩埵嶺", "reading": "Yui, Satta mine", "en": "Yui: Satta Peak" },
+      "series": "hoeido",
+      "focus": [0.45, 0.45],
+      "roles": { "station": 16 },
+      "why": "Henderson impression (1963.666): orange sky band and deep bay. Alternate: 25616 (1925.3518), paler. The sheet is inscribed 由井; the app writes the station 由比 (same reading)."
+    },
+    {
+      "id": "hoeido-17-okitsu",
+      "aicId": 25618,
+      "title": { "ja": "興津 興津川", "reading": "Okitsu, Okitsugawa", "en": "Okitsu: The Okitsu River" },
+      "series": "hoeido",
+      "focus": [0.55, 0.65],
+      "roles": { "station": 17 },
+      "why": "Only impression at AIC (1925.3519, Buckingham); the two sumo wrestlers carried across the ford."
+    },
+    {
+      "id": "hoeido-18-ejiri",
+      "aicId": 25625,
+      "title": { "ja": "江尻 三保遠望", "reading": "Ejiri, Miho enbō", "en": "Ejiri: Distant View of Miho" },
+      "series": "hoeido",
+      "focus": [0.5, 0.5],
+      "roles": { "station": 18 },
+      "why": "Only impression at AIC (1925.3520, Buckingham); the pine spit of Miho and the harbour masts."
+    },
+    {
+      "id": "hoeido-19-fuchu",
+      "aicId": 18257,
+      "title": { "ja": "府中 安倍川", "reading": "Fuchū, Abekawa", "en": "Fuchu: The Abe River" },
+      "series": "hoeido",
+      "focus": [0.6, 0.65],
+      "roles": { "station": 19 },
+      "why": "Henderson impression (1963.667): crisp, deeper blue and a dark green mountain. Alternate: 25628 (1925.3521), the mountain printed reddish."
+    },
+    {
+      "id": "hoeido-20-mariko",
+      "aicId": 25632,
+      "title": { "ja": "鞠子 名物茶店", "reading": "Mariko, meibutsu chamise", "en": "Mariko: Famous Tea Shop" },
+      "series": "hoeido",
+      "focus": [0.6, 0.6],
+      "roles": { "station": 20 },
+      "why": "The most colourful of three (1925.3523, Buckingham): pink dawn sky over the teahouse. Alternates: 25630 (1925.3522), 33879 (1939.1360, Gookin, trimmed)."
+    },
+    {
+      "id": "hoeido-21-okabe",
+      "aicId": 18260,
+      "title": { "ja": "岡部 宇津之山", "reading": "Okabe, Utsu no yama", "en": "Okabe: Utsu Mountain" },
+      "series": "hoeido",
+      "focus": [0.42, 0.55],
+      "roles": { "station": 21 },
+      "why": "Henderson impression (1963.668): deeper sky and gorge greens. Alternate: 25635 (1925.3524), noticeably faded."
+    },
+    {
+      "id": "hoeido-22-fujieda",
+      "aicId": 25649,
+      "title": { "ja": "藤枝 人馬継立", "reading": "Fujieda, jinba tsugitate", "en": "Fujieda: Changing Porters and Horses" },
+      "series": "hoeido",
+      "focus": [0.5, 0.55],
+      "roles": { "station": 22 },
+      "why": "Only impression at AIC (1925.3525, Buckingham); the relay yard with porters and packhorses."
+    },
+    {
+      "id": "hoeido-23-shimada",
+      "aicId": 25653,
+      "title": { "ja": "島田 大井川駿岸", "reading": "Shimada, Ōigawa Sungan", "en": "Shimada: The Suruga Bank of the Oi River" },
+      "series": "hoeido",
+      "focus": [0.5, 0.5],
+      "roles": { "station": 23 },
+      "why": "Only impression at AIC (1925.3526, Buckingham); the crossing seen from above on the Suruga bank. The sheet is inscribed 嶋田; the app writes 島田 (same reading)."
+    },
+    {
+      "id": "hoeido-24-kanaya",
+      "aicId": 33875,
+      "title": { "ja": "金谷 大井川遠岸", "reading": "Kanaya, Ōigawa engan", "en": "Kanaya: The Far Bank of the Oi River" },
+      "series": "hoeido",
+      "focus": [0.5, 0.55],
+      "roles": { "station": 24 },
+      "why": "Gookin impression (1939.1359): blue mountain shading intact, no fold. Alternate: 25657 (1925.3527), a visible centre fold."
+    },
+    {
+      "id": "hoeido-25-nissaka",
+      "aicId": 25660,
+      "title": { "ja": "日坂 佐夜ノ中山", "reading": "Nissaka, Sayo no nakayama", "en": "Nissaka: Sayo Mountain Pass" },
+      "series": "hoeido",
+      "focus": [0.5, 0.65],
+      "roles": { "station": 25 },
+      "why": "Only impression at AIC (1925.3528, Buckingham); travellers around the night-weeping stone on the pass."
+    },
+    {
+      "id": "hoeido-26-kakegawa",
+      "aicId": 25663,
+      "title": { "ja": "掛川 秋葉山遠望", "reading": "Kakegawa, Akibasan enbō", "en": "Kakegawa: Distant View of Mount Akiba" },
+      "series": "hoeido",
+      "focus": [0.4, 0.55],
+      "roles": { "station": 26 },
+      "why": "Only impression at AIC (1925.3529, Buckingham); the bridge, the kite and Mount Akiba."
+    },
+    {
+      "id": "hoeido-27-fukuroi",
+      "aicId": 25668,
+      "title": { "ja": "袋井 出茶屋ノ図", "reading": "Fukuroi, dejaya no zu", "en": "Fukuroi: Tea Stall" },
+      "series": "hoeido",
+      "focus": [0.35, 0.6],
+      "roles": { "station": 27 },
+      "why": "Buckingham impression (1925.3530): pink horizon and full margins. Alternate: 33872 (1939.1358, Gookin), trimmed."
+    },
+    {
+      "id": "hoeido-28-mitsuke",
+      "aicId": 18262,
+      "title": { "ja": "見付 天竜川図", "reading": "Mitsuke, Tenryūgawa zu", "en": "Mitsuke: View of the Tenryu River" },
+      "series": "hoeido",
+      "focus": [0.5, 0.55],
+      "roles": { "station": 28 },
+      "why": "Henderson impression (1963.669): crisp boats and bright river. Alternates: 25672 (1925.3531), 43090 (1941.971, Gookin). The sheet is inscribed 見附; the app writes 見付 (same reading)."
+    },
+    {
+      "id": "hoeido-29-hamamatsu",
+      "aicId": 25679,
+      "title": { "ja": "浜松 冬枯ノ図", "reading": "Hamamatsu, fuyugare no zu", "en": "Hamamatsu: Winter Scene" },
+      "series": "hoeido",
+      "focus": [0.5, 0.65],
+      "roles": { "station": 29 },
+      "why": "The more colourful of two Buckingham impressions (1925.3533): green grass and warm bark, margins trimmed. Alternate: 25676 (1925.3532), full margins, paler."
+    },
+    {
+      "id": "hoeido-30-maisaka",
+      "aicId": 25683,
+      "title": { "ja": "舞坂 今切真景", "reading": "Maisaka, Imagiri shinkei", "en": "Maisaka: View of Imagiri" },
+      "series": "hoeido",
+      "focus": [0.5, 0.45],
+      "roles": { "station": 30 },
+      "why": "Only impression at AIC (1925.3534, Buckingham); the headland across the strait with Fuji small on the right."
+    },
+    {
+      "id": "hoeido-31-arai",
+      "aicId": 18264,
+      "title": { "ja": "新居 渡舟ノ図", "reading": "Arai, watashibune no zu", "en": "Arai: View of Ferryboats" },
+      "series": "hoeido",
+      "focus": [0.5, 0.55],
+      "roles": { "station": 31 },
+      "why": "Henderson impression (1963.670): warmer sky and deeper sea, full margins. Alternate: 25686 (1925.3535). The sheet is inscribed 荒井; the app writes 新居 (same reading)."
+    },
+    {
+      "id": "hoeido-32-shirasuka",
+      "aicId": 25701,
+      "title": { "ja": "白須賀 汐見阪図", "reading": "Shirasuka, Shiomizaka zu", "en": "Shirasuka: View of Shiomi Slope" },
+      "series": "hoeido",
+      "focus": [0.55, 0.55],
+      "roles": { "station": 32 },
+      "why": "The stronger of two Buckingham impressions (1925.3536): orange horizon and green slope. Alternate: 25706 (1925.3537), paler."
+    },
+    {
+      "id": "hoeido-33-futagawa",
+      "aicId": 33868,
+      "title": { "ja": "二川 猿ヶ馬場", "reading": "Futagawa, Sarugababa", "en": "Futakawa: Sarugababa Plateau" },
+      "series": "hoeido",
+      "focus": [0.5, 0.7],
+      "roles": { "station": 33 },
+      "why": "Gookin impression (1939.1357): bluer sky over the moor. Alternate: 25710 (1925.3538), muted. AIC romanises the station Futakawa; the app says Futagawa."
+    },
+    {
+      "id": "hoeido-34-yoshida",
+      "aicId": 59092,
+      "title": { "ja": "吉田 豊川橋", "reading": "Yoshida, Toyokawabashi", "en": "Yoshida: The Toyo River Bridge" },
+      "series": "hoeido",
+      "focus": [0.5, 0.5],
+      "roles": { "station": 34 },
+      "why": "Only impression at AIC (1925.3539, Buckingham); the castle scaffolding on the right, the long bridge on the left."
+    },
+    {
+      "id": "hoeido-35-goyu",
+      "aicId": 16581,
+      "title": { "ja": "御油 旅人留女", "reading": "Goyu, tabibito tomeru onna", "en": "Goyu: Women Stopping Travelers" },
+      "series": "hoeido",
+      "focus": [0.45, 0.6],
+      "roles": { "station": 35 },
+      "why": "Henderson impression (1963.71): slightly fresher colour. Alternate: 25716 (1925.3540, Buckingham), warmer tints, equally sound."
+    },
+    {
+      "id": "hoeido-36-akasaka",
+      "aicId": 25720,
+      "title": { "ja": "赤坂 旅舎招婦ノ図", "reading": "Akasaka, ryosha shōfu no zu", "en": "Akasaka: Waitresses at an Inn" },
+      "series": "hoeido",
+      "focus": [0.5, 0.5],
+      "roles": { "station": 36 },
+      "why": "Only impression at AIC (1925.3541, Buckingham); the inn courtyard around the sago palm. The sheet is inscribed 赤阪; the app writes 赤坂 (same reading)."
+    },
+    {
+      "id": "hoeido-37-fujikawa",
+      "aicId": 20264,
+      "title": { "ja": "藤川 棒鼻ノ図", "reading": "Fujikawa, bōhana no zu", "en": "Fujikawa: View of Post Outskirts" },
+      "series": "hoeido",
+      "focus": [0.5, 0.62],
+      "roles": { "station": 37 },
+      "why": "Henderson impression (1963.671): stronger evening sky. Alternate: 25725 (1925.3542). AIC reads 棒鼻 bōhana; the app's gate name uses Bōbana."
+    },
+    {
+      "id": "hoeido-38-okazaki",
+      "aicId": 18268,
+      "title": { "ja": "岡崎 矢矧之橋", "reading": "Okazaki, Yahagi no hashi", "en": "Okazaki: Yahagi Bridge" },
+      "series": "hoeido",
+      "focus": [0.45, 0.5],
+      "roles": { "station": 38 },
+      "why": "Henderson impression (1963.672): the bluest mountain and strongest colour of four. Alternates: 25729 (1925.3543), 25732 (1925.3544), 33865 (1939.1356, Gookin, trimmed)."
+    },
+    {
+      "id": "hoeido-39-chiryu",
+      "aicId": 25738,
+      "title": { "ja": "池鯉鮒 首夏馬市", "reading": "Chiryū, shuka uma ichi", "en": "Chiryu: Early Summer Horse Market" },
+      "series": "hoeido",
+      "focus": [0.5, 0.55],
+      "roles": { "station": 39 },
+      "why": "The richer of two Buckingham impressions (1925.3546): pink sky with a blue band, greener pasture. Alternate: 59095 (1925.3545), paler sky."
+    },
+    {
+      "id": "hoeido-40-narumi",
+      "aicId": 25741,
+      "title": { "ja": "鳴海 名物有松絞", "reading": "Narumi, meibutsu Arimatsu shibori", "en": "Narumi: Famous Tie-dyed Fabrics of Arimatsu" },
+      "series": "hoeido",
+      "focus": [0.45, 0.6],
+      "roles": { "station": 40 },
+      "why": "Only impression at AIC (1925.3547, Buckingham); the shibori shops with travellers passing."
+    },
+    {
+      "id": "hoeido-41-miya",
+      "aicId": 25744,
+      "title": { "ja": "宮 熱田神事", "reading": "Miya, Atsuta shinji", "en": "Miya: Religious Festival at Atsuta Shrine" },
+      "series": "hoeido",
+      "focus": [0.5, 0.55],
+      "roles": { "station": 41 },
+      "why": "Only impression at AIC (1925.3548, Buckingham); the horse race of the festival past the torii."
+    },
+    {
+      "id": "hoeido-42-kuwana",
+      "aicId": 25748,
+      "title": { "ja": "桑名 七里渡口", "reading": "Kuwana, Shichiri watashiguchi", "en": "Kuwana: The Landing of the Shichiri Ferry Crossing" },
+      "series": "hoeido",
+      "focus": [0.55, 0.55],
+      "roles": { "station": 42 },
+      "why": "The deeper of two Buckingham impressions (1925.3549): darker wave blue around the boats. Alternate: 25751 (1925.3550), lighter."
+    },
+    {
+      "id": "hoeido-43-yokkaichi",
+      "aicId": 25755,
+      "title": { "ja": "四日市 三重川", "reading": "Yokkaichi, Miegawa", "en": "Yokkaichi: Mie River" },
+      "series": "hoeido",
+      "focus": [0.4, 0.55],
+      "roles": { "station": 43 },
+      "why": "Only impression at AIC (1925.3551, Buckingham); the man chasing his hat under the bent willow."
+    },
+    {
+      "id": "hoeido-44-ishiyakushi",
+      "aicId": 25759,
+      "title": { "ja": "石薬師 石薬師寺", "reading": "Ishiyakushi, Ishiyakushiji", "en": "Ishiyakushi: Ishiyakushi Temple" },
+      "series": "hoeido",
+      "focus": [0.45, 0.5],
+      "roles": { "station": 44 },
+      "why": "Only impression at AIC (1925.3552, Buckingham); the temple among trees under the blue mountain."
+    },
+    {
+      "id": "hoeido-45-shono",
+      "aicId": 130691,
+      "title": { "ja": "庄野 白雨", "reading": "Shōno, hakuu", "en": "Shono: Driving Rain" },
+      "series": "hoeido",
+      "focus": [0.42, 0.6],
+      "roles": { "station": 45 },
+      "why": "Tyson bequest (1964.1057c), the impression the approved concept page uses; grey-green rain well preserved. Alternate: 25761 (1925.3553) is served by AIC as a monochrome scan, not usable for colour."
+    },
+    {
+      "id": "hoeido-46-kameyama",
+      "aicId": 25762,
+      "title": { "ja": "亀山 雪晴", "reading": "Kameyama, yukibare", "en": "Kameyama: Weather Clearing after Snow" },
+      "series": "hoeido",
+      "focus": [0.6, 0.45],
+      "roles": { "station": 46 },
+      "why": "Only impression at AIC (1925.3554, Buckingham); the procession climbing the snowy slope to the castle gate."
+    },
+    {
+      "id": "hoeido-47-seki",
+      "aicId": 25766,
+      "title": { "ja": "関 本陣早立", "reading": "Seki, honjin hayadachi", "en": "Seki: Early Departure from the Main Camp" },
+      "series": "hoeido",
+      "focus": [0.45, 0.5],
+      "roles": { "station": 47 },
+      "why": "Only impression at AIC (1925.3555, Buckingham); the honjin before dawn with the crested curtains."
+    },
+    {
+      "id": "hoeido-48-sakashita",
+      "aicId": 25769,
+      "title": { "ja": "坂下 筆捨嶺", "reading": "Sakashita, Fudesute mine", "en": "Sakanoshita: Peak of Fudesute Mountain" },
+      "series": "hoeido",
+      "focus": [0.4, 0.45],
+      "roles": { "station": 48 },
+      "why": "Only impression at AIC (1925.3556, Buckingham); the brush-discarding peak at left, the teahouse at right. The sheet is inscribed 坂之下 Sakanoshita; the app writes 坂下 Sakashita."
+    },
+    {
+      "id": "hoeido-49-tsuchiyama",
+      "aicId": 25772,
+      "title": { "ja": "土山 春之雨", "reading": "Tsuchiyama, haru no ame", "en": "Tsuchiyama: Spring Shower" },
+      "series": "hoeido",
+      "focus": [0.45, 0.65],
+      "roles": { "station": 49 },
+      "why": "Only impression at AIC (1925.3557, Buckingham); the procession crossing the bridge in spring rain."
+    },
+    {
+      "id": "hoeido-50-minakuchi",
+      "aicId": 25777,
+      "title": { "ja": "水口 名物干瓢", "reading": "Minakuchi, meibutsu kanpyō", "en": "Minakuchi: Dried Gourd Shavings, A Local Specialty" },
+      "series": "hoeido",
+      "focus": [0.4, 0.6],
+      "roles": { "station": 50 },
+      "why": "The larger and slightly warmer of two Buckingham impressions (1925.3559). Alternate: 25775 (1925.3558), near identical."
+    },
+    {
+      "id": "hoeido-51-ishibe",
+      "aicId": 149124,
+      "title": { "ja": "石部 目川ノ里", "reading": "Ishibe, Megawa no sato", "en": "Ishibe: Megawa Village" },
+      "series": "hoeido",
+      "focus": [0.4, 0.6],
+      "roles": { "station": 51 },
+      "why": "Weissman gift (1997.755): the most vivid of three, orange sky and blue foreground water. Alternates: 18270 (1963.673, Henderson), 25780 (1925.3560, Buckingham)."
+    },
+    {
+      "id": "hoeido-52-kusatsu",
+      "aicId": 25783,
+      "title": { "ja": "草津 名物立場", "reading": "Kusatsu, meibutsu tateba", "en": "Kusatsu: Famous Post House" },
+      "series": "hoeido",
+      "focus": [0.5, 0.65],
+      "roles": { "station": 52 },
+      "why": "Only impression at AIC (1925.3561, Buckingham); the running kago bearers before the rest house."
+    },
+    {
+      "id": "hoeido-53-otsu",
+      "aicId": 25785,
+      "title": { "ja": "大津 走井茶店", "reading": "Ōtsu, Hashirii chaya", "en": "Otsu: Hashirii Teahouse" },
+      "series": "hoeido",
+      "focus": [0.5, 0.6],
+      "roles": { "station": 53 },
+      "why": "Only impression at AIC (1925.3562, Buckingham); the Hashirii teahouse with ox carts passing."
+    },
+    {
+      "id": "hoeido-54-kyoto",
+      "aicId": 25789,
+      "title": { "ja": "京師 三条大橋", "reading": "Keishi, Sanjō Ōhashi", "en": "Kyoto: The Great Bridge at Sanjo" },
+      "series": "hoeido",
+      "focus": [0.5, 0.55],
+      "roles": { "station": 54 },
+      "why": "Only Hōeidō impression at AIC (1925.3563, Buckingham); the bridge and the Higashiyama hills. The concept page's Kyoto (1930.76, aic 4421) is a c. 1837–42 sheet from a different Tōkaidō series and is not used."
+    }
+  ]
+}

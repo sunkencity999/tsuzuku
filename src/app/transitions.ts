@@ -127,14 +127,17 @@ export function travelOf(from: Route | null | undefined, to: Route): Travel {
  */
 export function heroFor(from: Route | null | undefined, to: Route): Hero[] {
   if (!from) {
-    return to.name === 'dojo' ? [{ name: 'enso', from: '.app-loading__mark', to: '.dojo-scene__art' }] : [];
+    // the landing is the stage's picture slot in whichever mode it is in (prints B2): the print of the day or the
+    // waiting mat (`.dojo__hero`), else the drawn room's art — `querySelector` takes the first of the list that exists
+    return to.name === 'dojo' ? [{ name: 'enso', from: '.app-loading__mark', to: '.dojo__hero, .dojo-scene__art' }] : [];
   }
   if (from.name === 'road' && to.name === 'station') {
     const row = `.tokaido__station[data-station="${to.n}"]`;
     return [{ name: 'station-seal', from: `${row} .seal, ${row} .tokaido__seal--assisted`, to: '.station-head .sign' }];
   }
   if (from.name === 'train' && to.name === 'dojo') {
-    return [{ name: 'tsuzuku-mark', from: '.end-card__brush', to: '.dojo-scene__hotspot--hearth' }];
+    // the hearth that grew; with the print up (no drawn room) the days seal on the shelf, which carries the hearth's count
+    return [{ name: 'tsuzuku-mark', from: '.end-card__brush', to: '.dojo-scene__hotspot--hearth, .seal-tile[data-tile="days"]' }];
   }
   return [];
 }

@@ -1,0 +1,1581 @@
+{
+  "schema": "tsuzuku.art-curation/1",
+  "series": {
+    "fugaku36": {
+      "ja": "冨嶽三十六景",
+      "reading": "Fugaku sanjūrokkei",
+      "en": "Thirty-six Views of Mount Fuji",
+      "artist": {
+        "ja": "葛飾北斎",
+        "reading": "Katsushika Hokusai",
+        "en": "Katsushika Hokusai"
+      },
+      "date": "c. 1830–33"
+    },
+    "edo100": {
+      "ja": "名所江戸百景",
+      "reading": "Meisho Edo hyakkei",
+      "en": "One Hundred Famous Views of Edo",
+      "artist": {
+        "ja": "歌川広重",
+        "reading": "Utagawa Hiroshige",
+        "en": "Utagawa Hiroshige"
+      },
+      "date": "1856–58"
+    },
+    "kisokaido": {
+      "ja": "木曾海道六拾九次之内",
+      "reading": "Kisokaidō rokujūkyū tsugi no uchi",
+      "en": "Sixty-nine Stations of the Kisokaido",
+      "artist": {
+        "ja": "歌川広重",
+        "reading": "Utagawa Hiroshige",
+        "en": "Utagawa Hiroshige"
+      },
+      "date": "c. 1835–38"
+    },
+    "omi8": {
+      "ja": "近江八景之内",
+      "reading": "Ōmi hakkei no uchi",
+      "en": "Eight Views of Omi",
+      "artist": {
+        "ja": "歌川広重",
+        "reading": "Utagawa Hiroshige",
+        "en": "Utagawa Hiroshige"
+      },
+      "date": "c. 1834"
+    }
+  },
+  "entries": [
+    {
+      "id": "omi8-06-hira",
+      "aicId": 59080,
+      "title": {
+        "ja": "比良暮雪",
+        "reading": "Hira no bosetsu",
+        "en": "Lingering Snow on Mount Hira"
+      },
+      "series": "omi8",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          0
+        ]
+      },
+      "why": "Risshun: spring begins while snow still lies on Mount Hira above the lake. Buckingham impression (1925.3404, 3000×1971 px)."
+    },
+    {
+      "id": "edo100-030-kameido-umeyashiki",
+      "aicId": 150278,
+      "title": {
+        "ja": "亀戸梅屋舗",
+        "reading": "Kameido Umeyashiki",
+        "en": "Plum Garden at Kameido"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          1
+        ]
+      },
+      "why": "The bush warblers' kō; the famous reclining plum of Kameido in full bloom. Henderson gift impression (1965.1027, 6482×9240 px); alternates: 26577 (1925.3752), 34046 (1939.1405)."
+    },
+    {
+      "id": "edo100-027-kamata-umezono",
+      "aicId": 34231,
+      "title": {
+        "ja": "蒲田の梅園",
+        "reading": "Kamata no umezono",
+        "en": "The Plum Orchard at Kamata"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          3
+        ]
+      },
+      "why": "Rain softens the soil; the plum orchard at Kamata under a soft February sky. Gookin impression (1939.1461, 2571×3655 px); alternates: 150276 (1965.1025)."
+    },
+    {
+      "id": "fugaku36-31-umezawa",
+      "aicId": 24601,
+      "title": {
+        "ja": "相州梅澤左",
+        "reading": "Sōshū Umezawa hidari",
+        "en": "Umezawa Marsh in Sagami Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          5
+        ]
+      },
+      "why": "Cranes rise from the marsh at dawn as the grasses bud; the last kō of Usui. Buckingham impression (1925.3234, 3000×2071 px)."
+    },
+    {
+      "id": "fugaku36-16-onden",
+      "aicId": 24594,
+      "title": {
+        "ja": "隠田の水車",
+        "reading": "Onden no suisha",
+        "en": "Waterwheel at Onden"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.45,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          6
+        ]
+      },
+      "why": "Insects wake and the water runs again; the millwheel at Onden turns in early March. Buckingham impression (1925.3233, 8847×6083 px)."
+    },
+    {
+      "id": "fugaku36-42-isawa",
+      "aicId": 24604,
+      "title": {
+        "ja": "甲州伊沢暁",
+        "reading": "Kōshū Isawa no akatsuki",
+        "en": "Dawn at Isawa in Kai Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          7
+        ]
+      },
+      "why": "Travellers set out at first light in the soft air of early spring. Buckingham impression (1925.3235, 3000×2055 px)."
+    },
+    {
+      "id": "fugaku36-09-fujimigahara",
+      "aicId": 24573,
+      "title": {
+        "ja": "尾州不二見原",
+        "reading": "Bishū Fujimigahara",
+        "en": "Fujimigahara in Owari Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          8
+        ]
+      },
+      "why": "Warm enough to work outdoors; the cooper frames Fuji in his half-made tub. Buckingham impression (1925.3229, 3000×2062 px)."
+    },
+    {
+      "id": "fugaku36-22-sekiya",
+      "aicId": 24728,
+      "title": {
+        "ja": "隅田川関屋の里",
+        "reading": "Sumidagawa Sekiya no sato",
+        "en": "Sekiya Village on the Sumida River"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          9
+        ]
+      },
+      "why": "Spring equinox; riders race the dawn along the Sumida embankment. Buckingham impression (1925.3268, 3000×2048 px)."
+    },
+    {
+      "id": "edo100-011-ueno-kiyomizudo",
+      "aicId": 88454,
+      "title": {
+        "ja": "上野清水堂不忍ノ池",
+        "reading": "Ueno Kiyomizudō Shinobazu no ike",
+        "en": "Kiyomizu Hall and Shinobazu Pond at Ueno"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "kos": [
+          10
+        ]
+      },
+      "why": "The first cherry blossoms open: Ueno was where Edo saw them first. Buckingham impression (1938.538, 2538×3576 px); alternates: 150263 (1965.1012)."
+    },
+    {
+      "id": "fugaku36-37-gotenyama",
+      "aicId": 24756,
+      "title": {
+        "ja": "東海道品川御殿山ノ不二",
+        "reading": "Tōkaidō Shinagawa Gotenyama no Fuji",
+        "en": "Goten Hill at Shinagawa on the Tokaido"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          12
+        ]
+      },
+      "why": "Seimei, cherry at its height: blossom-viewing parties on Goten Hill with Fuji beyond. Buckingham impression (1925.3274, 3000×2093 px)."
+    },
+    {
+      "id": "edo100-017-asukayama",
+      "aicId": 26555,
+      "title": {
+        "ja": "飛鳥山北の眺望",
+        "reading": "Asukayama kita no chōbō",
+        "en": "View to the North from Asuka Hill"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          13
+        ]
+      },
+      "why": "Wild geese fly north; picnics under the cherries of Asuka Hill, looking north to Tsukuba. Buckingham impression (1925.3745, 2388×3618 px); alternates: 196758 (1990.607.79), 34016 (1939.1398)."
+    },
+    {
+      "id": "edo100-081-takanawa-ushimachi",
+      "aicId": 34086,
+      "title": {
+        "ja": "高輪うしまち",
+        "reading": "Takanawa Ushimachi",
+        "en": "Ushimachi at Takanawa"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "kos": [
+          14
+        ]
+      },
+      "why": "The first rainbow of the year: the only rainbow in the hundred views. Buckingham impression (1927.319, 2430×3654 px); alternates: 196797 (1990.607.118)."
+    },
+    {
+      "id": "edo100-035-suijin-no-mori",
+      "aicId": 34058,
+      "title": {
+        "ja": "隅田川水神の森真崎",
+        "reading": "Sumidagawa Suijin no mori Massaki",
+        "en": "Suijin Shrine and Massaki on the Sumida River"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          15
+        ]
+      },
+      "why": "Kokuu, the grain rains: late cherry framing the river at Suijin's grove. Gookin impression (1939.1408, 2172×3312 px); alternates: 34061 (1939.1409), 26581 (1925.3753)."
+    },
+    {
+      "id": "fugaku36-23-noboto",
+      "aicId": 86988,
+      "title": {
+        "ja": "登戸浦",
+        "reading": "Noboto-ura",
+        "en": "Seashore at Nobutoura"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          16
+        ]
+      },
+      "why": "The frost ends; spring low tides and clam-gathering under the torii at Noboto. Buckingham impression (1925.3232, 8794×6071 px)."
+    },
+    {
+      "id": "fugaku36-44-katakura",
+      "aicId": 86985,
+      "title": {
+        "ja": "駿州片倉茶園ノ不二",
+        "reading": "Sunshū Katakura chaen no Fuji",
+        "en": "The Tea Plantation of Katakura in Suruga Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          17
+        ]
+      },
+      "why": "The eighty-eighth night: tea picking on the Katakura slopes at the turn of May. Buckingham impression (1925.3231, 3000×2084 px)."
+    },
+    {
+      "id": "edo100-048-suidobashi-surugadai",
+      "aicId": 34252,
+      "title": {
+        "ja": "水道橋駿河台",
+        "reading": "Suidōbashi Surugadai",
+        "en": "Suido Bridge and Surugadai"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "kos": [
+          18
+        ]
+      },
+      "why": "Rikka and the fifth-day festival: carp streamers over Suidōbashi. Gookin impression (1939.1467, 2507×3663 px)."
+    },
+    {
+      "id": "edo100-065-kameido-tenjin",
+      "aicId": 150303,
+      "title": {
+        "ja": "亀戸天神境内",
+        "reading": "Kameido Tenjin keidai",
+        "en": "Precincts of Kameido Tenjin Shrine"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "kos": [
+          19
+        ]
+      },
+      "why": "Wisteria over the drum bridge at Kameido, mid-May. Henderson gift impression (1965.1052, 2043×3000 px); alternates: 34103 (1939.1423), 26607 (1925.3762)."
+    },
+    {
+      "id": "fugaku36-08-inume",
+      "aicId": 24794,
+      "title": {
+        "ja": "甲州犬目峠",
+        "reading": "Kōshū Inume-tōge",
+        "en": "Inume Pass in Kai Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          21
+        ]
+      },
+      "why": "Silkworms wake in Kai, the silk province; pack horses climb Inume Pass. Buckingham impression (1925.3283, 3000×2062 px)."
+    },
+    {
+      "id": "fugaku36-39-kanaya",
+      "aicId": 23719,
+      "title": {
+        "ja": "東海道金谷ノ不二",
+        "reading": "Tōkaidō Kanaya no Fuji",
+        "en": "Fuji from Kanaya on the Tokaido"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          22
+        ]
+      },
+      "why": "Early-summer river crossings: porters ford the Ōi at Kanaya. Buckingham impression (1937.193, 3000×2079 px)."
+    },
+    {
+      "id": "fugaku36-41-nakahara",
+      "aicId": 86982,
+      "title": {
+        "ja": "相州仲原",
+        "reading": "Sōshū Nakahara",
+        "en": "Nakahara in Sagami Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          23
+        ]
+      },
+      "why": "The wheat ripens: farmers and travellers on the plank bridge through the fields. Buckingham impression (1925.3230, 3000×2042 px)."
+    },
+    {
+      "id": "fugaku36-32-kajikazawa",
+      "aicId": 18969,
+      "title": {
+        "ja": "甲州石班澤",
+        "reading": "Kōshū Kajikazawa",
+        "en": "Kajikazawa in Kai Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          25
+        ]
+      },
+      "why": "Firefly season on swollen rivers; the fisherman on the rocks at Kajikazawa. Buckingham impression (1934.261, 3000×2074 px); alternates: 87003 (1925.3242)."
+    },
+    {
+      "id": "fugaku36-03-sanka-hakuu",
+      "aicId": 77331,
+      "title": {
+        "ja": "山下白雨",
+        "reading": "Sanka hakuu",
+        "en": "Shower Below the Summit"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          27
+        ]
+      },
+      "why": "Summer solstice: a thunderstorm below while the summit stands in sun. Buckingham impression (1952.342, 9933×6680 px); alternates: 87008 (1925.3244)."
+    },
+    {
+      "id": "edo100-064-horikiri",
+      "aicId": 26611,
+      "title": {
+        "ja": "堀切の花菖蒲",
+        "reading": "Horikiri no hanashōbu",
+        "en": "Irises at Horikiri"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.35
+      ],
+      "roles": {
+        "kos": [
+          28
+        ]
+      },
+      "why": "The irises' own kō: the hanashōbu gardens at Horikiri. Buckingham impression (1925.3763, 2433×3618 px); alternates: 34100 (1939.1422), 88441 (1938.535), 34097 (1939.1421), 150302 (1965.1051)."
+    },
+    {
+      "id": "kisokaido-40-suhara",
+      "aicId": 26476,
+      "title": {
+        "ja": "須原",
+        "reading": "Suhara",
+        "en": "No. 40: Suhara"
+      },
+      "series": "kisokaido",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          29
+        ]
+      },
+      "why": "The last days of the rains: travellers shelter from a downpour at Suhara. Buckingham impression (1925.3719, 3000×1992 px)."
+    },
+    {
+      "id": "edo100-073-tanabata",
+      "aicId": 34106,
+      "title": {
+        "ja": "市中繁栄七夕祭",
+        "reading": "Shichū han'ei Tanabata matsuri",
+        "en": "The City Flourishing, Tanabata Festival"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "kos": [
+          30
+        ]
+      },
+      "why": "Shōsho begins on Tanabata; bamboo and paper streamers over the roofs of Edo. Gookin impression (1939.1424, 2460×3576 px); alternates: 196796 (1990.607.117)."
+    },
+    {
+      "id": "fugaku36-25-misaka",
+      "aicId": 24758,
+      "title": {
+        "ja": "甲州三坂水面",
+        "reading": "Kōshū Misaka suimen",
+        "en": "The Surface of the Water at Misaka in Koshu Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          31
+        ]
+      },
+      "why": "High summer: the bare mountain and its snow-capped reflection in Lake Kawaguchi. Buckingham impression (1925.3275, 3000×2048 px)."
+    },
+    {
+      "id": "fugaku36-17-enoshima",
+      "aicId": 24743,
+      "title": {
+        "ja": "相州江の嶌",
+        "reading": "Sōshū Enoshima",
+        "en": "Enoshima in Sagami Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          32
+        ]
+      },
+      "why": "Summer pilgrimage across the sands to Enoshima at low tide. Buckingham impression (1925.3271, 3000×2300 px)."
+    },
+    {
+      "id": "edo100-052-akasaka-kiribatake",
+      "aicId": 34079,
+      "title": {
+        "ja": "赤坂桐畑",
+        "reading": "Akasaka Kiribatake",
+        "en": "The Paulownia Grove at Akasaka"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          33
+        ]
+      },
+      "why": "The paulownias set seed: the grove at Akasaka above the reservoir. Gookin impression (1939.1415, 2472×3654 px); alternates: 150294 (1965.1043)."
+    },
+    {
+      "id": "fugaku36-12-onmayagashi",
+      "aicId": 10914,
+      "title": {
+        "ja": "御厩川岸より両国橋夕陽見",
+        "reading": "Onmayagashi yori Ryōgokubashi sekiyō o miru",
+        "en": "Viewing Sunset over the Ryogoku Bridge from the Onmaya Embankment"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          34
+        ]
+      },
+      "why": "Damp heat: the evening cool on the river, sunset behind Ryōgoku Bridge. Warner gift impression (1932.166, 3000×2058 px); alternates: 24696 (1925.3260)."
+    },
+    {
+      "id": "edo100-058-ohashi-yudachi",
+      "aicId": 11060,
+      "title": {
+        "ja": "大はしあたけの夕立",
+        "reading": "Ōhashi Atake no yūdachi",
+        "en": "Sudden Shower over Shin Ohashi Bridge and Atake"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          35
+        ]
+      },
+      "why": "Great rains fall from time to time: the evening downpour on Shin-Ōhashi. Warner gift impression (1932.214, 2220×3456 px); alternates: 64447 (1981.1206), 26545 (1925.3742)."
+    },
+    {
+      "id": "fugaku36-01-great-wave",
+      "aicId": 24645,
+      "title": {
+        "ja": "神奈川沖浪裏",
+        "reading": "Kanagawa oki nami ura",
+        "en": "Under the Wave off Kanagawa (The Great Wave)"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.4,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          36
+        ]
+      },
+      "why": "Risshū: the first cool wind comes off the sea. Buckingham impression (1925.3245, 6679×4577 px); alternates: 77333 (1952.343), 89503 (1928.1086)."
+    },
+    {
+      "id": "fugaku36-02-gaifu-kaisei",
+      "aicId": 77328,
+      "title": {
+        "ja": "凱風快晴",
+        "reading": "Gaifū kaisei",
+        "en": "A Mild Breeze on a Fine Day"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.55,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          37
+        ]
+      },
+      "why": "The south wind clears the dawn sky and the mountain turns red, late summer. Buckingham impression (1952.341, 9649×6514 px); alternates: 87005 (1925.3243), 89500 (1928.1085)."
+    },
+    {
+      "id": "fugaku36-33-mishimagoe",
+      "aicId": 24786,
+      "title": {
+        "ja": "甲州三嶌越",
+        "reading": "Kōshū Mishimagoe",
+        "en": "Mishima Pass in Kai Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          38
+        ]
+      },
+      "why": "Thick fog wraps the hills: the giant cedar on the pass, Fuji half hidden. Buckingham impression (1925.3281, 3000×2047 px)."
+    },
+    {
+      "id": "fugaku36-10-ejiri",
+      "aicId": 24800,
+      "title": {
+        "ja": "駿州江尻",
+        "reading": "Sunshū Ejiri",
+        "en": "Ejiri in Suruga Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          39
+        ]
+      },
+      "why": "The first autumn gust: hats and papers scatter across the marsh road at Ejiri. Buckingham impression (1925.3285, 8882×6046 px); alternates: 13272 (1961.171)."
+    },
+    {
+      "id": "kisokaido-26-mochizuki",
+      "aicId": 18359,
+      "title": {
+        "ja": "望月",
+        "reading": "Mochizuki",
+        "en": "No. 26: Mochizuki"
+      },
+      "series": "kisokaido",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          40
+        ]
+      },
+      "why": "Heaven and earth begin to cool: dusk under the pines at Mochizuki, the full-moon station. Henderson gift impression (1963.701, 3672×2430 px); alternates: 13213 (1961.154), 26492 (1925.3724)."
+    },
+    {
+      "id": "fugaku36-43-ono-shinden",
+      "aicId": 87017,
+      "title": {
+        "ja": "駿州大野新田",
+        "reading": "Sunshū Ōno shinden",
+        "en": "Rice Paddies at Ono in Suruga Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          41
+        ]
+      },
+      "why": "The rice ripens: reed-carriers through the new paddies at Ōno. Buckingham impression (1925.3286, 3000×2064 px)."
+    },
+    {
+      "id": "fugaku36-18-tagonoura",
+      "aicId": 24778,
+      "title": {
+        "ja": "東海道江尻田子の浦略図",
+        "reading": "Tōkaidō Ejiri Tagonoura ryakuzu",
+        "en": "Tagonoura Bay near Ejiri on the Tokaido"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          42
+        ]
+      },
+      "why": "White dew: a clear early-autumn morning over Tago Bay. Buckingham impression (1925.3279, 3000×2059 px); alternates: 130734 (1964.1058b)."
+    },
+    {
+      "id": "fugaku36-07-senju",
+      "aicId": 87010,
+      "title": {
+        "ja": "武州千住",
+        "reading": "Bushū Senju",
+        "en": "Senju in Musashi Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          43
+        ]
+      },
+      "why": "Wagtails on the sluice gates; a farmer and his horse pause at Senju. Buckingham impression (1925.3276, 3000×2049 px); alternates: 13274 (1961.172)."
+    },
+    {
+      "id": "edo100-089-tsuki-no-matsu",
+      "aicId": 34325,
+      "title": {
+        "ja": "上野山内月のまつ",
+        "reading": "Ueno sannai Tsuki no matsu",
+        "en": "The Moon Pine on the Temple Grounds at Ueno"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "kos": [
+          45
+        ]
+      },
+      "why": "Autumn equinox: the Moon Pine at Ueno looks over Shinobazu Pond. Gookin impression (1939.1490, 2400×3576 px)."
+    },
+    {
+      "id": "fugaku36-26-hodogaya",
+      "aicId": 86996,
+      "title": {
+        "ja": "東海道程ヶ谷",
+        "reading": "Tōkaidō Hodogaya",
+        "en": "Hodogaya on the Tokaido"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          46
+        ]
+      },
+      "why": "Insects seal their doors; travellers under the pines of Hodogaya in the autumn haze. Buckingham impression (1925.3239, 3562×2412 px)."
+    },
+    {
+      "id": "fugaku36-30-shichirigahama",
+      "aicId": 86991,
+      "title": {
+        "ja": "相州七里浜",
+        "reading": "Sōshū Shichirigahama",
+        "en": "Shichirigahama Beach in Sagami Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          47
+        ]
+      },
+      "why": "The paddies are drained; clear October light along Shichirigahama. Buckingham impression (1925.3236, 3000×2064 px)."
+    },
+    {
+      "id": "omi8-07-katada",
+      "aicId": 11044,
+      "title": {
+        "ja": "堅田落雁",
+        "reading": "Katada rakugan",
+        "en": "Descending Geese at Katada"
+      },
+      "series": "omi8",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          48
+        ]
+      },
+      "why": "Wild geese return: the descending geese of Katada, one of the eight classic views. Warner gift impression (1932.209, 3000×2041 px); alternates: 25228 (1925.3402), 25232 (1925.3403), 47768 (1974.454)."
+    },
+    {
+      "id": "fugaku36-13-sazaido",
+      "aicId": 24707,
+      "title": {
+        "ja": "五百らかん寺さざゐどう",
+        "reading": "Gohyakurakanji Sazaidō",
+        "en": "Sazai Hall at the Temple of the Five Hundred Arhats"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          49
+        ]
+      },
+      "why": "Chrysanthemum season skies: the Sazai Hall balcony faces a clear Fuji. Buckingham impression (1925.3263, 8786×6088 px)."
+    },
+    {
+      "id": "fugaku36-34-totomi",
+      "aicId": 87016,
+      "title": {
+        "ja": "遠江山中",
+        "reading": "Tōtōmi sanchū",
+        "en": "In the Mountains of Totomi Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          50
+        ]
+      },
+      "why": "Crickets at the door; sawyers at work in the Tōtōmi hills, smoke rising in the cool. Buckingham impression (1925.3278, 3000×2053 px); alternates: 149105 (1997.736)."
+    },
+    {
+      "id": "kisokaido-58-tarui",
+      "aicId": 13216,
+      "title": {
+        "ja": "垂井",
+        "reading": "Tarui",
+        "en": "No. 58: Tarui"
+      },
+      "series": "kisokaido",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          52
+        ]
+      },
+      "why": "Light rain comes and goes: a procession under umbrellas at Tarui. Wright gift impression (1961.155, 3000×1902 px)."
+    },
+    {
+      "id": "edo100-094-mama-momiji",
+      "aicId": 34133,
+      "title": {
+        "ja": "真間の紅葉手古那の社継はし",
+        "reading": "Mama no momiji Tekona no yashiro Tsugihashi",
+        "en": "Maple Trees at Mama, Tekona Shrine and Tsugi Bridge"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "kos": [
+          53
+        ]
+      },
+      "why": "Maples and ivy turn: the red maples of Mama frame Tekona's shrine. Gookin impression (1939.1433, 2592×3738 px); alternates: 26525 (1925.3735)."
+    },
+    {
+      "id": "edo100-040-tsubakiyama",
+      "aicId": 34073,
+      "title": {
+        "ja": "関口上水端はせを庵椿やま",
+        "reading": "Sekiguchi jōsui-bata Bashōan Tsubakiyama",
+        "en": "Basho's Hut on Camellia Hill Beside the Aqueduct at Sekiguchi"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          54
+        ]
+      },
+      "why": "The first camellias open on Camellia Hill above the aqueduct at Sekiguchi. Gookin impression (1939.1413, 2526×3666 px); alternates: 196850 (1990.607.171), 34066 (1939.1411)."
+    },
+    {
+      "id": "edo100-091-akiba",
+      "aicId": 13188,
+      "title": {
+        "ja": "請地秋葉の境内",
+        "reading": "Ukeji Akiba no keidai",
+        "en": "Precincts of the Akiba Shrine, Ukeji"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          55
+        ]
+      },
+      "why": "The ground begins to freeze; late maples reflected in the Akiba shrine pond. Wright gift impression (1961.146, 2592×3696 px); alternates: 34128 (1939.1431), 34123 (1939.1430), 26547 (1925.3743)."
+    },
+    {
+      "id": "edo100-101-torinomachi",
+      "aicId": 34156,
+      "title": {
+        "ja": "浅草田甫酉の町詣",
+        "reading": "Asakusa tanbo Torinomachi mōde",
+        "en": "Asakusa Rice Fields and Torinomachi Festival"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "kos": [
+          56
+        ]
+      },
+      "why": "The Tori-no-ichi fair of November: a cat watches the procession cross the rice fields. Gookin impression (1939.1439, 2256×3366 px); alternates: 13192 (1961.147), 26534 (1925.3738)."
+    },
+    {
+      "id": "fugaku36-40-senju-kagai",
+      "aicId": 24781,
+      "title": {
+        "ja": "従千住花街眺望ノ不二",
+        "reading": "Senju kagai yori chōbō no Fuji",
+        "en": "Mount Fuji Seen from the Senju Pleasure Quarter"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          57
+        ]
+      },
+      "why": "Rainbows hide away; a procession passes the stubble fields under a clear late-autumn Fuji. Buckingham impression (1925.3280, 3000×2087 px)."
+    },
+    {
+      "id": "fugaku36-04-mannenbashi",
+      "aicId": 24746,
+      "title": {
+        "ja": "深川万年橋下",
+        "reading": "Fukagawa Mannenbashi shita",
+        "en": "Beneath Mannen Bridge in Fukagawa"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          59
+        ]
+      },
+      "why": "Early-winter clarity: Fuji framed under Mannen Bridge. Buckingham impression (1925.3272, 3000×2066 px)."
+    },
+    {
+      "id": "kisokaido-47-oi",
+      "aicId": 60405,
+      "title": {
+        "ja": "大井",
+        "reading": "Ōi",
+        "en": "No. 47: Oi"
+      },
+      "series": "kisokaido",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          61
+        ]
+      },
+      "why": "Bears settle into their dens; travellers bent under the snow at Ōi. Buckingham impression (1928.349, 3570×2274 px)."
+    },
+    {
+      "id": "edo100-107-susaki-jumantsubo",
+      "aicId": 11057,
+      "title": {
+        "ja": "深川洲崎十万坪",
+        "reading": "Fukagawa Susaki Jūmantsubo",
+        "en": "Fukagawa Susaki and Jumantsubo"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.35
+      ],
+      "roles": {
+        "kos": [
+          62
+        ]
+      },
+      "why": "The eagle over the frozen marsh at Jūmantsubo, deep December. Warner gift impression (1932.213, 2352×3510 px); alternates: 26605 (1925.3761)."
+    },
+    {
+      "id": "fugaku36-14-koishikawa",
+      "aicId": 13265,
+      "title": {
+        "ja": "礫川雪ノ旦",
+        "reading": "Koishikawa yuki no ashita",
+        "en": "Snowy Morning from Koishikawa"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          63
+        ]
+      },
+      "why": "Winter solstice: a snowy morning seen from the teahouse at Koishikawa. Wright gift impression (1961.170, 3000×1990 px); alternates: 24704 (1925.3262)."
+    },
+    {
+      "id": "edo100-106-fukagawa-kiba",
+      "aicId": 34168,
+      "title": {
+        "ja": "深川木場",
+        "reading": "Fukagawa kiba",
+        "en": "Lumberyards at Fukagawa"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          64
+        ]
+      },
+      "why": "The year's end under snow at the timber yards of Fukagawa. Gookin impression (1939.1443, 2592×3708 px); alternates: 34172 (1939.1444)."
+    },
+    {
+      "id": "edo100-001-nihonbashi-yukibare",
+      "aicId": 34193,
+      "title": {
+        "ja": "日本橋雪晴",
+        "reading": "Nihonbashi yukibare",
+        "en": "Clear Weather After Snow at Nihon Bridge"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          65
+        ]
+      },
+      "why": "New Year: the first print of the hundred views, Nihonbashi clearing after snow. Gookin impression (1939.1451, 2526×3714 px); alternates: 13199 (1961.149), 150256 (1965.1004), 34190 (1939.1450)."
+    },
+    {
+      "id": "edo100-002-kasumigaseki",
+      "aicId": 127387,
+      "title": {
+        "ja": "霞かせき",
+        "reading": "Kasumigaseki",
+        "en": "Kasumigaseki"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          66
+        ]
+      },
+      "why": "Shōkan and the New Year holidays: kites over the slope at Kasumigaseki. Henderson gift impression (1965.1005, 2007×3000 px); alternates: 196726 (1990.607.47), 34197 (1939.1452)."
+    },
+    {
+      "id": "fugaku36-36-ushibori",
+      "aicId": 86993,
+      "title": {
+        "ja": "常州牛堀",
+        "reading": "Jōshū Ushibori",
+        "en": "Ushibori in Hitachi Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          68
+        ]
+      },
+      "why": "Pheasants begin to call: herons startle from the frozen reeds at Ushibori. Buckingham impression (1925.3238, 3000×2028 px)."
+    },
+    {
+      "id": "edo100-102-minowa-cranes",
+      "aicId": 26575,
+      "title": {
+        "ja": "蓑輪金杉三河しま",
+        "reading": "Minowa Kanasugi Mikawashima",
+        "en": "Minowa, Kanasugi, Mikawashima"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "kos": [
+          69
+        ]
+      },
+      "why": "Daikan: cranes come down to the winter paddies at Mikawashima. Buckingham impression (1925.3751, 2364×3546 px); alternates: 196759 (1990.607.80), 34159 (1939.1440)."
+    },
+    {
+      "id": "fugaku36-35-suwako",
+      "aicId": 24798,
+      "title": {
+        "ja": "信州諏訪湖",
+        "reading": "Shinshū Suwako",
+        "en": "Lake Suwa in Shinano Province"
+      },
+      "series": "fugaku36",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "kos": [
+          70
+        ]
+      },
+      "why": "Ice thickens on the streams: Lake Suwa, famous for freezing over in late January. Buckingham impression (1925.3284, 8852×6007 px)."
+    },
+    {
+      "id": "edo100-111-meguro-taikobashi",
+      "aicId": 16129,
+      "title": {
+        "ja": "目黒太鼓橋夕日の岡",
+        "reading": "Meguro Taikobashi Yūhi no oka",
+        "en": "Drum Bridge and Yuhi Hill at Meguro"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "kos": [
+          71
+        ]
+      },
+      "why": "The last kō of winter: the drum bridge at Meguro under falling snow. Henderson gift impression (1962.1098, 2466×3654 px); alternates: 26615 (1925.3764)."
+    },
+    {
+      "id": "edo100-004-eitaibashi-tsukudajima",
+      "aicId": 26516,
+      "title": {
+        "ja": "永代橋佃しま",
+        "reading": "Eitaibashi Tsukudajima",
+        "en": "View of Tsukuda Island from Eitai Bridge"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "nightMonths": [
+          2
+        ]
+      },
+      "why": "February nights: whitebait boats under a late-winter moon off Tsukuda Island. Buckingham impression (1925.3732, 1979×3000 px); alternates: 196742 (1990.607.63)."
+    },
+    {
+      "id": "edo100-034-matsuchiyama-yakei",
+      "aicId": 150282,
+      "title": {
+        "ja": "真乳山山谷堀夜景",
+        "reading": "Matsuchiyama San'yabori yakei",
+        "en": "Night View of Matsuchi Hill and the San'ya Canal"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "nightMonths": [
+          3
+        ]
+      },
+      "why": "March nights: a starry spring night over the San'ya canal. Henderson gift impression (1965.1031, 2424×3582 px); alternates: 33999 (1939.1393), 60210 (1928.302)."
+    },
+    {
+      "id": "kisokaido-28-nagakubo",
+      "aicId": 10936,
+      "title": {
+        "ja": "長久保",
+        "reading": "Nagakubo",
+        "en": "No. 28: Nagakubo"
+      },
+      "series": "kisokaido",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "nightMonths": [
+          4
+        ]
+      },
+      "why": "April nights: a full moon over the Wada River, children still out playing. Warner gift impression (1932.173, 3588×2352 px); alternates: 26479 (1925.3720)."
+    },
+    {
+      "id": "kisokaido-37-miyanokoshi",
+      "aicId": 11050,
+      "title": {
+        "ja": "宮ノ越",
+        "reading": "Miyanokoshi",
+        "en": "No. 37: Miyanokoshi"
+      },
+      "series": "kisokaido",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "nightMonths": [
+          5
+        ]
+      },
+      "why": "May nights: a family crosses the bridge by moonlight through early-summer mist. Warner gift impression (1932.211, 3684×2436 px); alternates: 26489 (1925.3723)."
+    },
+    {
+      "id": "omi8-04-karasaki",
+      "aicId": 77316,
+      "title": {
+        "ja": "唐崎夜雨",
+        "reading": "Karasaki no yau",
+        "en": "Night Rain at Karasaki"
+      },
+      "series": "omi8",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "nightMonths": [
+          6
+        ]
+      },
+      "why": "June nights: the rainy season, night rain on the great pine of Karasaki. Buckingham impression (1952.335, 3000×2005 px); alternates: 25254 (1925.3410)."
+    },
+    {
+      "id": "edo100-098-ryogoku-hanabi",
+      "aicId": 34150,
+      "title": {
+        "ja": "両国花火",
+        "reading": "Ryōgoku hanabi",
+        "en": "Fireworks at Ryogoku"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.35
+      ],
+      "roles": {
+        "nightMonths": [
+          7
+        ]
+      },
+      "why": "July nights: the river opening and its fireworks over Ryōgoku Bridge. Gookin impression (1939.1437, 2036×3000 px); alternates: 25601 (1966.316), 13195 (1961.148)."
+    },
+    {
+      "id": "edo100-076-kyobashi-takegashi",
+      "aicId": 34109,
+      "title": {
+        "ja": "京橋竹がし",
+        "reading": "Kyōbashi Takegashi",
+        "en": "Bamboo Yards and Kyo Bridge"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "nightMonths": [
+          8
+        ]
+      },
+      "why": "August nights: pilgrims' lanterns cross Kyōbashi under a high-summer moon. Gookin impression (1939.1425, 2418×3612 px); alternates: 13198 (1961.149A)."
+    },
+    {
+      "id": "omi8-08-ishiyama",
+      "aicId": 25239,
+      "title": {
+        "ja": "石山秋月",
+        "reading": "Ishiyama shūgetsu",
+        "en": "Autumn Moon at Ishiyama"
+      },
+      "series": "omi8",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "nightMonths": [
+          9
+        ]
+      },
+      "why": "September nights: the harvest moon over Lake Biwa from Ishiyama Temple. Buckingham impression (1925.3405, 3000×1973 px)."
+    },
+    {
+      "id": "edo100-082-tsuki-no-misaki",
+      "aicId": 34313,
+      "title": {
+        "ja": "月の岬",
+        "reading": "Tsuki no misaki",
+        "en": "Moon-Viewing Point"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.4
+      ],
+      "roles": {
+        "nightMonths": [
+          10
+        ]
+      },
+      "why": "October nights: the later moon-viewing, the thirteenth night, from a room above the bay. Gookin impression (1939.1485, 2346×3480 px); alternates: 196795 (1990.607.116)."
+    },
+    {
+      "id": "edo100-090-saruwaka-machi",
+      "aicId": 34120,
+      "title": {
+        "ja": "猿わか町よるの景",
+        "reading": "Saruwaka-machi yoru no kei",
+        "en": "Night View of Saruwaka-machi"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.45
+      ],
+      "roles": {
+        "nightMonths": [
+          11
+        ]
+      },
+      "why": "November nights: the theatre street under a late-autumn moon as the kaomise season opens. Gookin impression (1939.1429, 2316×3510 px); alternates: 150330 (1965.1080), 26629 (1925.3769), 34117 (1939.1428)."
+    },
+    {
+      "id": "edo100-118-oji-kitsunebi",
+      "aicId": 34187,
+      "title": {
+        "ja": "王子装束ゑの木大晦日の狐火",
+        "reading": "Ōji shōzoku enoki ōmisoka no kitsunebi",
+        "en": "Fox Fires on New Year's Eve at the Changing Tree in Oji"
+      },
+      "series": "edo100",
+      "focus": [
+        0.5,
+        0.5
+      ],
+      "roles": {
+        "nightMonths": [
+          12
+        ]
+      },
+      "why": "December nights: the foxes gather under the enoki tree on the last night of the year. Gookin impression (1939.1449, 2448×3582 px); alternates: 13183 (1961.144), 26617 (1925.3765)."
+    }
+  ],
+  "calendar": {
+    "day": [
+      "omi8-06-hira",
+      "edo100-030-kameido-umeyashiki",
+      "hoeido-20-mariko",
+      "edo100-027-kamata-umezono",
+      "hoeido-11-mishima",
+      "fugaku36-31-umezawa",
+      "fugaku36-16-onden",
+      "fugaku36-42-isawa",
+      "fugaku36-09-fujimigahara",
+      "fugaku36-22-sekiya",
+      "edo100-011-ueno-kiyomizudo",
+      "hoeido-49-tsuchiyama",
+      "fugaku36-37-gotenyama",
+      "edo100-017-asukayama",
+      "edo100-081-takanawa-ushimachi",
+      "edo100-035-suijin-no-mori",
+      "fugaku36-23-noboto",
+      "fugaku36-44-katakura",
+      "edo100-048-suidobashi-surugadai",
+      "edo100-065-kameido-tenjin",
+      "hoeido-39-chiryu",
+      "fugaku36-08-inume",
+      "fugaku36-39-kanaya",
+      "fugaku36-41-nakahara",
+      "hoeido-45-shono",
+      "fugaku36-32-kajikazawa",
+      "hoeido-08-oiso",
+      "fugaku36-03-sanka-hakuu",
+      "edo100-064-horikiri",
+      "kisokaido-40-suhara",
+      "edo100-073-tanabata",
+      "fugaku36-25-misaka",
+      "fugaku36-17-enoshima",
+      "edo100-052-akasaka-kiribatake",
+      "fugaku36-12-onmayagashi",
+      "edo100-058-ohashi-yudachi",
+      "fugaku36-01-great-wave",
+      "fugaku36-02-gaifu-kaisei",
+      "fugaku36-33-mishimagoe",
+      "fugaku36-10-ejiri",
+      "kisokaido-26-mochizuki",
+      "fugaku36-43-ono-shinden",
+      "fugaku36-18-tagonoura",
+      "fugaku36-07-senju",
+      "hoeido-43-yokkaichi",
+      "edo100-089-tsuki-no-matsu",
+      "fugaku36-26-hodogaya",
+      "fugaku36-30-shichirigahama",
+      "omi8-07-katada",
+      "fugaku36-13-sazaido",
+      "fugaku36-34-totomi",
+      "hoeido-10-hakone",
+      "kisokaido-58-tarui",
+      "edo100-094-mama-momiji",
+      "edo100-040-tsubakiyama",
+      "edo100-091-akiba",
+      "edo100-101-torinomachi",
+      "fugaku36-40-senju-kagai",
+      "hoeido-29-hamamatsu",
+      "fugaku36-04-mannenbashi",
+      "hoeido-46-kameyama",
+      "kisokaido-47-oi",
+      "edo100-107-susaki-jumantsubo",
+      "fugaku36-14-koishikawa",
+      "edo100-106-fukagawa-kiba",
+      "edo100-001-nihonbashi-yukibare",
+      "edo100-002-kasumigaseki",
+      "hoeido-13-hara",
+      "fugaku36-36-ushibori",
+      "edo100-102-minowa-cranes",
+      "fugaku36-35-suwako",
+      "edo100-111-meguro-taikobashi"
+    ],
+    "night": [
+      "hoeido-15-kanbara",
+      "edo100-004-eitaibashi-tsukudajima",
+      "edo100-034-matsuchiyama-yakei",
+      "kisokaido-28-nagakubo",
+      "kisokaido-37-miyanokoshi",
+      "omi8-04-karasaki",
+      "edo100-098-ryogoku-hanabi",
+      "edo100-076-kyobashi-takegashi",
+      "omi8-08-ishiyama",
+      "edo100-082-tsuki-no-misaki",
+      "edo100-090-saruwaka-machi",
+      "edo100-118-oji-kitsunebi"
+    ]
+  }
+}

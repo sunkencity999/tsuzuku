@@ -5,8 +5,8 @@
  * with the comma-joined `assets/<hashed name>` list of the build
  * (vite.config.ts), so the worker's bytes change with every release, a new
  * worker installs, the Layout update toast fires, and `cleanOldCaches` drops
- * the previous release's shell and hashed assets. Fonts live in their own
- * stable cache that no release clears.
+ * the previous release's shell and hashed assets. Fonts, the voice-pack
+ * indexes and the print pack live in their own stable caches that no release clears.
  *
  * Why the assets are precached: on the first visit the page requests its own
  * entry JS/CSS before the worker controls it, so a runtime cache filled only
@@ -35,6 +35,19 @@
  *             audio/manifest.json,
  *             audio/<audioVersion>/**.json → stale-while-revalidate into the stable
  *                                            `tsuzuku-audio-v1` bucket (never cleared here)
+ *             art/manifest.json            → network-first into the stable `tsuzuku-art-v1` bucket (design 09
+ *                                            §12.1 d77–d78; never cleared here): a republished pack REPLACES the
+ *                                            print files the deploy serves (CI's art:fetch unpacks only the new
+ *                                            manifest's names), so the page must read the new manifest on the
+ *                                            first load after it, not the next; the cached copy answers offline
+ *                                            or on a 5xx, and a 4xx passes through (a build without the pack:
+ *                                            the drawn room stands instead of a cached manifest's gone names)
+ *             art/prints/**.webp           → cache-first in `tsuzuku-art-v1`: the names are content-addressed
+ *                                            (`<id>-<sha8>.webp`), so a cached print is right for ever; a print
+ *                                            the deploy no longer serves is a 404 the page shows as its LQIP
+ *                                            (the pack is ≤ 30 MB; nothing is pruned)
+ *             art-pack.json                → NOT intercepted: the committed build-time pointer; the page
+ *                                            never fetches it
  *             assets/**                    → cache-first (hashed, immutable per release)
  *             fonts/**                     → cache-first in the stable fonts cache
  *             calendar/**                  → stale-while-revalidate in the shell cache (design 09 §4.3:
@@ -53,6 +66,8 @@ const RUNTIME_CACHE = 'tsuzuku-runtime-' + CACHE_VERSION;
 const FONTS_CACHE = 'tsuzuku-fonts-v1';
 // Shared with src/audio/clips.ts (AUDIO_CACHE): the worker only adds the small indexes to it.
 const AUDIO_CACHE = 'tsuzuku-audio-v1';
+// The print pack (src/art/prints, docs/ART_PACK.md §8): the manifest and the content-addressed prints.
+const ART_CACHE = 'tsuzuku-art-v1';
 const OWN_PREFIXES = ['tsuzuku-shell-', 'tsuzuku-runtime-'];
 const BASE = new URL('./', self.location.href);
 const SHELL_URLS = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './calendar/koyomi.json'].map(function (p) {
@@ -173,6 +188,22 @@ async function networkFirst(request) {
   }
 }
 
+// Network-first for a small index whose names a deploy may replace (the print manifest): the live copy whenever
+// the network answers, the cached copy when it cannot (offline, a 5xx), and a 4xx passed through — the server's
+// own word that the file is not in this deploy, which a cached copy must not contradict.
+async function networkFirstInto(request, cacheName) {
+  let res = null;
+  try {
+    res = await fetch(request);
+  } catch (_) {
+    res = null;
+  }
+  if (res && res.ok) return putIfOk(cacheName, request, res);
+  if (res && res.status < 500) return res;
+  const cached = await caches.match(request);
+  return cached || res || new Response('', { status: 504, statusText: 'offline' });
+}
+
 self.addEventListener('install', function (event) {
   event.waitUntil(precacheShell());
 });
@@ -221,6 +252,14 @@ self.addEventListener('fetch', function (event) {
   }
   if (rel === 'audio/manifest.json' || (rel.startsWith('audio/') && rel.endsWith('.json'))) {
     event.respondWith(staleWhileRevalidate(request, AUDIO_CACHE));
+    return;
+  }
+  if (rel === 'art/manifest.json') {
+    event.respondWith(networkFirstInto(request, ART_CACHE));
+    return;
+  }
+  if (rel.startsWith('art/prints/') && rel.endsWith('.webp')) {
+    event.respondWith(cacheFirst(request, ART_CACHE));
     return;
   }
   if (rel.startsWith('calendar/')) {

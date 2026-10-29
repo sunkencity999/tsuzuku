@@ -8,8 +8,16 @@
  * wanakana and Preact MIT), the app and content versions, and a small
  * debug panel: rooms that did not load (`pages.loadErrors`) and the last bus
  * events. No franchise references anywhere.
+ *
+ * Prints (design 09 §12.1 d77–d78): a section listing, from the print pack's
+ * runtime manifest (`@/art/prints` `useArtManifest`), every artist with the
+ * series they contribute — Japanese, reading, English — and the count, then
+ * the museum line with its open-access link; `artStatus 'none'` says the drawn room stands. Artists,
+ * titles and series are data from the manifest — no Japanese print title is
+ * written here (the UI glyph inventory is frozen).
  */
 import type { JSX } from 'preact';
+import { artStatus, useArtManifest, type ArtManifest, type PrintText } from '@/art/prints';
 import { content } from '@/content/loader';
 import { services, type ClipPlayer } from '@/shared/audio';
 import { bus } from '@/shared/events';
@@ -34,7 +42,35 @@ const HOW: readonly { title: string; body: string }[] = [
   { title: S.aboutGovernorTitle, body: S.aboutGovernor },
 ];
 
-const LICENSES: readonly string[] = [S.aboutLicenseCode, S.aboutLicenseContent, S.aboutLicenseFonts, S.aboutLicenseWanakana, S.aboutLicensePreact, S.aboutLicenseVoices];
+const LICENSES: readonly string[] = [S.aboutLicenseCode, S.aboutLicenseContent, S.aboutLicenseFonts, S.aboutLicenseWanakana, S.aboutLicensePreact, S.aboutLicenseVoices, S.aboutLicensePrints];
+
+/** One artist of the print pack: the series they contribute (first-seen order, each with its reading) and how many prints. */
+export interface PrintCredit {
+  artist: PrintText;
+  series: readonly { id: string; ja: string; reading: string; en: string }[];
+  count: number;
+}
+
+/**
+ * The pack's artists in manifest order (deterministic: the pipeline sorts
+ * prints by id), each with the distinct series they contribute and their
+ * print count; `[]` without a manifest.
+ */
+export function printCredits(m: ArtManifest | null): readonly PrintCredit[] {
+  if (!m) return [];
+  const byArtist = new Map<string, { artist: PrintText; series: { id: string; ja: string; reading: string; en: string }[]; count: number }>();
+  for (const p of m.prints) {
+    const key = `${p.artist.ja}\u0000${p.artist.en}`;
+    let c = byArtist.get(key);
+    if (!c) {
+      c = { artist: p.artist, series: [], count: 0 };
+      byArtist.set(key, c);
+    }
+    c.count++;
+    if (!c.series.some((s) => s.id === p.series.id)) c.series.push({ id: p.series.id, ja: p.series.ja, reading: p.series.reading, en: p.series.en });
+  }
+  return Array.from(byArtist.values());
+}
 
 /** Content version: the loader's manifest when loaded, else what the save remembers. */
 export function contentVersionLine(): string {
@@ -72,6 +108,10 @@ export default function AboutPage(_p: { route: Route }): JSX.Element {
   const { clips, settled } = useClipPlayer();
   const credits = voiceCredits(clips);
   const probing = !clips ? !settled : clips.ready.value === 'unknown' || clips.ready.value === 'loading';
+  // The print pack's manifest: one fetch per session, started here on a cold About; 'none' is a build without a pack.
+  const art = useArtManifest();
+  const artState = artStatus.value;
+  const prints = printCredits(art);
   return (
     <div class="page about">
       <h1 class="page__title">
@@ -144,6 +184,53 @@ export default function AboutPage(_p: { route: Route }): JSX.Element {
           </span>
         </h2>
         <p data-honest-share>{S.honestShare}</p>
+      </section>
+
+      <section class="panel page__section" aria-labelledby="about-prints">
+        <h2 id="about-prints">
+          {S.aboutPrintsTitle}
+          <span class="ja" lang="ja">
+            {S.aboutPrintsTitleJa}
+          </span>
+        </h2>
+        <p>{S.aboutPrintsIntro}</p>
+        {art && prints.length > 0 ? (
+          <>
+            <ul class="list" data-print-artists>
+              {prints.map((c) => (
+                <li key={c.artist.en} class="list__item" data-print-artist={c.artist.en}>
+                  <span lang="ja">{c.artist.ja}</span> {c.artist.en}
+                  {S.separator}
+                  {c.series.map((s, i) => (
+                    <span key={s.id} data-print-series={s.id}>
+                      {i > 0 ? S.separator : ''}
+                      <span lang="ja">{s.ja}</span> {s.reading ? `${s.reading}${S.separator}${s.en}` : s.en}
+                    </span>
+                  ))}
+                  {S.separator}
+                  <span class="muted">{c.count === 1 ? S.aboutPrintCountOne : fmt(S.aboutPrintCount, { n: c.count })}</span>
+                </li>
+              ))}
+            </ul>
+            <p class="muted" data-print-sources>
+              {art.sources.map((s) => (
+                <span key={s.url} data-print-source={s.museum}>
+                  <a href={s.url} target="_blank" rel="noopener noreferrer">
+                    {s.museum}
+                  </a>
+                  {S.separator}
+                  {s.license}
+                </span>
+              ))}
+            </p>
+          </>
+        ) : artState === 'none' ? (
+          <p data-no-prints>{S.aboutPrintsNone}</p>
+        ) : (
+          <p class="muted" data-prints-loading>
+            {S.aboutPrintsLoading}
+          </p>
+        )}
       </section>
 
       <section class="panel page__section" aria-labelledby="about-credits">

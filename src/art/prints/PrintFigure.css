@@ -1,0 +1,17 @@
+/* TSUZUKU — the print figure (09 §2–§3, d77): a print on a mat. The LQIP is the box's background until the image
+   fades in at --dur-2 (reduced motion zeroes it). */
+.print { margin: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.print--hero { padding: var(--sp-3); }
+.print__box { display: grid; place-items: center; overflow: hidden; border-radius: var(--radius-paper); background: center / cover no-repeat; }
+.print--hero.print--portrait .print__box { position: relative; aspect-ratio: 3 / 2; background-size: contain; }
+.print--band .print__box { aspect-ratio: 4 / 1; min-height: 160px; }
+.print--thumb .print__box { aspect-ratio: 4 / 3; }
+.print__img { display: block; width: 100%; height: auto; opacity: 0; transition: opacity var(--dur-2) var(--ease); }
+.print[data-loaded] .print__img { opacity: 1; }
+.print--hero.print--portrait .print__img { position: absolute; inset: 0; height: 100%; object-fit: contain; }
+.print--band .print__img, .print--thumb .print__img { height: 100%; object-fit: cover; }
+.print[data-state="ahead"] .print__box { filter: grayscale(1) contrast(0.85); opacity: 0.4; }
+.print[data-state="here"] { outline: 2px solid var(--shu); outline-offset: -2px; }
+.print__caption { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-1) var(--sp-4); margin: var(--sp-3) var(--sp-1) 0; font-size: var(--fs-2); color: var(--fg-muted); }
+.print__title-ja { font-size: var(--fs-4); letter-spacing: 0.08em; color: var(--fg); }
+.print__source { flex-basis: 100%; font-size: var(--fs-1); }

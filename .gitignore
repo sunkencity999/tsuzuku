@@ -8,3 +8,5 @@ coverage/
 .env.*
 public/audio/
 .audio-cache/
+public/art/
+.art-cache/

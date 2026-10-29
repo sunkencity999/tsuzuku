@@ -5,6 +5,7 @@ import { act } from 'preact/test-utils';
 import { vi } from 'vitest';
 import { DojoScene, durableFieldsOf, sceneInputs } from '@/art/dojo/DojoScene';
 import { S as DOJO_S } from '@/art/dojo/strings';
+import { altOf, makeFixtureManifestJson, parseArtManifest, printForToday, resetArtForTests } from '@/art/prints';
 import { bus } from '@/shared/events';
 import { MOON_NAMES, koOf, loadKoyomi, moonPhase, resetKoyomiForTests, sekkiOf } from '@/shared/koyomi';
 import { href } from '@/shared/routes';
@@ -35,6 +36,7 @@ import DojoPage, {
   type GateForecast,
   type SceneProps,
 } from './DojoPage';
+import { SEAL_IDS } from './DojoShelf';
 import { S, fmt } from './strings';
 
 const TODAY = epochDay(DEFAULT_TEST_NOW, 'UTC');
@@ -50,18 +52,38 @@ const ruleOf = (css: string, sel: string): string => {
 };
 const KOYOMI = JSON.parse(readFileSync(resolve(process.cwd(), 'public/calendar/koyomi.json'), 'utf8')) as unknown;
 
+type ArtAnswer = 'pending' | 'none' | Record<string, unknown>;
+/**
+ * The page fetches koyomi.json once after mount: pending by default (the first paint is romaji +
+ * English). It also asks for the print manifest once (prints B2): a 404 by default — the drawn
+ * room is the fallback — or `pending` (the slot waits) or a manifest document (the print hangs).
+ */
+function stubFetch(art: ArtAnswer = 'none'): void {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((input: unknown) => {
+      if (String(input).includes('art/manifest.json')) {
+        if (art === 'pending') return new Promise<never>(() => undefined);
+        if (art === 'none') return Promise.resolve({ ok: false, status: 404 });
+        return Promise.resolve({ ok: true, json: async () => art });
+      }
+      return new Promise<never>(() => undefined);
+    }),
+  );
+}
+
 let root: HTMLDivElement;
 beforeEach(() => {
   root = document.createElement('div');
   document.body.appendChild(root);
-  // the page fetches koyomi.json once after mount: pending by default (the first paint is romaji + English)
-  vi.stubGlobal('fetch', vi.fn(() => new Promise<never>(() => undefined)));
+  stubFetch();
 });
 afterEach(() => {
   render(null, root);
   root.remove();
   resetStoreForTests();
   resetKoyomiForTests();
+  resetArtForTests();
   bus.reset();
   vi.unstubAllGlobals();
   vi.useRealTimers();
@@ -120,6 +142,11 @@ type SceneComponent = (p: SceneProps) => preact.JSX.Element | null;
 async function mount(props: { feed?: (() => Promise<DojoFeed>) | null; Scene?: SceneComponent | null; gate?: GateForecast | null } = {}): Promise<void> {
   await act(async () => {
     render(<DojoPage route={ROUTE} feed={props.feed ?? null} Scene={props.Scene ?? null} gate={props.gate ?? null} />, root);
+    await tick();
+    await tick();
+  });
+  // the print manifest answers after the mount effects (prints B2): one more round lets the picture slot settle — the print, or the drawn room on a 404
+  await act(async () => {
     await tick();
     await tick();
   });
@@ -565,6 +592,227 @@ describe('<DojoPage> Hiraku — the arrival (design 09 §7 A)', () => {
   });
 });
 
+describe('<DojoPage> the print of the day and the shelf of seals (prints B2)', () => {
+  const sealIds = (): string[] => Array.from(root.querySelectorAll('.seal-tile')).map((a) => a.getAttribute('data-tile')!);
+  const grown = (): string[] => Array.from(root.querySelectorAll('.seal-tile[data-since]')).map((a) => a.getAttribute('data-tile')!);
+  /** A save whose picture is a level and seven days ahead of its `sceneSeen` (level 20 ← 10, 12 days ← 5). */
+  async function storeBehind(extra: Record<string, unknown> = {}): Promise<void> {
+    await makeTestStore({ save: { ...ACTIVE, profile: { ...ACTIVE.profile, level: 20 }, ...extra } });
+    const seen: SceneSeen = { ...durableFieldsOf(sceneInputs()), level: 10, totalDays: 5 };
+    store.patch('progress', (p) => ({ ...p, sceneSeen: seen }));
+  }
+  function countSeenWrites(): () => number {
+    let writes = 0;
+    let prev = store.progress.peek().sceneSeen;
+    const stop = store.progress.subscribe((p) => {
+      if (p.sceneSeen !== prev) {
+        prev = p.sceneSeen;
+        writes++;
+      }
+    });
+    return () => {
+      stop();
+      return writes;
+    };
+  }
+
+  it('manifest ready: today’s print hangs in the stage with its caption, eager, and the drawn room is never mounted; the phase word and the column stay; the shelf marks exactly the grown seals and persists sceneSeen once', async () => {
+    stubFetch(makeFixtureManifestJson());
+    await storeBehind();
+    const writes = countSeenWrites();
+    const calls: SceneProps[] = [];
+    const Scene: SceneComponent = (p) => {
+      calls.push(p);
+      return null;
+    };
+    await mount({ Scene, feed: () => Promise.resolve(fullFeed()) });
+    const manifest = parseArtManifest(makeFixtureManifestJson())!;
+    const print = printForToday(manifest, TODAY, 'day')!; // 12:00 UTC → day
+    const stage = root.querySelector('.dojo__stage')!;
+    expect(stage.getAttribute('data-hero')).toBe('print');
+    const fig = stage.querySelector('.dojo__hero > .print.print--hero')!;
+    expect(fig).not.toBeNull();
+    const img = fig.querySelector('img.print__img')!;
+    expect(img.getAttribute('src')).toBe(`./art/${print.file}`);
+    expect(img.getAttribute('alt')).toBe(altOf(print));
+    expect(img.getAttribute('loading')).toBe('eager');
+    expect(img.getAttribute('fetchpriority')).toBe('high');
+    const cap = fig.querySelector('.print__caption')!;
+    expect(cap.textContent).toContain(print.title.ja);
+    expect(cap.textContent).toContain(print.title.en);
+    expect(cap.textContent).toContain(print.source.museum);
+    // not the room: the scene component was never asked to render, no hotspots, no kotodama caption, no eaves ornament
+    expect(calls.length).toBe(0);
+    expect(root.querySelector('.dojo__scene')).toBeNull();
+    expect(root.querySelector('.dojo-scene__caption')).toBeNull();
+    expect(root.querySelector('.dojo-scene__ornament')).toBeNull();
+    expect(root.querySelector('.dojo__hero-wait')).toBeNull();
+    // the phase word still sits over the stage's top edge; the column still stands beside the picture
+    expect(root.querySelector('.dojo__phase')?.parentElement).toBe(stage);
+    // …and with the print in the slot it rises off the picture — its foot on the mat's top strip, no paper plate — while the drawn room keeps the plate at its top-left
+    const lifted = ruleOf(PAGES_CSS, '.dojo__stage:not([data-hero="scene"]) .dojo__phase {');
+    expect(lifted).toMatch(/bottom:\s*calc\(100% - var\(--sp-4\)\)/);
+    expect(lifted).toMatch(/background:\s*transparent/);
+    expect(lifted).not.toMatch(/transform|translate/);
+    expect(ruleOf(PAGES_CSS, '.dojo__phase {')).toMatch(/top:\s*var\(--sp-2\)/);
+    expect(stage.querySelector('.tategaki-column')).not.toBeNull();
+    expect(ruleOf(PAGES_CSS, '.dojo__hero {')).toMatch(/min-width:\s*0/);
+    // the shelf, under the stage and before the sessions: six seals in order; the word-spirit count lives here now
+    const shelf = root.querySelector('[data-shelf]')!;
+    expect(shelf.previousElementSibling).toBe(stage);
+    expect(shelf.compareDocumentPosition(root.querySelector('.dojo__sessions')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(sealIds()).toEqual([...SEAL_IDS]);
+    expect(root.querySelector('[data-tile="spirits"] .seal-tile__n')?.textContent).toBe(S.sealSpiritLabel);
+    expect(root.querySelector('[data-tile="lanterns"] .seal-tile__v')?.textContent).toBe('Lv 20');
+    expect(root.querySelector('[data-tile="days"] .seal-tile__v')?.textContent).toBe('12');
+    // since yesterday on the shelf: the level (10 → 20) and the days (5 → 12) grew; nothing else is marked
+    expect(shelf.getAttribute('data-since')).toBe('lanterns days');
+    expect(grown()).toEqual(['lanterns', 'days']);
+    const inked = Array.from(root.querySelectorAll<HTMLElement>('.seal-tile.ink-nijimi'));
+    expect(inked.map((el) => el.getAttribute('data-tile'))).toEqual(['lanterns', 'days']);
+    expect(inked.map((el) => el.style.getPropertyValue('--i'))).toEqual(['0', '1']);
+    expect(root.querySelector('.seal-tile[data-ring]')).toBeNull();
+    expect(ruleOf(PAGES_CSS, '.seal-tile.ink-nijimi {')).toMatch(/animation-delay:\s*calc\(var\(--dur-4\) \+ min\(var\(--i, 0\), 7\) \* var\(--stagger\)\)/);
+    // persisted once, as the scene's own durable fields, and the day recorded
+    expect(writes()).toBe(1);
+    expect(store.progress.value.sceneSeen).toEqual(durableFieldsOf(sceneInputs()));
+    expect(store.progress.value.arrivedDay).toBe(TODAY);
+    // the same day again: the print is up from the first render (the manifest is kept for the session), no marks, nothing written
+    render(null, root);
+    const before = store.progress.value;
+    await act(async () => {
+      render(<DojoPage route={ROUTE} feed={() => Promise.resolve(fullFeed())} Scene={Scene} gate={null} />, root);
+    });
+    expect(root.querySelector('.dojo__stage')?.getAttribute('data-hero')).toBe('print');
+    expect(root.querySelector('.dojo__hero-wait')).toBeNull();
+    await mount({ Scene, feed: () => Promise.resolve(fullFeed()) });
+    expect(grown()).toEqual([]);
+    expect(root.querySelector('.seal-tile.ink-nijimi')).toBeNull();
+    expect(store.progress.value).toBe(before);
+    expect(calls.length).toBe(0);
+  });
+
+  it('manifest in flight: an empty mat at the figure’s envelope (no shift when the print lands), never a flash of the drawn room; no shelf until the slot is decided, and nothing written', async () => {
+    stubFetch('pending');
+    await storeBehind();
+    const calls: SceneProps[] = [];
+    const Scene: SceneComponent = (p) => {
+      calls.push(p);
+      return null;
+    };
+    await mount({ Scene, feed: () => Promise.resolve(fullFeed()) });
+    const stage = root.querySelector('.dojo__stage')!;
+    expect(stage.getAttribute('data-hero')).toBe('wait');
+    const wait = stage.querySelector('.dojo__hero-wait')!;
+    expect(wait).not.toBeNull();
+    expect(wait.getAttribute('aria-hidden')).toBe('true');
+    expect(wait.textContent).toBe('');
+    // the figure's envelope, empty: the hero mat with a 3 / 2 box and the caption's lines reserved — no image, no button, no words
+    expect(wait.querySelector('.print.print--hero > .print__box')).not.toBeNull();
+    expect(wait.querySelector('.print.print--hero > .print__caption')?.textContent).toBe('');
+    expect(root.querySelector('.print img, .print__show, .print__title-ja')).toBeNull();
+    expect(root.querySelector('.dojo__scene')).toBeNull();
+    expect(calls.length).toBe(0);
+    expect(ruleOf(PAGES_CSS, '.dojo__hero-wait .print__box {')).toMatch(/aspect-ratio:\s*3 \/ 2/);
+    expect(ruleOf(PAGES_CSS, '.dojo__hero-wait .print__caption {')).toMatch(/min-height:\s*6em/);
+    expect(PAGES_CSS).toMatch(/@media \(max-width: 639\.98px\) \{ \.dojo__hero-wait \.print__caption \{ min-height: 12em; \} \}/);
+    expect(stage.querySelector('.tategaki-column')).not.toBeNull();
+    expect(root.querySelector('.dojo__phase')?.parentElement).toBe(stage);
+    // the shelf belongs to the print: while the slot is undecided there is none, so nothing is diffed or written early
+    expect(root.querySelector('[data-shelf]')).toBeNull();
+    expect(sealIds()).toEqual([]);
+    expect(grown()).toEqual([]);
+    expect(root.querySelector('.seal-tile.ink-nijimi')).toBeNull();
+    expect(store.progress.value.sceneSeen?.level).toBe(10);
+    expect(store.progress.value.arrivedDay).toBe(TODAY);
+  });
+
+  it('no pack (404): the drawn room mounts with the arrival and keeps its own pulse and write; no shelf repeats the room’s state (06 §5: the fallback stands unchanged)', async () => {
+    await storeBehind();
+    const writes = countSeenWrites();
+    await mount({ Scene: DojoScene, feed: () => Promise.resolve(fullFeed()) });
+    expect(root.querySelector('.dojo__stage')?.getAttribute('data-hero')).toBe('scene');
+    expect(root.querySelector('.dojo__scene')).not.toBeNull();
+    // the room's own diff: the lantern (level 10 → 20) and the bonsai (5 → 12 days is a depth step)
+    expect(root.querySelector('.dojo-scene__art')?.getAttribute('data-since')).toBe('lantern bonsai');
+    expect(root.querySelector('.print')).toBeNull();
+    expect(root.querySelector('.dojo__hero-wait')).toBeNull();
+    // the room draws belt, lanterns, days, goshuin, mon and spirits itself: no shelf of seals under it (the state shown once)
+    expect(root.querySelector('[data-shelf]')).toBeNull();
+    expect(sealIds()).toEqual([]);
+    expect(grown()).toEqual([]);
+    expect(root.querySelector('.seal-tile')).toBeNull();
+    expect(writes()).toBe(1);
+    expect(store.progress.value.sceneSeen?.level).toBe(20);
+  });
+
+  it('data saver (design 08 §13): only the preview and a ≥ 44 px "Show the print" button; reduced motion: the grown seals carry the static ring and no .ink-* class', async () => {
+    stubFetch(makeFixtureManifestJson());
+    await storeBehind({ settings: { dataSaver: true, reducedMotion: true } });
+    await mount({ feed: () => Promise.resolve(fullFeed()) });
+    expect(root.querySelector('.dojo__stage')?.getAttribute('data-hero')).toBe('print');
+    expect(root.querySelector('.print img')).toBeNull();
+    const show = root.querySelector('.print__show')!;
+    expect(show.textContent).toBe('Show the print');
+    expect(show.classList.contains('btn')).toBe(true);
+    expect(grown()).toEqual(['lanterns', 'days']);
+    expect(Array.from(root.querySelectorAll('.seal-tile[data-ring]')).map((a) => a.getAttribute('data-tile'))).toEqual(['lanterns', 'days']);
+    expect(root.innerHTML).not.toMatch(/class="[^"]*\bink-/);
+    expect(ruleOf(PAGES_CSS, '.seal-tile[data-ring] .seal-tile__k {')).toMatch(/outline:\s*1px solid var\(--kin\)/);
+    expect(store.progress.value.sceneSeen?.level).toBe(20);
+  });
+
+  it('a first run shows neither the shelf nor the column; a save with no pack and no scene shows an empty slot after the manifest settles, and no shelf', async () => {
+    stubFetch(makeFixtureManifestJson());
+    await makeTestStore();
+    await mount({ feed: () => Promise.resolve(fullFeed()) });
+    expect(root.querySelector('[data-first-run]')).not.toBeNull();
+    expect(root.querySelector('[data-shelf]')).toBeNull();
+    expect(root.querySelector('.print.print--hero')).not.toBeNull();
+    render(null, root);
+    resetStoreForTests();
+    resetArtForTests();
+    stubFetch();
+    await makeTestStore({ save: ACTIVE });
+    await mount();
+    expect(root.querySelector('.dojo__stage')?.getAttribute('data-hero')).toBe('scene');
+    expect(root.querySelector('.dojo__hero-wait')).toBeNull();
+    expect(root.querySelector('.dojo__scene')).toBeNull();
+    expect(root.querySelector('[data-shelf]')).toBeNull();
+  });
+
+  it('the shelf is a real list of links (no ARIA roles) that mounts only once the print is up: absent while the slot waits, present with the six links after the manifest lands', async () => {
+    let land!: (r: unknown) => void;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: unknown) => (String(input).includes('art/manifest.json') ? new Promise<unknown>((r) => (land = r)) : new Promise<never>(() => undefined))),
+    );
+    await storeBehind();
+    await mount({ feed: () => Promise.resolve(fullFeed()) });
+    expect(root.querySelector('.dojo__stage')?.getAttribute('data-hero')).toBe('wait');
+    expect(root.querySelector('[data-shelf]')).toBeNull();
+    await act(async () => {
+      land({ ok: true, json: async () => makeFixtureManifestJson() });
+      await tick();
+      await tick();
+    });
+    expect(root.querySelector('.dojo__stage')?.getAttribute('data-hero')).toBe('print');
+    const shelf = root.querySelector('[data-shelf]')!;
+    expect(shelf.tagName).toBe('UL');
+    expect(shelf.querySelectorAll('[role]')).toHaveLength(0);
+    expect(Array.from(shelf.children).map((li) => li.tagName)).toEqual(Array(6).fill('LI'));
+    expect(Array.from(shelf.querySelectorAll('li > a.seal-tile')).map((a) => a.getAttribute('data-tile'))).toEqual([...SEAL_IDS]);
+    // mounted with the print up, the shelf's one-per-mount diff ran then: the grown seals are marked and the picture persisted
+    expect(grown()).toEqual(['lanterns', 'days']);
+    expect(store.progress.value.sceneSeen?.level).toBe(20);
+    // the sessions below are a real list too
+    const sessions = root.querySelector('.dojo__sessions')!;
+    expect(sessions.tagName).toBe('UL');
+    expect(sessions.querySelectorAll('[role]')).toHaveLength(0);
+    expect(Array.from(sessions.querySelectorAll('li > a.dojo__session')).map((a) => a.getAttribute('data-mode'))).toEqual(['kata', 'kumite', 'shugyo']);
+  });
+});
+
 describe('<DojoPage> the tategaki column (design 09 §3.3, §5.9)', () => {
   it('shows romaji + English for the sekki, kō and moon before koyomi.json loads, and the Japanese after loadKoyomi(); the kō and the sekki carry dates, never "in N days"', async () => {
     await makeTestStore({ save: ACTIVE });
@@ -589,9 +837,11 @@ describe('<DojoPage> the tategaki column (design 09 §3.3, §5.9)', () => {
     expect(moonEl.querySelector('[lang="ja"]')).toBeNull();
     expect(moonEl.textContent).toContain(MOON_NAMES[moon.name].romaji);
     expect(moonEl.textContent).toContain(MOON_NAMES[moon.name].en);
-    // the page asked for the data once, after mount — never at boot
-    expect(fetch).toHaveBeenCalledTimes(1);
-    expect(String((fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[0])).toContain('calendar/koyomi.json');
+    // the page asked for the data once, after mount — never at boot (the print manifest is the page's other request, once too; prints B2)
+    const urls = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.map((c) => String(c[0]));
+    expect(urls.filter((u) => u.includes('calendar/koyomi.json')).length).toBe(1);
+    expect(urls.filter((u) => u.includes('art/manifest.json')).length).toBe(1);
+    expect(urls.length).toBe(2);
 
     // the data lands: the Japanese names appear, each still beside its romaji and English
     const data = loadKoyomi(KOYOMI);

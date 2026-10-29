@@ -247,3 +247,20 @@
     clip-path: inset(0);
   }
 }
+
+/* the gallery (prints B3): a 96 × 72 print leads every row and both end nodes once the pack is here (the kit vignette
+   stays without it); ahead rows are the figure's ink-only state, the current row its vermilion ring; while the arrival
+   plays, the current row's print waits as its preview and fades in at beat 3 (opacity only) */
+.tokaido__print {
+  flex: none;
+  width: 96px;
+  border-radius: var(--radius-sm);
+}
+
+.tokaido__row[data-print] .tokaido__station {
+  grid-template-columns: 40px 96px minmax(0, 1fr);
+}
+
+.tokaido[data-arriving] .print--thumb[data-state="here"] .print__img {
+  opacity: 0;
+}

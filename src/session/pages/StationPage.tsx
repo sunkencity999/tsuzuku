@@ -7,7 +7,23 @@
  *  filter) over the `.sign--head` plate: number · 第N宿 · brush name · the
  *  reading (romaji below Green, kana ruby after — §3.3) · the English state
  *  word. `.station-head .sign` is the `station-seal` hero's landing
- *  (`transitions.ts`). Then the keeper line, the quotas from `STATIONS`,
+ *  (`transitions.ts`). With the print pack (prints B3, `@/art/prints`) the
+ *  station's own print hangs in the headpiece's place: a `<PrintFigure
+ *  variant="band" eager>` cover-cropped about the manifest's focus, its alt
+ *  the picture's name, the sign plate over its foot as before, and under the
+ *  plate the print's one-line caption (`.station-cap`, `captionOf`: the
+ *  Japanese title, then the reading and English, the series with its reading
+ *  and date, the museum line — the credit rule of docs/ART_PACK.md §10, the
+ *  station's own lesson; its Japanese is set in `--font-ja` by the
+ *  `[lang="ja"]` rule, never Mincho — the manifest's glyphs lie outside the
+ *  shell slices, 09 §3.5). Under the data saver (`settings.dataSaver` or the
+ *  browser's Save-Data, design 08 §13 — the Dojo's rule) the band keeps its
+ *  preview and a "Show the print" button instead of the eager image. While the
+ *  manifest loads the band's box waits in `--surface` (`data-wait`, no
+ *  procedural flash), and only a session without a pack (`artStatus 'none'`)
+ *  draws the procedural headpiece. Nihonbashi (`#/station/0`) hangs its print
+ *  above its title the same way, caption and saver included. Then the keeper
+ *  line, the quotas from `STATIONS`,
  *  progress bars (introduced / Green) from `stationProgress`, the Scrolls with
  *  their introduced counts, items by kind with item belts, the texts with links
  *  to the reader / listening / role-play, the Michikusa collected count, the
@@ -34,10 +50,11 @@
  */
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { PRINT_S, PrintFigure, artStatus, captionOf, printForStation, useArtManifest, type PrintEntry } from '@/art/prints';
 import { content, type ContentLoader } from '../../content/loader';
 import { STATIONS, type ContentItem, type ListeningPool, type StationBundle, type StationDef, type StoryItem } from '../../content/types';
 import { toPlain } from '../../content/ruby';
-import { audioSourceOf, services, voiceAudible } from '../../shared/audio';
+import { audioSourceOf, saveDataRequested, services, voiceAudible } from '../../shared/audio';
 import { href, type Route } from '../../shared/routes';
 import type { ItemBelt, ItemKind } from '../../shared/store-types';
 import { Ruby } from '../../shared/ui/Ruby';
@@ -148,6 +165,39 @@ function Bar(p: { label: string; now: number; total: number; tone?: 'ai' | 'matc
   );
 }
 
+const CAP_SEP = ' · ';
+
+/**
+ * The print's caption under the sign plate (docs/ART_PACK.md §10, the credit
+ * rule; the hero caption's four lines as one): the artist and title in
+ * Japanese, then the artist, reading and English, the series with its reading,
+ * English name and date, the museum line. One muted line; every Japanese span
+ * is followed by its reading and gloss, and its face is `--font-ja` through
+ * `[lang="ja"]` (no `.mincho`: the manifest's glyphs are outside the shell
+ * slices). The strings are the manifest's at runtime — none lives in this file.
+ */
+function PrintCap(p: { print: PrintEntry }): JSX.Element {
+  const c = captionOf(p.print);
+  const reading = [c.artistEn, c.titleReading, c.titleEn].filter((x) => x.length > 0).join(CAP_SEP);
+  const seriesGloss = [c.seriesReading, c.date ? `${c.seriesEn}, ${c.date}` : c.seriesEn].filter((x) => x.length > 0).join(CAP_SEP);
+  return (
+    <p class="station-cap">
+      <span lang="ja" class="station-cap__ja">
+        {c.artistJa}
+        {'《'}
+        {c.titleJa}
+        {'》'}
+      </span>
+      {CAP_SEP}
+      {reading}
+      {CAP_SEP}
+      {PRINT_S.printFrom} <span lang="ja">{c.seriesJa}</span> {seriesGloss}
+      {CAP_SEP}
+      {c.source}
+    </p>
+  );
+}
+
 function NotFound(): JSX.Element {
   return (
     <section class="page page--station" aria-label={S.stationPageAria}>
@@ -178,7 +228,16 @@ export default function StationPage(p: StationPageProps): JSX.Element {
   const chip = earChip(services.audio);
   // the headpiece: the art tier on demand, the width from the box, the theme from the document (a settings read subscribes)
   const art = useRoadArt();
+  // the print pack: the station's own print heads the page once the manifest is here; the procedural piece is drawn
+  // only when the session has no pack (status `none`) — meanwhile the band's box waits, so nothing flashes
+  const prints = useArtManifest();
+  const printStatus = artStatus.value;
+  const print = prints ? printForStation(prints, n) : null;
+  const procedural = printStatus === 'none' || (printStatus === 'ready' && !print);
+  const waiting = !print && !procedural;
   const settings = store.settings.value;
+  // `@/audio`'s dataSaverOn() body (design 08 §13), the Dojo's rule: the band keeps its preview and a button
+  const dataSaver = settings.dataSaver === true || saveDataRequested();
   const learnerBelt = store.profile.value.belt;
   const headRef = useRef<HTMLDivElement>(null);
   const [headWidth, setHeadWidth] = useState(0);
@@ -236,16 +295,18 @@ export default function StationPage(p: StationPageProps): JSX.Element {
   const night = isNight();
   const reduced = prefersReducedMotion();
   const pieceWidth = art ? art.headpieceWidth(headWidth) : 0;
-  const piece = useMemo(() => (art && def ? art.headpiece({ station: def.number, width: pieceWidth, theme: night ? 'dark' : 'light', reduced }) : null), [art, def, pieceWidth, night, reduced]);
+  const piece = useMemo(() => (procedural && art && def ? art.headpiece({ station: def.number, width: pieceWidth, theme: night ? 'dark' : 'light', reduced }) : null), [procedural, art, def, pieceWidth, night, reduced]);
 
   if (p.route.name !== 'station') return <NotFound />;
   if (n === 0) {
     return (
       <section class="page page--station" aria-label={S.stationPageAria}>
         <header class="page__head">
+          {print ? <PrintFigure print={print} variant="band" eager dataSaver={dataSaver} class="station-zero__print" /> : null}
           <h2 class="page__title">
             <span lang="ja">日本橋</span> Nihonbashi
           </h2>
+          {print ? <PrintCap print={print} /> : null}
           <p class="page__sub">{S.stationZero}</p>
         </header>
         <div class="page__actions">
@@ -287,11 +348,15 @@ export default function StationPage(p: StationPageProps): JSX.Element {
       <header class="page__head station-head" data-belt={def.belt}>
         <div
           ref={headRef}
-          class="headpiece station-head__piece"
-          role={art ? 'img' : undefined}
-          aria-label={art ? art.headpieceLabel(n) : undefined}
+          // `.headpiece` (road.css, height 160px) only on the procedural path: the waiting box keeps the band's own 4 / 1 size, so the print lands without a shift
+          class={procedural ? 'headpiece station-head__piece' : 'station-head__piece'}
+          role={piece ? 'img' : undefined}
+          aria-label={piece && art ? art.headpieceLabel(n) : undefined}
+          data-wait={waiting ? '' : undefined}
           dangerouslySetInnerHTML={piece ? { __html: piece } : undefined}
-        />
+        >
+          {print ? <PrintFigure print={print} variant="band" eager dataSaver={dataSaver} /> : null}
+        </div>
         <h2 class="sign sign--head station-head__sign">
           <span class="sign__number">{fill(S.stationShort, { n })}</span>
           <span class="sign__ordinal" lang="ja" aria-hidden="true">
@@ -303,6 +368,7 @@ export default function StationPage(p: StationPageProps): JSX.Element {
           {romaji ? <span class="sign__reading">{def.nameRomaji}</span> : null}
           <span class="sign__en">{STATE_LABEL[headState]}</span>
         </h2>
+        {print ? <PrintCap print={print} /> : null}
         <p class="page__sub">
           <span class={`belt belt--${def.belt}`}>{fill(S.beltLine, { belt: BELT_NAME[def.belt], jlpt: def.jlpt ? fill(S.jlptLine, { n: def.jlpt }) : S.levelKana })}</span>
         </p>

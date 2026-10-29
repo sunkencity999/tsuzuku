@@ -423,13 +423,21 @@ describe('src/**/*.css: width and height never tween (design 09 §6.7 rule 1)', 
    D2 follow-ups/perf +1,227 — ui.css +692, RoadNav +365, StoryPage +135, GoshuinBook +134,
    RolePlay +7, Radio −106); the lead's Phase D fixes (d63 TextAnswer.css +79, d65 motion.css
    .sign__ja .ruby +114) landed the tree at 413,601 B (Phase D net +202), so the phase ceiling
-   stays 414,000 — still the smallest multiple of 1,000 at or above the measured tree. The
-   ALLOW_LIST is empty (both D1 tweens deleted). The programme has 11,399 B net left under
-   CSS_CEILING_PROGRAMME. */
-const CSS_CEILING_PHASE = 414_000;
+   stayed 414,000 — still the smallest multiple of 1,000 at or above the measured tree. The
+   ALLOW_LIST is empty (both D1 tweens deleted).
+   The prints wave (design 09 §12.1 d77–d78, 2026-10-28) landed at 418,983 B (net +5,321 over the
+   413,662 B HEAD it started from: B1 src/art/prints/PrintFigure.css +1,588 new; B2 app pages.css
+   +2,287 — the hero slot and its wait envelope, the shelf of seals, the review's real-list rules and
+   the phase word's rise off the print; B3 session RoadNav.css +609 and session pages.css +837 — the
+   band, the wait box's 1 px border and the station caption). The integrator measured the tree and
+   set the phase ceiling at 419,000 — the smallest multiple of 1,000 at or above it: the owners'
+   tests pin the new rules' exact shapes, and the 1,767 B of comments in the new CSS cannot give
+   back the 984 B a 418,000 ceiling would need. Never above 421,000. The programme has 6,000 B net
+   left under CSS_CEILING_PROGRAMME. */
+const CSS_CEILING_PHASE = 419_000;
 export const CSS_CEILING_PROGRAMME = 425_000;
 describe('CSS budget', () => {
-  it(`total src CSS ≤ ${CSS_CEILING_PHASE.toLocaleString('en-US')} bytes (phase ceiling, Phase D; the programme ends ≤ ${CSS_CEILING_PROGRAMME.toLocaleString('en-US')})`, () => {
+  it(`total src CSS ≤ ${CSS_CEILING_PHASE.toLocaleString('en-US')} bytes (phase ceiling, the prints wave after Phase D; the programme ends ≤ ${CSS_CEILING_PROGRAMME.toLocaleString('en-US')})`, () => {
     expect(CSS_CEILING_PHASE).toBeLessThanOrEqual(CSS_CEILING_PROGRAMME);
     const files = walk(resolve(ROOT, 'src'));
     const total = files.reduce((n, f) => n + statSync(f).size, 0);

@@ -1,13 +1,16 @@
 /**
  * RoadNav.tsx — 53 markers and .sign rows, the one-path spine, keyboard walking, the kit vignettes, the kana rule,
  * and the Tōchaku arrival (design 09 §7 D): spine hiku, seal osu / kawaku, lantern tomosu, data-arrived, the one
- * stationSeen patch; reduced motion: everything complete, no .ink-* class, the gold hairline attribute.
+ * stationSeen patch; reduced motion: everything complete, no .ink-* class, the gold hairline attribute. The gallery
+ * (prints B3): with the pack a 96 × 72 print thumb leads every row and both ends in the row's state; under the data saver the
+ * thumbs keep their previews alone; without a pack nothing changes.
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeFixtureManifest, makeFixtureManifestJson, printForStation, printSrc, resetArtForTests } from '@/art/prints';
 import { STATIONS } from '../content/types';
 import { installServices, nullAudio, resetServices } from '../shared/audio';
 import { resetStoreForTests, store } from '../store';
@@ -30,6 +33,9 @@ afterEach(() => {
   resetServices();
   document.documentElement.removeAttribute('data-color-scheme');
   vi.restoreAllMocks();
+  // the print manifest is fetched once per session: forget it (and any fetch / matchMedia stub) between tests
+  resetArtForTests();
+  vi.unstubAllGlobals();
 });
 
 const settle = async (rounds = 4): Promise<void> => {
@@ -421,5 +427,149 @@ describe('stationState / signage helpers', () => {
     expect(signRubyMode('tap')).toBe('always');
     expect(signRubyMode('off')).toBe('off');
     expect(ARRIVAL_BEATS).toEqual({ seal: 900, lantern: 1100, band: 1500 });
+  });
+});
+
+describe('<RoadNav> the gallery (prints B3)', () => {
+  type FetchFn = (url: string) => Promise<Response>;
+  const packFetch: FetchFn = async () => ({ ok: true, json: async () => makeFixtureManifestJson() }) as unknown as Response;
+  const noPack: FetchFn = async () => ({ ok: false, status: 404 }) as unknown as Response;
+  const M = makeFixtureManifest();
+  const thumbs = (): HTMLElement[] => Array.from(root.querySelectorAll<HTMLElement>('a.tokaido__station figure.print--thumb'));
+  const endState = (node: string): string | null => root.querySelector(`.tokaido__node--${node} figure.print--thumb`)?.getAttribute('data-state') ?? null;
+
+  beforeEach(() => resetArtForTests());
+
+  it("with the pack every row leads with its station's print — passed in colour, the current row here, the road ahead in ink — decorative, deferred, no caption; both ends too; nothing says locked", async () => {
+    vi.stubGlobal('fetch', vi.fn(packFetch));
+    await makeTestStore();
+    await mountSettled({ current: 5, cleared: [1, 2, 3, 4], stationSeen: 5 });
+    const figs = thumbs();
+    expect(figs).toHaveLength(53);
+    expect(figs.map((f) => f.getAttribute('data-state'))).toEqual([...Array<string>(4).fill('passed'), 'here', ...Array<string>(48).fill('ahead')]);
+    for (const a of stations()) {
+      const n = Number(a.dataset.station);
+      const fig = a.querySelector('figure.print--thumb')!;
+      expect(fig.classList.contains('tokaido__print')).toBe(true);
+      expect(fig.firstElementChild?.classList.contains('print__box')).toBe(true);
+      const img = fig.querySelector<HTMLImageElement>('img.print__img')!;
+      expect(img.getAttribute('src')).toBe(printSrc(printForStation(M, n)!));
+      expect(img.getAttribute('alt')).toBe('');
+      expect(img.getAttribute('loading')).toBe('lazy');
+      expect(img.hasAttribute('fetchpriority')).toBe(false);
+      expect(fig.querySelector('figcaption')).toBeNull();
+      // no `figure` role inside the link: the wrapper is presentational, the link's aria-label names the stop
+      expect(fig.getAttribute('role')).toBe('presentation');
+      expect(a.querySelector('.tokaido__art')).toBeNull();
+      expect((a.parentElement as HTMLElement).hasAttribute('data-print')).toBe(true);
+      // the print leads: marker, then the figure, then the sign (the sign contract is untouched)
+      expect(Array.from(a.children).map((c) => c.className.split(' ')[0])).toEqual(['tokaido__marker', 'print', 'sign']);
+      expect(Array.from(a.querySelector('.sign')!.children).map((c) => c.className)).toEqual(['sign__number', 'sign__ordinal', 'sign__ja', 'sign__reading', 'sign__en']);
+    }
+    // 55 pictures, none eager: the browser fetches the ones it shows; not one of them exposes a figure role (both ends included)
+    expect(root.querySelectorAll('img')).toHaveLength(55);
+    expect(root.querySelectorAll('img[loading="eager"]')).toHaveLength(0);
+    expect(root.querySelectorAll('figure.print')).toHaveLength(55);
+    expect(root.querySelectorAll('figure.print:not([role="presentation"])')).toHaveLength(0);
+    // the two ends: Nihonbashi passed (the learner stands at 5), Sanjō Ōhashi ahead
+    expect(endState('start')).toBe('passed');
+    expect(root.querySelector('.tokaido__node--start img')?.getAttribute('src')).toBe(printSrc(printForStation(M, 0)!));
+    expect(endState('arrival')).toBe('ahead');
+    expect(root.querySelector('.tokaido__node--arrival img')?.getAttribute('src')).toBe(printSrc(printForStation(M, 54)!));
+    // the link keeps the station's name; the current row keeps its lantern and holds no 160 band
+    expect(stations()[5]?.getAttribute('aria-label')).toContain('ahead');
+    expect(root.textContent?.toLowerCase()).not.toContain('locked');
+    expect(row(5).querySelector('.tokaido__lantern')).not.toBeNull();
+    expect(row(5).hasAttribute('data-band')).toBe(false);
+    expect(root.querySelectorAll('[aria-current="step"]')).toHaveLength(1);
+  });
+
+  it('every row stays within 40 nodes with its print; the start is here at Nihonbashi, the arrival here once Ōtsu is cleared; one fetch per session', async () => {
+    const f = vi.fn(packFetch);
+    vi.stubGlobal('fetch', f);
+    await makeTestStore({ save: { profile: { belt: 'green' } } });
+    await mountSettled({ current: 0, cleared: [] });
+    for (const li of Array.from(root.querySelectorAll('.tokaido__row'))) expect(nodes(li), li.querySelector('a')?.getAttribute('data-station') ?? '').toBeLessThanOrEqual(40);
+    expect(endState('start')).toBe('here');
+    expect(endState('arrival')).toBe('ahead');
+    expect(thumbs().filter((x) => x.getAttribute('data-state') !== 'ahead')).toHaveLength(0);
+    render(null, root);
+    resetStoreForTests();
+    await makeTestStore();
+    await mountSettled({ current: 53, cleared: Array.from({ length: 53 }, (_, i) => i + 1), stationSeen: 53 });
+    expect(endState('start')).toBe('passed');
+    expect(endState('arrival')).toBe('here');
+    expect(thumbs().filter((x) => x.getAttribute('data-state') !== 'passed')).toHaveLength(0);
+    for (const li of Array.from(root.querySelectorAll('.tokaido__row'))) expect(nodes(li)).toBeLessThanOrEqual(40);
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+
+  it("at ≥ 600 px the print takes the band's place on the current row (no data-band, no 160 box); while the arrival plays the nav is data-arriving and the stylesheet holds the current thumb's picture at opacity 0 until beat 3", async () => {
+    const mq = (q: string) => ({ matches: q.includes('min-width'), addEventListener: vi.fn(), removeEventListener: vi.fn() });
+    vi.stubGlobal('matchMedia', vi.fn(mq));
+    vi.stubGlobal('fetch', vi.fn(packFetch));
+    await makeTestStore({ save: { progress: { station: 5, stationsCleared: [1, 2, 3, 4], stationSeen: 4 } } });
+    mount({ current: 5, cleared: [1, 2, 3, 4], stationSeen: 4, tempo: 1000 });
+    await settle(); // the manifest lands; the beats (tempo 1000) do not
+    expect(root.querySelector('.tokaido')?.hasAttribute('data-arriving')).toBe(true);
+    expect(row(5).hasAttribute('data-band')).toBe(false);
+    expect(row(5).hasAttribute('data-print')).toBe(true);
+    expect(row(5).querySelector('.tokaido__art')).toBeNull();
+    expect(row(5).querySelector('figure.print--thumb')?.getAttribute('data-state')).toBe('here');
+    expect(nodes(row(5))).toBeLessThanOrEqual(40);
+    const css = readFileSync(resolve(process.cwd(), 'src/session/RoadNav.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(css).toMatch(/\.tokaido\[data-arriving\] \.print--thumb\[data-state="here"\] \.print__img\s*\{\s*opacity:\s*0;\s*\}/);
+    expect(css).toMatch(/\.tokaido__row\[data-print\] \.tokaido__station\s*\{\s*grid-template-columns:\s*40px 96px minmax\(0, 1fr\);\s*\}/);
+    expect(css).toMatch(/\.tokaido__print\s*\{\s*flex:\s*none;\s*width:\s*96px;\s*border-radius:\s*var\(--radius-sm\);\s*\}/);
+    // the only thing the new rules move is opacity (design 09 §6.7 rule 1)
+    const added = css.slice(css.indexOf('.tokaido__print {'));
+    expect(added).not.toMatch(/transition|animation/);
+  });
+
+  it('under the data saver (the setting, or the browser\'s Save-Data) every thumb keeps its 24 px preview alone: the 55 figures in their states, no image and no button anywhere', async () => {
+    vi.stubGlobal('fetch', vi.fn(packFetch));
+    await makeTestStore({ save: { settings: { dataSaver: true } } });
+    await mountSettled({ current: 5, cleared: [1, 2, 3, 4], stationSeen: 5 });
+    const figs = thumbs();
+    expect(figs).toHaveLength(53);
+    expect(figs.map((f) => f.getAttribute('data-state'))).toEqual([...Array<string>(4).fill('passed'), 'here', ...Array<string>(48).fill('ahead')]);
+    expect(root.querySelectorAll('figure.print--thumb')).toHaveLength(55);
+    expect(root.querySelectorAll('[data-print]')).toHaveLength(53);
+    expect(root.querySelector('.tokaido__art')).toBeNull();
+    expect(root.querySelectorAll('img')).toHaveLength(0);
+    expect(root.querySelectorAll('button.print__show')).toHaveLength(0);
+    for (const fig of Array.from(root.querySelectorAll<HTMLElement>('figure.print--thumb'))) {
+      const box = fig.querySelector<HTMLElement>('.print__box')!;
+      expect(box.children).toHaveLength(0);
+      expect(box.style.backgroundImage).toContain('data:image/webp;base64,');
+    }
+    expect(endState('start')).toBe('passed');
+    expect(endState('arrival')).toBe('ahead');
+    // the one tab stop per row is still the link: no button joined the road
+    expect(root.querySelectorAll('.tokaido__road button')).toHaveLength(0);
+    // the browser's own signal with the setting off does the same
+    render(null, root);
+    resetStoreForTests();
+    await makeTestStore();
+    expect(store.settings.value.dataSaver).toBe(false);
+    const nav = globalThis.navigator as { connection?: unknown };
+    Object.defineProperty(nav, 'connection', { value: { saveData: true }, configurable: true });
+    try {
+      await mountSettled({ current: 5, cleared: [1, 2, 3, 4], stationSeen: 5 });
+      expect(thumbs()).toHaveLength(53);
+      expect(root.querySelectorAll('img')).toHaveLength(0);
+    } finally {
+      delete nav.connection;
+    }
+  });
+
+  it('without a pack (404) the road is as it was: the kit vignette on every row, no figure, no data-print, no image', async () => {
+    vi.stubGlobal('fetch', vi.fn(noPack));
+    await makeTestStore();
+    await mountSettled({ current: 4, cleared: [1, 2, 3], stationSeen: 4 });
+    expect(root.querySelector('figure.print')).toBeNull();
+    expect(root.querySelector('[data-print]')).toBeNull();
+    expect(root.querySelectorAll('img')).toHaveLength(0);
+    for (const a of stations()) expect(a.querySelector('.tokaido__art')?.children.length).toBeGreaterThan(0);
   });
 });

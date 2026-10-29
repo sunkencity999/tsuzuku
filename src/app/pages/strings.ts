@@ -134,6 +134,36 @@ const PAGE = {
   dojoTownPassed: 'passed',
   dojoTownHere: 'here',
   dojoTownAhead: 'ahead',
+  /* ── the shelf of seals (prints B2; design 06 §5): the room's state under the print of the day.
+   * Each seal kanji is one the UI inventory already holds; its reading and meaning ("obi · belt")
+   * stand as the tile's first line, visible — every Japanese string the learner meets carries both
+   * — and so are read before the value; the value in the pixel face, the English label under it. ── */
+  dojoShelfLabel: 'The dojo’s state',
+  sealBeltJa: '帯',
+  sealBeltName: 'obi · belt',
+  sealBeltLabel: '{n} tatami',
+  sealLanternJa: '灯',
+  sealLanternName: 'tomoshibi · lantern',
+  sealLanternValue: 'Lv {n}',
+  /** Before the first lantern: one hangs on the eaves per ten levels. */
+  sealLanternLabelNone: 'lanterns at 10',
+  sealLanternLabelOne: '1 lantern',
+  sealLanternLabel: '{n} lanterns',
+  sealDaysJa: '日',
+  sealDaysName: 'hi · day',
+  sealDaysLabelOne: 'day trained',
+  sealDaysLabel: 'days trained',
+  sealStampJa: '印',
+  sealStampName: 'in · seal',
+  sealStampLabel: 'goshuin',
+  sealMonJa: '紋',
+  sealMonName: 'mon · crest',
+  sealMonValue: '{n} / {total}',
+  sealMonLabel: 'mon',
+  sealSpiritJa: '霊',
+  sealSpiritName: 'tama · spirit',
+  sealSpiritLabelOne: 'word-spirit',
+  sealSpiritLabel: 'word-spirits',
 
   /* ── onboarding (日本橋) ───────────────────────────────────────────── */
   onbNamePlaceholder: 'むめい',
@@ -279,6 +309,17 @@ const PAGE = {
   aboutVoicesTitleJa: '声',
   aboutVoicesNone: 'No voice pack in this build; your device voice speaks.',
   aboutVoiceCreditNote: 'a VOICEVOX character voice',
+  /* prints (design 09 §12.1 d77–d78): the title kanji 画 (ga, picture — as in hanga, a woodblock print) is one the UI inventory
+   * already holds (fonts.test.ts walks src, comments included; the "picture" kanji the brief first suggested is not in it);
+   * artists, titles and series come from the pack manifest */
+  aboutPrintsTitle: 'Prints',
+  aboutPrintsTitleJa: '画',
+  aboutPrintsIntro: 'The print on the home stage, the station headpieces and the Road are woodblock prints from the collection below. The print of the day and each station page carry the title as a reading and the museum credit; the Road shows the same sheets small, beside each station’s name.',
+  aboutPrintsNone: 'No print pack in this build; the drawn room stands.',
+  aboutPrintsLoading: 'Looking for the print pack.',
+  aboutPrintCount: '{n} prints',
+  aboutPrintCountOne: '1 print',
+  aboutLicensePrints: 'The prints are public-domain works of Hokusai and Hiroshige, reproduced from CC0 museum scans and credited beneath the print of the day and on each station page; they are not CC BY-SA content.',
   aboutLoadErrorsTitle: 'Rooms that did not open',
   aboutNoLoadErrors: 'Every room opened.',
   aboutNoEvents: 'Nothing yet.',

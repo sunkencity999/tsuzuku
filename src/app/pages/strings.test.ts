@@ -49,5 +49,15 @@ describe('shell page copy (design 01 §3)', () => {
     expect(S.dojoRadioTitle).toBe('Teahouse Radio');
     expect(S.aboutVoicesTitleJa).toBe('声');
     expect(S.aboutVoicesTitle).toBe('Voices');
+    expect(S.aboutPrintsTitleJa).toBe('画');
+    expect(S.aboutPrintsTitle).toBe('Prints');
+  });
+
+  it('prints (design 09 §12.1 d78): the no-pack line names the drawn room, the licence line says public domain and not CC BY-SA', () => {
+    expect(S.aboutPrintsNone).toBe('No print pack in this build; the drawn room stands.');
+    expect(S.aboutLicensePrints).toMatch(/public-domain/);
+    expect(S.aboutLicensePrints).toMatch(/CC0/);
+    expect(S.aboutLicensePrints).toMatch(/not CC BY-SA/);
+    expect(S.aboutLicensePrints).not.toContain('!');
   });
 });

@@ -25,13 +25,28 @@
  *    `.seal` span so `transitions.ts`'s `station-seal` hero finds it), ahead =
  *    a dashed number. The vignette beside each row is a kit motif from
  *    `src/art/road` on the `--road` band; ahead rows are an ink wash.
+ *  - THE GALLERY (prints B3, `@/art/prints`): once the print pack's manifest
+ *    is here every row — and both end nodes, 0 Nihonbashi and 54 Sanjō Ōhashi
+ *    — leads with the station's own print as a 96 × 72 `<PrintFigure
+ *    variant="thumb">` in the vignette's place (`data-print` on the row widens
+ *    its column): passed rows in colour, the current row with the vermilion
+ *    ring, rows ahead in ink only (the figure's `ahead` state — the colour is
+ *    the arrival's reward, nothing says "locked"). The thumbs are decorative
+ *    (the link's label names the station), deferred by the browser, and the
+ *    rows out of view keep skipping layout, so a 55-row list fetches nothing
+ *    it does not show. Under the data saver (`settings.dataSaver` or the
+ *    browser's Save-Data, design 08 §13) every thumb keeps its 24 px preview
+ *    alone — no `<img>`, no button — and the gallery is coloured for no bytes
+ *    beyond the manifest. Without a pack the kit vignette stays as it was.
  *  - MOMENT D (§7 D), on the first Road view with `current > stationSeen`:
  *    0 the spine hiku-draws (`--dur-4`); 900 the passed station's seal osu then
  *    kawaku with `stamp` (its haptic is the recipe's); 1,100 the new lantern
  *    tomosu (gold lamp, Night glow twin on `::before`) and the row's `.sign`
  *    settles (`data-arrived`); 1,500 at ≥ 600 px the current row's 160 px
  *    bokashi band is revealed (`data-shown`: a clip-path wipe — its box is
- *    reserved from mount so the list never shifts); then
+ *    reserved from mount so the list never shifts; with a print the row holds
+ *    its thumb instead, whose picture waits as its preview under
+ *    `data-arriving` and fades in at this beat); then
  *    `progress.stationSeen` is patched once — at beat 3, or on unmount when
  *    the learner leaves mid-ceremony, so it never replays. Sound: `scroll` on
  *    the first arrival, `submit` after; silent in Zen. Reduced motion: spine,
@@ -46,9 +61,10 @@
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { toHiragana } from 'wanakana';
+import { PrintFigure, printForStation, useArtManifest, type PrintState } from '@/art/prints';
 import type * as RoadArt from '@/art/road';
 import { BELTS, BELT_IDS, NIHONBASHI, SANJO_OHASHI, STATIONS, type Belt } from '../content/types';
-import { sfx } from '../shared/audio';
+import { saveDataRequested, sfx } from '../shared/audio';
 import { href } from '../shared/routes';
 import type { FuriganaMode } from '../shared/store-types';
 import { Ruby } from '../shared/ui/Ruby';
@@ -271,6 +287,9 @@ function InkDefs(): JSX.Element {
 /* ── component ──────────────────────────────────────────────────────────── */
 
 const NAV_KEYS = new Set(['ArrowDown', 'ArrowUp', 'Home', 'End']);
+/** Ōtsu, the last station with a number; the arrival past it is the pack's stop 54 (`src/art/road END_NUMBER`). */
+const LAST_STATION = 53;
+const END_STOP = 54;
 
 function levelLabel(b: (typeof BELTS)[number]): string {
   return b.level === 'kana' ? S.levelKana : b.level.toUpperCase();
@@ -290,12 +309,16 @@ export function RoadNav(p: RoadNavProps): JSX.Element {
   const roadRef = useRef<HTMLDivElement>(null);
   const startRef = useRef<HTMLSpanElement>(null);
   const art = useRoadArt();
+  // the print pack's manifest: `null` until it lands, and for the session when there is none (the kit vignettes stay)
+  const prints = useArtManifest();
   const wide = useWide();
   // the store's theme and belt: a read subscribes this render to theme and belt changes
   const settings = store.settings.value;
   const learnerBelt = store.profile.value.belt;
   const romaji = romajiAllowed(learnerBelt);
   const rubyMode = signRubyMode(settings.furigana);
+  // `@/audio`'s dataSaverOn() body (design 08 §13): the thumbs keep their previews alone — no image, no button to ask with
+  const dataSaver = settings.dataSaver === true || saveDataRequested();
   const lit = isNight();
   const reduced = prefersReducedMotion();
 
@@ -369,7 +392,7 @@ export function RoadNav(p: RoadNavProps): JSX.Element {
     }
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [current, art]);
+  }, [current, art, prints]);
 
   const jump = (): void => {
     const el = links.current.get(focusStation);
@@ -411,6 +434,9 @@ export function RoadNav(p: RoadNavProps): JSX.Element {
   const lanternMark = useMemo(() => art?.lanternMark() ?? '', [art]);
   const rubyOf = useMemo(() => new Map(STATIONS.map((st) => [st.number, rubyMarkup(st.nameJa, st.nameRomaji)])), []);
   const spineD = geom ? `M0.5 ${geom.start.toFixed(4)} V${geom.end.toFixed(4)}` : 'M0.5 0 V0';
+  // the ends' prints: Nihonbashi is `here` before the first step and passed after; Sanjō Ōhashi is ahead until Ōtsu is cleared
+  const startPrint = prints ? printForStation(prints, 0) : null;
+  const endPrint = prints ? printForStation(prints, END_STOP) : null;
 
   /** A name with its reading for the two end nodes: brush JA, then romaji below Green or the kana ruby after. */
   const endName = (end: { nameJa: string; nameRomaji: string }, english: string): JSX.Element => (
@@ -440,13 +466,16 @@ export function RoadNav(p: RoadNavProps): JSX.Element {
       const sealBase = state === 'locked' ? 'seal seal--locked' : state === 'perfect' ? 'seal seal--perfect' : state === 'assisted' ? 'seal tokaido__seal--assisted' : 'seal';
       const pressing = sealToPress === n && !reduced && beat >= 1 && beat < 3;
       const sealClass = pressing ? `${sealBase} ink-osu ink-wet is-dry` : sealBase;
-      // the band's box is reserved from mount (no layout step at beat 3); its picture is revealed at the beat
-      const band = isCurrent && wide;
+      // the station's print leads the row when the pack is here; else the kit vignette, and for the current row at
+      // ≥ 600 px the band, whose box is reserved from mount (no layout step at beat 3) and revealed at the beat
+      const print = prints ? printForStation(prints, n) : null;
+      const band = isCurrent && wide && !print;
       const rowState = state === 'locked' ? 'ahead' : isCurrent ? 'current' : 'cleared';
-      const vignette = art ? (band ? art.bandVignette(n, { lit }) : art.rowVignette(n, rowState, { lit })) : '';
+      const thumbState: PrintState = state === 'locked' ? 'ahead' : isCurrent ? 'here' : 'passed';
+      const vignette = art && !print ? (band ? art.bandVignette(n, { lit }) : art.rowVignette(n, rowState, { lit })) : '';
       const arrived = arrival.arriving && isCurrent && (reduced || beat >= 2);
       rows.push(
-        <li key={st.id} class="tokaido__row" data-belt={st.belt} data-state={state} data-arrived={arrived ? '' : undefined} data-band={band ? '' : undefined}>
+        <li key={st.id} class="tokaido__row" data-belt={st.belt} data-state={state} data-arrived={arrived ? '' : undefined} data-band={band ? '' : undefined} data-print={print ? '' : undefined}>
           <a
             class="tokaido__station"
             href={href({ name: 'station', n })}
@@ -476,17 +505,21 @@ export function RoadNav(p: RoadNavProps): JSX.Element {
                 </span>
               )}
             </span>
-            <svg
-              class={`tokaido__art${band ? ' tokaido__art--band' : ''}`}
-              viewBox={band ? '0 0 160 160' : '0 0 48 40'}
-              width={band ? 160 : 48}
-              height={band ? 160 : 40}
-              preserveAspectRatio="xMidYMax meet"
-              aria-hidden="true"
-              focusable="false"
-              data-shown={band && bandShown ? '' : undefined}
-              dangerouslySetInnerHTML={{ __html: vignette }}
-            />
+            {print ? (
+              <PrintFigure print={print} variant="thumb" state={thumbState} decorative dataSaver={dataSaver} class="tokaido__print" />
+            ) : (
+              <svg
+                class={`tokaido__art${band ? ' tokaido__art--band' : ''}`}
+                viewBox={band ? '0 0 160 160' : '0 0 48 40'}
+                width={band ? 160 : 48}
+                height={band ? 160 : 40}
+                preserveAspectRatio="xMidYMax meet"
+                aria-hidden="true"
+                focusable="false"
+                data-shown={band && bandShown ? '' : undefined}
+                dangerouslySetInnerHTML={{ __html: vignette }}
+              />
+            )}
             <span class="sign tokaido__sign">
               <span class="sign__number">{n}</span>
               <span class="sign__ordinal" lang="ja" aria-hidden="true">
@@ -523,6 +556,7 @@ export function RoadNav(p: RoadNavProps): JSX.Element {
           <span class="seal seal--round" lang="ja" aria-hidden="true" ref={startRef}>
             橋
           </span>
+          {startPrint ? <PrintFigure print={startPrint} variant="thumb" state={current === 0 ? 'here' : 'passed'} decorative dataSaver={dataSaver} class="tokaido__print" /> : null}
           {endName(NIHONBASHI, S.startNodeEn)}
         </div>
         <ol class="tokaido__list" onKeyDown={onKey}>
@@ -532,6 +566,7 @@ export function RoadNav(p: RoadNavProps): JSX.Element {
           <span class="seal seal--round" lang="ja" aria-hidden="true">
             京
           </span>
+          {endPrint ? <PrintFigure print={endPrint} variant="thumb" state={p.cleared.includes(LAST_STATION) ? 'here' : 'ahead'} decorative dataSaver={dataSaver} class="tokaido__print" /> : null}
           {endName(SANJO_OHASHI, S.arrivalNodeEn)}
         </div>
       </div>

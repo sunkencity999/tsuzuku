@@ -72,14 +72,17 @@
 /* the phase word (§7 A): out of flow on a paper plate (nothing shifts when it leaves; never a hit target); kanji in the system face (not in the Yuji shell); reduced: a --dur-fade exit */
 .dojo__phase { position: absolute; z-index: 2; top: var(--sp-2); left: var(--sp-2); display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); margin: 0; padding: var(--sp-1) var(--sp-2); color: var(--fg); background: color-mix(in srgb, var(--surface-paper) 92%, transparent); border-radius: var(--radius-sm); pointer-events: none; transition: opacity var(--dur-fade) linear; }
 .dojo__phase.rm-fade[data-leaving] { opacity: 0; }
+/* with the print (or the waiting mat) in the slot the word rises off the picture — its foot on the mat's top strip, the rest in the 16 px gap under the sticky header (z 20), no plate; over the drawn room it keeps its place and paper */
+.dojo__stage:not([data-hero="scene"]) .dojo__phase { top: auto; bottom: calc(100% - var(--sp-4)); padding-block: 0; background: transparent; }
 .dojo__phase-ja { font-family: var(--font-brush); font-size: var(--fs-5); line-height: 1.1; color: var(--shu); }
 .dojo__phase-reading { font-size: var(--fs-3); letter-spacing: 0.04em; }
 .dojo__phase-en { font-size: var(--fs-2); color: var(--fg-muted); }
 .dojo__status-body { display: flex; flex-direction: column; gap: var(--sp-2); }
 .dojo__forecast { margin: 0; font-size: var(--fs-4); line-height: 1.3; }
 .dojo__line { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); color: var(--fg-muted); font-size: var(--fs-2); }
-/* one hanko (the recommended session); the others are paper tiles with a seal corner (§5.3) */
+/* one hanko (the recommended session); the others are paper tiles with a seal corner (§5.3); a real list, each li a grid so its link stretches */
 .dojo__sessions { display: grid; gap: var(--sp-3); grid-template-columns: 1fr; }
+.dojo__sessions > li { display: grid; }
 @media (min-width: 640px) { .dojo__sessions { grid-template-columns: repeat(3, 1fr); } }
 .dojo__session { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-1); min-height: 96px; padding: var(--sp-3) var(--sp-4); text-align: left; text-decoration: none; }
 .sheet.dojo__session { color: var(--fg); }
@@ -129,6 +132,23 @@
 /* 茶屋ラジオ tile (design 08 §10.2): quiet, under the session tiles */
 .dojo__radio { border-left: 4px solid var(--kin); }
 .dojo__radio-min { margin: 0; font-size: var(--fs-3); font-variant-numeric: tabular-nums; }
+/* the print of the day (prints B2) hangs where the drawn room was */
+.dojo__hero { min-width: 0; width: 100%; max-width: 960px; margin-inline: auto; }
+/* while the manifest is in flight (a pack build) the slot holds the FIGURE's envelope — an empty mat, a 3 / 2 box, the caption's lines (4; 8 wrapped under 640 px) — so nothing below moves when the print lands (09 §6.7) */
+.dojo__hero-wait .print__box { aspect-ratio: 3 / 2; background: var(--raised); }
+.dojo__hero-wait .print__caption { min-height: 6em; }
+@media (max-width: 639.98px) { .dojo__hero-wait .print__caption { min-height: 12em; } }
+/* ── the shelf of seals (prints B2): a ul, 3 per row under 640 px; grown seals bleed once ── */
+.dojo__shelf { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
+.dojo__shelf > li { display: grid; }
+@media (min-width: 640px) { .dojo__shelf { grid-template-columns: repeat(6, 1fr); } }
+.seal-tile { display: flex; align-items: center; gap: var(--sp-2); min-height: var(--touch); padding: var(--sp-2); color: var(--fg); text-decoration: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.seal-tile__k { display: grid; place-items: center; flex-shrink: 0; width: var(--sp-6); height: var(--sp-6); font-family: var(--font-ja); font-size: var(--fs-4); color: var(--shu); border: 1px solid var(--shu); border-radius: var(--radius-seal); }
+.seal-tile__t { display: grid; min-width: 0; }
+.seal-tile__v { font-family: var(--font-pixel); font-size: var(--fs-3); }
+.seal-tile__r, .seal-tile__n { font-size: var(--fs-1); color: var(--fg-muted); }
+.seal-tile.ink-nijimi { animation-delay: calc(var(--dur-4) + min(var(--i, 0), 7) * var(--stagger)); }
+.seal-tile[data-ring] .seal-tile__k { outline: 1px solid var(--kin); outline-offset: 2px; }
 
 /* ── Onboarding ─────────────────────────────────────────────────────── */
 .onb {

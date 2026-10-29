@@ -1,0 +1,17 @@
+{
+  "schema": "tsuzuku.art-pack/1",
+  "repo": "sunkencity999/tsuzuku",
+  "artVersion": "p-c48c2cd29b",
+  "tag": "art-p-c48c2cd29b",
+  "assets": [
+    {
+      "tier": "prints",
+      "name": "tsuzuku-art-p-c48c2cd29b.tar",
+      "sha256": "b592f4dd9277cc4a33e281d5a6cff8a9736016a961f63ce45ae477d5c372efe7",
+      "bytes": 20886016
+    }
+  ],
+  "credits": [
+    "Art Institute of Chicago · CC0"
+  ]
+}

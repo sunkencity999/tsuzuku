@@ -63,12 +63,29 @@ function swStampPlugin(): Plugin {
   };
 }
 
+/* ── the print pack's build flag ─────────────────────────────────────────
+ * `import.meta.env.VITE_ART_PACK` (the build only): whether
+ * `public/art/manifest.json` was on disk when the bundle was built. CI runs
+ * `art:fetch` before `build` (deploy.yml), so `false` is a deploy without the
+ * pack: `src/art/prints/load.ts` then settles `artStatus 'none'` before first
+ * paint and the Dojo draws its room at once, instead of holding an empty box
+ * for a network round trip to a 404 on every session (the worker never caches
+ * a 404). The dev server and vitest leave it undefined and keep the fetch: dev
+ * serves whatever `public/art` holds, tests stub `fetch`.
+ */
+export function artPackBuilt(root: string = fileURLToPath(new URL('.', import.meta.url))): boolean {
+  return existsSync(resolve(root, 'public', 'art', 'manifest.json'));
+}
+
 // base './' makes the build relocatable: works at https://<user>.github.io/<repo>/
 // and at a custom domain root, because routing is hash-based.
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   base: './',
-  // `import.meta.env.VITE_APP_VERSION` = package.json's version (About page).
-  define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version) },
+  // `import.meta.env.VITE_APP_VERSION` = package.json's version (About page); `VITE_ART_PACK` as above, builds only.
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkg.version),
+    ...(command === 'build' ? { 'import.meta.env.VITE_ART_PACK': JSON.stringify(artPackBuilt()) } : {}),
+  },
   plugins: [preact(), swStampPlugin()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
@@ -83,4 +100,4 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'scripts/**/*.test.ts'],
   },
-});
+}));

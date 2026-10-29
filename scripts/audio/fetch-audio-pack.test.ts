@@ -183,4 +183,30 @@ describe('fetch-audio-pack — streaming download with verification', () => {
     expect((await fetchAudioPack({ pointerPath: u.pointer, dest: u.dest, optional: false, tmpRoot: u.tmp, fetchImpl: u.fetchImpl, spawnImpl: u.spawnImpl, log: () => {} })).code).toBe(0);
     expect((await fetchAudioPack({ pointerPath: join(u.tmp, 'no-such-pointer.json'), dest: u.dest, optional: false, tmpRoot: u.tmp, fetchImpl: u.fetchImpl, spawnImpl: u.spawnImpl, log: () => {} })).message).toBe(NONE_MESSAGE);
   });
+  it('noneMessage / label are options (the print pack reuses this fetch): the none line, the extracted line and an artVersion pointer take them; the defaults are unchanged', async () => {
+    const s = scenario({ release: 404 });
+    made.push(s.tmp);
+    const log: string[] = [];
+    const r = await fetchAudioPack({ pointerPath: s.pointer, dest: s.dest, optional: false, tmpRoot: s.tmp, fetchImpl: s.fetchImpl, spawnImpl: s.spawnImpl, log: (l) => log.push(l), noneMessage: 'art pack: none — the drawn room stands' });
+    expect(r.message).toBe('art pack: none — the drawn room stands');
+    expect(log.join('\n')).toContain('art pack: none — the drawn room stands');
+    expect(log.join('\n')).not.toContain(NONE_MESSAGE);
+    const t = scenario();
+    made.push(t.tmp);
+    expect((await fetchAudioPack({ pointerPath: t.pointer, dest: t.dest, optional: false, tmpRoot: t.tmp, fetchImpl: t.fetchImpl, spawnImpl: t.spawnImpl, log: () => {}, label: 'art pack' })).message).toBe(`art pack a-0123456789: 1 assets extracted to ${t.dest}`);
+    const d = scenario();
+    made.push(d.tmp);
+    expect((await fetchAudioPack({ pointerPath: d.pointer, dest: d.dest, optional: false, tmpRoot: d.tmp, fetchImpl: d.fetchImpl, spawnImpl: d.spawnImpl, log: () => {} })).message).toBe(`audio pack a-0123456789: 1 assets extracted to ${d.dest}`);
+    // an art-shaped pointer (artVersion in place of audioVersion) names its version in the extracted line
+    const a = scenario();
+    made.push(a.tmp);
+    const art = JSON.parse(readFileSync(a.pointer, 'utf8')) as Record<string, unknown>;
+    delete art.audioVersion;
+    writeFileSync(a.pointer, JSON.stringify({ ...art, schema: 'tsuzuku.art-pack/1', artVersion: 'p-0123456789' }));
+    expect((await fetchAudioPack({ pointerPath: a.pointer, dest: a.dest, optional: false, tmpRoot: a.tmp, fetchImpl: a.fetchImpl, spawnImpl: a.spawnImpl, log: () => {}, label: 'art pack' })).message).toBe(`art pack p-0123456789: 1 assets extracted to ${a.dest}`);
+    const none = scenario({ release: 404 });
+    made.push(none.tmp);
+    expect((await fetchAudioPack({ pointerPath: none.pointer, dest: none.dest, optional: false, tmpRoot: none.tmp, fetchImpl: none.fetchImpl, spawnImpl: none.spawnImpl, log: () => {} })).message).toBe(NONE_MESSAGE);
+  });
+
 });

@@ -19,7 +19,9 @@
  * that silently deploys without the pack it was promised is worse than a red
  * build. `--optional` is accepted for symmetry with `audio:check` and changes
  * nothing (a missing pack is always optional). GNU tar / bsdtar must be on the
- * runner; Node has no tar.
+ * runner; Node has no tar. The options `noneMessage` / `label` let
+ * `scripts/art/fetch-art-pack.ts` reuse the whole fetch for the print pack, whose
+ * pointer carries `artVersion` in place of `audioVersion` (defaults unchanged).
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -30,7 +32,7 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 import { fileURLToPath } from 'node:url';
-import type { AudioPackPointer } from './indexes.ts';
+import type { AudioPackPointer, PackAsset } from './indexes.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(here, '..', '..');
@@ -52,6 +54,16 @@ export interface FetchOptions {
   spawnImpl?: SpawnLike;
   tmpRoot?: string;
   log?: (s: string) => void;
+  /** The no-pack line (default `NONE_MESSAGE`) and the pack's name in the extracted line (default `audio pack`). */
+  noneMessage?: string;
+  label?: string;
+}
+
+/** What the fetch reads from a pointer: the audio pointer, or the art pointer (`artVersion` in place of `audioVersion`). */
+interface PointerLike extends Pick<AudioPackPointer, 'repo' | 'tag'> {
+  assets: PackAsset[];
+  audioVersion?: string | null;
+  artVersion?: string | null;
 }
 
 interface ReleaseAsset {
@@ -91,24 +103,26 @@ export async function fetchAudioPack(o: FetchOptions): Promise<FetchOutcome> {
   const log = o.log ?? ((s: string) => process.stdout.write(s + '\n'));
   const fetchImpl: FetchLike = o.fetchImpl ?? ((url, init) => fetch(url, init) as unknown as ReturnType<FetchLike>);
   const spawnImpl: SpawnLike = o.spawnImpl ?? ((cmd, args) => spawnSync(cmd, args, { encoding: 'utf8' }));
+  const none = o.noneMessage ?? NONE_MESSAGE;
+  const label = o.label ?? 'audio pack';
   // A failure is a failure under every flag: --optional only ever meant "a pack may be absent", which exits 0 on its own.
   const fail = (message: string): FetchOutcome => {
     log(`error: ${message}`);
     return { code: 1, message, extracted: [] };
   };
   if (!existsSync(o.pointerPath)) {
-    log(NONE_MESSAGE);
-    return { code: 0, message: NONE_MESSAGE, extracted: [] };
+    log(none);
+    return { code: 0, message: none, extracted: [] };
   }
-  let pointer: AudioPackPointer;
+  let pointer: PointerLike;
   try {
-    pointer = JSON.parse(readFileSync(o.pointerPath, 'utf8')) as AudioPackPointer;
+    pointer = JSON.parse(readFileSync(o.pointerPath, 'utf8')) as PointerLike;
   } catch (e) {
     return fail(`${o.pointerPath} is not valid JSON: ${(e as Error).message}`);
   }
   if (!pointer.tag || !Array.isArray(pointer.assets) || pointer.assets.length === 0) {
-    log(NONE_MESSAGE);
-    return { code: 0, message: NONE_MESSAGE, extracted: [] };
+    log(none);
+    return { code: 0, message: none, extracted: [] };
   }
   const repo = o.repo ?? pointer.repo;
   // The release and its asset ids.
@@ -116,8 +130,8 @@ export async function fetchAudioPack(o: FetchOptions): Promise<FetchOutcome> {
   try {
     const res = await fetchImpl(`${API}/repos/${repo}/releases/tags/${encodeURIComponent(pointer.tag)}`, { headers: headers(o.token, 'application/vnd.github+json') });
     if (res.status === 404) {
-      log(`release ${pointer.tag} not found on ${repo}; ${NONE_MESSAGE}`);
-      return { code: 0, message: NONE_MESSAGE, extracted: [] };
+      log(`release ${pointer.tag} not found on ${repo}; ${none}`);
+      return { code: 0, message: none, extracted: [] };
     }
     if (!res.ok) return fail(`release lookup ${pointer.tag} → HTTP ${res.status}`);
     release = (await res.json()) as { assets: ReleaseAsset[] };
@@ -151,7 +165,7 @@ export async function fetchAudioPack(o: FetchOptions): Promise<FetchOutcome> {
       if (r.status !== 0) return fail(`tar exited ${r.status} for ${d.name}: ${r.stderr ?? ''}`);
       extracted.push(d.name);
     }
-    const message = `audio pack ${pointer.audioVersion}: ${extracted.length} assets extracted to ${o.dest}`;
+    const message = `${label} ${pointer.audioVersion ?? pointer.artVersion}: ${extracted.length} assets extracted to ${o.dest}`;
     log(message);
     return { code: 0, message, extracted };
   } finally {

@@ -8,13 +8,18 @@
  *              E's `dojoFeed` (nothing injected)
  * at the dojo route. It must render without throwing: no error boundary,
  * no missing-room state, the Dojo page on screen, and not a single
- * real `fetch`. `main.test.tsx` covers `boot()`'s routing rules; this file is
- * the "does the whole thing come up" check.
+ * real `fetch` — the build that ships without a print pack (vite.config.ts
+ * `VITE_ART_PACK` false, stubbed here; `src/art/prints/load.ts`) draws the
+ * room from its first render and never asks for `./art/manifest.json`. A
+ * build with the pack asks for it once, after the Dojo is up, and for nothing
+ * else (the last case). `main.test.tsx` covers `boot()`'s routing rules; this
+ * file is the "does the whole thing come up" check.
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { resetArtForTests } from '@/art/prints';
 import { FIXTURE, createFakeLoader } from '@/content/fixtures';
 import type { ContentLoader } from '@/content/loader';
 import { resetServices } from '@/shared/audio';
@@ -84,6 +89,10 @@ beforeEach(() => {
   fetchSpy = vi.fn(() => Promise.reject(new Error('boot test: unexpected fetch')));
   vi.stubGlobal('fetch', fetchSpy);
   loadKoyomi(KOYOMI);
+  // the build that ships without the pack (public/art-pack.json lists no asset, so CI built with no public/art/manifest.json):
+  // the prints module starts at `none` and the Dojo never asks for the manifest — boot stays fetch-free (design 09 §12.1 d15)
+  vi.stubEnv('VITE_ART_PACK', 'false');
+  resetArtForTests();
   errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
   Object.defineProperty(window, 'scrollTo', { configurable: true, writable: true, value: vi.fn() });
@@ -98,6 +107,8 @@ afterEach(() => {
   bus.reset();
   resetKoyomiForTests();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+  resetArtForTests();
   vi.restoreAllMocks();
   location.hash = '';
 });
@@ -119,6 +130,10 @@ describe('boot: MemoryStorage + fixture loader + real pages', () => {
     expect(dojoRendered()).toBe(true);
     expect(root.querySelector('.dojo__sessions')).not.toBeNull();
     expect(route.value.name).toBe('dojo');
+    // the drawn room from the first render: no waiting box, no manifest request, no shelf of seals under the room (06 §5)
+    expect(root.querySelector('.dojo__stage')?.getAttribute('data-hero')).toBe('scene');
+    expect(root.querySelector('.dojo__hero-wait')).toBeNull();
+    expect(root.querySelector('[data-shelf]')).toBeNull();
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(errorSpy).not.toHaveBeenCalled();
     // The save round-trips through the fake Storage, not localStorage.
@@ -155,6 +170,24 @@ describe('boot: MemoryStorage + fixture loader + real pages', () => {
     expect(route.value.name).toBe('dojo');
     expect(store.now()).toBe(DEFAULT_TEST_NOW);
     expect(fetchSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('a build with the pack asks for ./art/manifest.json once, after the Dojo is up, and for nothing else; a failed answer settles the slot as the drawn room without a console line', async () => {
+    vi.stubEnv('VITE_ART_PACK', 'true');
+    resetArtForTests();
+    const storage = new MemoryStorage();
+    await makeTestStore({ storage, save: ACTIVE, now, reducers: true });
+    expect(() => act(() => render(<App />, root))).not.toThrow();
+    await waitFor(() => dojoRendered() || anyError());
+    expect(anyError()).toBe(false);
+    // the one request behind first paint (the rejecting spy stands for a network that failed)
+    await waitFor(() => fetchSpy.mock.calls.length > 0);
+    expect(fetchSpy.mock.calls.map((c) => String(c[0]))).toEqual(['./art/manifest.json']);
+    await waitFor(() => root.querySelector('.dojo__stage')?.getAttribute('data-hero') === 'scene');
+    expect(root.querySelector('.dojo__hero-wait')).toBeNull();
+    expect(root.querySelector('[data-shelf]')).toBeNull();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(errorSpy).not.toHaveBeenCalled();
   });
 });

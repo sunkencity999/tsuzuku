@@ -13,6 +13,7 @@ const VERSION = /const CACHE_VERSION = '([^']+)'/.exec(code)![1]!;
 const SHELL = `tsuzuku-shell-${VERSION}`;
 const RUNTIME = `tsuzuku-runtime-${VERSION}`;
 const FONTS = 'tsuzuku-fonts-v1';
+const ART = 'tsuzuku-art-v1';
 const ORIGIN = 'https://user.github.io';
 const BASE = `${ORIGIN}/repo/`;
 
@@ -462,6 +463,110 @@ describe('public/sw.js', () => {
     const pointer = fetchEvent({ url: `${BASE}audio-pack.json`, method: 'GET' });
     sw.dispatch('fetch', pointer);
     expect(pointer.response).toBeNull();
+  });
+
+  it('art/manifest.json is network-first in tsuzuku-art-v1: a republished pack is read on the FIRST load (the deploy serves only its names), the cached copy answers offline or on a 5xx, a 404 passes through; art-pack.json is not intercepted', async () => {
+    const sw = load(async () => ok('{"artVersion":"p-1"}'));
+    const url = `${BASE}art/manifest.json`;
+    const first = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', first);
+    expect(await (await first.response!).text()).toBe('{"artVersion":"p-1"}');
+    expect(sw.fetch).toHaveBeenCalledTimes(1);
+    const art = sw.caches.caches.get(ART)!;
+    expect(art, 'art bucket').toBeDefined();
+    expect(art.store.has(url)).toBe(true);
+    expect(sw.caches.caches.has(RUNTIME)).toBe(false);
+    expect(sw.caches.caches.has(SHELL)).toBe(false);
+    expect(sw.caches.caches.has('tsuzuku-audio-v1')).toBe(false);
+    // a republished pack: CI replaced public/art/prints/ with the new pack's content-addressed files, so the old
+    // manifest's names may 404 now — the page gets the live copy at once, never the stale one, and the bucket follows
+    sw.fetch.mockImplementation(async () => ok('{"artVersion":"p-2"}'));
+    const second = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', second);
+    expect(await (await second.response!).text()).toBe('{"artVersion":"p-2"}');
+    expect(sw.fetch).toHaveBeenCalledTimes(2);
+    expect(await art.store.get(url)!.clone().text()).toBe('{"artVersion":"p-2"}');
+    // a 5xx: the cached copy answers and is not replaced
+    sw.fetch.mockImplementation(async () => new Response('', { status: 503 }));
+    const degraded = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', degraded);
+    expect(await (await degraded.response!).text()).toBe('{"artVersion":"p-2"}');
+    // offline: the cached copy answers
+    sw.fetch.mockImplementation(async () => {
+      throw new TypeError('offline');
+    });
+    const offline = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', offline);
+    expect(await (await offline.response!).text()).toBe('{"artVersion":"p-2"}');
+    // a 404 is the deploy's own answer (a build without the pack): it passes through so the drawn room stands,
+    // and the cached copy is neither served nor dropped
+    sw.fetch.mockImplementation(async () => new Response('', { status: 404 }));
+    const gone = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', gone);
+    expect((await gone.response!).status).toBe(404);
+    expect(await art.store.get(url)!.clone().text()).toBe('{"artVersion":"p-2"}');
+    // nothing cached and offline: a plain 504, never a rejected promise
+    const cold = load(async () => {
+      throw new TypeError('offline');
+    });
+    const coldEv = fetchEvent({ url, method: 'GET' });
+    cold.dispatch('fetch', coldEv);
+    expect((await coldEv.response!).status).toBe(504);
+    // the committed release pointer at the root is a build-time file: the page never fetches it, the worker never stores it
+    const pointer = fetchEvent({ url: `${BASE}art-pack.json`, method: 'GET' });
+    sw.dispatch('fetch', pointer);
+    expect(pointer.response).toBeNull();
+    expect(art.store.has(`${BASE}art-pack.json`)).toBe(false);
+  });
+
+  it('art/prints/*.webp are cache-first in tsuzuku-art-v1 (content-addressed names never change); a failed response is never cached; an uncached print offline answers 504', async () => {
+    const sw = load(async (req) => (urlOf(req).includes('missing') ? new Response('', { status: 404 }) : ok('webp', 'image/webp')));
+    const url = `${BASE}art/prints/hoeido-11-mishima-0123abcd.webp`;
+    const first = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', first);
+    expect((await first.response!).status).toBe(200);
+    const art = sw.caches.caches.get(ART)!;
+    expect(art, 'art bucket').toBeDefined();
+    expect(art.store.has(url)).toBe(true);
+    const again = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', again);
+    expect((await again.response!).status).toBe(200);
+    expect(sw.fetch).toHaveBeenCalledTimes(1);
+    const missing = `${BASE}art/prints/missing-00000000.webp`;
+    const miss = fetchEvent({ url: missing, method: 'GET' });
+    sw.dispatch('fetch', miss);
+    expect((await miss.response!).status).toBe(404);
+    expect(art.store.has(missing)).toBe(false);
+    sw.fetch.mockImplementation(async () => {
+      throw new TypeError('offline');
+    });
+    const offline = fetchEvent({ url: `${BASE}art/prints/fugaku36-01-kanagawa-deadbeef.webp`, method: 'GET' });
+    sw.dispatch('fetch', offline);
+    expect((await offline.response!).status).toBe(504);
+    const cached = fetchEvent({ url, method: 'GET' });
+    sw.dispatch('fetch', cached);
+    expect((await cached.response!).status).toBe(200);
+    expect(sw.caches.caches.has(RUNTIME)).toBe(false);
+    expect(sw.caches.caches.has(SHELL)).toBe(false);
+    // only the prints are cache-first: another file under art/ is left to the network
+    const other = fetchEvent({ url: `${BASE}art/notes.txt`, method: 'GET' });
+    sw.dispatch('fetch', other);
+    expect(other.response).toBeNull();
+  });
+
+  it("activate keeps tsuzuku-art-v1 (and what it holds) while dropping other builds' shell / runtime caches", async () => {
+    const sw = load(async () => ok('x'));
+    const art = await sw.caches.open(ART);
+    const manifest = `${BASE}art/manifest.json`;
+    await art.put(manifest, ok('{"artVersion":"p-1"}'));
+    await sw.caches.open('tsuzuku-shell-0.0.1-00000000');
+    await sw.caches.open('tsuzuku-runtime-0.0.1-00000000');
+    await sw.caches.open(SHELL);
+    const ev = extendable();
+    sw.dispatch('activate', ev);
+    await ev.done;
+    expect((await sw.caches.keys()).sort()).toEqual([SHELL, ART].sort());
+    expect(art.store.has(manifest)).toBe(true);
   });
 
   it('SKIP_WAITING messages call skipWaiting; other messages are ignored', () => {

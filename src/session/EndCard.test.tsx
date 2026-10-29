@@ -348,9 +348,10 @@ describe('<EndCard> — moment B Shūhitsu (design 09 §7 B, fake timers)', () =
     expect(END_CARD_CSS).toMatch(/\.end-card__brush \{[^}]*width: fit-content[^}]*font-size: var\(--fs-7\)[^}]*line-height: 1\.1/);
     expect(END_CARD_CSS).toMatch(/\.end-card__brush-svg \{[^}]*height: 1\.2em[^}]*width: auto[^}]*aspect-ratio: 17 \/ 6/);
     expect(END_CARD_CSS).toMatch(/@media \(max-width: 420px\) \{[^}]*\.end-card__brush \{ font-size: var\(--fs-6\)/);
-    // what carries the hero into the hearth: the element transitions.ts names
+    // what carries the hero into the hearth: the element transitions.ts names — the drawn room's hearth, or, with the
+    // print of the day up (prints B2), the days seal on the shelf that carries the hearth's count
     const { heroFor } = await import('../app/transitions');
-    expect(heroFor({ name: 'train', mode: 'kata' }, { name: 'dojo' })).toEqual([{ name: 'tsuzuku-mark', from: '.end-card__brush', to: '.dojo-scene__hotspot--hearth' }]);
+    expect(heroFor({ name: 'train', mode: 'kata' }, { name: 'dojo' })).toEqual([{ name: 'tsuzuku-mark', from: '.end-card__brush', to: '.dojo-scene__hotspot--hearth, .seal-tile[data-tile="days"]' }]);
   });
 
   it('beat 1,500: the tiles carry --i indices and every value is a <Ticker> whose final text equals the tally; the XP delta is the gold Dela number', async () => {

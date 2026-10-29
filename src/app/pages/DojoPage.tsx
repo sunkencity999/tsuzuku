@@ -13,7 +13,8 @@
  * `progress.arrivedDay !== store.today()` the shōji panels part (`.shoji`,
  * aria-hidden, never blocking input, any tap or key skips), the phase word
  * (朝 asa · morning …) sits over the stage's top edge for two seconds once the
- * panels are gone (out of flow: nothing below it shifts when it leaves), the
+ * panels are gone (out of flow: nothing below it shifts when it leaves; with
+ * a print in the slot it rises onto the mat's top strip, off the picture), the
  * tategaki column, then the forecast and the one hanko bleed in — each
  * entrance delayed past the panels' part (pages.css, "paper, then ink, then
  * text", §6.3) — and the scene (`arrival` prop) pulses what grew since
@@ -26,6 +27,22 @@
  * says `S.flameUnlit`; the mountain card prints the honest spread, never the
  * absence length; the sekki and kō carry dates, never "in N days".
  *
+ * The picture (prints B2): once the print manifest (`./art/manifest.json`,
+ * fetched once per session behind first paint by `@/art/prints`) is ready and
+ * `printForToday` resolves for the page's phase, today's print hangs in the
+ * stage's picture slot — `<PrintFigure variant="hero">` with its caption,
+ * eager, data-saver aware — and the room's state moves to `<DojoShelf/>` under
+ * the stage, which then owns the since-yesterday marks and the `sceneSeen`
+ * write. While the status is idle or loading an empty `.dojo__hero-wait` mat
+ * holds the figure's envelope — a 3 / 2 box and the caption's lines — so the
+ * drawn room never flashes and nothing below moves when the print lands;
+ * `none` (a build
+ * without the pack) mounts the injected Scene as before, which keeps its own
+ * pulse and write, and no shelf stands under it — the fallback shows its
+ * state once, in the room (06 §5). A build without the pack says so at build
+ * time (`VITE_ART_PACK`, vite.config.ts), so its status is `none` from the
+ * first render and the room paints at once — the app never blocks on the pack.
+ *
  * The column (§3.3, §5.9): today's seal (kanji numerals + "Oct 18", only when
  * today has a session, wet until the 04:00 roll), the sekki, the kō, the moon —
  * each with romaji and English, the Japanese from `public/calendar/koyomi.json`
@@ -36,8 +53,10 @@
  */
 import type { FunctionComponent, JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { PrintFigure, artStatus, printForToday, useArtManifest } from '@/art/prints';
 import type * as RoadArt from '@/art/road';
 import { BELT_IDS, SANJO_OHASHI, STATIONS, type Belt } from '@/content/types';
+import { saveDataRequested } from '@/shared/audio';
 import { bus } from '@/shared/events';
 import { fetchKoyomi, koOf, koyomiData, moonJa, moonPhase, sekkiJa, sekkiSpanOf, skyPhase, type SkyPhase } from '@/shared/koyomi';
 import { href, type Route } from '@/shared/routes';
@@ -51,6 +70,7 @@ import { QUESTS, awayStatus, questProgress, store, type AwayStatus, type QuestPr
 import { forecastCounts, streakState, type FlameState } from '@/store/derived';
 import type { DojoFeedFull, gateForecast } from '@/session/dojo-feed';
 import { isFirstRun } from '../first-run';
+import { DojoShelf } from './DojoShelf';
 import { BELT_NAME, MONTHS_SHORT, S, fmt, num } from './strings';
 import './pages.css';
 
@@ -86,6 +106,8 @@ export interface DojoPageProps {
 }
 
 type FeedStatus = 'loading' | 'ready' | 'failed' | 'none';
+/** The stage's picture slot (prints B2): today's print, the drawn room (no pack, or no print for today), or the empty box while the manifest is in flight. */
+export type HeroMode = 'print' | 'scene' | 'wait';
 
 const SESSION_MODES_SHOWN: readonly { mode: SessionMode; name: string; ja: string; desc: string }[] = [
   { mode: 'kata', name: S.dojoKata, ja: S.dojoKataJa, desc: S.dojoKataDesc },
@@ -500,43 +522,44 @@ function SessionTiles(p: { feed: Feed; hanko: SessionMode | null; enter: boolean
     kumite: scrolls === undefined ? null : scrolls === 1 ? S.dojoScrollOne : fmt(S.dojoScrolls, { n: scrolls }),
     shugyo: episodes === undefined ? null : episodes >= 1 ? S.dojoEpisodeOne : null,
   };
+  // a real list: `role="listitem"` on an `a[href]` would replace its link role (the tiles must stay links to AT)
   return (
-    <div class="dojo__sessions" role="list">
+    <ul class="dojo__sessions">
       {SESSION_MODES_SHOWN.map((s, i) => {
         const min = Math.max(1, Math.round(minutes[s.mode as keyof DojoFeed['minutes']]));
         const isHanko = p.hanko === s.mode;
         return (
-          <a
-            key={s.mode}
-            role="listitem"
-            class={`${isHanko ? 'hanko' : 'sheet'} dojo__session${isHanko && p.enter ? ' ink-nijimi' : ''}`}
-            style={isHanko && p.enter ? ({ '--i': 2 } as JSX.CSSProperties) : undefined}
-            href={href({ name: 'train', mode: s.mode })}
-            aria-label={`${fmt(S.dojoStartSession, { name: s.name, n: min })}${isHanko ? `${S.separator}${S.dojoRecommended}` : ''}`}
-            data-mode={s.mode}
-            data-recommended={isHanko ? 'true' : undefined}
-          >
-            {isHanko ? null : (
-              <span class="seal dojo__session-seal" lang="ja" aria-hidden="true">
-                {s.ja}
-              </span>
-            )}
-            <span class="dojo__session-name">
-              {isHanko ? (
-                <span class="dojo__session-ja brush" lang="ja" aria-hidden="true">
+          <li key={s.mode}>
+            <a
+              class={`${isHanko ? 'hanko' : 'sheet'} dojo__session${isHanko && p.enter ? ' ink-nijimi' : ''}`}
+              style={isHanko && p.enter ? ({ '--i': 2 } as JSX.CSSProperties) : undefined}
+              href={href({ name: 'train', mode: s.mode })}
+              aria-label={`${fmt(S.dojoStartSession, { name: s.name, n: min })}${isHanko ? `${S.separator}${S.dojoRecommended}` : ''}`}
+              data-mode={s.mode}
+              data-recommended={isHanko ? 'true' : undefined}
+            >
+              {isHanko ? null : (
+                <span class="seal dojo__session-seal" lang="ja" aria-hidden="true">
                   {s.ja}
                 </span>
-              ) : null}
-              <span>{s.name}</span>
-              <span class="dojo__session-min">{fmt(S.dojoMinutes, { n: min })}</span>
-            </span>
-            <span class="dojo__session-desc">{s.desc}</span>
-            {counts[s.mode] ? <span class="dojo__session-count">{counts[s.mode]}</span> : null}
-            {isHanko ? <span class="dojo__session-tag">{S.dojoRecommended}</span> : null}
-          </a>
+              )}
+              <span class="dojo__session-name">
+                {isHanko ? (
+                  <span class="dojo__session-ja brush" lang="ja" aria-hidden="true">
+                    {s.ja}
+                  </span>
+                ) : null}
+                <span>{s.name}</span>
+                <span class="dojo__session-min">{fmt(S.dojoMinutes, { n: min })}</span>
+              </span>
+              <span class="dojo__session-desc">{s.desc}</span>
+              {counts[s.mode] ? <span class="dojo__session-count">{counts[s.mode]}</span> : null}
+              {isHanko ? <span class="dojo__session-tag">{S.dojoRecommended}</span> : null}
+            </a>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }
 
@@ -943,6 +966,16 @@ export default function DojoPage(p: DojoPageProps): JSX.Element {
   const Scene = p.Scene ?? null;
   const phase = skyPhase(localHour(store.now(), profile.tz));
 
+  // the print of the day (prints B2): the manifest is fetched once per session, behind first paint; the slot
+  // waits (an empty mat at the figure's envelope) rather than flash the drawn room, which stays the fallback;
+  // a build without the pack starts at `none` (load.ts) and shows the room from this first render
+  const manifest = useArtManifest();
+  const art = artStatus.value;
+  const print = manifest ? printForToday(manifest, today, phase) : null;
+  const hero: HeroMode = print ? 'print' : art === 'none' || art === 'ready' ? 'scene' : 'wait';
+  // `@/audio`'s dataSaverOn() body (design 08 §13), from the contract tier: the barrel belongs to another group
+  const dataSaver = settings.dataSaver === true || saveDataRequested();
+
   // the mountain card from the daily rows (design 09 §8): the honest spread, never the absence length
   const away = awayStatus(daily, today);
   const comeback = progress.welcomeBackDue;
@@ -991,8 +1024,20 @@ export default function DojoPage(p: DojoPageProps): JSX.Element {
         </section>
       ) : null}
 
-      <div class="dojo__stage">
-        {Scene ? (
+      <div class="dojo__stage" data-hero={hero}>
+        {hero === 'print' && print ? (
+          <div class="dojo__hero">
+            <PrintFigure print={print} variant="hero" caption eager dataSaver={dataSaver} />
+          </div>
+        ) : hero === 'wait' ? (
+          <div class="dojo__hero dojo__hero-wait" aria-hidden="true">
+            {/* the figure's envelope — an empty mat, the 3 / 2 box, the caption's lines — so nothing below moves when the print lands */}
+            <div class="print print--hero">
+              <div class="print__box" />
+              <div class="print__caption" />
+            </div>
+          </div>
+        ) : Scene ? (
           <div class="dojo__scene">
             <Scene compact={compact} arrival={arrival} />
           </div>
@@ -1000,6 +1045,9 @@ export default function DojoPage(p: DojoPageProps): JSX.Element {
         {!fresh ? <Column today={today} sentence={feed.sentenceOfDay} sealed={sealed} wet={!rolled} reduced={reduced} /> : null}
         {phaseWord ? <PhaseWord phase={phase} reduced={reduced} hold={shoji} onDone={() => setPhaseWord(false)} /> : null}
       </div>
+      {/* the shelf of seals, in print mode only: it mounts when the slot settles on the print, so its one-per-mount diff runs with the
+          print up; the drawn room (the no-pack fallback, 06 §5) keeps its furniture and its own pulse, and no shelf repeats its state */}
+      {hero === 'print' && !fresh ? <DojoShelf arrival={arrival} reduced={reduced} /> : null}
 
       <section class={`dojo__status${enter ? ' ink-nijimi' : ''}`} style={enter ? ({ '--i': 1 } as JSX.CSSProperties) : undefined} aria-label={S.dojoForecast}>
         {/* the verb rides the section; the clipped cartouche inside never animates (§6.7 rule 7, d39) */}

@@ -173,6 +173,8 @@ An SVG scene that is the save file made visible; everything below is determinist
 | Today's forecast | one line under the Hanko Button |
 | Tategaki column | a Mastered sentence of the day |
 
+**The print is the room** (design 09 §12.1 d77–d78, 2026-10-28). When the print pack is built, the home stage is today's print, not the drawn scene: by day the kō's sheet (`calendar.day[kō 0..71]`, 72 prints turning every five days), at night the month's (`calendar.night[month − 1]`; dawn and dusk keep the day print), each with its caption — artist and title in Japanese with reading and gloss, the series and date, the museum's credit line. The state rows above do not vanish; they move to the **shelf of seals** beneath the print (`src/app/pages/DojoShelf.tsx`): six seals — belt 帯 with its tatami count, lanterns 灯, days trained 日, goshuin 印, mon 紋, word-spirits 霊 — each a kanji the UI already carries with its reading and an English label, each a link to the room its hotspot opened, and the since-yesterday pulse (09 §7 A) marks the seals that grew; the phase word, the kō column, the sessions and the hanko stay where they were. The room's memory is read off the shelf rather than drawn into furniture. The drawn room of the table above is the **no-pack fallback** — a build without a release, a manifest the parser rejects — and it stands unchanged. Station headpieces and the Road's thumbs are the Hōeidō Tōkaidō (Hiroshige, c. 1833–34): `stations[n]` for 0 Nihonbashi … 54 Kyoto, so arriving at a station is arriving at that station's sheet. Pack, pipeline and credit rule: `docs/ART_PACK.md`.
+
 ---
 
 ## 6. Michikusa (道草) library and later collections

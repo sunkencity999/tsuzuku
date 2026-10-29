@@ -91,8 +91,15 @@ frame a kentō registration mark. Three eras, one press — they differ in tempo
 - **It teaches even here.** Japanese in the chrome carries a reading with English beside it. On the Road's station signs
   and in the belt ceremony the reading is romaji while your belt is below Green and kana ruby from Green on (your
   furigana setting applies). The arcade's high-score tables compare you with your own record only.
+- **The Dojo is a print.** With the print pack built, the home stage is a woodblock print — Hiroshige and Hokusai from
+  the Art Institute of Chicago's CC0 open access — chosen by the calendar: one of 72 sheets by the kō (候, the five-day
+  micro-season) by day, one of 12 by the month at night. Each is captioned the way the chrome teaches — 歌川広重《三島 朝霧》,
+  Utagawa Hiroshige, *Mishima: Morning Mist*, then the series, the date and the museum's credit line — and the About page
+  credits every artist and the museum. The 55 stops of the Road, Nihonbashi to Kyoto, are the Hōeidō *Fifty-three
+  Stations of the Tōkaidō*: each station's headpiece and its thumb on the Road. The pack is a release asset like the
+  voice pack (`docs/ART_PACK.md`; ≈ 20 MB, no raster file in the repository); without it the drawn room stands.
 
-The spec's lead decisions (`09 §12.1`, 75 so far) and the frame-budget protocol (`docs/design/09-frame-protocol.md`)
+The spec's lead decisions (`09 §12.1`, 78 so far) and the frame-budget protocol (`docs/design/09-frame-protocol.md`)
 record what was measured — a headless stand-in whose rows still fail the 18 ms frame line under a software compositor —
 and what is still owed: the manual DevTools run and a ceremony pass. A static prototype of the language lives at
 `docs/design/09-prototype.html`.
@@ -145,10 +152,11 @@ Node 24+ (content pipeline scripts are TypeScript run directly by Node).
 | `docs/ARCHITECTURE.md`, `docs/CHANGELOG.md`, `docs/CONTRACT_NOTES.md` | binding shared contracts, contract-tier change log, integration notes |
 | `docs/CONTENT_GUIDE.md`, `docs/LISTENING_BRIEF.md`, `docs/station-allocation.md` | writer handbook with validation rules V01–V46; the listening writers' brief; the per-station quota plan |
 | `docs/AUDIO_PACK.md` | the voice-pack runbook and the pack / index / manifest shapes the clip runtime reads |
+| `docs/ART_PACK.md` | the print-pack runbook: curation, manifest and pointer shapes, the source → check → pack → publish → fetch pipeline, budgets, the museum facts and the credit rule |
 | `docs/content-plan.json`, `docs/module-plan.json` | every content file and source module, by owner |
 | `docs/BUILD_STATUS.md` | current module/test counts, what each group delivered, known gaps, next steps |
 | `docs/design-panel/` | the four original design proposals and judge scores this spec was synthesized from |
-| `.github/workflows/deploy.yml` | GitHub Pages CI (Node 24): validate content → build index → fetch the voice pack (optional) → test → build → check the pack → deploy (`content:assign` is an authoring step and never runs in CI) |
+| `.github/workflows/deploy.yml` | GitHub Pages CI (Node 24): validate content → build index → fetch the voice pack (optional) → fetch the print pack (optional) → test → build → check both packs → deploy (`content:assign` is an authoring step and never runs in CI) |
 | `LICENSE`, `CONTENT_LICENSE.md` | MIT for the code; CC BY-SA 4.0 for the corpus, allowlists and generated art (fonts: SIL OFL 1.1, `public/fonts/OFL-*.txt`); the voice pack's clips are VOICEVOX character audio under each character's terms, credited `VOICEVOX:<character>` |
 
 ## License

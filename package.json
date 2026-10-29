@@ -21,7 +21,12 @@
     "audio:pack": "node scripts/audio/pack.ts",
     "audio:publish": "node scripts/audio/publish.ts --dry-run",
     "audio:fetch": "node scripts/audio/fetch-audio-pack.ts",
-    "audio:check": "node scripts/audio/check-audio.ts"
+    "audio:check": "node scripts/audio/check-audio.ts",
+    "art:source": "node scripts/art/source-prints.ts",
+    "art:check": "node scripts/art/check-art.ts",
+    "art:pack": "node scripts/art/pack.ts",
+    "art:publish": "node scripts/art/publish.ts --dry-run",
+    "art:fetch": "node scripts/art/fetch-art-pack.ts"
   },
   "dependencies": {
     "@preact/signals": "2.11.3",

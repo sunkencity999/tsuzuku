@@ -94,18 +94,34 @@ describe('travelOf (design 09 §6.4)', () => {
 
 describe('heroFor (design 09 §6.4 table)', () => {
   it('boot → dojo carries the ensō; road → station the seal; train → dojo the つづく mark', () => {
-    expect(heroFor(null, dojo)).toEqual([{ name: 'enso', from: '.app-loading__mark', to: '.dojo-scene__art' }]);
+    expect(heroFor(null, dojo)).toEqual([{ name: 'enso', from: '.app-loading__mark', to: '.dojo__hero, .dojo-scene__art' }]);
     const [seal] = heroFor(road, station(7));
     expect(seal?.name).toBe('station-seal');
     expect(seal?.from).toContain('[data-station="7"]');
     expect(seal?.to).toBe('.station-head .sign');
-    expect(heroFor(train, dojo)).toEqual([{ name: 'tsuzuku-mark', from: '.end-card__brush', to: '.dojo-scene__hotspot--hearth' }]);
+    expect(heroFor(train, dojo)).toEqual([{ name: 'tsuzuku-mark', from: '.end-card__brush', to: '.dojo-scene__hotspot--hearth, .seal-tile[data-tile="days"]' }]);
   });
 
   it('other pairs have no hero (chrome holds still, main turns)', () => {
     expect(heroFor(dojo, road)).toEqual([]);
     expect(heroFor(null, road)).toEqual([]);
     expect(heroFor(station(3), road)).toEqual([]);
+  });
+
+  it('the Dojo landings exist in every stage mode (prints B2): with the print (or the waiting mat) up the ensō lands on the picture slot and the つづく mark on the days seal; with the drawn room up, on its art and its hearth as before', () => {
+    root.innerHTML = '<div class="dojo__hero dojo__hero-wait"></div><ul class="dojo__shelf"><li><a class="seal-tile" data-tile="days" href="#/records"></a></li></ul>';
+    nameNewHeroes(null, dojo);
+    nameNewHeroes(train, dojo);
+    expect(root.querySelector<HTMLElement>('.dojo__hero')?.style.getPropertyValue('view-transition-name')).toBe('enso');
+    expect(root.querySelector<HTMLElement>('.seal-tile')?.style.getPropertyValue('view-transition-name')).toBe('tsuzuku-mark');
+    cleanupTransition();
+    expect(root.querySelector<HTMLElement>('.dojo__hero')?.style.getPropertyValue('view-transition-name')).toBe('');
+    root.innerHTML = '<div class="dojo-scene__art"></div><a class="dojo-scene__hotspot--hearth" href="#/records"></a>';
+    nameNewHeroes(null, dojo);
+    nameNewHeroes(train, dojo);
+    expect(root.querySelector<HTMLElement>('.dojo-scene__art')?.style.getPropertyValue('view-transition-name')).toBe('enso');
+    expect(root.querySelector<HTMLElement>('.dojo-scene__hotspot--hearth')?.style.getPropertyValue('view-transition-name')).toBe('tsuzuku-mark');
+    cleanupTransition();
   });
 });
 
